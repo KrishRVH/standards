@@ -1,0 +1,32 @@
+{
+  "name": "standards-ts-tester",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.14",
+  "scripts": {
+    "build": "bun run typecheck",
+    "ci": "bun ci --loglevel=error",
+    "format:check": "prettier . --check",
+    "format:fix": "prettier . --write --cache --list-different",
+    "lint": "bun run lint:check",
+    "lint:check": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
+    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:fix\" \"bun:typecheck\" \"bun:format:fix\"",
+    "test": "bun run tests/math.test.ts",
+    "typecheck": "tsc --pretty --noEmit -p tsconfig.json",
+    "watch": "tsc --pretty --noEmit --watch -p tsconfig.json"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.0",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4"
+  }
+}
