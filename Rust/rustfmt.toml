@@ -1,7 +1,8 @@
 # rustfmt.toml - Stable features only
 
 # Basic formatting
-edition = "2021"
+edition = "2024"
+style_edition = "2024"
 hard_tabs = false
 tab_spaces = 4
 newline_style = "Unix"
