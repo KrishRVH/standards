@@ -1,13 +1,11 @@
-import prettier from 'eslint-config-prettier/flat';
-
-import { defineConfig, globalIgnores } from 'eslint/config';
-import globals from 'globals';
-
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import tseslint from 'typescript-eslint';
 import eslint from '@eslint/js';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import prettier from 'eslint-config-prettier/flat';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 /**
  * Flat config runs in ESM, so reconstruct __dirname for TS project service.
@@ -161,10 +159,7 @@ export default defineConfig(
       yoda: 'error',
 
       // TS hygiene / correctness
-      '@typescript-eslint/consistent-type-exports': [
-        'error',
-        { fixMixedExportsWithInlineTypeSpecifier: true },
-      ],
+      '@typescript-eslint/consistent-type-exports': ['error', { fixMixedExportsWithInlineTypeSpecifier: true }],
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
@@ -258,7 +253,10 @@ export default defineConfig(
       'no-restricted-syntax': [
         'error',
         { selector: "CallExpression[callee.name='require']", message: 'Do not use require(). Use ESM imports.' },
-        { selector: "MemberExpression[object.name='module'][property.name='exports']", message: 'Do not use module.exports. Use ESM exports.' },
+        {
+          selector: "MemberExpression[object.name='module'][property.name='exports']",
+          message: 'Do not use module.exports. Use ESM exports.',
+        },
         { selector: "MemberExpression[object.name='exports']", message: 'Do not use exports.*. Use ESM exports.' },
       ],
     },
