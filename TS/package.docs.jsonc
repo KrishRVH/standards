@@ -9,9 +9,7 @@
   "private": true,
 
   /**
-   * Treat `.js` files as ESM by default for Node/tooling.
-   * Aligns with TS `module: ESNext` and ESLint `sourceType: module`.
-   * If you ever need CJS, use `.cjs` explicitly.
+   * Bun is the only package manager assumed by this baseline.
    */
   "type": "module",
 
@@ -23,21 +21,14 @@
     "build": "bun run typecheck",
 
     /**
-     * Deterministic CI install from lockfile, with reduced log noise.
-     * Replace with `pbun install --frozen-lockfile`, `bun install --frozen-lockfile`,
-     * or another package-manager-specific command when appropriate.
+     * Deterministic CI install from bun.lock, with reduced log noise.
      */
-    "ci:install": "bun ci --loglevel=error",
+    "ci": "bun ci --loglevel=error",
 
     /**
-     * Format gate:
-     * - fails if formatting differs
-     * - `--end-of-line auto` avoids cross-OS EOL failures (Windows/macOS/Linux)
-     *
-     * NOTE: This is intentionally tolerant, even though Prettier config sets endOfLine=lf.
-     * Decide policy: strict LF everywhere OR tolerant checks. This is the "tolerant checks" choice.
+     * Format gate.
      */
-    "format:check": "prettier . --check --end-of-line auto",
+    "format:check": "prettier . --check",
 
     /**
      * Format fixer:
@@ -56,14 +47,14 @@
      * Lint gate:
      * - `--max-warnings 0` makes warnings fail CI (hard baseline)
      */
-    "lint:check": "eslint --max-warnings 0 --color .",
+    "lint:check": "eslint . --max-warnings 0",
 
     /**
      * Lint fixer:
      * - applies safe auto-fixes
      * - still fails on remaining warnings/errors
      */
-    "lint:fix": "eslint --max-warnings 0 --color --fix .",
+    "lint:fix": "eslint . --fix --max-warnings 0",
 
     /**
      * Run all quality gates concurrently:
@@ -73,13 +64,13 @@
      *
      * Parallelizing improves DX and CI feedback speed.
      */
-    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun run lint:check\" \"bun run typecheck\" \"bun run format:check\"",
+    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
 
     /**
      * Fix what can be fixed (eslint + prettier) while still running typecheck.
      * Typecheck is a gate; it does not have a fix mode.
      */
-    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun run lint:fix\" \"bun run typecheck\" \"bun run format:fix\"",
+    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:fix\" \"bun:typecheck\" \"bun:format:fix\"",
 
     /**
      * Typecheck-only:
@@ -98,25 +89,22 @@
 
   "devDependencies": {
     /** ESLint core configs for flat-config. */
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^10.0.1",
 
     /** Parallel runner for standards scripts. */
     "concurrently": "^10.0.0",
 
-    "eslint": "^9.39.2",
+    "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-import-helpers": "^2.0.1",
-    "globals": "^17.0.0",
+    "globals": "^17.6.0",
 
     /** Formatter (formatting is delegated to Prettier; ESLint formatting rules are disabled). */
-    "prettier": "^3.8.0",
+    "prettier": "^3.8.3",
 
     /** TypeScript compiler used for typechecking. */
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
 
     /** TS-aware ESLint parser + rules. */
-    "typescript-eslint": "^8.53.1"
+    "typescript-eslint": "^8.59.4"
   }
 }
