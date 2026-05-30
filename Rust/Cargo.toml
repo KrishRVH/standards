@@ -1,11 +1,12 @@
 [package]
 name = "project-name"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
 
-# Strict-by-default linting baseline.
+# Practical strict-by-default linting baseline.
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "allow"
@@ -20,6 +21,14 @@ suspicious = { level = "deny", priority = -1 }
 complexity = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
+
+# Numeric casts are common at system and boundary layers. Tighten per project
+# when conversions need stronger guarantees.
+cast_lossless = "allow"
+cast_sign_loss = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
 
 # Specific lints with higher priority
 unwrap_used = "warn"
@@ -51,7 +60,9 @@ uninlined_format_args = "allow"
 overflow-checks = true
 
 [profile.release]
+debug = false
 opt-level = 3
-lto = true
+lto = "fat"
+panic = "abort"
 codegen-units = 1
-overflow-checks = true
+strip = true
