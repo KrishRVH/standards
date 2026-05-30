@@ -1,0 +1,19 @@
+[tasks."rust:fmt"]
+description = "Format Rust code"
+run = "cargo fmt --all"
+
+[tasks."rust:fmt:check"]
+description = "Check Rust formatting"
+run = "cargo fmt --all -- --check"
+
+[tasks."rust:lint"]
+description = "Run Clippy for all Rust targets/features"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks."rust:test"]
+description = "Run Rust tests"
+run = "cargo test --all-targets --all-features"
+
+[tasks."rust:check"]
+description = "Run Rust formatting, linting, and tests"
+depends = ["rust:fmt:check", "rust:lint", "rust:test"]

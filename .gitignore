@@ -31,7 +31,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Dependency directories
-/node_modules/
+node_modules/
 /vendor/
 
 # Generic generated output
@@ -53,6 +53,20 @@ pnpm-debug.log*
 /.svelte-kit/
 /.turbo/
 /.vite/
+
+# mise
+mise.local.toml
+mise.*.local.toml
+.mise.local.toml
+.mise.*.local.toml
+mise.local.lock
+mise.*.local.lock
+.mise.local.lock
+.mise.*.local.lock
+
+# Dagger module local output
+/dagger/.turbo/
+/dagger/dist/
 
 # PHP
 /.deptrac.cache

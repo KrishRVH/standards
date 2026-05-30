@@ -1,0 +1,27 @@
+[tasks."csharp:restore"]
+description = "Restore .NET dependencies"
+run = "dotnet restore"
+
+[tasks."csharp:fmt"]
+description = "Format C# code"
+depends = ["csharp:restore"]
+run = "dotnet format"
+
+[tasks."csharp:fmt:check"]
+description = "Check C# formatting"
+depends = ["csharp:restore"]
+run = "dotnet format --verify-no-changes"
+
+[tasks."csharp:lint"]
+description = "Build C# with analyzers enabled"
+depends = ["csharp:restore"]
+run = "dotnet build --no-restore -warnaserror"
+
+[tasks."csharp:test"]
+description = "Run C# tests"
+depends = ["csharp:restore"]
+run = "dotnet test --no-restore"
+
+[tasks."csharp:check"]
+description = "Run C# formatting, analysis, and tests"
+depends = ["csharp:fmt:check", "csharp:lint", "csharp:test"]

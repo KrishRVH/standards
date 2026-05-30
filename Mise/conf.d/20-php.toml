@@ -1,0 +1,28 @@
+[tasks."php:install"]
+description = "Install PHP dependencies"
+run = "composer install"
+
+[tasks."php:fmt"]
+description = "Auto-fix PHP style issues"
+depends = ["php:install"]
+run = "composer phpcbf"
+
+[tasks."php:fmt:check"]
+description = "Check PHP formatting/style"
+depends = ["php:install"]
+run = "composer phpcs"
+
+[tasks."php:lint"]
+description = "Run PHP lint/static-analysis checks"
+depends = ["php:install"]
+run = "composer lint"
+
+[tasks."php:test"]
+description = "Run PHP tests"
+depends = ["php:install"]
+run = "composer test"
+
+[tasks."php:check"]
+description = "Run the PHP project check script"
+depends = ["php:install"]
+run = "composer check"
