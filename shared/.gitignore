@@ -1,10 +1,12 @@
-# Repository maintenance ignores. Keep copyable consumer defaults in
-# `shared/.gitignore`.
+# Intent: ignore generated/local artifacts only. Keep lockfiles, fixtures,
+# corpora, examples, Makefiles, and shared editor config visible by default.
 
-# OS/editor noise
+# OS files
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Editor temporary files, not editor project config
 *.swp
 *.swo
 *~
@@ -31,7 +33,6 @@ pnpm-debug.log*
 # Dependency directories
 node_modules/
 /vendor/
-/testers/**/vendor/
 
 # Generic generated output
 /.cache/
@@ -39,11 +40,6 @@ node_modules/
 /coverage/
 /dist/
 /out/
-/testers/**/.cache/
-/testers/**/build/
-/testers/**/coverage/
-/testers/**/dist/
-/testers/**/out/
 
 # JavaScript / TypeScript
 *.tsbuildinfo
@@ -58,7 +54,7 @@ node_modules/
 /.turbo/
 /.vite/
 
-# mise local state
+# mise
 mise.local.toml
 mise.*.local.toml
 .mise.local.toml
@@ -71,10 +67,8 @@ mise.*.local.lock
 # Dagger module local output
 /dagger/.turbo/
 /dagger/dist/
-/testers/**/dagger/.turbo/
-/testers/**/dagger/dist/
 
-# PHP generated output
+# PHP
 /.deptrac.cache
 /.infection/
 /.pdepend/
@@ -90,25 +84,10 @@ mise.*.local.lock
 /composer.phar
 /var/cache/
 /var/log/
-/testers/**/.deptrac.cache
-/testers/**/.infection/
-/testers/**/.pdepend/
-/testers/**/.php-cs-fixer.cache
-/testers/**/.php-cs-fixer.php.cache
-/testers/**/.phpbench/
-/testers/**/.phpunit.cache/
-/testers/**/.phpunit.result.cache
-/testers/**/.phpstan.cache
-/testers/**/.phpstan.cache/
-/testers/**/.psalm-cache/
-/testers/**/.psalm/cache/
-/testers/**/.rector-cache/
-/testers/**/var/cache/
-/testers/**/var/log/
 infection-summary.log
 infection.log
 
-# C# / .NET generated output
+# C# / .NET
 /.vs/
 /artifacts/
 /TestResults/
@@ -123,7 +102,7 @@ infection.log
 *.user
 *.userosscache
 
-# C / CMake generated output
+# C / CMake
 /CMakeCache.txt
 /CMakeFiles/
 /CTestTestfile.cmake
@@ -145,20 +124,12 @@ infection.log
 *.profraw
 *.so
 *.dSYM/
-/testers/**/CMakeCache.txt
-/testers/**/CMakeFiles/
-/testers/**/CTestTestfile.cmake
-/testers/**/DartConfiguration.tcl
-/testers/**/Testing/
-/testers/**/cmake_install.cmake
-/testers/**/compile_commands.json
 
 # Rust
 /target/
 **/*.rs.bk
 
-# Lua generated output
+# Lua
 .luacheckcache
 *.luac
 luac.out
-/testers/**/.lua_modules/

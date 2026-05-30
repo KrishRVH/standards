@@ -1,0 +1,6 @@
+{
+  "name": "project-ci",
+  "sdk": "typescript",
+  "source": "dagger",
+  "include": ["!dagger/node_modules", "!dagger/dist", "!dagger/.turbo", "!dagger/.tsbuildinfo"]
+}

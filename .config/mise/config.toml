@@ -1,0 +1,22 @@
+[tasks.tasks]
+description = "List available project tasks"
+run = "mise tasks"
+
+[tasks."testers:check"]
+description = "Run all non-C#/Rust tester mini projects through mise"
+run = """
+set -eu
+
+root="$(pwd)"
+for project in testers/c testers/lua testers/php testers/ts; do
+  echo "==> $project"
+  (
+    cd "$project"
+    MISE_TRUSTED_CONFIG_PATHS="$root" mise run check:local
+  )
+done
+"""
+
+[tasks.check]
+description = "Run the standards repository verification gate"
+depends = ["testers:check"]

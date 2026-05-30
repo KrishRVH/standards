@@ -1,0 +1,127 @@
+{
+  "license": "MIT",
+  "name": "vendor/project",
+  "description": "Reusable PHP quality-tooling baseline.",
+  "type": "project",
+  "authors": [{"name": "Project Maintainers"}],
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "ergebnis/composer-normalize": true,
+      "infection/extension-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  },
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "deptrac/deptrac": "^4.6.0",
+    "ergebnis/composer-normalize": "^2.50.0",
+    "icanhazstring/composer-unused": "^0.9.6",
+    "infection/infection": "^0.32.0",
+    "maglnet/composer-require-checker": "^4.20.0",
+    "phpbench/phpbench": "^1.4.3",
+    "phpmd/phpmd": "^2.15.0",
+    "phpstan/extension-installer": "^1.4.3",
+    "phpstan/phpstan": "^2.1.39",
+    "phpstan/phpstan-phpunit": "^2.0.15",
+    "phpstan/phpstan-strict-rules": "^2.0.10",
+    "phpunit/phpunit": "^12.5.11",
+    "psalm/plugin-phpunit": "^0.19.5",
+    "rector/rector": "^2.3.6",
+    "roave/infection-static-analysis-plugin": "^1.43.0",
+    "roave/security-advisories": "dev-latest",
+    "shipmonk/composer-dependency-analyser": "^1.8.4",
+    "slevomat/coding-standard": "^8.27.1",
+    "squizlabs/php_codesniffer": "^4.0.1",
+    "vimeo/psalm": "^6.15.1"
+  },
+  "scripts": {
+    "analyze": [
+      "@phpstan",
+      "@psalm"
+    ],
+    "bench": "phpbench run --report=aggregate",
+    "check": [
+      "@lint",
+      "@test"
+    ],
+    "ci": [
+      "@check",
+      "@infection"
+    ],
+    "deep-check": [
+      "@normalize:check",
+      "@lint",
+      "@test",
+      "@infection",
+      "@bench",
+      "@deps",
+      "@rector:dry"
+    ],
+    "dependency-analyser": "composer-dependency-analyser",
+    "deps": [
+      "@dependency-analyser",
+      "@unused",
+      "@require-check"
+    ],
+    "deptrac": "deptrac analyze",
+    "infection": "infection",
+    "lint": [
+      "@style",
+      "@analyze",
+      "@deptrac"
+    ],
+    "normalize:check": "composer normalize --dry-run --diff",
+    "phpcbf": "phpcbf",
+    "phpcs": "phpcs",
+    "phpmd": "HOME=. php -d error_reporting='E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED' vendor/bin/phpmd src text phpmd.xml",
+    "phpstan": "php -d disable_functions=proc_open vendor/bin/phpstan analyse --memory-limit=512M",
+    "psalm": "psalm",
+    "rector": "rector process",
+    "rector:dry": "rector process --dry-run",
+    "require-check": "composer-require-checker check",
+    "style": [
+      "@phpcs",
+      "@phpmd"
+    ],
+    "test": "phpunit",
+    "unused": "composer-unused"
+  },
+  "scripts-descriptions": {
+    "analyze": "Run static analysis (PHPStan + Psalm).",
+    "bench": "Run microbenchmarks with PHPBench (aggregate report).",
+    "check": "Run the standard local checks (lint + tests).",
+    "ci": "Run CI pipeline (check + mutation testing).",
+    "deep-check": "Run the full, expensive quality gate (normalize, lint, tests, mutation, benches, dependency checks, rector dry-run).",
+    "dependency-analyser": "Analyze dependency usage correctness (shipmonk/composer-dependency-analyser).",
+    "deps": "Run dependency hygiene suite (dependency analyser + unused deps + require-check).",
+    "deptrac": "Run architecture/dependency rules analysis (Deptrac).",
+    "infection": "Run mutation testing.",
+    "lint": "Run lint suite (style + static analysis + architecture checks).",
+    "normalize:check": "Verify composer.json is normalized (dry-run + diff).",
+    "phpcbf": "Auto-fix coding standard violations (PHPCBF).",
+    "phpcs": "Check coding standards (PHPCS).",
+    "phpmd": "Run PHPMD ruleset checks on src/.",
+    "phpstan": "Run PHPStan analysis.",
+    "psalm": "Run Psalm analysis.",
+    "rector": "Apply Rector automated refactorings.",
+    "rector:dry": "Preview Rector refactorings without modifying files (dry-run).",
+    "require-check": "Verify composer.json requirements match actual used symbols (composer-require-checker).",
+    "style": "Run style checks (PHPCS + PHPMD).",
+    "test": "Run unit tests (PHPUnit).",
+    "unused": "Detect unused composer dependencies."
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  }
+}

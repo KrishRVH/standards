@@ -13,3 +13,6 @@ repeatable CI gates.
 
 Developer and CI entrypoints are expected to run through mise. Dagger is pinned
 and invoked by mise for isolated CI execution.
+
+`testers/` contains small standalone projects for exercising the non-C#/Rust
+language stacks through the copied mise layout.
