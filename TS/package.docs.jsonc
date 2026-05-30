@@ -1,0 +1,133 @@
+// package.docs.jsonc
+// NOTE: package.json itself must remain strict JSON (no comments). Keep this as a doc twin.
+{
+  /**
+   * Project metadata.
+   * `private: true` prevents accidental publish.
+   */
+  "name": "project-name",
+  "version": "0.1.0",
+  "private": true,
+
+  /**
+   * Treat `.js` files as ESM by default for Node/tooling.
+   * Aligns with TS `module: ESNext` and ESLint `sourceType: module`.
+   * If you ever need CJS, use `.cjs` explicitly.
+   */
+  "type": "module",
+
+  "scripts": {
+    /**
+     * Production build/type gate placeholder.
+     * Replace this when a project has a framework or bundler build step.
+     */
+    "build": "npm run typecheck",
+
+    /**
+     * Deterministic CI install from lockfile, with reduced log noise.
+     * Replace with `pnpm install --frozen-lockfile`, `bun install --frozen-lockfile`,
+     * or another package-manager-specific command when appropriate.
+     */
+    "ci:install": "npm ci --loglevel=error",
+
+    /**
+     * Format gate:
+     * - fails if formatting differs
+     * - `--end-of-line auto` avoids cross-OS EOL failures (Windows/macOS/Linux)
+     *
+     * NOTE: This is intentionally tolerant, even though Prettier config sets endOfLine=lf.
+     * Decide policy: strict LF everywhere OR tolerant checks. This is the "tolerant checks" choice.
+     */
+    "format:check": "prettier . --check --end-of-line auto",
+
+    /**
+     * Format fixer:
+     * - writes changes
+     * - caches results for speed
+     * - lists changed files for useful output in logs
+     */
+    "format:fix": "prettier . --write --cache --list-different",
+
+    /**
+     * Lint shortcut.
+     */
+    "lint": "npm run lint:check",
+
+    /**
+     * Lint gate:
+     * - `--max-warnings 0` makes warnings fail CI (hard baseline)
+     */
+    "lint:check": "eslint --max-warnings 0 --color .",
+
+    /**
+     * Lint fixer:
+     * - applies safe auto-fixes
+     * - still fails on remaining warnings/errors
+     */
+    "lint:fix": "eslint --max-warnings 0 --color --fix .",
+
+    /**
+     * Run all quality gates concurrently:
+     * - eslint (rules)
+     * - tsc (typecheck)
+     * - prettier (format check)
+     *
+     * Parallelizing improves DX and CI feedback speed.
+     */
+    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"npm run lint:check\" \"npm run typecheck\" \"npm run format:check\"",
+
+    /**
+     * Fix what can be fixed (eslint + prettier) while still running typecheck.
+     * Typecheck is a gate; it does not have a fix mode.
+     */
+    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"npm run lint:fix\" \"npm run typecheck\" \"npm run format:fix\"",
+
+    /**
+     * Typecheck-only:
+     * - `--noEmit` ensures no output
+     * - pinned to this repo's tsconfig
+     */
+    "typecheck": "tsc --pretty --noEmit -p tsconfig.json",
+
+    /**
+     * Typecheck continuously during development.
+     */
+    "watch": "tsc --pretty --noEmit --watch -p tsconfig.json"
+  },
+
+  "dependencies": {},
+
+  "devDependencies": {
+    /**
+     * ESLint core configs for flat-config.
+     */
+    "@eslint/js": "^9.39.2",
+
+    /**
+     * Parallel runner for standards scripts.
+     */
+    "concurrently": "^9.2.1",
+
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-helpers": "^2.0.1",
+    "globals": "^17.0.0",
+
+    /**
+     * Formatter (formatting is delegated to Prettier; ESLint formatting rules are disabled).
+     */
+    "prettier": "^3.8.0",
+
+    /**
+     * TypeScript compiler used for typechecking.
+     */
+    "typescript": "^5.9.3",
+
+    /**
+     * TS-aware ESLint parser + rules.
+     */
+    "typescript-eslint": "^8.53.1"
+  }
+}
