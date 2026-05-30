@@ -10,8 +10,8 @@
     "node_modules"
   ],
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    "target": "ES2024",
+    "lib": ["ES2024"],
     "module": "ESNext",
     "moduleDetection": "force",
     "moduleResolution": "bundler",

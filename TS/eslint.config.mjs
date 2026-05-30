@@ -1,6 +1,4 @@
 import prettier from 'eslint-config-prettier/flat';
-import importPlugin from 'eslint-plugin-import';
-import importHelpers from 'eslint-plugin-import-helpers';
 
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
@@ -8,23 +6,22 @@ import globals from 'globals';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import TSESLint from 'typescript-eslint';
+import tseslint from 'typescript-eslint';
 import eslint from '@eslint/js';
 
 /**
- * Flat config runs in ESM, so reconstruct __dirname for relative path resolution.
- * Used for import resolver + TS project service root.
+ * Flat config runs in ESM, so reconstruct __dirname for TS project service.
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// eslint-disable-next-line import/no-default-export
+// eslint-disable-next-line no-restricted-exports
 export default defineConfig(
   /**
    * 1) Global ignores (applies regardless of CLI globs)
    * Intent: never lint generated output, vendor deps, coverage, or TS incremental cache files.
    */
   globalIgnores(
-    ['**/dist/**', '**/build/**', '**/coverage/**', '**/node_modules/**', '**/*.tsbuildinfo'],
+    ['**/dist/**', '**/build/**', '**/out/**', '**/coverage/**', '**/node_modules/**', '**/*.tsbuildinfo'],
     'base/global-ignores',
   ),
 
@@ -34,99 +31,85 @@ export default defineConfig(
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
 
   /**
-   * 3) Import correctness + import ordering policy.
-   * - eslint-plugin-import => correctness
-   * - eslint-plugin-import-helpers => deterministic ordering/grouping
+   * 3) Global language assumptions.
+   * Add browser, node, test-runner, or framework globals in project-specific overlays.
    */
   {
-    name: 'base/import/overrides',
-    plugins: { 'import-helpers': importHelpers },
-    extends: [importPlugin.flatConfigs.recommended, importPlugin.flatConfigs.typescript],
-    settings: {
-      /**
-       * Teach eslint-plugin-import how to resolve TS path aliases and node resolution.
-       */
-      'import/resolver': {
-        typescript: { alwaysTryTypes: true, project: path.join(__dirname, 'tsconfig.json') },
-        node: true,
+    name: 'base/language',
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: 'module',
+      globals: {
+        ...globals.es2024,
       },
     },
+  },
+
+  /**
+   * 4) Parse all TS/TSX files, including config files outside src/tests.
+   * Type-aware rules are scoped below so config files do not need to be in tsconfig.json.
+   */
+  {
+    name: 'typescript/parse-only',
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        ecmaVersion: 2024,
+        sourceType: 'module',
+      },
+    },
+  },
+
+  /**
+   * 5) Import/export baseline using ESLint core rules only.
+   * This avoids eslint-plugin-import compatibility churn while preserving the key policies:
+   * - no duplicate imports
+   * - sorted import specifiers
+   * - no default exports
+   */
+  {
+    name: 'imports/baseline',
+    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
     rules: {
-      // Reduce duplication with TS + modern ESM (keep signal high).
-      'import/default': 'off',
-      'import/named': 'off',
-      'import/namespace': 'off',
-
-      /**
-       * Cycle detection can be expensive on large graphs; disable by default.
-       * If architectural cycle enforcement matters, enable it in CI-only or a deep lint script.
-       */
-      'import/no-cycle': 'off',
-
-      /**
-       * Named exports are more grep/refactor friendly.
-       */
-      'import/no-default-export': 'error',
-
-      'import/no-named-as-default-member': 'off',
-
-      /**
-       * Allow bundler-style asset imports without false positives.
-       * Double-escaped `\\.` matches a literal dot in the RegExp.
-       */
-      'import/no-unresolved': [
-        'error',
-        { ignore: ['\\.(css|scss|sass|less)$', '\\.(svg|png|jpg|jpeg|webp)$'] },
-      ],
-
-      // Use import-helpers for ordering instead.
-      'import/order': 'off',
-      'import/prefer-default-export': 'off',
-
-      /**
-       * Enforce stable, readable import blocks:
-       * 1) Node built-ins using the node: protocol
-       * 2) third-party modules
-       * 3) local aliases (@/*, if the project uses one)
-       * 4) relative imports
-       */
-      'import-helpers/order-imports': [
+      'no-duplicate-imports': 'error',
+      'no-restricted-exports': [
         'error',
         {
-          groups: ['/^node:/', 'module', '/^@/', ['parent', 'sibling', 'index']],
-          alphabetize: { order: 'asc', ignoreCase: true },
+          restrictDefaultExports: {
+            direct: true,
+            named: true,
+            defaultFrom: true,
+            namedFrom: true,
+            namespaceFrom: true,
+          },
+        },
+      ],
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: false,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          allowSeparatedGroups: true,
         },
       ],
     },
   },
 
   /**
-   * 4) Global language assumptions.
-   * Add browser, node, test-runner, or framework globals in project-specific overlays.
+   * 6) TS/TSX: type-aware linting (the main bug-catching layer).
    */
   {
-    name: 'base/language',
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        ...globals.es2022,
-      },
-    },
-  },
-
-  /**
-   * 5) TS/TSX: type-aware linting (the main bug-catching layer).
-   */
-  {
-    name: 'TS+TSX',
-    files: ['**/*.{ts,tsx}'],
+    name: 'typescript/strict-typechecked',
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
     ignores: ['**/*.d.ts'],
     languageOptions: {
-      parser: TSESLint.parser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: { jsx: true },
-        ecmaVersion: 2022,
+        ecmaVersion: 2024,
 
         /**
          * Enable TS project service for type-aware rules (no-floating-promises, etc.).
@@ -135,7 +118,7 @@ export default defineConfig(
         tsconfigRootDir: __dirname,
       },
     },
-    extends: [...TSESLint.configs.strictTypeChecked],
+    extends: [...tseslint.configs.strictTypeChecked],
     rules: {
       /**
        * Ban TS constructs that require special emit semantics or obscure module structure.
@@ -238,58 +221,62 @@ export default defineConfig(
       ],
     },
   },
+
+  /**
+   * 7) d.ts: allow declare global/module while keeping erasable-syntax bans.
+   */
   {
-    name: 'types/dts-ambient-ok',
+    name: 'typescript/dts-ambient-ok',
     files: ['**/*.d.ts'],
     languageOptions: {
-      parser: TSESLint.parser,
+      parser: tseslint.parser,
       parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: 2024,
         sourceType: 'module',
       },
     },
     rules: {
-      // Re-define the entire rule list for d.ts files:
       'no-restricted-syntax': [
         'error',
-
-        // Keep enum ban.
         { selector: 'TSEnumDeclaration', message: 'Do not use TypeScript enums. Use as const objects + union types.' },
-
-        // Keep other TS emit bans. They are usually irrelevant in d.ts, but harmless.
         { selector: 'TSParameterProperty', message: 'No parameter properties.' },
         { selector: 'TSImportEqualsDeclaration', message: 'No import =.' },
         { selector: 'TSExportAssignment', message: 'No export =.' },
-
-        // Intentionally no TSModuleDeclaration ban here: allows `declare global {}` and `declare module "x" {}`.
       ],
     },
   },
 
   /**
-   * 6) JS files: disable type-aware TS rules for performance + correctness (no TS project context).
-   * Still enforce ESM-only and import hygiene.
+   * 8) JS files: disable type-aware TS rules for performance + correctness.
+   * Still enforce ESM-only without eslint-plugin-import.
    */
   {
-    name: 'JS+JSX',
-    files: ['**/*.js', '**/*.mjs', '**/*.jsx'],
-    extends: [TSESLint.configs.disableTypeChecked],
-    rules: { 'import/no-commonjs': 'error' },
+    name: 'javascript/esm-only',
+    files: ['**/*.{js,mjs,jsx}'],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: "CallExpression[callee.name='require']", message: 'Do not use require(). Use ESM imports.' },
+        { selector: "MemberExpression[object.name='module'][property.name='exports']", message: 'Do not use module.exports. Use ESM exports.' },
+        { selector: "MemberExpression[object.name='exports']", message: 'Do not use exports.*. Use ESM exports.' },
+      ],
+    },
   },
 
   /**
-   * 7) Prettier must come last to turn off conflicting formatting rules.
+   * 9) Prettier must come last to turn off conflicting formatting rules.
    */
   { ...prettier, name: 'prettier/config' },
 
   /**
-   * 8) Re-enable specific rules you want even if Prettier disables them.
+   * 10) Re-enable specific rules you want even if Prettier disables them.
    * Here: always require braces for blocks.
    */
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 9) Hygiene: fail if eslint-disable comments are unused.
+   * 11) Hygiene: fail if eslint-disable comments are unused.
    */
   { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
 );
