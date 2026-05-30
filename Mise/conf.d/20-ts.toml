@@ -1,0 +1,72 @@
+[tasks."ts:install"]
+description = "Install JavaScript/TypeScript dependencies"
+run = """
+if [ -f bun.lock ] || [ -f bun.lockb ]; then
+  bun install --frozen-lockfile
+elif [ -f pnpm-lock.yaml ]; then
+  corepack enable
+  pnpm install --frozen-lockfile
+elif [ -f yarn.lock ]; then
+  corepack enable
+  yarn install --immutable
+elif [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+  npm ci
+else
+  npm install
+fi
+"""
+
+[tasks."ts:run"]
+description = "Run a package-manager script: mise run ts:run -- <script>"
+run = """
+script="${1:?script name required}"
+shift || true
+
+if [ -f bun.lock ] || [ -f bun.lockb ]; then
+  bun run "$script" "$@"
+elif [ -f pnpm-lock.yaml ]; then
+  pnpm run "$script" -- "$@"
+elif [ -f yarn.lock ]; then
+  yarn run "$script" "$@"
+else
+  npm run "$script" -- "$@"
+fi
+"""
+
+[tasks."ts:fmt"]
+description = "Format TypeScript/JavaScript"
+depends = ["ts:install"]
+run = "mise run ts:run -- format:fix"
+
+[tasks."ts:fmt:check"]
+description = "Check TypeScript/JavaScript formatting"
+depends = ["ts:install"]
+run = "mise run ts:run -- format:check"
+
+[tasks."ts:lint"]
+description = "Lint TypeScript/JavaScript"
+depends = ["ts:install"]
+run = "mise run ts:run -- lint:check"
+
+[tasks."ts:test"]
+description = "Run TypeScript/JavaScript tests when configured"
+depends = ["ts:install"]
+run = """
+if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"; then
+  mise run ts:run -- test
+else
+  echo "No package.json test script configured."
+fi
+"""
+
+[tasks."ts:check"]
+description = "Run TypeScript/JavaScript standards check"
+depends = ["ts:install"]
+run = """
+if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['standards:check'] ? 0 : 1)"; then
+  mise run ts:run -- standards:check
+else
+  mise run ts:lint
+  mise run ts:fmt:check
+fi
+"""

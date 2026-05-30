@@ -1,0 +1,25 @@
+[tasks."lua:fmt"]
+description = "Format Lua code"
+run = "stylua ."
+
+[tasks."lua:fmt:check"]
+description = "Check Lua formatting"
+run = "stylua --check ."
+
+[tasks."lua:lint"]
+description = "Run Luacheck"
+run = "luacheck ."
+
+[tasks."lua:test"]
+description = "Run Lua tests when a test runner is configured"
+run = """
+if [ -f busted.lua ] || [ -d spec ] || [ -d specs ]; then
+  busted
+else
+  echo "No Lua test runner detected."
+fi
+"""
+
+[tasks."lua:check"]
+description = "Run Lua formatting, linting, and tests"
+depends = ["lua:fmt:check", "lua:lint", "lua:test"]

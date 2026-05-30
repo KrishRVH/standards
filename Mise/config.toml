@@ -1,0 +1,195 @@
+# Copy to .config/mise/config.toml.
+
+[settings]
+lockfile = true
+
+[tools]
+# Keep Dagger pinned here so both local CI runs and hosted CI use the same CLI.
+dagger = "0.21.3"
+
+[tasks.install]
+description = "Install pinned project tools"
+run = "mise install"
+
+[tasks.lock]
+description = "Refresh mise.lock after tool-version changes"
+run = "mise lock"
+
+[tasks.doctor]
+description = "Inspect mise configuration and installed tools"
+run = "mise doctor"
+
+[tasks.tasks]
+description = "List available project tasks"
+run = "mise tasks"
+
+[tasks.fmt]
+description = "Format the project using detected language tasks"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:fmt
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:fmt
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:fmt
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ]; then
+  mise run c:fmt
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:fmt
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+  mise run lua:fmt
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No formatter tasks detected."
+fi
+"""
+
+[tasks."fmt:check"]
+description = "Check formatting using detected language tasks"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:fmt:check
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:fmt:check
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:fmt:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ]; then
+  mise run c:fmt:check
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:fmt:check
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+  mise run lua:fmt:check
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No formatting checks detected."
+fi
+"""
+
+[tasks.lint]
+description = "Lint/analyze using detected language tasks"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:lint
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:lint
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:lint
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ]; then
+  mise run c:lint
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:lint
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+  mise run lua:lint
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No lint tasks detected."
+fi
+"""
+
+[tasks.test]
+description = "Run tests using detected language tasks"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:test
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:test
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:test
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ]; then
+  mise run c:test
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:test
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No test tasks detected."
+fi
+"""
+
+[tasks."check:local"]
+description = "Run all checks directly on the current machine"
+depends = ["fmt:check", "lint", "test"]
+
+[tasks.check]
+description = "Run all checks through Dagger"
+depends = ["dagger:check"]
+
+[tasks.ci]
+description = "Run the CI pipeline through Dagger"
+depends = ["dagger:ci"]

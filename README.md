@@ -10,3 +10,6 @@ different layout or architectural boundary.
 These defaults optimize for strict local feedback: formatting, linting, static
 analysis, dependency hygiene, tests, mutation testing where practical, and
 repeatable CI gates.
+
+Developer and CI entrypoints are expected to run through mise. Dagger is pinned
+and invoked by mise for isolated CI execution.

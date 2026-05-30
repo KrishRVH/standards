@@ -1,0 +1,19 @@
+[tasks."dagger:develop"]
+description = "Regenerate/update Dagger module bindings"
+run = "dagger develop"
+
+[tasks."dagger:functions"]
+description = "List Dagger module functions"
+run = "dagger functions"
+
+[tasks."dagger:check"]
+description = "Run local checks inside Dagger"
+run = "dagger call check --source=."
+
+[tasks."dagger:ci"]
+description = "Run the CI pipeline inside Dagger"
+run = "dagger call ci --source=."
+
+[tasks."dagger:shell"]
+description = "Open an interactive Dagger shell"
+run = "dagger shell"

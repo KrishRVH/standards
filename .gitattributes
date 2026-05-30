@@ -20,11 +20,14 @@
 *.hpp text
 *.hxx text
 *.cs text diff=csharp
+*.cshtml text
 *.csx text diff=csharp
 *.fs text
 *.fsi text
 *.fsx text
+*.razor text
 *.vb text
+*.xaml text
 *.js text
 *.jsx text
 *.cjs text
@@ -66,6 +69,7 @@ Makefile text
 *.ruleset text
 *.shproj text
 *.sln text
+*.slnf text
 *.slnx text
 *.targets text
 *.toml text
