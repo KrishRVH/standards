@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "skipLibCheck": true,
-    "noEmit": true,
     "paths": {
       "@dagger.io/dagger": ["./sdk/index.ts"],
       "@dagger.io/dagger/*": ["./sdk/*"]
-    }
+    },
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022"
   },
-  "include": ["src/**/*.ts", "sdk/**/*.ts"]
+  "include": ["sdk/**/*.ts", "src/**/*.ts"]
 }

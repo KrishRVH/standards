@@ -1,18 +1,13 @@
 {
-  "license": "MIT",
   "name": "vendor/project",
   "description": "Reusable PHP quality-tooling baseline.",
+  "license": "MIT",
   "type": "project",
-  "authors": [{"name": "Project Maintainers"}],
-  "config": {
-    "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true,
-      "ergebnis/composer-normalize": true,
-      "infection/extension-installer": true,
-      "phpstan/extension-installer": true
-    },
-    "sort-packages": true
-  },
+  "authors": [
+    {
+      "name": "Project Maintainers"
+    }
+  ],
   "require": {
     "php": ">=8.5"
   },
@@ -37,6 +32,25 @@
     "slevomat/coding-standard": "^8.27.1",
     "squizlabs/php_codesniffer": "^4.0.1",
     "vimeo/psalm": "^6.15.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "ergebnis/composer-normalize": true,
+      "infection/extension-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
   },
   "scripts": {
     "analyze": [
@@ -113,15 +127,5 @@
     "style": "Run style checks (PHPCS + PHPMD).",
     "test": "Run unit tests (PHPUnit).",
     "unused": "Detect unused composer dependencies."
-  },
-  "autoload": {
-    "psr-4": {
-      "App\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Tests\\": "tests/"
-    }
   }
 }

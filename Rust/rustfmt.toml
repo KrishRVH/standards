@@ -2,17 +2,17 @@
 
 # Basic formatting
 edition = "2024"
-style_edition = "2024"
 hard_tabs = false
-tab_spaces = 4
-newline_style = "Unix"
-use_small_heuristics = "Default"
 max_width = 100
+newline_style = "Unix"
+style_edition = "2024"
+tab_spaces = 4
+use_small_heuristics = "Default"
 
 # These are the only stable options available
-use_field_init_shorthand = true
-use_try_shorthand = true
 force_explicit_abi = true
+match_block_trailing_comma = true
 reorder_imports = true
 reorder_modules = true
-match_block_trailing_comma = true
+use_field_init_shorthand = true
+use_try_shorthand = true

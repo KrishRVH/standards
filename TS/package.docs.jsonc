@@ -57,6 +57,12 @@
     "lint:fix": "eslint . --fix --max-warnings 0",
 
     /**
+     * Fix what can be fixed (eslint + prettier) while still running typecheck.
+     * Typecheck is a gate; it does not have a fix mode.
+     */
+    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:fix\" \"bun:typecheck\" \"bun:format:fix\"",
+
+    /**
      * Run all quality gates concurrently:
      * - eslint (rules)
      * - tsc (typecheck)
@@ -65,12 +71,6 @@
      * Parallelizing improves DX and CI feedback speed.
      */
     "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
-
-    /**
-     * Fix what can be fixed (eslint + prettier) while still running typecheck.
-     * Typecheck is a gate; it does not have a fix mode.
-     */
-    "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:fix\" \"bun:typecheck\" \"bun:format:fix\"",
 
     /**
      * Typecheck-only:

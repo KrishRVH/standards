@@ -34,6 +34,7 @@ node_modules/
 /testers/**/vendor/
 
 # Generic generated output
+/.gstack/
 /.cache/
 /build/
 /coverage/
