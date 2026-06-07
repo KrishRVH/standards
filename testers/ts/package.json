@@ -12,8 +12,8 @@
     "lint": "bun run lint:check",
     "lint:check": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
-    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
     "standards": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:fix\" \"bun:typecheck\" \"bun:format:fix\"",
+    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
     "test": "bun run tests/math.test.ts",
     "typecheck": "tsc --pretty --noEmit -p tsconfig.json",
     "watch": "tsc --pretty --noEmit --watch -p tsconfig.json"

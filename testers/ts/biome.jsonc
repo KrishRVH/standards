@@ -2,12 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
   "root": true,
 
+  // Keep VCS integration explicit so copied templates do not inherit local ignore behavior accidentally.
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": false,
   },
 
+  // Include everything by default, then exclude generated/vendor/cache output at the Biome layer.
   "files": {
     "ignoreUnknown": false,
     "includes": [
@@ -31,6 +33,7 @@
     ],
   },
 
+  // Shared formatter defaults mirror Prettier's low-surprise style while keeping Biome deterministic.
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
@@ -43,6 +46,7 @@
     "trailingNewline": true,
   },
 
+  // JavaScript/TypeScript-specific formatting choices not covered by the shared formatter block.
   "javascript": {
     "formatter": {
       "arrowParentheses": "always",
@@ -56,6 +60,7 @@
     },
   },
 
+  // JSON files need no trailing commas even though this config file is JSONC.
   "json": {
     "formatter": {
       "bracketSpacing": true,
@@ -68,6 +73,7 @@
     },
   },
 
+  // Organize imports by runtime/platform imports first, packages next, aliases, then relative paths.
   "assist": {
     "enabled": true,
     "actions": {
@@ -93,6 +99,7 @@
     },
   },
 
+  // Start from Biome's recommended baseline, then promote selected rules to a strict project default.
   "linter": {
     "enabled": true,
     "domains": {
@@ -245,8 +252,10 @@
     },
   },
 
+  // File-type escape hatches for cases where the strict baseline conflicts with common ecosystem patterns.
   "overrides": [
     {
+      // Ambient declaration files may need namespaces for module/global augmentation.
       "includes": ["**/*.d.ts"],
       "linter": {
         "rules": {
@@ -257,6 +266,7 @@
       },
     },
     {
+      // Tool config files commonly use default exports because their loaders expect them.
       "includes": [
         "**/*.config.{js,mjs,ts}",
         "**/eslint.config.{js,mjs,ts}",
@@ -272,6 +282,7 @@
       },
     },
     {
+      // Tests commonly log and use fixture strings that can resemble secrets.
       "includes": ["**/*.{test,spec}.{js,jsx,ts,tsx}", "**/__tests__/**/*.{js,jsx,ts,tsx}"],
       "linter": {
         "rules": {

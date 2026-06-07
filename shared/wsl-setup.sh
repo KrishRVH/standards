@@ -8,6 +8,14 @@ IFS=$'\n\t'
 # - Oh My Zsh + plugins + managed .zshrc
 # - tmux + TPM + managed tmux config + helper scripts
 # - optional LazyVim starter config (only if ~/.config/nvim is missing)
+#
+# Tunables:
+#   BOOTSTRAP_APT_UPGRADE=0            skip apt upgrade
+#   BOOTSTRAP_CARGO_UPGRADE=0          skip cargo package update checks
+#   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
+#   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
+#   BOOTSTRAP_OVERWRITE_UNMANAGED=1    replace unmanaged dotfiles after .bak copy
+#   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
   echo "error: run as your normal user (not root)" >&2
@@ -16,9 +24,17 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+: "${BOOTSTRAP_APT_UPGRADE:=1}"
+: "${BOOTSTRAP_CARGO_UPGRADE:=1}"
+: "${BOOTSTRAP_GIT_UPDATE:=1}"
+: "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
+: "${BOOTSTRAP_OVERWRITE_UNMANAGED:=0}"
+: "${BOOTSTRAP_TMUX_PLUGIN_UPDATE:=1}"
+
 has() { command -v "$1" >/dev/null 2>&1; }
 die() { echo "error: $*" >&2; exit 1; }
 msg() { printf '==> %s\n' "$*"; }
+warn() { printf 'warn: %s\n' "$*" >&2; }
 
 # Basic retry with exponential backoff (good for apt locks / transient net hiccups).
 retry() {
@@ -81,6 +97,41 @@ apt_get() {
     "$@"
 }
 
+atomic_install_file() {
+  local src="$1"
+  local path="$2"
+  local mode="${3:-0644}"
+  local dir base tmp
+
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  mkdir -p "$dir"
+
+  if [[ -L "$path" ]]; then
+    warn "refusing to replace symlink: $path"
+    return 1
+  fi
+
+  if [[ -e "$path" && ! -f "$path" ]]; then
+    warn "refusing to replace non-file path: $path"
+    return 1
+  fi
+
+  tmp="$(mktemp "$dir/.${base}.tmp.XXXXXX")"
+  cat "$src" >"$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
+  chmod "$mode" "$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
+  mv -f "$tmp" "$path" || {
+    rm -f "$tmp"
+    return 1
+  }
+}
+
 write_managed_file() {
   local path="$1"
   local marker="$2"
@@ -94,37 +145,135 @@ write_managed_file() {
   # Always terminate grep options so the marker is treated as a pattern.
   grep -qF -- "$marker" "$tmp" || { rm -f "$tmp"; die "managed content for $path missing marker"; }
 
-  if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
-    cp -a "$path" "${path}.bak.$(date +%Y%m%d_%H%M%S)"
+  if [[ -L "$path" ]]; then
+    rm -f "$tmp"
+    warn "refusing to replace symlink: $path"
+    return 1
   fi
 
-  install -D -m "$mode" "$tmp" "$path"
+  if [[ -e "$path" && ! -f "$path" ]]; then
+    rm -f "$tmp"
+    warn "refusing to replace non-file path: $path"
+    return 1
+  fi
+
+  if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
+    if [[ "$BOOTSTRAP_OVERWRITE_UNMANAGED" != "1" ]]; then
+      rm -f "$tmp"
+      warn "refusing to overwrite unmanaged file: $path"
+      warn "set BOOTSTRAP_OVERWRITE_UNMANAGED=1 to replace it after a .bak copy"
+      return 1
+    fi
+    cp -a "$path" "${path}.bak"
+  fi
+
+  if ! atomic_install_file "$tmp" "$path" "$mode"; then
+    rm -f "$tmp"
+    return 1
+  fi
   rm -f "$tmp"
+}
+
+normalize_git_url() {
+  local url="$1"
+  url="${url%.git}"
+  url="${url%/}"
+  printf '%s\n' "$url"
 }
 
 git_repo() {
   local url="$1"
   local dest="$2"
+  local remote normalized_url normalized_remote
+
+  has git || {
+    warn "git is not available; cannot manage $dest"
+    return 1
+  }
 
   if [[ -d "$dest/.git" ]]; then
-    git -C "$dest" pull --ff-only --quiet >/dev/null 2>&1 || true
+    remote="$(git -C "$dest" config --get remote.origin.url 2>/dev/null || true)"
+    normalized_url="$(normalize_git_url "$url")"
+    normalized_remote="$(normalize_git_url "$remote")"
+
+    if [[ "$normalized_remote" != "$normalized_url" ]]; then
+      warn "refusing to update $dest; origin is $remote, expected $url"
+      return 1
+    fi
+
+    if [[ "$BOOTSTRAP_GIT_UPDATE" = "1" ]]; then
+      retry_quiet git -C "$dest" pull --ff-only
+    fi
     return 0
   fi
-  [[ -e "$dest" ]] && return 0
+
+  if [[ -e "$dest" ]]; then
+    warn "refusing to clone into existing unmanaged path: $dest"
+    return 1
+  fi
 
   retry git clone --depth=1 --quiet "$url" "$dest"
 }
 
-cargo_install_if_missing() {
+cargo_install_latest() {
   local crate="$1"
   local bin="$2"
   shift 2
 
-  has "$bin" && return 0
+  if has "$bin" && [[ "$BOOTSTRAP_CARGO_UPGRADE" != "1" ]]; then
+    return 0
+  fi
 
-  msg "cargo: install $bin ($crate)"
+  msg "cargo: install/update $bin ($crate)"
   retry_quiet cargo install --quiet "$@" "$crate"
   has "$bin" || die "installed $crate but '$bin' not found in PATH"
+}
+
+install_or_update_mise() {
+  local tmpdir installer
+
+  mkdir -p "$HOME/.local/bin"
+  tmpdir="$(mktemp -d)"
+  installer="$tmpdir/mise-install.sh"
+
+  retry curl -fsSL https://mise.run -o "$installer"
+  MISE_QUIET=1 sh "$installer"
+  rm -rf "$tmpdir" || true
+  hash -r 2>/dev/null || true
+
+  has mise || die "mise installer completed, but mise is not on PATH"
+  mise --version
+}
+
+install_or_update_dagger() {
+  local tmpdir installer
+
+  mkdir -p "$HOME/.local/bin"
+  tmpdir="$(mktemp -d)"
+  installer="$tmpdir/dagger-install.sh"
+
+  retry curl -fsSL https://dl.dagger.io/dagger/install.sh -o "$installer"
+  retry_quiet env BIN_DIR="$HOME/.local/bin" sh "$installer"
+  rm -rf "$tmpdir" || true
+  hash -r 2>/dev/null || true
+
+  has dagger || die "Dagger installer completed, but dagger is not on PATH"
+  dagger version
+}
+
+check_dagger_container_runtime() {
+  has dagger || die "dagger is not available"
+
+  if has docker && docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if has podman && podman info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  warn "dagger is installed, but no running Docker- or Podman-compatible container runtime was found"
+  warn "install/start Docker Desktop with WSL integration, Podman, or another supported runtime before using dagger"
 }
 
 ensure_sudo
@@ -134,8 +283,10 @@ ensure_sudo
 msg "apt: update"
 apt_get update
 
-msg "apt: upgrade"
-apt_get upgrade
+if [[ "$BOOTSTRAP_APT_UPGRADE" = "1" ]]; then
+  msg "apt: upgrade"
+  apt_get upgrade
+fi
 
 BASE_PKGS=(
   ca-certificates curl wget git gnupg
@@ -149,52 +300,76 @@ msg "apt: install base packages"
 apt_get install "${BASE_PKGS[@]}"
 
 mkdir -p "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
 if has fdfind && ! has fd; then ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"; fi
 if has batcat && ! has bat; then ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"; fi
 
+# --- mise + dagger -----------------------------------------------------------
+
+msg "mise: install/update"
+install_or_update_mise
+
+msg "dagger: install/update"
+install_or_update_dagger
+check_dagger_container_runtime
+
 # --- neovim (latest stable) -------------------------------------------------
-# Install upstream Neovim (latest stable .deb) so we aren't stuck on Ubuntu's
-# older neovim package.
+# Install upstream Neovim release tarballs so we are not stuck on Ubuntu's
+# older neovim package and so arm64 works with the artifacts upstream ships.
 version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
   [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" == "$1" ]]
 }
 
 install_latest_neovim() {
   local min_version="$1"
+  local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir
+
+  latest_json="$(retry curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest)"
+  latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
+  [[ "$latest_tag" == v* ]] || die "could not resolve latest Neovim release tag"
+  latest_version="${latest_tag#v}"
+  version_ge "$min_version" "$latest_version" || die "latest Neovim $latest_version is older than required $min_version"
 
   if has nvim; then
-    local current
     current="$(nvim --version 2>/dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
-    if [[ -n "$current" ]] && version_ge "$min_version" "$current"; then
+    if [[ "$current" == "$latest_version" ]]; then
       return 0
     fi
   fi
 
-  msg "neovim: installing/upgrading (>= $min_version)"
+  msg "neovim: installing/upgrading $latest_tag"
 
-  local arch
   arch="$(dpkg --print-architecture)"
-
-  local url
   case "$arch" in
-    amd64) url="https://github.com/neovim/neovim-releases/releases/latest/download/nvim-linux-x86_64.deb" ;;
-    arm64) url="https://github.com/neovim/neovim-releases/releases/latest/download/nvim-linux-arm64.deb" ;;
+    amd64) asset_arch="x86_64" ;;
+    arm64) asset_arch="arm64" ;;
     *) die "unsupported dpkg arch for nvim: $arch" ;;
   esac
 
-  # Remove Ubuntu's neovim runtime (0.9.x) to avoid file conflicts.
+  asset_dir="nvim-linux-$asset_arch"
+  url="https://github.com/neovim/neovim/releases/download/${latest_tag}/${asset_dir}.tar.gz"
+
+  # Remove Ubuntu's neovim runtime to avoid an older /usr/bin/nvim shadowing
+  # the managed upstream install.
   if dpkg -s neovim-runtime >/dev/null 2>&1 || dpkg -s neovim >/dev/null 2>&1; then
     apt_get remove neovim neovim-runtime || true
     apt_get autoremove || true
   fi
 
-  local tmpdir
   tmpdir="$(mktemp -d)"
-  chmod 755 "$tmpdir" # let _apt read the file if apt installs it
-  retry curl -fsSL "$url" -o "$tmpdir/nvim.deb"
-  chmod 644 "$tmpdir/nvim.deb"
+  retry curl -fsSL "$url" -o "$tmpdir/nvim.tar.gz"
+  tar -C "$tmpdir" -xzf "$tmpdir/nvim.tar.gz"
+  [[ -x "$tmpdir/$asset_dir/bin/nvim" ]] || die "downloaded Neovim archive did not contain $asset_dir/bin/nvim"
 
-  apt_get install "$tmpdir/nvim.deb"
+  sudo install -d -m 0755 /opt /usr/local/bin
+  sudo rm -rf "/opt/${asset_dir}.new" "/opt/${asset_dir}.previous"
+  sudo mv "$tmpdir/$asset_dir" "/opt/${asset_dir}.new"
+  if [[ -e "/opt/$asset_dir" || -L "/opt/$asset_dir" ]]; then
+    sudo mv -T "/opt/$asset_dir" "/opt/${asset_dir}.previous"
+  fi
+  sudo mv -T "/opt/${asset_dir}.new" "/opt/$asset_dir"
+  sudo ln -sfn "/opt/$asset_dir/bin/nvim" /usr/local/bin/nvim
+  sudo rm -rf "/opt/${asset_dir}.previous"
   rm -rf "$tmpdir" || true
 
   nvim --version | head -n 2
@@ -227,35 +402,37 @@ if ! has rustup; then
   rm -rf "$tmpdir" || true
 else
   msg "rust: updating stable toolchain"
-  rustup update stable >/dev/null 2>&1 || true
-  rustup default stable >/dev/null 2>&1 || true
+  retry_quiet rustup update stable
+  retry_quiet rustup default stable
 fi
 
 # Make cargo available in this shell too.
 if [[ -f "$CARGO_HOME/env" ]]; then
-  # shellcheck disable=SC1090
+  # shellcheck disable=SC1090,SC1091
   source "$CARGO_HOME/env"
 fi
 export PATH="$CARGO_HOME/bin:$PATH"
 
-cargo_install_if_missing zoxide zoxide
-cargo_install_if_missing atuin atuin
-cargo_install_if_missing eza eza
-cargo_install_if_missing xh xh
-cargo_install_if_missing procs procs
-cargo_install_if_missing bottom btm
-cargo_install_if_missing du-dust dust
-cargo_install_if_missing tealdeer tldr
-cargo_install_if_missing starship starship
+cargo_install_latest zoxide zoxide
+cargo_install_latest atuin atuin
+cargo_install_latest eza eza
+cargo_install_latest xh xh
+cargo_install_latest procs procs
+cargo_install_latest bottom btm
+cargo_install_latest du-dust dust
+cargo_install_latest tealdeer tldr
+cargo_install_latest starship starship
 
 # Added Rust tools
-cargo_install_if_missing jj-cli jj --bin jj
-cargo_install_if_missing broot broot
+cargo_install_latest jj-cli jj --bin jj
+cargo_install_latest broot broot
 # frawk defaults require nightly + LLVM; install a stable, no-LLVM build.
-cargo_install_if_missing frawk frawk --no-default-features --features allow_avx2,use_jemalloc
-cargo_install_if_missing sd sd
+cargo_install_latest frawk frawk --no-default-features --features allow_avx2,use_jemalloc
+cargo_install_latest sd sd
 
-has tldr && tldr -u >/dev/null 2>&1 || true
+if has tldr; then
+  tldr -u >/dev/null 2>&1 || true
+fi
 
 # --- zsh (oh-my-zsh + plugins + zshrc) -------------------------------------
 
@@ -282,6 +459,8 @@ source "$ZSH/oh-my-zsh.sh"
 export EDITOR="nvim"
 export VISUAL="nvim"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 command -v zoxide  >/dev/null 2>&1 && eval "$(zoxide init zsh)"
@@ -593,8 +772,17 @@ fi
 # <<< wsl-bootstrap managed tmux-cht <<<
 CHT
 
+bash -n "$HOME/.local/bin/tmux-sessionizer"
+bash -n "$HOME/.local/bin/tmux-cht"
+
 if [[ -x "$TPM_DIR/bin/install_plugins" ]]; then
-  TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 || true
+  TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 ||
+    warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
+fi
+
+if [[ "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" && -x "$TPM_DIR/bin/update_plugins" ]]; then
+  TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 ||
+    warn "TPM plugin update failed; open tmux and press Prefix + U after networking is available"
 fi
 
 # --- neovim (optional lazyvim starter) -------------------------------------
@@ -602,15 +790,14 @@ fi
 NVIM_DIR="$HOME/.config/nvim"
 NVIM_MARKER_FILE="$NVIM_DIR/.wsl-bootstrap-managed"
 
-if [[ ! -d "$NVIM_DIR" ]]; then
+if [[ "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
   tmpdir="$(mktemp -d)"
   clonedir="$tmpdir/nvim"
-  if git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir" 2>/dev/null; then
-    mkdir -p "$(dirname "$NVIM_DIR")"
-    mv "$clonedir" "$NVIM_DIR"
-    rm -rf "$NVIM_DIR/.git" || true
-    printf 'managed by cli-tools.sh\n' >"$NVIM_MARKER_FILE"
-  fi
+  retry git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir"
+  mkdir -p "$(dirname "$NVIM_DIR")"
+  mv "$clonedir" "$NVIM_DIR"
+  rm -rf "$NVIM_DIR/.git" || true
+  printf 'managed by wsl-setup.sh\n' >"$NVIM_MARKER_FILE"
   rm -rf "$tmpdir" || true
 fi
 

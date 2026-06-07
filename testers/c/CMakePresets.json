@@ -27,21 +27,21 @@
       }
     },
     {
-      "name": "gcc",
-      "inherits": "base",
-      "displayName": "GCC (Debug + ASan/UBSan)",
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "PROJECT_ENABLE_SANITIZERS": "ON"
-      }
-    },
-    {
       "name": "compcert",
       "inherits": "base",
       "displayName": "CompCert (ccomp, no sanitizers)",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "ccomp",
         "PROJECT_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "gcc",
+      "inherits": "base",
+      "displayName": "GCC (Debug + ASan/UBSan)",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "PROJECT_ENABLE_SANITIZERS": "ON"
       }
     },
     {
@@ -57,8 +57,8 @@
   ],
   "buildPresets": [
     { "name": "clang", "configurePreset": "clang" },
-    { "name": "gcc", "configurePreset": "gcc" },
     { "name": "compcert", "configurePreset": "compcert" },
+    { "name": "gcc", "configurePreset": "gcc" },
     { "name": "mingw", "configurePreset": "mingw" }
   ],
   "testPresets": [
@@ -72,6 +72,11 @@
       }
     },
     {
+      "name": "compcert",
+      "configurePreset": "compcert",
+      "output": { "outputOnFailure": true }
+    },
+    {
       "name": "gcc",
       "configurePreset": "gcc",
       "output": { "outputOnFailure": true },
@@ -79,11 +84,6 @@
         "ASAN_OPTIONS": "detect_leaks=0",
         "LSAN_OPTIONS": "detect_leaks=0"
       }
-    },
-    {
-      "name": "compcert",
-      "configurePreset": "compcert",
-      "output": { "outputOnFailure": true }
     }
   ]
 }

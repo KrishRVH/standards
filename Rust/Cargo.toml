@@ -8,61 +8,61 @@ rust-version = "1.96.0"
 
 # Practical strict-by-default linting baseline.
 [lints.rust]
-unsafe_code = "forbid"
 missing_docs = "allow"
+unsafe_code = "forbid"
 
 [lints.clippy]
 # Set lint groups with lower priority
 all = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
-nursery = { level = "warn", priority = -1 }
-correctness = { level = "deny", priority = -1 }
-suspicious = { level = "deny", priority = -1 }
 complexity = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
 
 # Numeric casts are common at system and boundary layers. Tighten per project
 # when conversions need stronger guarantees.
 cast_lossless = "allow"
-cast_sign_loss = "allow"
 cast_possible_truncation = "allow"
 cast_possible_wrap = "allow"
 cast_precision_loss = "allow"
+cast_sign_loss = "allow"
 
 # Specific lints with higher priority
-unwrap_used = "warn"
+dbg_macro = "deny"
 expect_used = "warn"
 panic = "warn"
 todo = "warn"
 unimplemented = "warn"
-dbg_macro = "deny"
+unwrap_used = "warn"
 
 # Commonly noisy pedantic lints. Tighten these per project when they add signal.
-module_name_repetitions = "allow"
-too_many_lines = "allow"
 cognitive_complexity = "allow"
+derive_partial_eq_without_eq = "allow"
+doc_markdown = "allow"
+enum_variant_names = "allow"
 excessive_nesting = "allow"
-needless_pass_by_value = "allow"
+map_unwrap_or = "allow"
 missing_const_for_fn = "allow"
+module_name_repetitions = "allow"
+needless_pass_by_value = "allow"
+only_used_in_recursion = "allow"
+option_if_let_else = "allow"
+too_many_lines = "allow"
+uninlined_format_args = "allow"
+unnecessary_wraps = "allow"
 use_self = "allow"
 wildcard_imports = "allow"
-enum_variant_names = "allow"
-derive_partial_eq_without_eq = "allow"
-only_used_in_recursion = "allow"
-unnecessary_wraps = "allow"
-map_unwrap_or = "allow"
-option_if_let_else = "allow"
-doc_markdown = "allow"
-uninlined_format_args = "allow"
 
 [profile.dev]
 overflow-checks = true
 
 [profile.release]
-debug = false
-opt-level = 3
-lto = "fat"
-panic = "abort"
 codegen-units = 1
+debug = false
+lto = "fat"
+opt-level = 3
+panic = "abort"
 strip = true
