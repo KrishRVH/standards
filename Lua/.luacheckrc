@@ -1,40 +1,51 @@
 -- Luacheck strict baseline.
--- Add runtime-specific globals such as `love`, `vim`, or test framework symbols
--- in project-specific overrides rather than in this shared default.
+--
+-- Add runtime-specific globals such as `love`, `vim`, or host application APIs
+-- in project-specific overrides. Keep this shared default portable.
 
 std = "lua54"
 
--- Prefer explicit globals. Set project globals here only when the runtime owns
--- them and passing them as dependencies is not practical.
-globals = {}
-read_globals = {}
+-- Require explicit locals and explicit dependency boundaries.
+allow_defined = false
+allow_defined_top = false
+module = false
 
--- Performance: cache all globals.
-cache = true
+-- Keep all hygiene checks enabled. Prefix intentionally unused values with `_`.
+unused = true
+unused_args = true
+unused_secondaries = true
+redefined = true
+self = true
 
--- StyLua handles whitespace.
 ignore = {
-  "611", -- trailing whitespace
-  "612", -- trailing whitespace in string
-  "613", -- trailing whitespace in comment
-  "614", -- trailing whitespace in empty line
-  "211/^_", -- unused local variables intentionally prefixed with _
-  "212/^_", -- unused function arguments intentionally prefixed with _
-  "213/^_", -- unused loop variables intentionally prefixed with _
+  "211/^_", -- intentionally unused local variables
+  "212/^_", -- intentionally unused function arguments
+  "213/^_", -- intentionally unused loop variables
 }
 
--- Match stylua.toml.
+-- Match stylua.toml and keep functions small enough to review.
 max_line_length = 80
+max_cyclomatic_complexity = 10
 
--- Keep functions small enough to review.
-max_cyclomatic_complexity = 15
-
--- Exclude generated/vendor output.
+-- Exclude dependency, cache, build, coverage, and generated artifacts.
 exclude_files = {
+  ".lua_modules/**",
+  "lua_modules/**",
+  "luarocks_modules/**",
+  "vendor/**",
+  "third_party/**",
   "build/**",
   "dist/**",
-  "vendor/**",
+  "coverage/**",
   "*.min.lua",
 }
 
-allow_defined_top = false
+-- Busted is the test runner installed by the shared mise Lua task.
+files["spec/*.lua"] = { std = "lua54+busted" }
+files["spec/**/*.lua"] = { std = "lua54+busted" }
+files["specs/*.lua"] = { std = "lua54+busted" }
+files["specs/**/*.lua"] = { std = "lua54+busted" }
+files["test/*.lua"] = { std = "lua54+busted" }
+files["test/**/*.lua"] = { std = "lua54+busted" }
+files["tests/*.lua"] = { std = "lua54+busted" }
+files["tests/**/*.lua"] = { std = "lua54+busted" }
