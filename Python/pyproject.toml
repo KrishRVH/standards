@@ -1,0 +1,152 @@
+[build-system]
+requires = ["hatchling>=1.30.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "project-name"
+version = "0.1.0"
+description = "A strict Python project."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "LicenseRef-Proprietary"
+authors = [{ name = "Project contributors" }]
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "bandit[toml]>=1.9.4",
+  "basedpyright>=1.39.8",
+  "coverage[toml]>=7.14.1",
+  "deptry>=0.25.1",
+  "hatchling>=1.30.1",
+  "interrogate>=1.7.0",
+  "mypy>=2.1.0",
+  "pytest>=9.1.0",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.15.17",
+  "slotscheck>=0.20.0",
+  "vulture>=2.16",
+  "xenon>=0.9.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/project_name"]
+
+[tool.ruff]
+line-length = 100
+required-version = ">=0.15.17"
+show-fixes = true
+src = ["src", "tests"]
+target-version = "py314"
+unsafe-fixes = false
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+
+[tool.ruff.lint]
+explicit-preview-rules = true
+select = ["ALL"]
+ignore = [
+  "COM812",
+  "D203",
+  "D213",
+  "ISC001",
+]
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["project_name"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/**/cli.py" = ["T201"]
+"tests/**/*.py" = ["D", "PLR2004", "S101", "SLF001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.basedpyright]
+include = ["src", "tests"]
+pythonVersion = "3.14"
+pythonPlatform = "All"
+typeCheckingMode = "all"
+venvPath = "."
+venv = ".venv"
+failOnWarnings = true
+reportAny = "error"
+reportExplicitAny = "error"
+reportImplicitOverride = "error"
+reportMissingTypeStubs = "error"
+reportUnreachable = "error"
+reportUnusedCallResult = "none"
+
+[tool.mypy]
+files = ["src", "tests"]
+python_version = "3.14"
+strict = true
+disallow_any_decorated = true
+disallow_any_explicit = true
+disallow_any_expr = true
+disallow_any_unimported = true
+show_column_numbers = true
+show_error_code_links = true
+show_error_end = true
+show_error_codes = true
+pretty = true
+strict_equality_for_none = true
+warn_unreachable = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "--cov=project_name",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-fail-under=100",
+]
+filterwarnings = ["error"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["project_name"]
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]
+show_missing = true
+skip_covered = true
+
+[tool.deptry]
+extend_exclude = [".venv", ".git", ".gstack"]
+known_first_party = ["project_name"]
+
+[tool.bandit]
+exclude_dirs = [".git", ".gstack", ".venv", "tests"]
+recursive = true
+targets = ["src"]
+
+[tool.interrogate]
+exclude = ["tests", ".venv", ".git", ".gstack"]
+fail-under = 85
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-module = false
+ignore-nested-functions = false
+ignore-private = true
+ignore-private-nested = true
+ignore-semiprivate = true
+verbose = 1
+
+[tool.vulture]
+exclude = [".git", ".gstack", ".venv"]
+min_confidence = 90
+paths = ["src", "tests"]
+sort_by_size = true
