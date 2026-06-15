@@ -15,7 +15,8 @@ folders.
 - `Mise/`: `.config/mise` templates. These define the developer command
   surface and pin Dagger.
 - `Dagger/`: Dagger module template used by the mise `check` and `ci` tasks.
-- `C/`, `C#/`, `Lua/`, `PHP/`, `Rust/`, `TS/`: language/tooling templates.
+- `C/`, `C#/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`: language/tooling
+  templates.
 - `testers/`: small standalone fixtures that prove the copyable templates work
   through the documented mise layout. C# and Rust testers are intentionally
   absent.
@@ -60,6 +61,9 @@ Finally, copy the language template files that match the project:
 - `Lua/`: StyLua and Luacheck config.
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
+- `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
+  mypy, pytest/coverage, dependency hygiene, docs, complexity, slots, security,
+  and dead-code checks.
 - `Rust/`: Cargo, rustfmt, and Clippy defaults.
 - `TS/`: TypeScript, ESLint, Prettier, and Biome defaults.
 
@@ -102,6 +106,6 @@ Use the repo-local maintenance gate:
 mise run check
 ```
 
-That runs the tester fixtures for C, Lua, PHP, and TypeScript. When changing a
-template that has a tester, update the matching fixture so future changes prove
-the copied layout still works.
+That runs the tester fixtures for C, Lua, PHP, Python, and TypeScript. When
+changing a template that has a tester, update the matching fixture so future
+changes prove the copied layout still works.

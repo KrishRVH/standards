@@ -1,54 +1,53 @@
 # Agent Guide
 
-This repository maintains reusable standards templates. The root files are for
-maintaining this repository; copyable consumer defaults live in `shared/` and
-the language-specific folders.
+Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
+`Dagger/`, `C/`, `C#/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`. Root
+docs/config maintain this repo. `testers/` smoke-test copied standards for
+C/Lua/PHP/Python/TS; C#/Rust have templates only.
 
-## Repository Shape
+## Philosophy
 
-- `shared/`: generic files intended to be copied into other repositories.
-- `Mise/`, `Dagger/`, `C/`, `C#/`, `Lua/`, `PHP/`, `Rust/`, `TS/`: copyable
-  standards templates.
-- `testers/`: small standalone projects that prove copied standards work
-  through the documented `.config/mise` layout. C# and Rust testers are
-  intentionally absent.
-- `.config/mise/config.toml`: maintenance entrypoint for this repository.
+- Boring, strict, portable defaults beat clever local machinery.
+- `mise run ...` is the developer API; package managers, compilers, test
+  runners, and Dagger stay behind mise tasks.
+- Prefer executable config as source of truth; docs should point at it, not
+  duplicate it.
+- Add abstraction only when it clarifies the reusable standard.
+- Copyable files need neutral names, conventional `src`/`tests`, no machine
+  paths, no repo-only assumptions.
+- Bootstrap scripts stay idempotent, convergent, and cautious with unmanaged
+  files.
 
 ## Commands
 
-Everything goes through mise.
-
-- `mise run tasks`: list maintenance tasks.
-- `mise run check`: run all tester mini projects.
+- `mise run tasks`: list tasks.
+- `mise run check`: root gate, all fixtures.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
-you are fixing the mise task or investigating a failing task. If a tool install
-needs network access, run it through mise and report that requirement.
+fixing/investigating the relevant mise task. If install needs network, run it
+through mise and report that.
 
-## Editing Rules
+## Editing
 
-- Keep template files copyable and boring. Avoid repo-local assumptions in
-  `shared/` and language template folders unless they are clearly part of the
-  standard.
-- Keep repo-maintenance behavior in root files and `testers/`.
-- When changing a language stack that has a tester, update the matching tester
-  project and verify it through `mise run check`.
-- Keep tester projects smoke-test sized. They should prove install, format,
-  lint/static analysis, and tests work; they are not example applications.
-- Commit tester lockfiles when they make installs deterministic. Do not commit
-  generated dependency, build, cache, or coverage output.
-- Do not hand-edit generated output. Fix the template/task and regenerate when
-  needed.
-- Use `rg` and targeted reads. Do not inspect generated/vendor trees wholesale.
+- Root files and `.config/mise/`: repo maintenance.
+- `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
+- Changing `Mise/`, `Dagger/`, or a tested stack means updating the matching
+  fixture when applicable.
+- Fixtures prove install, format, lint/static analysis, and tests. Keep them
+  tiny, not example apps.
+- Commit deterministic tester lockfiles; never commit dependencies, build
+  output, caches, coverage, or local state.
+- Do not hand-edit generated output. Fix the source template/task and
+  regenerate.
+- Use `rg` and targeted reads. Skip generated/vendor trees wholesale.
 
 ## Verification
 
-Before handoff, run `mise run check` unless blocked. If only one stack changed,
-you may run that fixture first, but finish with the root check before claiming
-the repository is green.
+Run `mise run check` before handoff unless blocked. One fixture first is fine;
+finish with the root gate before calling the repo green.
 
 ## Git
 
-- Do not revert user changes unless explicitly asked.
-- Keep generated and local-only files out of commits.
-- Commit messages should be short, imperative, and specific.
+- Do not revert user changes unless asked.
+- Keep generated/local files out of commits.
+- Use short, imperative, specific commit messages.

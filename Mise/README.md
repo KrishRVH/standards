@@ -7,7 +7,7 @@ The defaults assume this rule: every developer command goes through `mise run`.
 Dagger is pinned and invoked by mise; developers should not call `dagger`
 directly.
 
-These templates were written against mise `v2026.5.16` and Dagger `v0.21.3`.
+These templates were written against mise `v2026.6.10` and Dagger `v0.21.6`.
 
 Recommended project entrypoints:
 
