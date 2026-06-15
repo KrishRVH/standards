@@ -29,6 +29,7 @@ const SOURCE_EXCLUDES = [
   'build',
   'coverage',
   'dist',
+  'htmlcov',
   'lua_modules',
   'node_modules',
   'out',

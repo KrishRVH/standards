@@ -3,12 +3,12 @@ description = "List available project tasks"
 run = "mise tasks"
 
 [tasks."testers:check"]
-description = "Run all non-C#/Rust tester mini projects through mise"
+description = "Run all tester mini projects through mise"
 run = """
 set -eu
 
 root="$(pwd)"
-for project in testers/c testers/lua testers/php testers/ts; do
+for project in testers/c testers/lua testers/php testers/python testers/ts; do
   echo "==> $project"
   (
     cd "$project"

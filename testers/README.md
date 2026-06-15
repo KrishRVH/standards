@@ -16,5 +16,5 @@ cd testers/ts
 MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run check:local
 ```
 
-The fixtures cover C, Lua, PHP, and TypeScript. C# and Rust are intentionally
-omitted.
+The fixtures cover C, Lua, PHP, Python, and TypeScript. C# and Rust are
+intentionally omitted.
