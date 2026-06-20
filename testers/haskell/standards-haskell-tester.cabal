@@ -1,0 +1,63 @@
+cabal-version: 3.16
+name: standards-haskell-tester
+version: 0.1.0
+synopsis: Smoke-test fixture for the Haskell standards
+description: Tiny package proving the copied Haskell standards run.
+license: MIT
+license-file: LICENSE
+maintainer: Standards contributors
+category: Development
+build-type: Simple
+tested-with: GHC == 9.14.1
+
+common warnings
+  default-language: GHC2024
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-deriving-strategies
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+library
+  import: warnings
+  exposed-modules:
+    StandardsHaskellTester
+  hs-source-dirs: src
+  build-depends:
+    base >= 4.20 && < 5
+
+executable standards-haskell-tester
+  import: warnings
+  main-is: Main.hs
+  hs-source-dirs: app
+  build-depends:
+    base >= 4.20 && < 5,
+    standards-haskell-tester
+
+test-suite standards-haskell-tester-test
+  import: warnings
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  build-depends:
+    base >= 4.20 && < 5,
+    standards-haskell-tester,
+    tasty >= 1.5 && < 1.6,
+    tasty-hunit >= 0.10 && < 0.11,
+    tasty-quickcheck >= 0.11 && < 0.12
+
+benchmark standards-haskell-tester-bench
+  import: warnings
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench
+  build-depends:
+    base >= 4.20 && < 5,
+    standards-haskell-tester,
+    tasty-bench >= 0.4 && < 0.5

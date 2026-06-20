@@ -1,6 +1,6 @@
 import { type Container, type Directory, dag, func, object } from '@dagger.io/dagger';
 
-const MISE_VERSION = 'v2026.6.10';
+const MISE_VERSION = 'v2026.6.11';
 const MISE_LINUX_X64_URL = `https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-x64`;
 
 const SOURCE_EXCLUDES = [
@@ -43,7 +43,7 @@ export class ProjectCi {
    */
   @func()
   async ci(source: Directory): Promise<string> {
-    return await this.check(source);
+    return await this.runMise(source, ['run', 'ci:local']).stdout();
   }
 
   /**

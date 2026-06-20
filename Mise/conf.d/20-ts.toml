@@ -75,3 +75,7 @@ else
   mise run ts:fmt:check
 fi
 """
+
+[tasks."ts:ci"]
+description = "Run the TypeScript/JavaScript CI gate"
+depends = ["ts:check"]

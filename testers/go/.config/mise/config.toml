@@ -1,0 +1,6 @@
+[settings]
+lockfile = true
+
+[tasks."check:local"]
+description = "Run the Go tester gate"
+depends = ["go:check"]

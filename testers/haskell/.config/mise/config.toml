@@ -1,0 +1,6 @@
+[settings]
+lockfile = true
+
+[tasks."check:local"]
+description = "Run the Haskell tester gate"
+depends = ["haskell:check"]

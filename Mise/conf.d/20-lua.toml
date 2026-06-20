@@ -1,6 +1,6 @@
 [tools]
-lua = "5.4.8"
-stylua = "2.3.1"
+lua = "5.5.0"
+stylua = "2.5.2"
 
 [tasks."lua:install"]
 description = "Install Lua project tooling"
@@ -52,3 +52,7 @@ fi
 [tasks."lua:check"]
 description = "Run Lua formatting, linting, and tests"
 depends = ["lua:fmt:check", "lua:lint", "lua:test"]
+
+[tasks."lua:ci"]
+description = "Run the Lua CI gate"
+depends = ["lua:check"]

@@ -1,6 +1,10 @@
+[settings]
+experimental = true
+
 [tools]
-clang = "22.1.8"
-cmake = "4.3.3"
+"pkgx:llvm.org" = "22.1.8"
+clang-format = "22.1.8"
+cmake = "4.3.4"
 ninja = "1.13.2"
 
 [tasks."cpp:fmt"]
@@ -69,4 +73,12 @@ fi
 
 [tasks."cpp:check"]
 description = "Run C++ formatting, linting, and tests"
-depends = ["cpp:fmt:check", "cpp:lint", "cpp:test"]
+run = """
+mise run cpp:fmt:check
+mise run cpp:lint
+mise run cpp:test
+"""
+
+[tasks."cpp:ci"]
+description = "Run the C++ CI gate"
+depends = ["cpp:check"]

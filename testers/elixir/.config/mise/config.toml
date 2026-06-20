@@ -1,0 +1,6 @@
+[settings]
+lockfile = true
+
+[tasks."check:local"]
+description = "Run the Elixir tester gate"
+depends = ["elixir:check"]

@@ -5,7 +5,7 @@ lockfile = true
 
 [tools]
 # Keep Dagger pinned here so both local CI runs and hosted CI use the same CLI.
-dagger = "0.21.6"
+dagger = "0.21.7"
 
 [tasks.install]
 description = "Install pinned project tools"
@@ -333,6 +333,82 @@ run = """
 mise run fmt:check
 mise run lint
 mise run test
+"""
+
+[tasks."ci:local"]
+description = "Run CI-grade checks directly on the current machine"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:ci
+  ran=1
+fi
+
+if [ -f pyproject.toml ]; then
+  mise run py:ci
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:ci
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:ci
+  ran=1
+fi
+
+if [ -f go.mod ]; then
+  mise run go:ci
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:ci
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:ci
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:ci
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:ci
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:ci
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
+  mise run c:ci
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:ci
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+  mise run lua:ci
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No CI tasks detected."
+fi
 """
 
 [tasks.check]

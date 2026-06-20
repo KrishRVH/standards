@@ -20,7 +20,8 @@ mise run ci
 ```
 
 The module installs pinned `mise` inside the Dagger container and runs
-`mise run check:local`. That keeps task definitions in mise while Dagger
-provides the isolated CI execution environment.
+`mise run check:local` for `check` or `mise run ci:local` for `ci`. That keeps
+task definitions in mise while Dagger provides the isolated CI execution
+environment.
 
-These templates were written against mise `v2026.6.10` and Dagger `v0.21.6`.
+These templates were written against mise `v2026.6.11` and Dagger `v0.21.7`.

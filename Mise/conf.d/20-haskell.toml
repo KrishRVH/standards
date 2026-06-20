@@ -17,7 +17,7 @@ run = """
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files '*.hs' '*.lhs' > "$tmp"
+  git ls-files --cached --others --exclude-standard '*.hs' '*.lhs' > "$tmp"
 else
   find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print > "$tmp"
@@ -33,7 +33,7 @@ run = """
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files '*.hs' '*.lhs' > "$tmp"
+  git ls-files --cached --others --exclude-standard '*.hs' '*.lhs' > "$tmp"
 else
   find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print > "$tmp"
@@ -81,4 +81,12 @@ run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal freeze"
 
 [tasks."haskell:check"]
 description = "Run Haskell formatting, static analysis, and tests"
-depends = ["haskell:fmt:check", "haskell:lint", "haskell:test"]
+run = """
+mise run haskell:fmt:check
+mise run haskell:lint
+mise run haskell:test
+"""
+
+[tasks."haskell:ci"]
+description = "Run the Haskell CI gate"
+depends = ["haskell:check"]

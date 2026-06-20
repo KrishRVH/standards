@@ -19,8 +19,13 @@ defmodule ProjectName.MixProject do
           :unmatched_returns
         ]
       ],
-      test_coverage: [tool: ExCoveralls, minimum_coverage: 90],
-      preferred_cli_env: [
+      test_coverage: [tool: ExCoveralls, minimum_coverage: 90]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.html": :test,
         dialyzer: :test,

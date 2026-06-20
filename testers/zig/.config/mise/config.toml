@@ -1,0 +1,6 @@
+[settings]
+lockfile = true
+
+[tasks."check:local"]
+description = "Run the Zig tester gate"
+depends = ["zig:check"]

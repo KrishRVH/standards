@@ -17,9 +17,8 @@ folders.
 - `Dagger/`: Dagger module template used by the mise `check` and `ci` tasks.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`, `Lua/`,
   `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`: language/tooling templates.
-- `testers/`: small standalone fixtures that prove the copyable templates work
-  through the documented mise layout. C# and Rust testers are intentionally
-  absent.
+- `testers/`: small standalone fixtures that prove every language template
+  works through the documented mise layout.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
   project.
@@ -99,8 +98,9 @@ mise run ci
 ```
 
 `mise run check` and `mise run ci` invoke Dagger through mise. The Dagger module
-then runs `mise run check:local` inside an isolated container, keeping task
-definitions in one place while still giving CI a clean environment.
+then runs `mise run check:local` or `mise run ci:local` inside an isolated
+container, keeping task definitions in one place while still giving CI a clean
+environment.
 
 After copying templates into a project:
 
@@ -119,6 +119,6 @@ Use the repo-local maintenance gate:
 mise run check
 ```
 
-That runs the tester fixtures for C, Lua, PHP, Python, and TypeScript. When
-changing a template that has a tester, update the matching fixture so future
-changes prove the copied layout still works.
+That runs the tester fixtures for C, C#, C++, Elixir, Go, Haskell, Kotlin, Lua,
+PHP, Python, Rust, TypeScript, and Zig. When changing a template, update the
+matching fixture so future changes prove the copied layout still works.

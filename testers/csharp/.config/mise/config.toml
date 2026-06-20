@@ -1,0 +1,6 @@
+[settings]
+lockfile = true
+
+[tasks."check:local"]
+description = "Run the C# tester gate"
+depends = ["csharp:check"]
