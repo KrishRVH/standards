@@ -1,0 +1,92 @@
+[env]
+HASKELL_GHC_VERSION = "9.14.1"
+
+[tools]
+ghcup = "0.2.6.2"
+cabal = "3.16.1.0"
+hlint = "3.10"
+ormolu = "0.8.1.1"
+
+[tasks."haskell:install"]
+description = "Install Haskell compiler and refresh Cabal package index"
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal update"
+
+[tasks."haskell:fmt"]
+description = "Format Haskell source"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard '*.hs' '*.lhs' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
+    -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs ormolu --mode inplace < "$tmp"
+fi
+"""
+
+[tasks."haskell:fmt:check"]
+description = "Check Haskell formatting"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard '*.hs' '*.lhs' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
+    -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs ormolu --mode check < "$tmp"
+fi
+"""
+
+[tasks."haskell:lint"]
+description = "Run Haskell static checks"
+depends = ["haskell:install"]
+run = """
+paths=""
+for path in src app test bench; do
+  if [ -e "$path" ]; then
+    paths="$paths $path"
+  fi
+done
+if [ -n "$paths" ]; then
+  hlint $paths
+else
+  hlint .
+fi
+cabal check
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tests --enable-benchmarks
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal haddock all --haddock-all
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal sdist all
+"""
+
+[tasks."haskell:test"]
+description = "Run Haskell tests"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal test all --test-show-details=direct"
+
+[tasks."haskell:bench"]
+description = "Run Haskell benchmarks"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal bench all"
+
+[tasks."haskell:freeze"]
+description = "Refresh cabal.project.freeze"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal freeze"
+
+[tasks."haskell:check"]
+description = "Run Haskell formatting, static analysis, and tests"
+run = """
+mise run haskell:fmt:check
+mise run haskell:lint
+mise run haskell:test
+"""
+
+[tasks."haskell:ci"]
+description = "Run the Haskell CI gate"
+depends = ["haskell:check"]

@@ -1,9 +1,9 @@
 # Agent Guide
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
-`Dagger/`, `C/`, `C#/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`. Root
-docs/config maintain this repo. `testers/` smoke-test copied standards for
-C/Lua/PHP/Python/TS; C#/Rust have templates only.
+`Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`,
+`Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`. Root docs/config maintain
+this repo. `testers/` smoke-test copied standards for every language template.
 
 ## Philosophy
 
@@ -35,8 +35,8 @@ through mise and report that.
   fixture when applicable.
 - Fixtures prove install, format, lint/static analysis, and tests. Keep them
   tiny, not example apps.
-- Commit deterministic tester lockfiles; never commit dependencies, build
-  output, caches, coverage, or local state.
+- Commit deterministic tester `.config/mise/mise.lock` files; never commit
+  dependencies, build output, caches, coverage, or local state.
 - Do not hand-edit generated output. Fix the source template/task and
   regenerate.
 - Use `rg` and targeted reads. Skip generated/vendor trees wholesale.

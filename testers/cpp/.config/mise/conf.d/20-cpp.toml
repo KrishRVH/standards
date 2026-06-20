@@ -1,0 +1,61 @@
+[settings]
+experimental = true
+
+[tools]
+"pkgx:llvm.org" = "22.1.8"
+clang-format = "22.1.8"
+cmake = "4.3.4"
+ninja = "1.13.2"
+
+[tasks."cpp:fmt"]
+description = "Format C++ sources"
+run = """
+find . -path './.git' -prune -o -type f \\( \
+  -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o \
+  -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o \
+  -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o \
+  -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \
+\\) -print0 | xargs -0 clang-format -i
+"""
+
+[tasks."cpp:fmt:check"]
+description = "Check C++ source formatting"
+run = """
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+git ls-files --cached --others --exclude-standard \
+  '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' > "$tmp/files"
+if [ ! -s "$tmp/files" ]; then
+  exit 0
+fi
+while IFS= read -r file; do
+  clang-format "$file" | cmp -s "$file" - || {
+    echo "Needs formatting: $file" >&2
+    exit 1
+  }
+done < "$tmp/files"
+"""
+
+[tasks."cpp:lint"]
+description = "Run C++ static checks"
+run = """
+cmake --preset clang
+cmake --build --preset clang
+./cpp-quality.sh . build/clang
+"""
+
+[tasks."cpp:test"]
+description = "Run C++ tests"
+run = "./cpp-build.sh"
+
+[tasks."cpp:check"]
+description = "Run C++ formatting, linting, and tests"
+run = """
+mise run cpp:fmt:check
+mise run cpp:lint
+mise run cpp:test
+"""
+
+[tasks."cpp:ci"]
+description = "Run the C++ CI gate"
+depends = ["cpp:check"]

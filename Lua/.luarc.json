@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "diagnostics.globals": [
+    "after_each",
+    "before_each",
+    "describe",
+    "finally",
+    "it",
+    "lazy_setup",
+    "lazy_teardown",
+    "pending",
+    "setup",
+    "teardown"
+  ],
+  "runtime.version": "Lua 5.5",
+  "workspace.ignoreDir": [
+    ".lua-language-server",
+    ".lua_modules",
+    "build",
+    "coverage",
+    "dist",
+    "lua_modules",
+    "luarocks_modules",
+    "third_party",
+    "vendor"
+  ]
+}

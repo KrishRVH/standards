@@ -1,0 +1,51 @@
+[env]
+HASKELL_GHC_VERSION = "9.14.1"
+
+[tools]
+ghcup = "0.2.6.2"
+cabal = "3.16.1.0"
+hlint = "3.10"
+ormolu = "0.8.1.1"
+
+[tasks."haskell:install"]
+description = "Install Haskell compiler and refresh Cabal package index"
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal update"
+
+[tasks."haskell:fmt:check"]
+description = "Check Haskell formatting"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+git ls-files --cached --others --exclude-standard '*.hs' '*.lhs' > "$tmp"
+if [ -s "$tmp" ]; then
+  xargs ormolu --mode check < "$tmp"
+fi
+"""
+
+[tasks."haskell:lint"]
+description = "Run Haskell static checks"
+depends = ["haskell:install"]
+run = """
+hlint src app test bench
+cabal check
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tests --enable-benchmarks
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal haddock all --haddock-all
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal sdist all
+"""
+
+[tasks."haskell:test"]
+description = "Run Haskell tests"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal test all --test-show-details=direct"
+
+[tasks."haskell:check"]
+description = "Run Haskell formatting, static analysis, and tests"
+run = """
+mise run haskell:fmt:check
+mise run haskell:lint
+mise run haskell:test
+"""
+
+[tasks."haskell:ci"]
+description = "Run the Haskell CI gate"
+depends = ["haskell:check"]

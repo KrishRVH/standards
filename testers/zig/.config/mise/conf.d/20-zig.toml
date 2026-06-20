@@ -1,0 +1,36 @@
+[tools]
+zig = "0.16.0"
+
+[tasks."zig:fmt:check"]
+description = "Check Zig formatting"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+git ls-files --cached --others --exclude-standard '*.zig' '*.zon' > "$tmp"
+if [ -s "$tmp" ]; then
+  xargs zig fmt --check < "$tmp"
+fi
+"""
+
+[tasks."zig:lint"]
+description = "Compile Zig in strict native modes"
+run = """
+zig build -Doptimize=Debug --summary all
+zig build -Doptimize=ReleaseSafe --summary all
+"""
+
+[tasks."zig:test"]
+description = "Run Zig tests"
+run = "zig build test -Doptimize=Debug --summary all"
+
+[tasks."zig:check"]
+description = "Run Zig formatting, compile checks, and tests"
+run = """
+mise run zig:fmt:check
+mise run zig:lint
+mise run zig:test
+"""
+
+[tasks."zig:ci"]
+description = "Run the Zig CI gate"
+depends = ["zig:check"]

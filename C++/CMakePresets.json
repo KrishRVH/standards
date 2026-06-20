@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+        "PROJECT_WERROR": "ON"
+      }
+    },
+    {
+      "name": "clang",
+      "inherits": "base",
+      "displayName": "Clang++ (Debug + ASan/UBSan)",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "PROJECT_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "gcc",
+      "inherits": "base",
+      "displayName": "G++ (Debug + ASan/UBSan)",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++",
+        "PROJECT_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "mingw",
+      "inherits": "base",
+      "displayName": "MinGW-w64 Windows cross (static exe)",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/mingw-w64.cmake",
+        "PROJECT_ENABLE_SANITIZERS": "OFF",
+        "PROJECT_MINGW_STATIC": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Clang++ (Release)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "PROJECT_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "thread",
+      "inherits": "base",
+      "displayName": "Clang++ (Debug + TSan)",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "PROJECT_ENABLE_SANITIZERS": "OFF",
+        "PROJECT_ENABLE_THREAD_SANITIZER": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "clang", "configurePreset": "clang" },
+    { "name": "gcc", "configurePreset": "gcc" },
+    { "name": "mingw", "configurePreset": "mingw" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "thread", "configurePreset": "thread" }
+  ],
+  "testPresets": [
+    {
+      "name": "clang",
+      "configurePreset": "clang",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "gcc",
+      "configurePreset": "gcc",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "thread",
+      "configurePreset": "thread",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1"
+      }
+    }
+  ]
+}

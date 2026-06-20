@@ -1,0 +1,86 @@
+[tools]
+erlang = "29.0.2"
+elixir = "1.20.1-otp-29"
+rebar = "3.27.0"
+ripgrep = "15.1.0"
+
+[tasks."elixir:install"]
+description = "Install Elixir project dependencies"
+run = """
+mix local.hex 2.4.2 --force
+mix local.rebar rebar3 "$(command -v rebar3)" --force
+mix deps.get
+"""
+
+[tasks."elixir:fmt"]
+description = "Format Elixir source"
+depends = ["elixir:install"]
+run = "mix format"
+
+[tasks."elixir:fmt:check"]
+description = "Check Elixir formatting"
+depends = ["elixir:install"]
+run = "mix format --check-formatted"
+
+[tasks."elixir:lint"]
+description = "Run Elixir static analysis"
+depends = ["elixir:install"]
+run = """
+MIX_ENV=test mix compile --warnings-as-errors
+mix credo --strict
+mix xref graph --format cycles --label compile-connected --fail-above 0
+mix dialyzer
+"""
+
+[tasks."elixir:test"]
+description = "Run Elixir tests"
+depends = ["elixir:install"]
+run = "MIX_ENV=test mix test --warnings-as-errors"
+
+[tasks."elixir:deps"]
+description = "Audit Elixir dependency hygiene"
+depends = ["elixir:install"]
+run = """
+mix deps.unlock --check-unused
+mix hex.audit
+mix deps.audit
+"""
+
+[tasks."elixir:docs"]
+description = "Build Elixir docs with warnings denied"
+depends = ["elixir:install"]
+run = "MIX_ENV=dev mix docs --warnings-as-errors"
+
+[tasks."elixir:coverage"]
+description = "Run Elixir coverage gate"
+depends = ["elixir:install"]
+run = "MIX_ENV=test mix coveralls"
+
+[tasks."elixir:security"]
+description = "Run Sobelow when Phoenix/web code is detected"
+depends = ["elixir:install"]
+run = """
+if rg -q 'Phoenix\\.(Endpoint|Router)|use Phoenix' config lib mix.exs apps/*/config apps/*/lib apps/*/mix.exs 2>/dev/null; then
+  MIX_ENV=test mix sobelow --exit Low
+else
+  echo "No Phoenix/web surface detected; skipping Sobelow."
+fi
+"""
+
+[tasks."elixir:check"]
+description = "Run Elixir formatting, static analysis, and tests"
+run = """
+mise run elixir:fmt:check
+mise run elixir:lint
+mise run elixir:test
+"""
+
+[tasks."elixir:ci"]
+description = "Run the extended Elixir quality gate"
+run = """
+mise run elixir:check
+mise run elixir:deps
+mise run elixir:docs
+mise run elixir:coverage
+mise run elixir:security
+"""
