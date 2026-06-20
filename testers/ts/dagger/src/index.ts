@@ -5,6 +5,7 @@ const MISE_LINUX_X64_URL = `https://github.com/jdx/mise/releases/download/${MISE
 
 const SOURCE_EXCLUDES = [
   '.cache',
+  '.cargo-tools',
   '.coverage',
   '.git',
   '.gstack',
@@ -46,7 +47,7 @@ export class ProjectCi {
    */
   @func()
   async ci(source: Directory): Promise<string> {
-    return await this.check(source);
+    return await this.runMise(source, ['run', 'ci:local']).stdout();
   }
 
   /**

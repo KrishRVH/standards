@@ -18,4 +18,5 @@ The standard gate is:
 mise run haskell:fmt:check
 mise run haskell:lint
 mise run haskell:test
+mise run haskell:check
 ```

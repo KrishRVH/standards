@@ -14,6 +14,7 @@ The standard gate is:
 mise run lua:fmt:check
 mise run lua:lint
 mise run lua:test
+mise run lua:check
 ```
 
 `lua:lint` installs pinned Luacheck into `.lua_modules`, then runs Luacheck and

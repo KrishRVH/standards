@@ -18,6 +18,7 @@ The standard gate is:
 mise run cpp:fmt:check
 mise run cpp:lint
 mise run cpp:test
+mise run cpp:check
 ```
 
 `cpp:lint` runs compiler warnings, `clangd --check --clang-tidy`, and optional

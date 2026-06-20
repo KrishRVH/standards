@@ -19,10 +19,10 @@ dagger/
 Day-to-day commands should go through mise:
 
 ```sh
-mise run fmt
-mise run lint
-mise run test
-mise run check
+mise run py:fmt:check
+mise run py:lint
+mise run py:test
+mise run py:check
 ```
 
 The baseline is intentionally strict: Ruff selects all rules, basedpyright and
@@ -33,3 +33,7 @@ and high-confidence dead code.
 That strictness is a starting point, not an obligation. Relax or remove checks
 that do not fit the project's risk, lifecycle, typing surface, or migration
 state.
+
+The aggregate `mise run fmt`, `mise run lint`, `mise run test`, and
+`mise run check` commands also dispatch to these Python tasks when
+`pyproject.toml` is present.

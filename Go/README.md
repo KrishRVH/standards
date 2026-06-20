@@ -13,6 +13,7 @@ The standard gate keeps Go's native toolchain as the source of truth:
 mise run go:fmt:check
 mise run go:lint
 mise run go:test
+mise run go:check
 ```
 
 `go:lint` checks module tidiness, verifies downloaded modules, runs `go vet`,

@@ -66,3 +66,7 @@ mise run lua:fmt:check
 mise run lua:lint
 mise run lua:test
 """
+
+[tasks."lua:ci"]
+description = "Run the Lua CI gate"
+depends = ["lua:check"]

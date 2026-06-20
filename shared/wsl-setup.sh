@@ -494,9 +494,9 @@ unalias gcm 2>/dev/null || true
 gcm() {
   local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
   [ -z "$branch" ] && echo "Not in a git repository" && return 1
-  
+
   local ticket=$(echo "$branch" | grep -o -E '[a-zA-Z0-9]+-[0-9]+' | head -1)
-  
+
   if [ -n "$ticket" ]; then
       git commit -m "${ticket} : $*"
   else
@@ -683,7 +683,9 @@ bind-key C run-shell "tmux-cht"
 bind-key -T copy-mode-vi v send-keys -X begin-selection
 bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
 
-# 'y' to yank is handled by tmux-yank (copies to system # ───────────────────────────────────────────────────────────────
+# 'y' to yank is handled by tmux-yank, which copies to the system clipboard.
+
+# ───────────────────────────────────────────────────────────────
 # Tokyo Night Theme Configuration
 # ───────────────────────────────────────────────────────────────
 # Theme variants: night | storm | moon | day

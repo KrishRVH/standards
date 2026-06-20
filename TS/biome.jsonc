@@ -6,7 +6,7 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": false
+    "useIgnoreFile": false,
   },
 
   // Include everything by default, then exclude generated/vendor/cache output at the Biome layer.
@@ -29,8 +29,8 @@
       "!!**/dist",
       "!!**/node_modules",
       "!!**/out",
-      "!**/*.tsbuildinfo"
-    ]
+      "!**/*.tsbuildinfo",
+    ],
   },
 
   // Shared formatter defaults mirror Prettier's low-surprise style while keeping Biome deterministic.
@@ -43,7 +43,7 @@
     "lineWidth": 120,
     "bracketSameLine": false,
     "bracketSpacing": true,
-    "trailingNewline": true
+    "trailingNewline": true,
   },
 
   // JavaScript/TypeScript-specific formatting choices not covered by the shared formatter block.
@@ -56,8 +56,8 @@
       "quoteProperties": "asNeeded",
       "quoteStyle": "single",
       "semicolons": "always",
-      "trailingCommas": "all"
-    }
+      "trailingCommas": "all",
+    },
   },
 
   // JSON files need no trailing commas even though this config file is JSONC.
@@ -69,8 +69,8 @@
       "lineEnding": "lf",
       "lineWidth": 120,
       "trailingCommas": "none",
-      "trailingNewline": true
-    }
+      "trailingNewline": true,
+    },
   },
 
   // Organize imports by runtime/platform imports first, packages next, aliases, then relative paths.
@@ -90,13 +90,13 @@
               ":BLANK_LINE:",
               ":ALIAS:",
               ":BLANK_LINE:",
-              ":PATH:"
+              ":PATH:",
             ],
-            "identifierOrder": "lexicographic"
-          }
-        }
-      }
-    }
+            "identifierOrder": "lexicographic",
+          },
+        },
+      },
+    },
   },
 
   // Start from Biome's recommended baseline, then promote selected rules to a strict project default.
@@ -105,7 +105,7 @@
     "domains": {
       "project": "recommended",
       "test": "recommended",
-      "types": "recommended"
+      "types": "recommended",
     },
     "rules": {
       "recommended": true,
@@ -118,7 +118,7 @@
         "noSvgWithoutTitle": "error",
         "useKeyWithClickEvents": "error",
         "useKeyWithMouseEvents": "error",
-        "useMediaCaption": "error"
+        "useMediaCaption": "error",
       },
 
       "complexity": {
@@ -135,7 +135,7 @@
         "useNumericLiterals": "error",
         "useOptionalChain": "error",
         "useRegexLiterals": "error",
-        "useSimplifiedLogicExpression": "error"
+        "useSimplifiedLogicExpression": "error",
       },
 
       "correctness": {
@@ -150,7 +150,7 @@
         "useIsNan": "error",
         "useJsxKeyInIterable": "error",
         "useParseIntRadix": "error",
-        "useValidTypeof": "error"
+        "useValidTypeof": "error",
       },
 
       "nursery": {
@@ -175,7 +175,7 @@
         "useNullishCoalescing": "error",
         "useRegexpExec": "error",
         "useRegexpTest": "error",
-        "useStringStartsEndsWith": "error"
+        "useStringStartsEndsWith": "error",
       },
 
       "performance": {
@@ -185,7 +185,7 @@
         "noDelete": "error",
         "noDynamicNamespaceImportAccess": "error",
         "noReExportAll": "error",
-        "useTopLevelRegex": "error"
+        "useTopLevelRegex": "error",
       },
 
       "security": {
@@ -197,9 +197,9 @@
         "noSecrets": {
           "level": "error",
           "options": {
-            "entropyThreshold": 50
-          }
-        }
+            "entropyThreshold": 50,
+          },
+        },
       },
 
       "style": {
@@ -229,7 +229,7 @@
         "useSingleVarDeclarator": "error",
         "useTemplate": "error",
         "useThrowNewError": "error",
-        "useThrowOnlyError": "error"
+        "useThrowOnlyError": "error",
       },
 
       "suspicious": {
@@ -247,9 +247,9 @@
         "useAwait": "error",
         "useGuardForIn": "error",
         "useIterableCallbackReturn": "error",
-        "useStrictMode": "error"
-      }
-    }
+        "useStrictMode": "error",
+      },
+    },
   },
 
   // File-type escape hatches for cases where the strict baseline conflicts with common ecosystem patterns.
@@ -260,10 +260,10 @@
       "linter": {
         "rules": {
           "style": {
-            "noNamespace": "off"
-          }
-        }
-      }
+            "noNamespace": "off",
+          },
+        },
+      },
     },
     {
       // Tool config files commonly use default exports because their loaders expect them.
@@ -271,15 +271,15 @@
         "**/*.config.{js,mjs,ts}",
         "**/eslint.config.{js,mjs,ts}",
         "**/prettier.config.{js,mjs,ts}",
-        "**/vite.config.{js,mjs,ts}"
+        "**/vite.config.{js,mjs,ts}",
       ],
       "linter": {
         "rules": {
           "style": {
-            "noDefaultExport": "off"
-          }
-        }
-      }
+            "noDefaultExport": "off",
+          },
+        },
+      },
     },
     {
       // Tests commonly log and use fixture strings that can resemble secrets.
@@ -287,13 +287,13 @@
       "linter": {
         "rules": {
           "security": {
-            "noSecrets": "off"
+            "noSecrets": "off",
           },
           "suspicious": {
-            "noConsole": "off"
-          }
-        }
-      }
-    }
-  ]
+            "noConsole": "off",
+          },
+        },
+      },
+    },
+  ],
 }

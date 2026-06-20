@@ -123,3 +123,7 @@ mise run py:test
 [tasks."standards:check"]
 description = "Run the Python standards reference gate locally"
 depends = ["py:check"]
+
+[tasks."py:ci"]
+description = "Run the Python CI gate"
+depends = ["py:check"]

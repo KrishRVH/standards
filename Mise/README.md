@@ -18,6 +18,7 @@ Recommended project entrypoints:
 ```sh
 mise run install
 mise run fmt
+mise run fmt:check
 mise run lint
 mise run test
 mise run check
@@ -34,14 +35,19 @@ Commit the lockfile generated for the chosen config layout. With this template's
 `mise.local.toml` for machine-local overrides.
 
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
-match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, and
-`test`, and `ci:local` tasks dispatch to PHP, Python, TypeScript/JavaScript,
-Rust, Go, Elixir, Haskell, Kotlin, Zig, C++, C, C#, and Lua when their project
-files are detected.
+match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
+`check:local`, and `ci:local` tasks dispatch to C, C#, C++, Elixir, Go,
+Haskell, Kotlin, Lua, PHP, Python, Rust, TypeScript/JavaScript, and Zig when
+their project files are detected.
 
 The C# task file restores with `--locked-mode` when any `packages.lock.json` is
 present, otherwise it creates package locks with `--use-lock-file`; lint and
 test run Release builds with analyzer warnings promoted to failures.
+
+The Rust task file runs Cargo in workspace and locked modes, generates a local
+`Cargo.lock` only when missing outside CI, builds docs with rustdoc warnings
+denied, runs doctests, and installs pinned `cargo-deny` into `.cargo-tools` for
+dependency policy checks.
 
 The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
 rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It

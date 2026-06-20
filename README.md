@@ -82,8 +82,10 @@ Finally, copy the language template files that match the project:
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
   mypy, pytest/coverage, dependency hygiene, docs, complexity, slots, security,
   and dead-code checks.
-- `Rust/`: Cargo, rustfmt, and Clippy defaults.
-- `TS/`: TypeScript, ESLint, Prettier, and Biome defaults.
+- `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
+  cargo-deny dependency-policy defaults.
+- `TS/`: TypeScript, ESLint, Prettier, and Biome config; the default gate uses
+  ESLint, `tsc`, and Prettier.
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 

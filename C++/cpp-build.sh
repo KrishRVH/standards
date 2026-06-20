@@ -18,6 +18,10 @@ run_preset() {
   fi
 }
 
+compiler_major_version() {
+  "$1" -dumpfullversion -dumpversion | sed -E 's/^([0-9]+).*/\1/'
+}
+
 presets=(clang release)
 
 if [[ "${PROJECT_RUN_AMBIENT_GCC:-0}" = "1" ]]; then
@@ -26,10 +30,11 @@ else
   echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
 fi
 
-if command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
+if command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1 \
+  && (( $(compiler_major_version x86_64-w64-mingw32-g++) >= 15 )); then
   presets+=(mingw)
 else
-  echo "[INFO] x86_64-w64-mingw32-g++ not found; skipping MinGW preset."
+  echo "[INFO] x86_64-w64-mingw32-g++ with C++26 support not found; skipping MinGW preset."
 fi
 
 for p in "${presets[@]}"; do

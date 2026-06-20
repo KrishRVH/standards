@@ -65,7 +65,7 @@ fi
 """
 
 [tasks."ts:check"]
-description = "Run TypeScript/JavaScript standards check"
+description = "Run TypeScript/JavaScript formatting, linting, type checks, and tests"
 depends = ["ts:install"]
 run = """
 if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['standards:check'] ? 0 : 1)"; then
@@ -74,11 +74,10 @@ else
   mise run ts:lint
   mise run ts:fmt:check
 fi
+
+mise run ts:test
 """
 
 [tasks."ts:ci"]
 description = "Run the TypeScript/JavaScript CI gate"
-run = """
-mise run ts:check
-mise run ts:test
-"""
+depends = ["ts:check"]

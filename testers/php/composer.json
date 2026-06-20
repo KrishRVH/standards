@@ -1,11 +1,11 @@
 {
-  "name": "vendor/project",
-  "description": "Reusable PHP quality-tooling baseline.",
+  "name": "standards/php-tester",
+  "description": "Smoke-test fixture for the PHP standards.",
   "license": "MIT",
   "type": "project",
   "authors": [
     {
-      "name": "Project Maintainers"
+      "name": "Standards contributors"
     }
   ],
   "require": {
