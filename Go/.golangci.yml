@@ -62,7 +62,6 @@ linters:
         - name: error-return
         - name: error-strings
         - name: exported
-          disabled: true
         - name: increment-decrement
         - name: range
         - name: receiver-naming

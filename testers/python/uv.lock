@@ -414,6 +414,47 @@ wheels = [
 ]
 
 [[package]]
+name = "project-name"
+version = "0.1.0"
+source = { editable = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "bandit" },
+    { name = "basedpyright" },
+    { name = "coverage" },
+    { name = "deptry" },
+    { name = "hatchling" },
+    { name = "interrogate" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "slotscheck" },
+    { name = "vulture" },
+    { name = "xenon" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "bandit", extras = ["toml"], specifier = ">=1.9.4" },
+    { name = "basedpyright", specifier = ">=1.39.8" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.14.1" },
+    { name = "deptry", specifier = ">=0.25.1" },
+    { name = "hatchling", specifier = ">=1.30.1" },
+    { name = "interrogate", specifier = ">=1.7.0" },
+    { name = "mypy", specifier = ">=2.1.0" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest-cov", specifier = ">=7.1.0" },
+    { name = "ruff", specifier = ">=0.15.18" },
+    { name = "slotscheck", specifier = ">=0.20.0" },
+    { name = "vulture", specifier = ">=2.16" },
+    { name = "xenon", specifier = ">=0.9.3" },
+]
+
+[[package]]
 name = "py"
 version = "1.11.0"
 source = { registry = "https://pypi.org/simple" }
@@ -584,47 +625,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7f/da/1e6218819012774a34c0cde0074f4e217e1e8511f9d8b693a2a13572428c/slotscheck-0.20.0.tar.gz", hash = "sha256:7069653d51578c08239fabe26cb55fa81acfd17ce72cb404e6b957874058a5bd", size = 16410, upload-time = "2026-05-29T08:48:24.737Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/18/bcd02d55073eeffd7a9ae75e78a6a6043fea9e204fecb11b2ae186dc3a40/slotscheck-0.20.0-py3-none-any.whl", hash = "sha256:8d994ca932b651d5a93be6ed3215cb6114e433aef8ddb79e051d68c0b32eafb5", size = 17770, upload-time = "2026-05-29T08:48:23.521Z" },
-]
-
-[[package]]
-name = "standards-python-tester"
-version = "0.1.0"
-source = { editable = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "bandit" },
-    { name = "basedpyright" },
-    { name = "coverage" },
-    { name = "deptry" },
-    { name = "hatchling" },
-    { name = "interrogate" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "slotscheck" },
-    { name = "vulture" },
-    { name = "xenon" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "bandit", extras = ["toml"], specifier = ">=1.9.4" },
-    { name = "basedpyright", specifier = ">=1.39.8" },
-    { name = "coverage", extras = ["toml"], specifier = ">=7.14.1" },
-    { name = "deptry", specifier = ">=0.25.1" },
-    { name = "hatchling", specifier = ">=1.30.1" },
-    { name = "interrogate", specifier = ">=1.7.0" },
-    { name = "mypy", specifier = ">=2.1.0" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "ruff", specifier = ">=0.15.18" },
-    { name = "slotscheck", specifier = ">=0.20.0" },
-    { name = "vulture", specifier = ">=2.16" },
-    { name = "xenon", specifier = ">=0.9.3" },
 ]
 
 [[package]]

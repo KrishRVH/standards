@@ -13,6 +13,6 @@ final class CalculatorTest extends TestCase
     #[Test]
     public function itAddsTwoIntegers(): void
     {
-        self::assertSame(5, (new Calculator())->add(2, 3));
+        self::assertSame(5, new Calculator()->add(2, 3));
     }
 }

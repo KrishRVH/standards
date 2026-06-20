@@ -20,3 +20,9 @@ mise run php:check
 `php:install` requires Composer and a PHP runtime with `ext-sodium`, then runs
 `composer install`. Commit `composer.lock` for applications, CLIs, and fixtures
 that want locked CI behavior.
+
+`composer ci` keeps to checks that should be green on a normal checkout:
+normalization, strict Composer validation, lint/static analysis, tests,
+dependency hygiene, Composer audit, and Rector dry-run. Mutation testing stays
+available through `composer infection` and requires pcov or xdebug coverage
+support.

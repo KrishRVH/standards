@@ -22,5 +22,7 @@ mise run csharp:check
 
 `csharp:restore` uses `dotnet restore --locked-mode` once a
 `packages.lock.json` exists and `dotnet restore --use-lock-file` before that.
-Commit `Directory.Packages.props` and the generated lockfiles. The lint and test
-tasks run Release builds so analyzer and build behavior match CI more closely.
+NuGet audit is enabled for all transitive dependencies at `low` severity; audit
+warnings fail under the template's warnings-as-errors policy. Commit
+`Directory.Packages.props` and the generated lockfiles. The lint and test tasks
+run Release builds so analyzer and build behavior match CI more closely.

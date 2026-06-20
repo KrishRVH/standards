@@ -1,7 +1,7 @@
-const tester = @import("standards_zig_tester");
+const project_name = @import("project_name");
 
 pub fn main() !void {
-    _ = tester.add(2, 3);
+    _ = project_name.add(2, 3);
 }
 
 test {

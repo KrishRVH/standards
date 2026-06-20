@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib_mod = b.createModule(.{
+    const lib_mod = b.addModule("project_name", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
 
     const lib = b.addLibrary(.{
         .linkage = .static,
-        .name = "standards_zig_tester",
+        .name = "project_name",
         .root_module = lib_mod,
     });
     b.installArtifact(lib);
@@ -22,13 +22,22 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    exe_mod.addImport("standards_zig_tester", lib_mod);
+    exe_mod.addImport("project_name", lib_mod);
 
     const exe = b.addExecutable(.{
-        .name = "standards-zig-tester",
+        .name = "project-name",
         .root_module = exe_mod,
     });
     b.installArtifact(exe);
+
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+
+    const run_step = b.step("run", "Run the executable");
+    run_step.dependOn(&run_cmd.step);
 
     const lib_tests = b.addTest(.{
         .root_module = lib_mod,

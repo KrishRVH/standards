@@ -1,6 +1,7 @@
 [package]
 name = "standards-rust-tester"
 version = "0.1.0"
+description = "Smoke-test fixture for the Rust standards."
 edition = "2024"
 rust-version = "1.96.0"
 license = "MIT OR Apache-2.0"

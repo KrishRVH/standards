@@ -1,4 +1,4 @@
-local greeting = require("src.greeting")
+local greeting = require("greeting")
 
 describe("greeting", function()
   it("greets by name", function()

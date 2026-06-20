@@ -19,6 +19,9 @@ mise run c:check
 ```
 
 `c:lint` runs the Clang preset, then `c-quality.sh` checks `clang-format`,
-`clangd --check`, and optional `cppcheck`. `c:test` runs Clang and GCC presets,
-optionally CompCert when `ccomp` is available, and optionally MinGW when the
-cross compiler is available.
+`clangd --check`, and optional `cppcheck`. `c:test` runs the pinned Clang
+preset, optional ambient GCC when `PROJECT_RUN_AMBIENT_GCC=1`, optional CompCert
+when `ccomp` is available, and optional MinGW when the cross compiler is
+available. It also installs the package config and verifies that a tiny external
+CMake consumer can link both `c_project::library` and
+`c_project::library_shared`.

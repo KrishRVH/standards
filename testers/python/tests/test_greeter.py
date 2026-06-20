@@ -1,4 +1,4 @@
-from standards_python_tester import Greeting, render_greeting
+from project_name import Greeting, render_greeting
 
 
 def test_render_greeting_function() -> None:

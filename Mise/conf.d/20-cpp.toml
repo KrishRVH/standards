@@ -11,12 +11,19 @@ ninja = "1.13.2"
 description = "Format C++ sources"
 run = """
 if command -v clang-format >/dev/null 2>&1; then
-  find . -path './.git' -prune -o -type f \\( \
-    -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o \
-    -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o \
-    -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o \
-    -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \
-  \\) -print0 | xargs -0 clang-format -i
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git ls-files --cached --others --exclude-standard -z -- \
+      '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' \
+      ':(exclude)build/**' ':(exclude)build-*/**' > "$tmp/files"
+  else
+    find . -type d \\( -name .git -o -name build -o -name 'build-*' \\) -prune \
+      -o -type f \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print0 > "$tmp/files"
+  fi
+  if [ -s "$tmp/files" ]; then
+    xargs -0 clang-format -i < "$tmp/files"
+  fi
 else
   echo "clang-format is required for C++ formatting." >&2
   exit 1
@@ -29,47 +36,37 @@ run = """
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard \
-    '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' > "$tmp/files"
+  git ls-files --cached --others --exclude-standard -z -- \
+    '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' \
+    ':(exclude)build/**' ':(exclude)build-*/**' > "$tmp/files"
 else
   find . -type d \\( -name .git -o -name build -o -name 'build-*' \\) -prune \
-    -o -type f \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print > "$tmp/files"
+    -o -type f \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print0 > "$tmp/files"
 fi
 if [ ! -s "$tmp/files" ]; then
   exit 0
 fi
-while IFS= read -r file; do
-  clang-format "$file" | cmp -s "$file" - || {
-    echo "Needs formatting: $file" >&2
-    exit 1
-  }
-done < "$tmp/files"
+xargs -0 -n 1 sh -c '
+  for file do
+    clang-format "$file" | cmp -s "$file" - || {
+      echo "Needs formatting: $file" >&2
+      exit 1
+    }
+  done
+' sh < "$tmp/files"
 """
 
 [tasks."cpp:lint"]
 description = "Run C++ static checks"
 run = """
-if [ -x ./cpp-quality.sh ]; then
-  cmake --preset clang
-  cmake --build --preset clang
-  ./cpp-quality.sh . build/clang
-else
-  cmake --preset clang
-  cmake --build --preset clang
-fi
+cmake --preset clang
+cmake --build --preset clang
+./cpp-quality.sh . build/clang
 """
 
 [tasks."cpp:test"]
 description = "Run C++ tests"
-run = """
-if [ -x ./cpp-build.sh ]; then
-  ./cpp-build.sh
-else
-  cmake --preset clang
-  cmake --build --preset clang
-  ctest --preset clang
-fi
-"""
+run = "./cpp-build.sh"
 
 [tasks."cpp:check"]
 description = "Run C++ formatting, linting, and tests"

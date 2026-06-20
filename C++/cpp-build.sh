@@ -18,11 +18,57 @@ run_preset() {
   fi
 }
 
+run_install_check() {
+  echo "----------------------------------------------------"
+  echo "Running install/package consumer check"
+  echo "----------------------------------------------------"
+
+  local install_prefix="$ROOT/build/install"
+
+  cmake --preset release \
+    -DPROJECT_INSTALL=ON \
+    -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build --preset release --parallel "$JOBS"
+  rm -rf "$install_prefix"
+  cmake --install "$ROOT/build/release" --prefix "$install_prefix"
+
+  local consumer="$ROOT/build/install-consumer"
+  rm -rf "$consumer"
+  mkdir -p "$consumer"
+
+  cat > "$consumer/CMakeLists.txt" <<'EOF'
+cmake_minimum_required(VERSION 3.30)
+project(cpp_project_consumer LANGUAGES CXX)
+
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+find_package(cpp_project CONFIG REQUIRED)
+
+add_executable(consumer main.cpp)
+target_link_libraries(consumer PRIVATE cpp_project::library)
+EOF
+
+  cat > "$consumer/main.cpp" <<'EOF'
+#include <project/library.h>
+
+int main() {
+    return project::double_value(21) == 42 ? 0 : 1;
+}
+EOF
+
+  cmake -S "$consumer" -B "$consumer/build" -G Ninja \
+    -DCMAKE_PREFIX_PATH="$install_prefix" \
+    -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+  cmake --build "$consumer/build" --parallel "$JOBS"
+  "$consumer/build/consumer"
+}
+
 compiler_major_version() {
   "$1" -dumpfullversion -dumpversion | sed -E 's/^([0-9]+).*/\1/'
 }
 
-presets=(clang release)
+presets=(clang)
 
 if [[ "${PROJECT_RUN_AMBIENT_GCC:-0}" = "1" ]]; then
   presets+=(gcc)
@@ -37,17 +83,12 @@ else
   echo "[INFO] x86_64-w64-mingw32-g++ with C++26 support not found; skipping MinGW preset."
 fi
 
+presets+=(release)
+
 for p in "${presets[@]}"; do
   run_preset "$p"
 done
 
-echo "----------------------------------------------------"
-echo "Running quality checks"
-echo "----------------------------------------------------"
-if [[ -f "$ROOT/build/clang/compile_commands.json" ]]; then
-  "$ROOT/cpp-quality.sh" "$ROOT" "$ROOT/build/clang"
-else
-  "$ROOT/cpp-quality.sh" "$ROOT"
-fi
+run_install_check
 
-echo "Quality checks complete"
+echo "Build, test, and package consumer checks complete"

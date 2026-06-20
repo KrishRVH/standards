@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "root": true,
 
   // Keep VCS integration explicit so copied templates do not inherit local ignore behavior accidentally.
@@ -77,7 +77,7 @@
   "assist": {
     "enabled": true,
     "actions": {
-      "recommended": true,
+      "preset": "recommended",
       "source": {
         "organizeImports": {
           "level": "on",
@@ -108,10 +108,10 @@
       "types": "recommended",
     },
     "rules": {
-      "recommended": true,
+      "preset": "all",
 
       "a11y": {
-        "recommended": true,
+        "preset": "all",
         "noAutofocus": "error",
         "noDistractingElements": "error",
         "noPositiveTabindex": "error",
@@ -122,12 +122,13 @@
       },
 
       "complexity": {
-        "recommended": true,
+        "preset": "all",
         "noArguments": "error",
         "noBannedTypes": "error",
         "noCommaOperator": "error",
         "noImplicitCoercions": "error",
         "noStaticOnlyClass": "error",
+        "useArrayFind": "error",
         "useArrowFunction": "error",
         "useDateNow": "error",
         "useFlatMap": "error",
@@ -139,7 +140,7 @@
       },
 
       "correctness": {
-        "recommended": true,
+        "preset": "all",
         "noInvalidUseBeforeDeclaration": "error",
         "noNestedComponentDefinitions": "error",
         "noPrivateImports": "error",
@@ -147,6 +148,8 @@
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noVoidTypeReturn": "error",
+        // TypeScript's ESM/bundler modes often require .js specifiers in .ts source.
+        "useImportExtensions": "off",
         "useIsNan": "error",
         "useJsxKeyInIterable": "error",
         "useParseIntRadix": "error",
@@ -154,32 +157,44 @@
       },
 
       "nursery": {
-        "noEqualsToNull": "error",
+        "noBaseToString": "error",
+        "noEmptyObjectKeys": "error",
+        "noExcessiveNestedCallbacks": "error",
         "noFloatingPromises": "error",
-        "noForIn": "error",
         "noImpliedEval": "error",
+        "noInlineStyles": "error",
         "noLoopFunc": "error",
+        "noMisleadingReturnType": "error",
         "noMisusedPromises": "error",
-        "noNestedPromises": "error",
-        "noReturnAssign": "error",
-        "noShadow": "error",
-        "noUnnecessaryConditions": "error",
         "noUnnecessaryTemplateExpression": "error",
         "noUnsafePlusOperands": "error",
+        "noUselessTypeConversion": "error",
         "useArraySome": "error",
         "useAwaitThenable": "error",
-        "useErrorCause": "error",
+        "useBaseline": {
+          "level": "error",
+          "options": {
+            "available": "widely",
+          },
+        },
+        "useDisposables": "error",
+        "useDomNodeTextContent": "error",
+        "useDomQuerySelector": "error",
         "useExhaustiveSwitchCases": "error",
-        "useFind": "error",
-        "useGlobalThis": "error",
+        "useIncludes": "error",
+        "useMathMinMax": "error",
+        "useNamedCaptureGroup": "error",
         "useNullishCoalescing": "error",
+        "useReduceTypeParameter": "error",
         "useRegexpExec": "error",
         "useRegexpTest": "error",
         "useStringStartsEndsWith": "error",
+        "useThisInClassMethods": "error",
+        "useUnicodeRegex": "error",
       },
 
       "performance": {
-        "recommended": true,
+        "preset": "all",
         "noAccumulatingSpread": "error",
         "noAwaitInLoops": "error",
         "noDelete": "error",
@@ -189,7 +204,7 @@
       },
 
       "security": {
-        "recommended": true,
+        "preset": "all",
         "noBlankTarget": "error",
         "noDangerouslySetInnerHtml": "error",
         "noDangerouslySetInnerHtmlWithChildren": "error",
@@ -203,7 +218,7 @@
       },
 
       "style": {
-        "recommended": true,
+        "preset": "all",
         "noCommonJs": "error",
         "noDefaultExport": "error",
         "noEnum": "error",
@@ -218,7 +233,9 @@
         "useConst": "error",
         "useDefaultParameterLast": "error",
         "useEnumInitializers": "error",
+        "useErrorCause": "error",
         "useExportType": "error",
+        "useGlobalThis": "error",
         "useImportType": "error",
         "useNodejsImportProtocol": "error",
         "useNumberNamespace": "error",
@@ -233,16 +250,22 @@
       },
 
       "suspicious": {
-        "recommended": true,
+        "preset": "all",
         "noAssignInExpressions": "error",
         "noDebugger": "error",
         "noDoubleEquals": "error",
         "noDuplicateDependencies": "error",
+        "noEqualsToNull": "error",
         "noExplicitAny": "error",
         "noFocusedTests": "error",
+        "noForIn": "error",
         "noImplicitAnyLet": "error",
+        "noNestedPromises": "error",
+        "noReturnAssign": "error",
+        "noShadow": "error",
         "noSkippedTests": "error",
         "noTsIgnore": "error",
+        "noUnnecessaryConditions": "error",
         "noVar": "error",
         "useAwait": "error",
         "useGuardForIn": "error",

@@ -16,7 +16,8 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
 ## Repository Layout
 
 - `shared/`: generic top-level files for a project, including `AGENTS.md`,
-  `CLAUDE.md`, `.gitattributes`, and `.gitignore`.
+  `CLAUDE.md`, `.gitattributes`, `.gitignore`, and optional platform bootstrap
+  scripts.
 - `Mise/`: `.config/mise` templates. These define the developer command
   surface and pin Dagger.
 - `Dagger/`: Dagger module template used by the mise `check` and `ci` tasks.
@@ -27,7 +28,11 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
   `.config/mise/mise.lock` for deterministic Linux tool resolution.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
-  project.
+  project. The root `.config/mise/mise.lock` pins the Python runtime used by
+  repository maintenance scripts.
+- `standards.manifest.toml`: the profile map used by agents and the root gate
+  to find canonical templates, tester fixtures, task fragments, and exact
+  mirror files.
 
 ## Using The Templates
 
@@ -39,6 +44,10 @@ cp shared/CLAUDE.md /path/to/project/CLAUDE.md
 cp shared/.gitattributes /path/to/project/.gitattributes
 cp shared/.gitignore /path/to/project/.gitignore
 ```
+
+`shared/macbook-setup.sh` and `shared/wsl-setup.sh` are optional bootstrap
+scripts for personal workstation setup. Read them first, then run the relevant
+script directly from the target machine.
 
 Then copy the mise baseline:
 
@@ -80,12 +89,13 @@ Finally, copy the language template files that match the project:
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
-  mypy, pytest/coverage, dependency hygiene, docs, complexity, slots, security,
-  and dead-code checks.
+  mypy, pytest/coverage, wheel/source builds, dependency hygiene, docs,
+  complexity, slots, security, and dead-code checks.
 - `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
-  cargo-deny dependency-policy defaults.
-- `TS/`: TypeScript, ESLint, Prettier, and Biome config; the default gate uses
-  ESLint, `tsc`, and Prettier.
+  cargo package/cargo-deny dependency-policy defaults.
+- `TS/`: Bun-backed TypeScript, ESLint, Prettier, package scripts, and a
+  one-file Biome alternative; the default gate uses ESLint, `tsc`, Prettier,
+  and tests.
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
@@ -132,5 +142,18 @@ mise run check
 
 That runs the tester fixtures for C, C#, C++, Elixir, Go, Haskell, Kotlin, Lua,
 PHP, Python, Rust, TypeScript, and Zig. When changing a template, update the
-matching fixture and refresh its `.config/mise/mise.lock` so future changes
-prove the copied layout still works.
+matching fixture and refresh affected lockfiles so future changes prove the
+copied layout still works.
+
+The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
+shared task fragments, aggregate task dispatch, fixture configs, Dagger
+fragments, and declared mirror files in sync while leaving undeclared fixture
+source and tests free to stay tiny.
+
+When adding or changing a standards profile:
+
+1. Update `standards.manifest.toml`.
+2. Add or update the matching `testers/<profile>` fixture.
+3. Keep every declared mirror path byte-for-byte aligned.
+4. Refresh affected fixture lockfiles.
+5. Run `mise run standards:drift`, then `mise run check`.

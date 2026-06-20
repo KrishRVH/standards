@@ -14,12 +14,12 @@ fi
 [tasks."csharp:fmt"]
 description = "Format C# code"
 depends = ["csharp:restore"]
-run = "dotnet format"
+run = "dotnet format --no-restore"
 
 [tasks."csharp:fmt:check"]
 description = "Check C# formatting"
 depends = ["csharp:restore"]
-run = "dotnet format --verify-no-changes"
+run = "dotnet format --verify-no-changes --no-restore"
 
 [tasks."csharp:lint"]
 description = "Build C# with analyzers enabled"

@@ -18,12 +18,21 @@ defmodule StandardsElixirTester.MixProject do
           :unknown,
           :unmatched_returns
         ]
-      ]
+      ],
+      test_coverage: [tool: ExCoveralls, minimum_coverage: 90]
     ]
   end
 
   def cli do
-    [preferred_envs: [dialyzer: :test]]
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.html": :test,
+        dialyzer: :test,
+        "deps.audit": :test,
+        sobelow: :test
+      ]
+    ]
   end
 
   def application do
@@ -33,7 +42,11 @@ defmodule StandardsElixirTester.MixProject do
   defp deps do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.38", only: [:dev], runtime: false},
+      {:excoveralls, "~> 0.18", only: [:test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false}
     ]
   end
 end
