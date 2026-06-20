@@ -14,7 +14,6 @@ IFS=$'\n\t'
 #   BOOTSTRAP_CARGO_UPGRADE=0          skip cargo package update checks
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
-#   BOOTSTRAP_OVERWRITE_UNMANAGED=1    replace unmanaged dotfiles after .bak copy
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -28,7 +27,6 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_CARGO_UPGRADE:=1}"
 : "${BOOTSTRAP_GIT_UPDATE:=1}"
 : "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
-: "${BOOTSTRAP_OVERWRITE_UNMANAGED:=0}"
 : "${BOOTSTRAP_TMUX_PLUGIN_UPDATE:=1}"
 
 has() { command -v "$1" >/dev/null 2>&1; }
@@ -158,13 +156,9 @@ write_managed_file() {
   fi
 
   if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
-    if [[ "$BOOTSTRAP_OVERWRITE_UNMANAGED" != "1" ]]; then
-      rm -f "$tmp"
-      warn "refusing to overwrite unmanaged file: $path"
-      warn "set BOOTSTRAP_OVERWRITE_UNMANAGED=1 to replace it after a .bak copy"
-      return 1
-    fi
-    cp -a "$path" "${path}.bak"
+    rm -f "$tmp"
+    warn "refusing to overwrite unmanaged file: $path"
+    return 1
   fi
 
   if ! atomic_install_file "$tmp" "$path" "$mode"; then
@@ -471,10 +465,6 @@ command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)
 
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
-#command -v eza >/dev/null 2>&1 && alias ls='eza --group-directories-first'
-#command -v eza >/dev/null 2>&1 && alias ll='eza -la --git --group-directories-first'
-#command -v bat >/dev/null 2>&1 && alias cat='bat'
-
 alias cls=clear
 alias sz='source ~/.zshrc'
 alias ls='ls --color=auto'
@@ -598,7 +588,7 @@ write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 <<'TM
 
 # ╔═══════════════════════════════════════════════════════════════╗
 # ║                         TMUX CONFIG                           ║
-# ║           Managed by cli-tools.sh (WSL bootstrap)              ║
+# ║           Managed by wsl-setup.sh                              ║
 # ╚═══════════════════════════════════════════════════════════════╝
 
 # ───────────────────────────────────────────────────────────────
@@ -710,7 +700,7 @@ set -g @tokyo-night-tmux_zoom_id_style 'dsquare'
 # ───────────────────────────────────────────────────────────────
 # Tmux-yank settings
 set -g @yank_selection_mouse 'clipboard' # or 'primary' or 'secondary'
-set -g @yank_action 'copy-pipe' # or 'copy-pipe-and-cancel' for old behavior
+set -g @yank_action 'copy-pipe'
 
 # ───────────────────────────────────────────────────────────────
 # Initialize TMUX plugin manager (keep this line at the very bottom)

@@ -21,7 +21,8 @@ this repo. `testers/` smoke-test copied standards for every language template.
 ## Commands
 
 - `mise run tasks`: list tasks.
-- `mise run check`: root gate, all fixtures.
+- `mise run lock`: refresh the root mise lockfile after tool-version changes.
+- `mise run check`: root gate, manifest/drift check plus all fixtures.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing/investigating the relevant mise task. If install needs network, run it
@@ -33,10 +34,16 @@ through mise and report that.
 - `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
 - Changing `Mise/`, `Dagger/`, or a tested stack means updating the matching
   fixture when applicable.
+- `standards.manifest.toml` is the profile source of truth. Add or remove
+  tested profiles there, and let `scripts/check-standards-drift.py --list-testers`
+  drive aggregate tester loops. Keep declared mirror paths byte-for-byte
+  aligned, refresh affected fixture lockfiles, then run `mise run
+  standards:drift` before the root gate.
 - Fixtures prove install, format, lint/static analysis, and tests. Keep them
   tiny, not example apps.
-- Commit deterministic tester `.config/mise/mise.lock` files; never commit
-  dependencies, build output, caches, coverage, or local state.
+- Commit the root `.config/mise/mise.lock` and deterministic tester
+  `.config/mise/mise.lock` files; never commit dependencies, build output,
+  caches, coverage, or local state.
 - Do not hand-edit generated output. Fix the source template/task and
   regenerate.
 - Use `rg` and targeted reads. Skip generated/vendor trees wholesale.

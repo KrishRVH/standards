@@ -11,22 +11,61 @@ golangci-lint = "2.12.2"
 description = "Download Go module dependencies"
 run = "go mod download"
 
+[tasks."go:fmt"]
+description = "Format Go source"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
+    -o -type f -name '*.go' -print0 > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs -0 gofumpt -w < "$tmp"
+fi
+"""
+
 [tasks."go:fmt:check"]
 description = "Check Go formatting"
 run = """
-files="$(gofumpt -l .)"
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
+    -o -type f -name '*.go' -print0 > "$tmp"
+fi
+if [ ! -s "$tmp" ]; then
+  exit 0
+fi
+files="$(xargs -0 gofumpt -l < "$tmp")"
 if [ -n "$files" ]; then
   printf '%s\n' "$files"
   exit 1
 fi
 """
 
+[tasks."go:mod:tidy"]
+description = "Tidy Go module files"
+run = "go mod tidy"
+
+[tasks."go:mod:check"]
+description = "Check Go module tidiness"
+run = "go mod tidy -diff"
+
+[tasks."go:mod:verify"]
+description = "Verify downloaded Go modules"
+run = "go mod verify"
+
 [tasks."go:lint"]
-description = "Run Go static analysis"
+description = "Run Go static analysis and dependency checks"
 depends = ["go:install"]
 run = """
-go mod tidy -diff
-go mod verify
+mise run go:mod:check
+mise run go:mod:verify
 go vet ./...
 golangci-lint run ./...
 govulncheck -test ./...
@@ -37,6 +76,31 @@ description = "Run Go tests"
 depends = ["go:install"]
 run = "go test -trimpath -count=1 ./..."
 
+[tasks."go:test:race"]
+description = "Run Go tests with the race detector"
+depends = ["go:install"]
+run = "go test -trimpath -race -count=1 ./..."
+
+[tasks."go:cover"]
+description = "Run Go tests with coverage"
+depends = ["go:install"]
+run = """
+mkdir -p coverage
+go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
+go tool cover -func=coverage/go.out
+min="${GO_COVER_MIN:-90}"
+actual="$(go tool cover -func=coverage/go.out | awk '/^total:/ { sub(/%/, "", $3); print $3 }')"
+awk -v actual="$actual" -v min="$min" 'BEGIN { exit(actual + 0 >= min + 0 ? 0 : 1) }' || {
+  echo "coverage ${actual}% is below required ${min}%"
+  exit 1
+}
+"""
+
+[tasks."go:bench"]
+description = "Run Go benchmarks"
+depends = ["go:install"]
+run = "go test -trimpath -run=^$ -bench=. -benchmem ./..."
+
 [tasks."go:check"]
 description = "Run Go formatting, static analysis, and tests"
 run = """
@@ -46,5 +110,9 @@ mise run go:test
 """
 
 [tasks."go:ci"]
-description = "Run the Go CI gate"
-depends = ["go:check"]
+description = "Run the extended Go quality gate"
+run = """
+mise run go:check
+mise run go:test:race
+mise run go:cover
+"""

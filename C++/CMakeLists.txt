@@ -28,6 +28,10 @@ set(PROJECT_TEST_SOURCES
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 function(project_require_cxx_standard target scope)
+  set_target_properties(${target} PROPERTIES
+    CXX_EXTENSIONS OFF
+  )
+
   if(PROJECT_CXX_STANDARD STREQUAL "26")
     target_compile_features(${target} ${scope} cxx_std_26)
   elseif(PROJECT_CXX_STANDARD STREQUAL "23")

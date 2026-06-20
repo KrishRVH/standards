@@ -6,6 +6,6 @@ import kotlin.test.assertEquals
 class CalculatorTest {
     @Test
     fun addsNumbers() {
-        assertEquals(5, Calculator.add(2, 3))
+        assertEquals(expected = 5, actual = Calculator.add(left = 2, right = 3))
     }
 }

@@ -1,7 +1,6 @@
 package greeter
 
-import "fmt"
-
+// Greeting returns a friendly greeting for name.
 func Greeting(name string) string {
-	return fmt.Sprintf("hello, %s", name)
+	return "hello, " + name
 }

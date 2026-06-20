@@ -1,0 +1,103 @@
+[profiles.c]
+name = "C"
+template = "C"
+tester = "testers/c"
+task_prefix = "c"
+task_fragment = "20-c.toml"
+mirror = [".clang-format", ".clang-tidy", "CMakeLists.txt", "CMakePresets.json", "cmake/project-name-config.cmake.in", "c-build.sh", "c-quality.sh", "include/project/library.h", "mingw-w64.cmake", "src/library.c", "src/main.c", "tests/project_tests.c"]
+
+[profiles.csharp]
+name = "C#"
+template = "C#"
+tester = "testers/csharp"
+task_prefix = "csharp"
+task_fragment = "20-csharp.toml"
+mirror = [".editorconfig", "Directory.Build.props", "Directory.Packages.props"]
+
+[profiles.cpp]
+name = "C++"
+template = "C++"
+tester = "testers/cpp"
+task_prefix = "cpp"
+task_fragment = "20-cpp.toml"
+mirror = [".clang-format", ".clang-tidy", "CMakeLists.txt", "CMakePresets.json", "cmake/project-name-config.cmake.in", "cpp-build.sh", "cpp-quality.sh", "include/project/library.h", "mingw-w64.cmake", "src/library.cpp", "src/main.cpp", "tests/project_tests.cpp"]
+
+[profiles.elixir]
+name = "Elixir"
+template = "Elixir"
+tester = "testers/elixir"
+task_prefix = "elixir"
+task_fragment = "20-elixir.toml"
+mirror = [".credo.exs", ".formatter.exs"]
+
+[profiles.go]
+name = "Go"
+template = "Go"
+tester = "testers/go"
+task_prefix = "go"
+task_fragment = "20-go.toml"
+mirror = [".golangci.yml"]
+
+[profiles.haskell]
+name = "Haskell"
+template = "Haskell"
+tester = "testers/haskell"
+task_prefix = "haskell"
+task_fragment = "20-haskell.toml"
+mirror = [".hlint.yaml"]
+
+[profiles.kotlin]
+name = "Kotlin"
+template = "Kotlin"
+tester = "testers/kotlin"
+task_prefix = "kotlin"
+task_fragment = "20-kotlin.toml"
+mirror = [".editorconfig", "detekt.yml", "gradle.properties"]
+
+[profiles.lua]
+name = "Lua"
+template = "Lua"
+tester = "testers/lua"
+task_prefix = "lua"
+task_fragment = "20-lua.toml"
+mirror = [".luacheckrc", ".luarc.json", "stylua.toml"]
+
+[profiles.php]
+name = "PHP"
+template = "PHP"
+tester = "testers/php"
+task_prefix = "php"
+task_fragment = "20-php.toml"
+mirror = ["deptrac.yaml", "infection.json5", "phpbench.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "psalm.xml", "rector.php"]
+
+[profiles.python]
+name = "Python"
+template = "Python"
+tester = "testers/python"
+task_prefix = "py"
+task_fragment = "20-python.toml"
+mirror = ["pyproject.toml"]
+
+[profiles.rust]
+name = "Rust"
+template = "Rust"
+tester = "testers/rust"
+task_prefix = "rust"
+task_fragment = "20-rust.toml"
+mirror = ["clippy.toml", "deny.toml", "rustfmt.toml"]
+
+[profiles.ts]
+name = "TypeScript"
+template = "TS"
+tester = "testers/ts"
+task_prefix = "ts"
+task_fragment = "20-ts.toml"
+mirror = ["biome.jsonc", "eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
+
+[profiles.zig]
+name = "Zig"
+template = "Zig"
+tester = "testers/zig"
+task_prefix = "zig"
+task_fragment = "20-zig.toml"
+mirror = ["build.zig", "build.zig.zon", "src/main.zig", "src/root.zig"]

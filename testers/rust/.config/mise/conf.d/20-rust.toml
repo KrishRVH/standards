@@ -60,6 +60,11 @@ description = "Build Rust documentation with warnings denied"
 depends = ["rust:lock:check"]
 run = "RUSTDOCFLAGS=\"-D warnings -D missing_docs\" cargo doc --workspace --all-features --no-deps --locked"
 
+[tasks."rust:package"]
+description = "Validate Rust package contents"
+depends = ["rust:lock:check"]
+run = "cargo package --workspace --allow-dirty --locked"
+
 [tasks."rust:deny"]
 description = "Run cargo-deny dependency policy checks"
 depends = ["rust:install", "rust:lock:check"]
@@ -71,7 +76,7 @@ cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
 """
 
 [tasks."rust:check"]
-description = "Run Rust formatting, linting, tests, docs, and dependency policy"
+description = "Run Rust formatting, linting, tests, docs, package, and dependency policy"
 run = """
 mise run rust:fmt:check
 mise run rust:lock:check
@@ -79,6 +84,7 @@ mise run rust:lint
 mise run rust:test
 mise run rust:test:doc
 mise run rust:doc
+mise run rust:package
 mise run rust:deny
 """
 

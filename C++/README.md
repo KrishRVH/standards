@@ -24,4 +24,6 @@ mise run cpp:check
 `cpp:lint` runs compiler warnings, `clangd --check --clang-tidy`, and optional
 `cppcheck` when it is installed. Debug presets enable ASan/UBSan for the pinned
 LLVM `clang++` build from mise's `pkgx:llvm.org` backend. Set
-`PROJECT_RUN_AMBIENT_GCC=1` to also run the optional host `g++` preset.
+`PROJECT_RUN_AMBIENT_GCC=1` to also run the optional host `g++` preset. The
+test script also installs the CMake package config and verifies that a tiny
+external CMake consumer can link `cpp_project::library`.

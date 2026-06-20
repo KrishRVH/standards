@@ -18,5 +18,6 @@ The standard gate is:
 mise run zig:fmt:check
 mise run zig:lint
 mise run zig:test
+mise run zig:release
 mise run zig:check
 ```

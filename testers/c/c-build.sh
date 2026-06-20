@@ -19,12 +19,67 @@ run_preset() {
   fi
 }
 
-presets=(clang gcc)
+run_install_check() {
+  echo "----------------------------------------------------"
+  echo "Running install/package consumer check"
+  echo "----------------------------------------------------"
+
+  local install_prefix="$ROOT/build/install"
+
+  cmake --preset clang \
+    -DPROJECT_ENABLE_SANITIZERS=OFF \
+    -DPROJECT_BUILD_SHARED=ON \
+    -DPROJECT_INSTALL=ON \
+    -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build --preset clang --parallel "$JOBS"
+  rm -rf "$install_prefix"
+  cmake --install "$ROOT/build/clang" --prefix "$install_prefix"
+
+  local consumer="$ROOT/build/install-consumer"
+  rm -rf "$consumer"
+  mkdir -p "$consumer"
+
+  cat > "$consumer/CMakeLists.txt" <<'EOF'
+cmake_minimum_required(VERSION 3.20)
+project(c_project_consumer LANGUAGES C)
+
+find_package(c_project CONFIG REQUIRED)
+
+add_executable(consumer_static main.c)
+target_link_libraries(consumer_static PRIVATE c_project::library)
+
+add_executable(consumer_shared main.c)
+target_link_libraries(consumer_shared PRIVATE c_project::library_shared)
+EOF
+
+  cat > "$consumer/main.c" <<'EOF'
+#include <project/library.h>
+
+int main(void)
+{
+    return project_add(2, 3) == 5 ? 0 : 1;
+}
+EOF
+
+  cmake -S "$consumer" -B "$consumer/build" -G Ninja \
+    -DCMAKE_PREFIX_PATH="$install_prefix"
+  cmake --build "$consumer/build" --parallel "$JOBS"
+  "$consumer/build/consumer_static"
+  LD_LIBRARY_PATH="$install_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$consumer/build/consumer_shared"
+}
+
+presets=(clang)
 
 if command -v ccomp >/dev/null 2>&1; then
   presets+=(compcert)
 else
   echo "[INFO] ccomp not found; skipping CompCert preset."
+fi
+
+if [[ "${PROJECT_RUN_AMBIENT_GCC:-0}" = "1" ]]; then
+  presets+=(gcc)
+else
+  echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
 fi
 
 if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
@@ -37,14 +92,6 @@ for p in "${presets[@]}"; do
   run_preset "$p"
 done
 
-# Quality checks: run on repo sources, use build/clang if present
-echo "----------------------------------------------------"
-echo "Running quality checks"
-echo "----------------------------------------------------"
-if [[ -f "$ROOT/build/clang/compile_commands.json" ]]; then
-  "$ROOT/c-quality.sh" "$ROOT" "$ROOT/build/clang"
-else
-  "$ROOT/c-quality.sh" "$ROOT"
-fi
+run_install_check
 
-echo "Quality checks complete"
+echo "Build, test, and package consumer checks complete"

@@ -112,12 +112,18 @@ description = "Run Python tests with branch coverage"
 depends = ["py:install"]
 run = "uv run pytest"
 
+[tasks."py:build"]
+description = "Build Python source and wheel distributions"
+depends = ["py:install"]
+run = "uv build"
+
 [tasks."py:check"]
-description = "Run Python formatting, static analysis, and tests"
+description = "Run Python formatting, static analysis, tests, and package builds"
 run = """
 mise run py:fmt:check
 mise run py:lint
 mise run py:test
+mise run py:build
 """
 
 [tasks."standards:check"]

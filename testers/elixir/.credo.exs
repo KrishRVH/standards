@@ -4,7 +4,16 @@
       name: "default",
       strict: true,
       files: %{
-        included: ["lib/", "test/", "config/", "mix.exs"],
+        included: [
+          "lib/",
+          "test/",
+          "config/",
+          "mix.exs",
+          "apps/*/lib/",
+          "apps/*/test/",
+          "apps/*/config/",
+          "apps/*/mix.exs"
+        ],
         excluded: ["_build/", "deps/"]
       },
       checks: [

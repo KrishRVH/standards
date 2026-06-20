@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(c_project VERSION 0.1.0 LANGUAGES C)
 
+include(CMakePackageConfigHelpers)
+include(GenerateExportHeader)
 include(GNUInstallDirs)
 include(CTest)
 
@@ -27,6 +29,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+set(PROJECT_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 # Detect CompCert by compiler executable name (CMake may not have a built-in ID).
 get_filename_component(PROJECT_C_COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
@@ -45,19 +48,28 @@ function(project_apply_common target)
   if(_is_interface)
     target_include_directories(${target} INTERFACE
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     set(_opt_scope INTERFACE)
+    set(_feature_scope INTERFACE)
   elseif(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
          _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
     target_include_directories(${target} PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     set(_opt_scope PRIVATE)
+    set(_feature_scope PUBLIC)
   else()
     target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
     set(_opt_scope PRIVATE)
+    set(_feature_scope PRIVATE)
+  endif()
+
+  if(NOT PROJECT_COMPILER_IS_COMPCERT)
+    target_compile_features(${target} ${_feature_scope} c_std_99)
   endif()
 
   # Warnings: strict for GCC/Clang, conservative for CompCert, MSVC-friendly.
@@ -115,17 +127,20 @@ endfunction()
 add_library(project_library STATIC ${PROJECT_LIBRARY_SOURCES})
 project_apply_common(project_library)
 set_target_properties(project_library PROPERTIES
+  DEFINE_SYMBOL PROJECT_LIBRARY_EXPORTS
   OUTPUT_NAME ${PROJECT_NAME}
   EXPORT_NAME library
   VERSION ${PROJECT_VERSION}
   SOVERSION ${PROJECT_VERSION_MAJOR}
 )
+target_compile_definitions(project_library PUBLIC PROJECT_LIBRARY_STATIC_DEFINE)
 add_library(${PROJECT_NAME}::library ALIAS project_library)
 
 if(PROJECT_BUILD_SHARED OR BUILD_SHARED_LIBS)
   add_library(project_library_shared SHARED ${PROJECT_LIBRARY_SOURCES})
   project_apply_common(project_library_shared)
   set_target_properties(project_library_shared PROPERTIES
+    DEFINE_SYMBOL PROJECT_LIBRARY_EXPORTS
     OUTPUT_NAME ${PROJECT_NAME}
     EXPORT_NAME library_shared
     VERSION ${PROJECT_VERSION}
@@ -133,6 +148,17 @@ if(PROJECT_BUILD_SHARED OR BUILD_SHARED_LIBS)
   )
   add_library(${PROJECT_NAME}::library_shared ALIAS project_library_shared)
 endif()
+
+if(TARGET project_library_shared)
+  set(PROJECT_EXPORT_HEADER_TARGET project_library_shared)
+else()
+  set(PROJECT_EXPORT_HEADER_TARGET project_library)
+endif()
+generate_export_header(${PROJECT_EXPORT_HEADER_TARGET}
+  BASE_NAME PROJECT_LIBRARY
+  EXPORT_FILE_NAME "${PROJECT_GENERATED_INCLUDE_DIR}/project/library_export.h"
+  STATIC_DEFINE PROJECT_LIBRARY_STATIC_DEFINE
+)
 
 if(PROJECT_BUILD_CLI)
   add_executable(project_cli ${PROJECT_CLI_SOURCES})
@@ -165,9 +191,29 @@ if(PROJECT_INSTALL)
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.h"
   )
+  install(DIRECTORY "${PROJECT_GENERATED_INCLUDE_DIR}/"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
+  )
 
   install(EXPORT ${PROJECT_NAME}Targets
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  )
+
+  configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/project-name-config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+  )
+  write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+  )
+  install(FILES
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
   )
 endif()

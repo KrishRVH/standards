@@ -3,13 +3,13 @@ requires = ["hatchling>=1.30.1"]
 build-backend = "hatchling.build"
 
 [project]
-name = "standards-python-tester"
+name = "project-name"
 version = "0.1.0"
-description = "Smoke-test fixture for the Python standards."
+description = "A strict Python project."
 readme = "README.md"
 requires-python = ">=3.14"
 license = "LicenseRef-Proprietary"
-authors = [{ name = "Standards contributors" }]
+authors = [{ name = "Project contributors" }]
 dependencies = []
 
 [dependency-groups]
@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/standards_python_tester"]
+packages = ["src/project_name"]
 
 [tool.ruff]
 line-length = 100
@@ -58,9 +58,10 @@ ignore = [
 strict = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["standards_python_tester"]
+known-first-party = ["project_name"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/**/cli.py" = ["T201"]
 "tests/**/*.py" = ["D", "PLR2004", "S101", "SLF001"]
 
 [tool.ruff.lint.pydocstyle]
@@ -102,7 +103,7 @@ warn_unused_configs = true
 addopts = [
   "--strict-config",
   "--strict-markers",
-  "--cov=standards_python_tester",
+  "--cov=project_name",
   "--cov-report=term-missing:skip-covered",
   "--cov-fail-under=100",
 ]
@@ -111,7 +112,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["standards_python_tester"]
+source = ["project_name"]
 
 [tool.coverage.report]
 exclude_also = [
@@ -124,7 +125,7 @@ skip_covered = true
 
 [tool.deptry]
 extend_exclude = [".venv", ".git", ".gstack"]
-known_first_party = ["standards_python_tester"]
+known_first_party = ["project_name"]
 
 [tool.bandit]
 exclude_dirs = [".git", ".gstack", ".venv", "tests"]

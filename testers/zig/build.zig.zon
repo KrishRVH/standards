@@ -1,10 +1,11 @@
 .{
-    .name = .standards_zig_tester,
+    .name = .project_name,
     .version = "0.1.0",
-    .fingerprint = 0xfca6f7fbf5db2951,
+    .fingerprint = 0x67b2b61e835aaaa3,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
     .paths = .{
+        "README.md",
         "build.zig",
         "build.zig.zon",
         "src",

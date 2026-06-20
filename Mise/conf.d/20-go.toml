@@ -13,12 +13,35 @@ run = "go mod download"
 
 [tasks."go:fmt"]
 description = "Format Go source"
-run = "gofumpt -w ."
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
+    -o -type f -name '*.go' -print0 > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs -0 gofumpt -w < "$tmp"
+fi
+"""
 
 [tasks."go:fmt:check"]
 description = "Check Go formatting"
 run = """
-files="$(gofumpt -l .)"
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
+    -o -type f -name '*.go' -print0 > "$tmp"
+fi
+if [ ! -s "$tmp" ]; then
+  exit 0
+fi
+files="$(xargs -0 gofumpt -l < "$tmp")"
 if [ -n "$files" ]; then
   printf '%s\n' "$files"
   exit 1

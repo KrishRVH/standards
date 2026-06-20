@@ -2,41 +2,19 @@
 bun = "1.3.14"
 
 [tasks."ts:install"]
-description = "Install JavaScript/TypeScript dependencies"
+description = "Install Bun-managed TypeScript/JavaScript dependencies"
 run = """
-if [ -f bun.lock ] || [ -f bun.lockb ]; then
+if [ -f bun.lock ]; then
   bun install --frozen-lockfile
-elif [ -f pnpm-lock.yaml ]; then
-  corepack enable
-  pnpm install --frozen-lockfile
-elif [ -f yarn.lock ]; then
-  corepack enable
-  yarn install --immutable
-elif [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-  npm ci
 else
   bun install
 fi
 """
 
 [tasks."ts:run"]
-description = "Run a package-manager script: mise run ts:run -- <script>"
+description = "Run a Bun package script: mise run ts:run -- <script>"
 usage = "arg \"script\""
-run = """
-script="$usage_script"
-
-if [ -f bun.lock ] || [ -f bun.lockb ]; then
-  bun run "$script"
-elif [ -f pnpm-lock.yaml ]; then
-  pnpm run "$script"
-elif [ -f yarn.lock ]; then
-  yarn run "$script"
-elif [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-  npm run "$script"
-else
-  bun run "$script"
-fi
-"""
+run = "bun run \"$usage_script\""
 
 [tasks."ts:fmt"]
 description = "Format TypeScript/JavaScript"
@@ -53,30 +31,20 @@ description = "Lint TypeScript/JavaScript"
 depends = ["ts:install"]
 run = "mise run ts:run -- lint:check"
 
-[tasks."ts:test"]
-description = "Run TypeScript/JavaScript tests when configured"
+[tasks."ts:type"]
+description = "Run TypeScript type checks"
 depends = ["ts:install"]
-run = """
-if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"; then
-  mise run ts:run -- test
-else
-  echo "No package.json test script configured."
-fi
-"""
+run = "mise run ts:run -- typecheck"
+
+[tasks."ts:test"]
+description = "Run TypeScript/JavaScript tests"
+depends = ["ts:install"]
+run = "mise run ts:run -- test"
 
 [tasks."ts:check"]
 description = "Run TypeScript/JavaScript formatting, linting, type checks, and tests"
 depends = ["ts:install"]
-run = """
-if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['standards:check'] ? 0 : 1)"; then
-  mise run ts:run -- standards:check
-else
-  mise run ts:lint
-  mise run ts:fmt:check
-fi
-
-mise run ts:test
-"""
+run = "mise run ts:run -- ci"
 
 [tasks."ts:ci"]
 description = "Run the TypeScript/JavaScript CI gate"

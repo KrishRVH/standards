@@ -37,8 +37,13 @@ Commit the lockfile generated for the chosen config layout. With this template's
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `check:local`, and `ci:local` tasks dispatch to C, C#, C++, Elixir, Go,
-Haskell, Kotlin, Lua, PHP, Python, Rust, TypeScript/JavaScript, and Zig when
-their project files are detected.
+Haskell, Kotlin, Lua, PHP, Python, Rust, Bun-backed TypeScript/JavaScript, and
+Zig when their project files are detected.
+
+The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
+yarn, or npm, replace the TypeScript task file with a project-specific one
+instead of keeping multiple unpinned package-manager branches in the shared
+standard.
 
 The C# task file restores with `--locked-mode` when any `packages.lock.json` is
 present, otherwise it creates package locks with `--use-lock-file`; lint and
