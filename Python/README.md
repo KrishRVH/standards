@@ -29,3 +29,7 @@ The baseline is intentionally strict: Ruff selects all rules, basedpyright and
 mypy both run in strict modes, tests require branch coverage, and linting also
 checks dependency hygiene, doc coverage, complexity, dataclass slots, security,
 and high-confidence dead code.
+
+That strictness is a starting point, not an obligation. Relax or remove checks
+that do not fit the project's risk, lifecycle, typing surface, or migration
+state.

@@ -4,6 +4,10 @@ Copy these files into a C++ project that uses CMake 3.30+ as its build authority
 Replace the neutral project names and source lists in `CMakeLists.txt` with the
 project's real library, executable, and test targets.
 
+This is a strict, systems-level generic starting template. Keep the checks that
+match the project and shave down presets, warnings, or optional tools when they
+do not fit the actual target platform or team tolerance.
+
 The baseline is intentionally dependency-manager agnostic. Use Conan, vcpkg,
 FetchContent, or system packages only after the project has a concrete
 dependency policy.

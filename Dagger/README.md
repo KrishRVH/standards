@@ -24,4 +24,8 @@ The module installs pinned `mise` inside the Dagger container and runs
 task definitions in mise while Dagger provides the isolated CI execution
 environment.
 
+Use this as the isolated runner for the strict starting baseline. Downstream
+projects should still trim or relax the underlying mise/language checks when
+the generic gate is broader than the project needs.
+
 These templates were written against mise `v2026.6.11` and Dagger `v0.21.7`.
