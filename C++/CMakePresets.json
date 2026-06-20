@@ -2,7 +2,7 @@
   "version": 2,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 20,
+    "minor": 30,
     "patch": 0
   },
   "configurePresets": [
@@ -14,6 +14,7 @@
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
         "PROJECT_WERROR": "ON"
       }
     },
@@ -46,6 +47,16 @@
       }
     },
     {
+      "name": "thread",
+      "inherits": "base",
+      "displayName": "Clang++ (Debug + TSan)",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "PROJECT_ENABLE_SANITIZERS": "OFF",
+        "PROJECT_ENABLE_THREAD_SANITIZER": "ON"
+      }
+    },
+    {
       "name": "mingw",
       "inherits": "base",
       "displayName": "MinGW-w64 Windows cross (static exe)",
@@ -60,31 +71,32 @@
     { "name": "clang", "configurePreset": "clang" },
     { "name": "gcc", "configurePreset": "gcc" },
     { "name": "release", "configurePreset": "release" },
+    { "name": "thread", "configurePreset": "thread" },
     { "name": "mingw", "configurePreset": "mingw" }
   ],
   "testPresets": [
     {
       "name": "clang",
       "configurePreset": "clang",
-      "output": { "outputOnFailure": true },
-      "environment": {
-        "ASAN_OPTIONS": "detect_leaks=0",
-        "LSAN_OPTIONS": "detect_leaks=0"
-      }
+      "output": { "outputOnFailure": true }
     },
     {
       "name": "gcc",
       "configurePreset": "gcc",
-      "output": { "outputOnFailure": true },
-      "environment": {
-        "ASAN_OPTIONS": "detect_leaks=0",
-        "LSAN_OPTIONS": "detect_leaks=0"
-      }
+      "output": { "outputOnFailure": true }
     },
     {
       "name": "release",
       "configurePreset": "release",
       "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "thread",
+      "configurePreset": "thread",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1"
+      }
     }
   ]
 }

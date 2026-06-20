@@ -9,7 +9,7 @@ readonly CDB="compile_commands.json"
 note() { printf '\033[0;34m[INFO]\033[0m %s\n' "$*"; }
 fail() { printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
 
-for tool in clang-format clang-tidy; do
+for tool in clang-format clangd; do
   command -v "$tool" >/dev/null 2>&1 || fail "Missing tool: $tool"
 done
 
@@ -60,12 +60,12 @@ detect_cdb_dir() {
 
 note "Tool versions:"
 note "  clang-format: $(clang-format --version)"
-note "  clang-tidy:   $(clang-tidy --version)"
+note "  clangd:       $(clangd --version | head -n 1)"
 if ((HAS_CPPCHECK)); then
   note "  cppcheck:     $(cppcheck --version)"
 fi
 
-note "Running clang-format..."
+note "Checking clang-format..."
 files=()
 while IFS= read -r -d '' f; do
   files+=("$f")
@@ -73,22 +73,25 @@ done < <(list_files)
 if ((${#files[@]} == 0)); then
   note "No source files found; skipping clang-format."
 else
-  printf '%s\0' "${files[@]}" | xargs -0 -P "$JOBS" clang-format -i
+  printf '%s\0' "${files[@]}" | xargs -0 -P "$JOBS" clang-format --dry-run --Werror
 fi
 
-note "Running clang-tidy..."
+note "Running clangd semantic checks..."
 if cdb_dir="$(detect_cdb_dir)"; then
   cpp_files=()
   while IFS= read -r -d '' f; do
     cpp_files+=("$f")
   done < <(list_cpp_files)
   if ((${#cpp_files[@]} == 0)); then
-    note "No C++ sources found; skipping clang-tidy."
+    note "No C++ sources found; skipping clangd."
   else
-    printf '%s\0' "${cpp_files[@]}" | xargs -0 -P "$JOBS" -n 1 clang-tidy -p "$cdb_dir"
+    for source in "${cpp_files[@]}"; do
+      clangd --background-index=false --clang-tidy --enable-config --log=error \
+        --compile-commands-dir="$cdb_dir" --check="$source"
+    done
   fi
 else
-  note "No $CDB found (expected in repo root or build dir); skipping clang-tidy."
+  note "No $CDB found (expected in repo root or build dir); skipping clangd."
 fi
 
 if ((HAS_CPPCHECK)); then

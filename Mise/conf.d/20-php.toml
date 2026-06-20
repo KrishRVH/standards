@@ -1,8 +1,20 @@
+[tools]
+php = "8.5.7"
+
+[env]
+PHP_CONFIGURE_OPTIONS = "--with-openssl --with-readline --with-gettext --with-sodium"
+
 [tasks."php:install"]
 description = "Install PHP dependencies"
 run = """
 if ! command -v composer >/dev/null 2>&1; then
   echo "Composer is required for PHP tooling. Install Composer or provide it on PATH before running PHP tasks." >&2
+  exit 1
+fi
+
+if ! php -m | grep -qi '^sodium$'; then
+  echo "PHP extension ext-sodium is required by the locked PHP quality tooling." >&2
+  echo "Rebuild or install the pinned PHP runtime with sodium enabled before running PHP tasks." >&2
   exit 1
 fi
 
@@ -33,3 +45,8 @@ run = "composer test"
 description = "Run the PHP project check script"
 depends = ["php:install"]
 run = "composer check"
+
+[tasks."php:ci"]
+description = "Run the PHP CI script"
+depends = ["php:install"]
+run = "composer ci"

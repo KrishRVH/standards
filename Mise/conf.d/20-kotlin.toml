@@ -1,6 +1,6 @@
 [tools]
-java = "22.0.2"
-gradle = "9.6.0"
+java = "26.0.1"
+gradle = "9.5.0"
 kotlin = "2.4.0"
 ktlint = "1.8.0"
 
@@ -30,4 +30,12 @@ run = "gradle --no-daemon --write-verification-metadata sha256 help"
 
 [tasks."kotlin:check"]
 description = "Run Kotlin formatting, static analysis, and tests"
-depends = ["kotlin:fmt:check", "kotlin:lint", "kotlin:test"]
+run = """
+mise run kotlin:fmt:check
+mise run kotlin:lint
+mise run kotlin:test
+"""
+
+[tasks."kotlin:ci"]
+description = "Run the Kotlin CI gate"
+depends = ["kotlin:check"]

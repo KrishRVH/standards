@@ -1,6 +1,6 @@
 [tools]
-lua = "5.4.8"
-stylua = "2.3.1"
+lua = "5.5.0"
+stylua = "2.5.2"
 
 [tasks."lua:install"]
 description = "Install Lua project tooling"

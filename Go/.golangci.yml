@@ -49,7 +49,6 @@ linters:
       enabled-tags:
         - diagnostic
         - performance
-        - style
       disabled-checks:
         - commentedOutCode
         - hugeParam

@@ -1,0 +1,35 @@
+config:
+  validation: true
+  warningsAsErrors: true
+
+complexity:
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 10
+  LongMethod:
+    active: true
+    allowedLines: 60
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 3
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  TooGenericExceptionThrown:
+    active: true
+
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 100
+  RedundantVisibilityModifier:
+    active: false
+  WildcardImport:
+    active: true

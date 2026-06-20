@@ -1,6 +1,6 @@
 [tools]
 python = "3.14.6"
-uv = "0.11.21"
+uv = "0.11.22"
 
 [tasks."py:install"]
 description = "Install Python dependencies"
@@ -118,4 +118,8 @@ depends = ["py:fmt:check", "py:lint", "py:test"]
 
 [tasks."standards:check"]
 description = "Run the Python standards reference gate locally"
+depends = ["py:check"]
+
+[tasks."py:ci"]
+description = "Run the Python CI gate"
 depends = ["py:check"]

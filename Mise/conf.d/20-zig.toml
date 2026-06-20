@@ -55,3 +55,7 @@ zig build -Doptimize=ReleaseSmall --summary all
 [tasks."zig:check"]
 description = "Run Zig formatting, compile checks, and tests"
 depends = ["zig:fmt:check", "zig:lint", "zig:test"]
+
+[tasks."zig:ci"]
+description = "Run the Zig CI gate"
+depends = ["zig:check"]

@@ -1,6 +1,10 @@
+[settings]
+experimental = true
+
 [tools]
-clang = "22.1.6"
-cmake = "4.3.3"
+"pkgx:llvm.org" = "22.1.8"
+clang-format = "22.1.8"
+cmake = "4.3.4"
 ninja = "1.13.2"
 
 [tasks."c:fmt"]
@@ -41,7 +45,9 @@ done < "$tmp/files"
 description = "Run C static checks"
 run = """
 if [ -x ./c-quality.sh ]; then
-  ./c-quality.sh .
+  cmake --preset clang
+  cmake --build --preset clang
+  ./c-quality.sh . build/clang
 else
   cmake --preset clang
   cmake --build --preset clang

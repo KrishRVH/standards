@@ -3,8 +3,7 @@
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`,
 `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`. Root docs/config maintain
-this repo. `testers/` smoke-test copied standards for C/Lua/PHP/Python/TS;
-C#/C++/Elixir/Go/Haskell/Kotlin/Rust/Zig have templates only.
+this repo. `testers/` smoke-test copied standards for every language template.
 
 ## Philosophy
 

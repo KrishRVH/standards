@@ -2,12 +2,13 @@
 erlang = "29.0.2"
 elixir = "1.20.1-otp-29"
 rebar = "3.27.0"
+ripgrep = "15.1.0"
 
 [tasks."elixir:install"]
 description = "Install Elixir project dependencies"
 run = """
-mix local.hex --if-missing --force
-mix local.rebar --if-missing --force
+mix local.hex 2.4.2 --force
+mix local.rebar rebar3 "$(command -v rebar3)" --force
 mix deps.get
 """
 
@@ -59,7 +60,7 @@ run = "MIX_ENV=test mix coveralls"
 description = "Run Sobelow when Phoenix/web code is detected"
 depends = ["elixir:install"]
 run = """
-if rg -q 'Phoenix\\.(Endpoint|Router)|use Phoenix' config lib mix.exs 2>/dev/null; then
+if rg -q 'Phoenix\\.(Endpoint|Router)|use Phoenix' config lib mix.exs apps/*/config apps/*/lib apps/*/mix.exs 2>/dev/null; then
   MIX_ENV=test mix sobelow --exit Low
 else
   echo "No Phoenix/web surface detected; skipping Sobelow."
@@ -68,8 +69,18 @@ fi
 
 [tasks."elixir:check"]
 description = "Run Elixir formatting, static analysis, and tests"
-depends = ["elixir:fmt:check", "elixir:lint", "elixir:test"]
+run = """
+mise run elixir:fmt:check
+mise run elixir:lint
+mise run elixir:test
+"""
 
 [tasks."elixir:ci"]
 description = "Run the extended Elixir quality gate"
-depends = ["elixir:check", "elixir:deps", "elixir:docs", "elixir:coverage", "elixir:security"]
+run = """
+mise run elixir:check
+mise run elixir:deps
+mise run elixir:docs
+mise run elixir:coverage
+mise run elixir:security
+"""

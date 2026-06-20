@@ -45,7 +45,7 @@ mise run go:mod:check
 mise run go:mod:verify
 go vet ./...
 golangci-lint run ./...
-govulncheck ./...
+govulncheck -test ./...
 """
 
 [tasks."go:test"]
@@ -61,7 +61,17 @@ run = "go test -trimpath -race -count=1 ./..."
 [tasks."go:cover"]
 description = "Run Go tests with coverage"
 depends = ["go:install"]
-run = "mkdir -p coverage && go test -trimpath -count=1 -covermode=atomic -coverprofile=coverage/go.out ./... && go tool cover -func=coverage/go.out"
+run = """
+mkdir -p coverage
+go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
+go tool cover -func=coverage/go.out
+min="${GO_COVER_MIN:-90}"
+actual="$(go tool cover -func=coverage/go.out | awk '/^total:/ { sub(/%/, "", $3); print $3 }')"
+awk -v actual="$actual" -v min="$min" 'BEGIN { exit(actual + 0 >= min + 0 ? 0 : 1) }' || {
+  echo "coverage ${actual}% is below required ${min}%"
+  exit 1
+}
+"""
 
 [tasks."go:bench"]
 description = "Run Go benchmarks"
@@ -71,3 +81,7 @@ run = "go test -trimpath -run=^$ -bench=. -benchmem ./..."
 [tasks."go:check"]
 description = "Run Go formatting, static analysis, and tests"
 depends = ["go:fmt:check", "go:lint", "go:test"]
+
+[tasks."go:ci"]
+description = "Run the extended Go quality gate"
+depends = ["go:check", "go:test:race", "go:cover"]

@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.30)
 project(cpp_project VERSION 0.1.0 LANGUAGES CXX)
 
+include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(CTest)
 
@@ -8,10 +9,10 @@ set(PROJECT_CXX_STANDARD
     26
     CACHE STRING "C++ language standard to require")
 option(PROJECT_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang only)" OFF)
+option(PROJECT_ENABLE_THREAD_SANITIZER "Enable ThreadSanitizer (GCC/Clang only)" OFF)
 option(PROJECT_WERROR "Treat compiler warnings as errors when supported" OFF)
 option(PROJECT_MINGW_STATIC "Static link MinGW executables" ON)
 option(PROJECT_BUILD_CLI "Build the CLI executable" ON)
-option(PROJECT_BUILD_SHARED "Build a shared library in addition to the static library" OFF)
 option(PROJECT_INSTALL "Install library and headers" OFF)
 
 set(PROJECT_LIBRARY_SOURCES
@@ -26,9 +27,17 @@ set(PROJECT_TEST_SOURCES
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD "${PROJECT_CXX_STANDARD}")
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+function(project_require_cxx_standard target scope)
+  if(PROJECT_CXX_STANDARD STREQUAL "26")
+    target_compile_features(${target} ${scope} cxx_std_26)
+  elseif(PROJECT_CXX_STANDARD STREQUAL "23")
+    target_compile_features(${target} ${scope} cxx_std_23)
+  elseif(PROJECT_CXX_STANDARD STREQUAL "20")
+    target_compile_features(${target} ${scope} cxx_std_20)
+  else()
+    message(FATAL_ERROR "Unsupported PROJECT_CXX_STANDARD=${PROJECT_CXX_STANDARD}; use 20, 23, or 26.")
+  endif()
+endfunction()
 
 function(project_apply_common target)
   get_target_property(_type ${target} TYPE)
@@ -43,6 +52,7 @@ function(project_apply_common target)
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     set(_opt_scope INTERFACE)
+    set(_feature_scope INTERFACE)
   elseif(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
          _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
     target_include_directories(${target} PUBLIC
@@ -50,9 +60,16 @@ function(project_apply_common target)
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     set(_opt_scope PRIVATE)
+    set(_feature_scope PUBLIC)
   else()
     target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
     set(_opt_scope PRIVATE)
+    set(_feature_scope PRIVATE)
+  endif()
+
+  project_require_cxx_standard(${target} ${_feature_scope})
+  if(NOT _is_interface)
+    set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
   endif()
 
   if(MSVC)
@@ -90,6 +107,20 @@ function(project_apply_common target)
     endif()
   endif()
 
+  if(PROJECT_ENABLE_THREAD_SANITIZER AND NOT _is_interface)
+    if(NOT MSVC AND NOT MINGW)
+      target_compile_options(${target} PRIVATE
+        -fsanitize=thread
+        -fno-omit-frame-pointer
+      )
+      get_target_property(_target_type ${target} TYPE)
+      if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
+         _target_type STREQUAL "MODULE_LIBRARY")
+        target_link_options(${target} PRIVATE -fsanitize=thread)
+      endif()
+    endif()
+  endif()
+
   if(WIN32 AND NOT MSVC AND PROJECT_MINGW_STATIC)
     get_target_property(_target_type ${target} TYPE)
     if(_target_type STREQUAL "EXECUTABLE")
@@ -108,18 +139,6 @@ set_target_properties(project_library PROPERTIES
 )
 add_library(${PROJECT_NAME}::library ALIAS project_library)
 
-if(PROJECT_BUILD_SHARED OR BUILD_SHARED_LIBS)
-  add_library(project_library_shared SHARED ${PROJECT_LIBRARY_SOURCES})
-  project_apply_common(project_library_shared)
-  set_target_properties(project_library_shared PROPERTIES
-    OUTPUT_NAME ${PROJECT_NAME}
-    EXPORT_NAME library_shared
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-  )
-  add_library(${PROJECT_NAME}::library_shared ALIAS project_library_shared)
-endif()
-
 if(PROJECT_BUILD_CLI)
   add_executable(project_cli ${PROJECT_CLI_SOURCES})
   target_link_libraries(project_cli PRIVATE project_library)
@@ -135,9 +154,6 @@ endif()
 
 if(PROJECT_INSTALL)
   set(PROJECT_INSTALL_TARGETS project_library)
-  if(TARGET project_library_shared)
-    list(APPEND PROJECT_INSTALL_TARGETS project_library_shared)
-  endif()
 
   install(TARGETS ${PROJECT_INSTALL_TARGETS}
     EXPORT ${PROJECT_NAME}Targets
@@ -159,5 +175,21 @@ if(PROJECT_INSTALL)
   install(EXPORT ${PROJECT_NAME}Targets
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  )
+
+  configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/project-name-config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+  )
+  write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+  )
+  install(FILES
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
   )
 endif()

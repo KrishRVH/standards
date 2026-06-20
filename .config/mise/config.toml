@@ -8,7 +8,7 @@ run = """
 set -eu
 
 root="$(pwd)"
-for project in testers/c testers/lua testers/php testers/python testers/ts; do
+for project in testers/c testers/csharp testers/cpp testers/elixir testers/go testers/haskell testers/kotlin testers/lua testers/php testers/python testers/rust testers/ts testers/zig; do
   echo "==> $project"
   (
     cd "$project"
