@@ -1,0 +1,33 @@
+[tools]
+java = "22.0.2"
+gradle = "9.6.0"
+kotlin = "2.4.0"
+ktlint = "1.8.0"
+
+[tasks."kotlin:fmt"]
+description = "Format Kotlin and Gradle Kotlin DSL"
+run = "ktlint -F '**/*.kt' '**/*.kts' '!**/build/**' '!**/.gradle/**' '!**/.kotlin/**'"
+
+[tasks."kotlin:fmt:check"]
+description = "Check Kotlin formatting"
+run = "ktlint '**/*.kt' '**/*.kts' '!**/build/**' '!**/.gradle/**' '!**/.kotlin/**'"
+
+[tasks."kotlin:lint"]
+description = "Run Kotlin static analysis and main-source compilation"
+run = "gradle --no-daemon --warning-mode=fail detekt classes"
+
+[tasks."kotlin:test"]
+description = "Run Kotlin/JVM tests"
+run = "gradle --no-daemon --warning-mode=fail test"
+
+[tasks."kotlin:locks"]
+description = "Refresh Gradle dependency locks"
+run = "gradle --no-daemon dependencies --write-locks"
+
+[tasks."kotlin:verification-metadata"]
+description = "Refresh Gradle dependency verification metadata"
+run = "gradle --no-daemon --write-verification-metadata sha256 help"
+
+[tasks."kotlin:check"]
+description = "Run Kotlin formatting, static analysis, and tests"
+depends = ["kotlin:fmt:check", "kotlin:lint", "kotlin:test"]

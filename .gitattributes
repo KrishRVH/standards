@@ -19,12 +19,32 @@
 *.hh text
 *.hpp text
 *.hxx text
+*.ipp text
+*.tpp text
+*.inl text
+*.ixx text
+*.cppm text
+*.cxxm text
 *.cs text diff=csharp
 *.cshtml text
 *.csx text diff=csharp
+*.ex text
+*.exs text
+*.eex text
+*.heex text
+*.leex text
+*.erl text
+*.hrl text
 *.fs text
 *.fsi text
 *.fsx text
+*.go text diff=go
+*.hs text
+*.lhs text
+*.hs-boot text
+*.hsc text
+*.kt text
+*.kts text
 *.razor text
 *.vb text
 *.xaml text
@@ -39,12 +59,16 @@
 *.lua text
 *.php text diff=php
 *.rs text
+*.zig text
+*.zon text
 
 # Build/config
 *.cmake text
 CMakeLists.txt text
 Makefile text
 *.mk text
+*.app.src text
+*.cabal text linguist-language=Haskell
 *.csproj text
 *.cfg text
 *.conf text
@@ -55,6 +79,8 @@ Makefile text
 *.env.template text
 *.gitignore text
 *.gitattributes text
+*.gradle text
+*.gradle.kts text
 *.ini text
 *.json text
 *.json5 text
@@ -64,6 +90,7 @@ Makefile text
 *.nuspec text
 *.proj text
 *.projitems text
+*.properties text
 *.props text
 *.resx text
 *.ruleset text
@@ -81,6 +108,13 @@ Makefile text
 *.xml text
 *.yaml text
 *.yml text
+go.mod text
+go.sum text
+go.work text
+go.work.sum text
+cabal.project text
+cabal.project.freeze text linguist-generated=true
+.sobelow-conf text
 
 # Docs/data
 *.csv text
@@ -92,14 +126,18 @@ Makefile text
 *.7z binary
 *.a binary
 *.avif binary
+*.beam binary
+*.class binary
 *.db binary
 *.dll binary
 *.dylib binary
 *.exe binary
+*.ez binary
 *.gif binary
 *.gz binary
 *.ico binary
 *.icns binary
+*.jar binary
 *.jpeg binary
 *.jpg binary
 *.lib binary
@@ -118,6 +156,7 @@ Makefile text
 *.tgz binary
 *.ttf binary
 *.wasm binary
+*.war binary
 *.webp binary
 *.woff binary
 *.woff2 binary
@@ -139,6 +178,8 @@ testers/** linguist-detectable=false
 # of the C standard.
 C/c-build.sh linguist-detectable=false
 C/c-quality.sh linguist-detectable=false
+C++/cpp-build.sh linguist-detectable=false
+C++/cpp-quality.sh linguist-detectable=false
 
 # Platform setup scripts are bootstrap templates, not the primary language
 # surface of this standards catalog.
@@ -153,4 +194,16 @@ shared/wsl-setup.sh linguist-detectable=false
 **/.pdepend/** linguist-generated=true
 **/.phpunit.cache/** linguist-generated=true
 **/__pycache__/** linguist-generated=true
+**/_build/** linguist-generated=true
+**/.gradle/** linguist-generated=true
+**/.kotlin/** linguist-generated=true
+**/.stack-work/** linguist-generated=true
+**/.zig-cache/** linguist-generated=true
+**/cover/** linguist-generated=true
+**/deps/** linguist-vendored=true linguist-detectable=false
+**/dist-newstyle/** linguist-generated=true
+**/doc/** linguist-generated=true
 **/vendor/** linguist-vendored=true linguist-detectable=false
+**/zig-cache/** linguist-generated=true
+**/zig-out/** linguist-generated=true
+**/zig-pkg/** linguist-vendored=true linguist-detectable=false

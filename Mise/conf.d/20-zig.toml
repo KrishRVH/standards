@@ -1,0 +1,57 @@
+[tools]
+zig = "0.16.0"
+
+[tasks."zig:fmt"]
+description = "Format Zig source"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard '*.zig' '*.zon' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
+    -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs zig fmt < "$tmp"
+fi
+"""
+
+[tasks."zig:fmt:check"]
+description = "Check Zig formatting"
+run = """
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard '*.zig' '*.zon' > "$tmp"
+else
+  find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
+    -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print > "$tmp"
+fi
+if [ -s "$tmp" ]; then
+  xargs zig fmt --check < "$tmp"
+fi
+"""
+
+[tasks."zig:lint"]
+description = "Compile Zig in strict native modes"
+run = """
+zig build -Doptimize=Debug --summary all
+zig build -Doptimize=ReleaseSafe --summary all
+"""
+
+[tasks."zig:test"]
+description = "Run Zig tests"
+run = "zig build test -Doptimize=Debug --summary all"
+
+[tasks."zig:release"]
+description = "Compile Zig release variants"
+run = """
+zig build -Doptimize=ReleaseSafe --summary all
+zig build -Doptimize=ReleaseFast --summary all
+zig build -Doptimize=ReleaseSmall --summary all
+"""
+
+[tasks."zig:check"]
+description = "Run Zig formatting, compile checks, and tests"
+depends = ["zig:fmt:check", "zig:lint", "zig:test"]

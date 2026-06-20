@@ -1,9 +1,10 @@
 # Agent Guide
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
-`Dagger/`, `C/`, `C#/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`. Root
-docs/config maintain this repo. `testers/` smoke-test copied standards for
-C/Lua/PHP/Python/TS; C#/Rust have templates only.
+`Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`,
+`Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`. Root docs/config maintain
+this repo. `testers/` smoke-test copied standards for C/Lua/PHP/Python/TS;
+C#/C++/Elixir/Go/Haskell/Kotlin/Rust/Zig have templates only.
 
 ## Philosophy
 

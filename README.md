@@ -15,8 +15,8 @@ folders.
 - `Mise/`: `.config/mise` templates. These define the developer command
   surface and pin Dagger.
 - `Dagger/`: Dagger module template used by the mise `check` and `ci` tasks.
-- `C/`, `C#/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`: language/tooling
-  templates.
+- `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`, `Lua/`,
+  `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`: language/tooling templates.
 - `testers/`: small standalone fixtures that prove the copyable templates work
   through the documented mise layout. C# and Rust testers are intentionally
   absent.
@@ -58,6 +58,17 @@ Finally, copy the language template files that match the project:
 - `C/`: CMake presets, Clang formatting/static-analysis config, and helper
   scripts.
 - `C#/`: `.editorconfig` for .NET formatting/analyzers.
+- `C++/`: CMake C++26 library/CLI/test template, Clang format/tidy config,
+  sanitizer presets, optional `cppcheck`, and MinGW cross-toolchain support.
+- `Elixir/`: Mix project baseline with formatter, Credo, Dialyzer, xref cycle
+  checks, docs, coverage, dependency audits, and Phoenix-detected Sobelow.
+- `Go/`: Go module baseline with gofumpt, module hygiene, `go vet`,
+  golangci-lint, govulncheck, tests, race, coverage, and benchmark tasks.
+- `Haskell/`: Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
+  errors in the local gate, Cabal check/build/test/haddock/sdist, and optional
+  freeze support.
+- `Kotlin/`: Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
+  errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/`: StyLua and Luacheck config.
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
@@ -66,6 +77,8 @@ Finally, copy the language template files that match the project:
   and dead-code checks.
 - `Rust/`: Cargo, rustfmt, and Clippy defaults.
 - `TS/`: TypeScript, ESLint, Prettier, and Biome defaults.
+- `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
+  Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
 The files intentionally use neutral project names, conventional `src` and
 `tests` directories, and generic package namespaces. Replace those placeholders

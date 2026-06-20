@@ -49,7 +49,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:fmt
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:fmt
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:fmt
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:fmt
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:fmt
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:fmt
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:fmt
   ran=1
 fi
@@ -95,7 +125,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:fmt:check
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:fmt:check
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:fmt:check
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:fmt:check
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:fmt:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:fmt:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:fmt:check
   ran=1
 fi
@@ -141,7 +201,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:lint
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:lint
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:lint
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:lint
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:lint
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:lint
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:lint
   ran=1
 fi
@@ -187,7 +277,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:test
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:test
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:test
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:test
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:test
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:test
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:test
   ran=1
 fi

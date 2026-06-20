@@ -1,6 +1,13 @@
 [tasks."php:install"]
 description = "Install PHP dependencies"
-run = "composer install"
+run = """
+if ! command -v composer >/dev/null 2>&1; then
+  echo "Composer is required for PHP tooling. Install Composer or provide it on PATH before running PHP tasks." >&2
+  exit 1
+fi
+
+composer install --no-interaction
+"""
 
 [tasks."php:fmt"]
 description = "Auto-fix PHP style issues"
