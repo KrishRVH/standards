@@ -1,20 +1,20 @@
 [tools]
-lua = "5.5.0"
+lua = "5.4.8"
 lua-language-server = "3.18.2"
 stylua = "2.5.2"
 
 [tasks."lua:install"]
-description = "Install Lua project test tooling"
+description = "Install Lua project lint/test tooling"
 run = """
-if [ -f busted.lua ] || [ -d spec ] || [ -d specs ]; then
-  if ! command -v luarocks >/dev/null 2>&1; then
-    echo "luarocks is required for Lua test tooling." >&2
-    exit 1
-  fi
+if ! command -v luarocks >/dev/null 2>&1; then
+  echo "luarocks is required for Lua lint/test tooling." >&2
+  exit 1
+fi
 
-  if [ ! -x .lua_modules/bin/busted ]; then
-    luarocks --tree .lua_modules install busted
-  fi
+luarocks --tree .lua_modules install luacheck 1.2.0-1
+
+if [ -f busted.lua ] || [ -d spec ] || [ -d specs ]; then
+  luarocks --tree .lua_modules install busted 2.3.0-1
 fi
 """
 
@@ -27,10 +27,14 @@ description = "Check Lua formatting"
 run = "stylua --check ."
 
 [tasks."lua:lint"]
-description = "Run LuaLS diagnostics"
+description = "Run Luacheck and LuaLS diagnostics"
+depends = ["lua:install"]
 run = """
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
+
+eval "$(luarocks --tree .lua_modules path)"
+luacheck --exclude-files '.lua_modules/**' --exclude-files '.lua-language-server/**' -- .
 
 if ! lua-language-server --check=. --check_format=pretty --checklevel=Warning --logpath=.lua-language-server/log >"$tmp" 2>&1; then
   cat "$tmp"

@@ -3,7 +3,13 @@ dotnet = "10.0.301"
 
 [tasks."csharp:restore"]
 description = "Restore .NET dependencies"
-run = "dotnet restore"
+run = """
+if find . -maxdepth 4 -name packages.lock.json -print -quit | grep -q .; then
+  dotnet restore --locked-mode
+else
+  dotnet restore --use-lock-file
+fi
+"""
 
 [tasks."csharp:fmt"]
 description = "Format C# code"
@@ -18,12 +24,12 @@ run = "dotnet format --verify-no-changes"
 [tasks."csharp:lint"]
 description = "Build C# with analyzers enabled"
 depends = ["csharp:restore"]
-run = "dotnet build --no-restore -warnaserror"
+run = "dotnet build --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true -p:TreatWarningsAsErrors=true"
 
 [tasks."csharp:test"]
 description = "Run C# tests"
 depends = ["csharp:restore"]
-run = "dotnet test --no-restore"
+run = "dotnet test --no-restore --configuration Release"
 
 [tasks."csharp:check"]
 description = "Run C# formatting, analysis, and tests"
