@@ -38,3 +38,11 @@ match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, and
 `test`, and `ci:local` tasks dispatch to PHP, Python, TypeScript/JavaScript,
 Rust, Go, Elixir, Haskell, Kotlin, Zig, C++, C, C#, and Lua when their project
 files are detected.
+
+The C# task file restores with `--locked-mode` when any `packages.lock.json` is
+present, otherwise it creates package locks with `--use-lock-file`; lint and
+test run Release builds with analyzer warnings promoted to failures.
+
+The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
+rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It
+requires `luarocks` on PATH for lint/test tooling.

@@ -62,7 +62,8 @@ Finally, copy the language template files that match the project:
 
 - `C/`: CMake presets, Clang formatting/static-analysis config, and helper
   scripts.
-- `C#/`: `.editorconfig` for .NET formatting/analyzers.
+- `C#/`: strict .NET formatting, analyzer, central package, locked restore, and
+  Release build/test defaults.
 - `C++/`: CMake C++26 library/CLI/test template, Clang format/tidy config,
   sanitizer presets, optional `cppcheck`, and MinGW cross-toolchain support.
 - `Elixir/`: Mix project baseline with formatter, Credo, Dialyzer, xref cycle
@@ -74,7 +75,8 @@ Finally, copy the language template files that match the project:
   freeze support.
 - `Kotlin/`: Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
-- `Lua/`: StyLua and LuaLS config.
+- `Lua/`: Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
+  tests.
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
