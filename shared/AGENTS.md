@@ -54,7 +54,7 @@ Treat these as generated unless the task is specifically about them:
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
   `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
 - tool caches: `.phpunit.cache/`, `.psalm-cache/`, `.rector-cache/`,
-  `.infection/`, `.luacheckcache`, `*.tsbuildinfo`, `.elixir_ls/`
+  `.infection/`, `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 
 If generated output is stale, fix the generator or mise task and regenerate.
 

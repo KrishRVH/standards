@@ -37,6 +37,16 @@
       }
     },
     {
+      "name": "mingw",
+      "inherits": "base",
+      "displayName": "MinGW-w64 Windows cross (static exe)",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/mingw-w64.cmake",
+        "PROJECT_ENABLE_SANITIZERS": "OFF",
+        "PROJECT_MINGW_STATIC": "ON"
+      }
+    },
+    {
       "name": "release",
       "inherits": "base",
       "displayName": "Clang++ (Release)",
@@ -55,24 +65,14 @@
         "PROJECT_ENABLE_SANITIZERS": "OFF",
         "PROJECT_ENABLE_THREAD_SANITIZER": "ON"
       }
-    },
-    {
-      "name": "mingw",
-      "inherits": "base",
-      "displayName": "MinGW-w64 Windows cross (static exe)",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/mingw-w64.cmake",
-        "PROJECT_ENABLE_SANITIZERS": "OFF",
-        "PROJECT_MINGW_STATIC": "ON"
-      }
     }
   ],
   "buildPresets": [
     { "name": "clang", "configurePreset": "clang" },
     { "name": "gcc", "configurePreset": "gcc" },
+    { "name": "mingw", "configurePreset": "mingw" },
     { "name": "release", "configurePreset": "release" },
-    { "name": "thread", "configurePreset": "thread" },
-    { "name": "mingw", "configurePreset": "mingw" }
+    { "name": "thread", "configurePreset": "thread" }
   ],
   "testPresets": [
     {

@@ -173,9 +173,11 @@ infection.log
 **/*.rs.bk
 
 # Lua generated output
-.luacheckcache
+.lua-language-server/
+.lua_modules/
 *.luac
 luac.out
+/testers/**/.lua-language-server/
 /testers/**/.lua_modules/
 
 # Go generated output

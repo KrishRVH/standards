@@ -1,6 +1,10 @@
 [settings]
 lockfile = true
 
+[tasks.check]
+description = "Run the Kotlin tester gate"
+depends = ["check:local"]
+
 [tasks."check:local"]
 description = "Run the Kotlin tester gate"
 depends = ["kotlin:check"]

@@ -1,20 +1,17 @@
 [tools]
 lua = "5.5.0"
+lua-language-server = "3.18.2"
 stylua = "2.5.2"
 
 [tasks."lua:install"]
-description = "Install Lua project tooling"
+description = "Install Lua project test tooling"
 run = """
-if ! command -v luarocks >/dev/null 2>&1; then
-  echo "luarocks is required for Lua tooling." >&2
-  exit 1
-fi
-
-if [ ! -x .lua_modules/bin/luacheck ]; then
-  luarocks --tree .lua_modules install luacheck
-fi
-
 if [ -f busted.lua ] || [ -d spec ] || [ -d specs ]; then
+  if ! command -v luarocks >/dev/null 2>&1; then
+    echo "luarocks is required for Lua test tooling." >&2
+    exit 1
+  fi
+
   if [ ! -x .lua_modules/bin/busted ]; then
     luarocks --tree .lua_modules install busted
   fi
@@ -30,11 +27,20 @@ description = "Check Lua formatting"
 run = "stylua --check ."
 
 [tasks."lua:lint"]
-description = "Run Luacheck"
-depends = ["lua:install"]
+description = "Run LuaLS diagnostics"
 run = """
-eval "$(luarocks --tree .lua_modules path)"
-luacheck --exclude-files .lua_modules/** -- .
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+if ! lua-language-server --check=. --check_format=pretty --checklevel=Warning --logpath=.lua-language-server/log >"$tmp" 2>&1; then
+  cat "$tmp"
+  exit 1
+fi
+
+cat "$tmp"
+if ! grep -Eq "Diagnosis complete(d)?, (0|no) problems found" "$tmp"; then
+  exit 1
+fi
 """
 
 [tasks."lua:test"]
@@ -51,4 +57,8 @@ fi
 
 [tasks."lua:check"]
 description = "Run Lua formatting, linting, and tests"
-depends = ["lua:fmt:check", "lua:lint", "lua:test"]
+run = """
+mise run lua:fmt:check
+mise run lua:lint
+mise run lua:test
+"""
