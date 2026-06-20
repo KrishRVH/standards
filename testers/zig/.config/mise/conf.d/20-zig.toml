@@ -25,7 +25,11 @@ run = "zig build test -Doptimize=Debug --summary all"
 
 [tasks."zig:check"]
 description = "Run Zig formatting, compile checks, and tests"
-depends = ["zig:fmt:check", "zig:lint", "zig:test"]
+run = """
+mise run zig:fmt:check
+mise run zig:lint
+mise run zig:test
+"""
 
 [tasks."zig:ci"]
 description = "Run the Zig CI gate"

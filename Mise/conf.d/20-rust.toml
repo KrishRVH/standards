@@ -19,7 +19,11 @@ run = "cargo test --all-targets --all-features"
 
 [tasks."rust:check"]
 description = "Run Rust formatting, linting, and tests"
-depends = ["rust:fmt:check", "rust:lint", "rust:test"]
+run = """
+mise run rust:fmt:check
+mise run rust:lint
+mise run rust:test
+"""
 
 [tasks."rust:ci"]
 description = "Run the Rust CI gate"

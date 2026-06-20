@@ -89,7 +89,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:fmt
   ran=1
 fi
@@ -165,7 +165,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:fmt:check
   ran=1
 fi
@@ -241,7 +241,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:lint
   ran=1
 fi
@@ -317,7 +317,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:test
   ran=1
 fi
@@ -401,7 +401,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:ci
   ran=1
 fi

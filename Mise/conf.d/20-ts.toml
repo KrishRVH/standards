@@ -78,4 +78,7 @@ fi
 
 [tasks."ts:ci"]
 description = "Run the TypeScript/JavaScript CI gate"
-depends = ["ts:check"]
+run = """
+mise run ts:check
+mise run ts:test
+"""

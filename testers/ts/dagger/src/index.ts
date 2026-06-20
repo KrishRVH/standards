@@ -1,24 +1,37 @@
 import { type Container, type Directory, dag, func, object } from '@dagger.io/dagger';
 
-const MISE_VERSION = 'v2026.5.16';
+const MISE_VERSION = 'v2026.6.11';
 const MISE_LINUX_X64_URL = `https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-x64`;
 
 const SOURCE_EXCLUDES = [
-  '.git',
   '.cache',
+  '.coverage',
+  '.git',
+  '.gstack',
+  '.hypothesis',
+  '.lua-language-server',
+  '.lua_modules',
+  '.mypy_cache',
   '.next',
+  '.nox',
   '.nuxt',
   '.parcel-cache',
+  '.pytest_cache',
+  '.ruff_cache',
   '.svelte-kit',
+  '.tox',
   '.turbo',
+  '.venv',
   '.vite',
   '.vs',
+  '__pycache__',
   'CMakeFiles',
   'Testing',
   'artifacts',
   'build',
   'coverage',
   'dist',
+  'htmlcov',
   'lua_modules',
   'node_modules',
   'out',
@@ -64,10 +77,11 @@ export class ProjectCi {
       .withExec(['chmod', '+x', '/usr/local/bin/mise'])
       .withMountedCache('/root/.local/share/mise', dag.cacheVolume('mise-tools'))
       .withMountedCache('/root/.cache/mise', dag.cacheVolume('mise-cache'))
+      .withMountedCache('/root/.cache/uv', dag.cacheVolume('uv-cache'))
       .withEnvVariable('MISE_TRUSTED_CONFIG_PATHS', '/src')
       .withDirectory('/src', source, { exclude: SOURCE_EXCLUDES })
       .withWorkdir('/src')
-      .withExec(['mise', 'install'])
+      .withExec(['mise', 'run', 'install'])
       .withExec(['mise', ...args]);
   }
 }

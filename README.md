@@ -18,7 +18,8 @@ folders.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`, `Lua/`,
   `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`: language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
-  works through the documented mise layout.
+  works through the documented mise layout. Each fixture commits its
+  `.config/mise/mise.lock` for deterministic Linux tool resolution.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
   project.
@@ -68,7 +69,7 @@ Finally, copy the language template files that match the project:
   freeze support.
 - `Kotlin/`: Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
-- `Lua/`: StyLua and Luacheck config.
+- `Lua/`: StyLua and LuaLS config.
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
@@ -108,8 +109,9 @@ After copying templates into a project:
 2. Adjust package names, namespaces, source directories, and test directories.
 3. Run `mise run install`.
 4. Run `mise run check`.
-5. Commit the resulting lockfiles, including `mise.lock` and any package-manager
-   lockfiles used by the project.
+5. Commit the resulting lockfiles, including the mise lockfile written for the
+   chosen config layout, such as `.config/mise/mise.lock`, and any
+   package-manager lockfiles used by the project.
 
 ## Maintaining These Standards
 
@@ -121,4 +123,5 @@ mise run check
 
 That runs the tester fixtures for C, C#, C++, Elixir, Go, Haskell, Kotlin, Lua,
 PHP, Python, Rust, TypeScript, and Zig. When changing a template, update the
-matching fixture so future changes prove the copied layout still works.
+matching fixture and refresh its `.config/mise/mise.lock` so future changes
+prove the copied layout still works.

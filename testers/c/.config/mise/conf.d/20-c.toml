@@ -68,4 +68,8 @@ fi
 
 [tasks."c:check"]
 description = "Run C formatting, linting, and tests"
-depends = ["c:fmt:check", "c:lint", "c:test"]
+run = """
+mise run c:fmt:check
+mise run c:lint
+mise run c:test
+"""

@@ -25,7 +25,9 @@ mise run ci
 module then runs `mise run check:local` or `mise run ci:local` inside an
 isolated container.
 
-Commit `mise.lock`. Use `mise.local.toml` for machine-local overrides.
+Commit the lockfile generated for the chosen config layout. With this template's
+`.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use
+`mise.local.toml` for machine-local overrides.
 
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, and

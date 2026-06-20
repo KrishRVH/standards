@@ -114,7 +114,11 @@ run = "uv run pytest"
 
 [tasks."py:check"]
 description = "Run Python formatting, static analysis, and tests"
-depends = ["py:fmt:check", "py:lint", "py:test"]
+run = """
+mise run py:fmt:check
+mise run py:lint
+mise run py:test
+"""
 
 [tasks."standards:check"]
 description = "Run the Python standards reference gate locally"

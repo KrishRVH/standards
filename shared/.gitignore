@@ -139,7 +139,8 @@ infection.log
 **/*.rs.bk
 
 # Lua
-.luacheckcache
+.lua-language-server/
+.lua_modules/
 *.luac
 luac.out
 
