@@ -5,7 +5,7 @@ lockfile = true
 
 [tools]
 # Keep Dagger pinned here so both local CI runs and hosted CI use the same CLI.
-dagger = "0.21.3"
+dagger = "0.21.7"
 
 [tasks.install]
 description = "Install pinned project tools"
@@ -34,6 +34,11 @@ if [ -f composer.json ]; then
   ran=1
 fi
 
+if [ -f pyproject.toml ]; then
+  mise run py:fmt
+  ran=1
+fi
+
 if [ -f package.json ]; then
   mise run ts:fmt
   ran=1
@@ -44,7 +49,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:fmt
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:fmt
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:fmt
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:fmt
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:fmt
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:fmt
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:fmt
   ran=1
 fi
@@ -54,7 +89,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:fmt
   ran=1
 fi
@@ -75,6 +110,11 @@ if [ -f composer.json ]; then
   ran=1
 fi
 
+if [ -f pyproject.toml ]; then
+  mise run py:fmt:check
+  ran=1
+fi
+
 if [ -f package.json ]; then
   mise run ts:fmt:check
   ran=1
@@ -85,7 +125,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:fmt:check
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:fmt:check
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:fmt:check
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:fmt:check
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:fmt:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:fmt:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:fmt:check
   ran=1
 fi
@@ -95,7 +165,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:fmt:check
   ran=1
 fi
@@ -116,6 +186,11 @@ if [ -f composer.json ]; then
   ran=1
 fi
 
+if [ -f pyproject.toml ]; then
+  mise run py:lint
+  ran=1
+fi
+
 if [ -f package.json ]; then
   mise run ts:lint
   ran=1
@@ -126,7 +201,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:lint
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:lint
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:lint
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:lint
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:lint
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:lint
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:lint
   ran=1
 fi
@@ -136,7 +241,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:lint
   ran=1
 fi
@@ -157,6 +262,11 @@ if [ -f composer.json ]; then
   ran=1
 fi
 
+if [ -f pyproject.toml ]; then
+  mise run py:test
+  ran=1
+fi
+
 if [ -f package.json ]; then
   mise run ts:test
   ran=1
@@ -167,7 +277,37 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
-if [ -f CMakeLists.txt ]; then
+if [ -f go.mod ]; then
+  mise run go:test
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:test
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:test
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:test
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:test
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:test
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
   mise run c:test
   ran=1
 fi
@@ -177,7 +317,7 @@ if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | g
   ran=1
 fi
 
-if [ -f stylua.toml ] || [ -f .luacheckrc ]; then
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:test
   ran=1
 fi
@@ -193,6 +333,82 @@ run = """
 mise run fmt:check
 mise run lint
 mise run test
+"""
+
+[tasks."ci:local"]
+description = "Run CI-grade checks directly on the current machine"
+run = """
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:ci
+  ran=1
+fi
+
+if [ -f pyproject.toml ]; then
+  mise run py:ci
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:ci
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:ci
+  ran=1
+fi
+
+if [ -f go.mod ]; then
+  mise run go:ci
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:ci
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:ci
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:ci
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:ci
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:ci
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
+  mise run c:ci
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:ci
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
+  mise run lua:ci
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No CI tasks detected."
+fi
 """
 
 [tasks.check]

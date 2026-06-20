@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "packageManager": "npm",
+  "packageManager": "npm@11.17.0",
   "dagger": {
     "runtime": "node"
   }

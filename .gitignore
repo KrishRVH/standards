@@ -40,6 +40,11 @@ node_modules/
 /coverage/
 /dist/
 /out/
+**/.cache/
+**/build/
+**/coverage/
+**/dist/
+**/out/
 /testers/**/.cache/
 /testers/**/build/
 /testers/**/coverage/
@@ -127,27 +132,35 @@ infection.log
 # C / CMake generated output
 /CMakeCache.txt
 /CMakeFiles/
+/CMakeUserPresets.json
 /CTestTestfile.cmake
 /DartConfiguration.tcl
 /Testing/
 /cmake_install.cmake
 /compile_commands.json
+/.ninja_deps
+/.ninja_log
 *.a
 *.dll
 *.dylib
 *.exe
+*.gch
 *.gcda
 *.gcno
 *.gcov
+*.ifc
 *.lib
 *.o
 *.obj
+*.pch
+*.pcm
 *.profdata
 *.profraw
 *.so
 *.dSYM/
 /testers/**/CMakeCache.txt
 /testers/**/CMakeFiles/
+/testers/**/CMakeUserPresets.json
 /testers/**/CTestTestfile.cmake
 /testers/**/DartConfiguration.tcl
 /testers/**/Testing/
@@ -156,10 +169,73 @@ infection.log
 
 # Rust
 /target/
+**/target/
 **/*.rs.bk
 
 # Lua generated output
-.luacheckcache
+.lua-language-server/
+.lua_modules/
 *.luac
 luac.out
+/testers/**/.lua-language-server/
 /testers/**/.lua_modules/
+
+# Go generated output
+*.test
+
+# JVM / Kotlin / Gradle generated output
+/.gradle/
+/.kotlin/
+**/.gradle/
+**/.kotlin/
+*.class
+hs_err_pid*
+replay_pid*
+
+# Elixir / Erlang generated output
+/_build/
+/deps/
+/.elixir_ls/
+/cover/
+/doc/
+**/_build/
+**/deps/
+**/.elixir_ls/
+**/cover/
+**/doc/
+erl_crash.dump
+rebar3.crashdump
+*.beam
+*.ez
+*.plt
+*.plt.hash
+/testers/**/_build/
+/testers/**/deps/
+/testers/**/.elixir_ls/
+
+# Haskell generated output
+/dist-newstyle/
+/.stack-work/
+**/dist-newstyle/
+**/.stack-work/
+cabal.project.local
+cabal.project.local~
+.ghc.environment.*
+.hpc/
+*.hi
+*.dyn_hi
+*.dyn_o
+*.hie
+*.hp
+*.prof
+*.tix
+*.eventlog
+
+# Zig generated output
+/.zig-cache/
+/zig-cache/
+/zig-out/
+**/.zig-cache/
+**/zig-cache/
+**/zig-out/
+/zig-pkg/

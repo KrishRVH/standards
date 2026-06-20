@@ -1,0 +1,8 @@
+packages: .
+
+tests: True
+benchmarks: True
+write-ghc-environment-files: never
+
+package project-name
+  ghc-options: -Werror

@@ -1,0 +1,45 @@
+[tools]
+erlang = "29.0.2"
+elixir = "1.20.1-otp-29"
+rebar = "3.27.0"
+ripgrep = "15.1.0"
+
+[tasks."elixir:install"]
+description = "Install Elixir project dependencies"
+run = """
+mix local.hex 2.4.2 --force
+mix local.rebar rebar3 "$(command -v rebar3)" --force
+mix deps.get
+"""
+
+[tasks."elixir:fmt:check"]
+description = "Check Elixir formatting"
+depends = ["elixir:install"]
+run = "mix format --check-formatted"
+
+[tasks."elixir:lint"]
+description = "Run Elixir static analysis"
+depends = ["elixir:install"]
+run = """
+MIX_ENV=test mix compile --warnings-as-errors
+mix credo --strict
+mix xref graph --format cycles --label compile-connected --fail-above 0
+mix dialyzer
+"""
+
+[tasks."elixir:test"]
+description = "Run Elixir tests"
+depends = ["elixir:install"]
+run = "MIX_ENV=test mix test --warnings-as-errors"
+
+[tasks."elixir:check"]
+description = "Run Elixir formatting, static analysis, and tests"
+run = """
+mise run elixir:fmt:check
+mise run elixir:lint
+mise run elixir:test
+"""
+
+[tasks."elixir:ci"]
+description = "Run the Elixir CI gate"
+depends = ["elixir:check"]
