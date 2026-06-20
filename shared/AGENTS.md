@@ -50,9 +50,11 @@ Treat these as generated unless the task is specifically about them:
 - dependency dirs: `node_modules/`, `vendor/`
 - build/cache dirs: `build/`, `dist/`, `out/`, `coverage/`, `.cache/`
 - framework/tool dirs: `.next/`, `.nuxt/`, `.turbo/`, `.vite/`, `.svelte-kit/`
-- language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`
+- language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
+  `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
+  `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
 - tool caches: `.phpunit.cache/`, `.psalm-cache/`, `.rector-cache/`,
-  `.infection/`, `.luacheckcache`, `*.tsbuildinfo`
+  `.infection/`, `.luacheckcache`, `*.tsbuildinfo`, `.elixir_ls/`
 
 If generated output is stale, fix the generator or mise task and regenerate.
 

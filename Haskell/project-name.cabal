@@ -1,0 +1,63 @@
+cabal-version: 3.16
+name: project-name
+version: 0.1.0
+synopsis: Reusable Haskell quality-tooling baseline
+description: Generic Haskell package template for strict local checks.
+license: MIT
+license-file: LICENSE
+maintainer: Project Maintainers
+category: Development
+build-type: Simple
+tested-with: GHC == 9.14.1
+
+common warnings
+  default-language: GHC2024
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-deriving-strategies
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+library
+  import: warnings
+  exposed-modules:
+    ProjectName
+  hs-source-dirs: src
+  build-depends:
+    base >= 4.22 && < 4.23
+
+executable project-name
+  import: warnings
+  main-is: Main.hs
+  hs-source-dirs: app
+  build-depends:
+    base >= 4.22 && < 4.23,
+    project-name
+
+test-suite project-name-test
+  import: warnings
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  build-depends:
+    base >= 4.22 && < 4.23,
+    project-name,
+    tasty >= 1.5 && < 1.6,
+    tasty-hunit >= 0.10 && < 0.11,
+    tasty-quickcheck >= 0.11 && < 0.12
+
+benchmark project-name-bench
+  import: warnings
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench
+  build-depends:
+    base >= 4.22 && < 4.23,
+    project-name,
+    tasty-bench >= 0.4 && < 0.5

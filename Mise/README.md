@@ -7,7 +7,7 @@ The defaults assume this rule: every developer command goes through `mise run`.
 Dagger is pinned and invoked by mise; developers should not call `dagger`
 directly.
 
-These templates were written against mise `v2026.6.10` and Dagger `v0.21.6`.
+These templates were written against mise `v2026.6.11` and Dagger `v0.21.6`.
 
 Recommended project entrypoints:
 
@@ -24,3 +24,8 @@ mise run ci
 module then runs `mise run check:local` inside an isolated container.
 
 Commit `mise.lock`. Use `mise.local.toml` for machine-local overrides.
+
+Language task files are additive. Keep only the `conf.d/20-*.toml` files that
+match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, and
+`test` tasks dispatch to PHP, Python, TypeScript/JavaScript, Rust, Go, Elixir,
+Haskell, Kotlin, Zig, C++, C, C#, and Lua when their project files are detected.
