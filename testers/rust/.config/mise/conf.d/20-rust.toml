@@ -1,6 +1,37 @@
 [tools]
 rust = "1.96.0"
 
+[tasks."rust:install"]
+description = "Install Rust project analysis tooling"
+run = """
+set -eu
+
+cargo_deny_version="0.19.9"
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+cargo_deny="$cargo_tools_dir/bin/cargo-deny"
+
+if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -q "cargo-deny $cargo_deny_version"; then
+  cargo install cargo-deny --version "$cargo_deny_version" --locked --root "$cargo_tools_dir"
+fi
+"""
+
+[tasks."rust:lock:check"]
+description = "Ensure Cargo.lock exists and matches Cargo metadata"
+run = """
+set -eu
+
+if [ ! -f Cargo.lock ]; then
+  if [ "${CI:-false}" = "true" ]; then
+    echo "Cargo.lock is required in CI. Run cargo generate-lockfile locally and commit it." >&2
+    exit 1
+  fi
+
+  cargo generate-lockfile
+fi
+
+cargo metadata --locked --format-version=1 >/dev/null
+"""
+
 [tasks."rust:fmt"]
 description = "Format Rust code"
 run = "cargo fmt --all"
@@ -10,19 +41,45 @@ description = "Check Rust formatting"
 run = "cargo fmt --all -- --check"
 
 [tasks."rust:lint"]
-description = "Run Clippy for all Rust targets/features"
-run = "cargo clippy --all-targets --all-features -- -D warnings"
+description = "Run Clippy for all Rust workspace targets/features"
+depends = ["rust:lock:check"]
+run = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 
 [tasks."rust:test"]
-description = "Run Rust tests"
-run = "cargo test --all-targets --all-features"
+description = "Run Rust tests for all workspace targets/features"
+depends = ["rust:lock:check"]
+run = "cargo test --workspace --all-targets --all-features --locked"
+
+[tasks."rust:test:doc"]
+description = "Run Rust doctests"
+depends = ["rust:lock:check"]
+run = "cargo test --workspace --doc --all-features --locked"
+
+[tasks."rust:doc"]
+description = "Build Rust documentation with warnings denied"
+depends = ["rust:lock:check"]
+run = "RUSTDOCFLAGS=\"-D warnings -D missing_docs\" cargo doc --workspace --all-features --no-deps --locked"
+
+[tasks."rust:deny"]
+description = "Run cargo-deny dependency policy checks"
+depends = ["rust:install", "rust:lock:check"]
+run = """
+set -eu
+
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+"$cargo_tools_dir/bin/cargo-deny" --workspace --all-features --locked check -A license-not-encountered
+"""
 
 [tasks."rust:check"]
-description = "Run Rust formatting, linting, and tests"
+description = "Run Rust formatting, linting, tests, docs, and dependency policy"
 run = """
 mise run rust:fmt:check
+mise run rust:lock:check
 mise run rust:lint
 mise run rust:test
+mise run rust:test:doc
+mise run rust:doc
+mise run rust:deny
 """
 
 [tasks."rust:ci"]

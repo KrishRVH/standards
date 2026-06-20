@@ -330,9 +330,77 @@ fi
 [tasks."check:local"]
 description = "Run all checks directly on the current machine"
 run = """
-mise run fmt:check
-mise run lint
-mise run test
+set -eu
+ran=0
+
+if [ -f composer.json ]; then
+  mise run php:check
+  ran=1
+fi
+
+if [ -f pyproject.toml ]; then
+  mise run py:check
+  ran=1
+fi
+
+if [ -f package.json ]; then
+  mise run ts:check
+  ran=1
+fi
+
+if [ -f Cargo.toml ]; then
+  mise run rust:check
+  ran=1
+fi
+
+if [ -f go.mod ]; then
+  mise run go:check
+  ran=1
+fi
+
+if [ -f mix.exs ]; then
+  mise run elixir:check
+  ran=1
+fi
+
+if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
+  mise run haskell:check
+  ran=1
+fi
+
+if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
+  mise run kotlin:check
+  ran=1
+fi
+
+if [ -f build.zig ]; then
+  mise run zig:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
+  mise run cpp:check
+  ran=1
+fi
+
+if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
+  mise run c:check
+  ran=1
+fi
+
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+  mise run csharp:check
+  ran=1
+fi
+
+if [ -f stylua.toml ] || [ -f .luarc.json ]; then
+  mise run lua:check
+  ran=1
+fi
+
+if [ "$ran" = 0 ]; then
+  echo "No check tasks detected."
+fi
 """
 
 [tasks."ci:local"]

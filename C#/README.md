@@ -17,6 +17,7 @@ The standard gate is:
 mise run csharp:fmt:check
 mise run csharp:lint
 mise run csharp:test
+mise run csharp:check
 ```
 
 `csharp:restore` uses `dotnet restore --locked-mode` once a

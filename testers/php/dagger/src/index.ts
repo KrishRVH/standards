@@ -5,6 +5,7 @@ const MISE_LINUX_X64_URL = `https://github.com/jdx/mise/releases/download/${MISE
 
 const SOURCE_EXCLUDES = [
   '.cache',
+  '.cargo-tools',
   '.coverage',
   '.git',
   '.gstack',
@@ -46,7 +47,7 @@ export class ProjectCi {
    */
   @func()
   async ci(source: Directory): Promise<string> {
-    return await this.check(source);
+    return await this.runMise(source, ['run', 'ci:local']).stdout();
   }
 
   /**
@@ -71,16 +72,7 @@ export class ProjectCi {
       .from('ubuntu:24.04')
       .withEnvVariable('DEBIAN_FRONTEND', 'noninteractive')
       .withExec(['apt-get', 'update'])
-      .withExec([
-        'apt-get',
-        'install',
-        '-y',
-        '--no-install-recommends',
-        'ca-certificates',
-        'curl',
-        'git',
-        'xz-utils',
-      ])
+      .withExec(['apt-get', 'install', '-y', '--no-install-recommends', 'ca-certificates', 'curl', 'git', 'xz-utils'])
       .withExec(['rm', '-rf', '/var/lib/apt/lists'])
       .withExec(['curl', '-fsSL', '-o', '/usr/local/bin/mise', MISE_LINUX_X64_URL])
       .withExec(['chmod', '+x', '/usr/local/bin/mise'])

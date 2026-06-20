@@ -1,7 +1,31 @@
 # clippy.toml - Valid configuration fields only
 
-# Set the maximum cognitive complexity allowed
-cognitive-complexity-threshold = 30
+# Keep Clippy suggestions aligned with the pinned template toolchain.
+msrv = "1.96.0"
+
+# Accepted identifiers for documentation prose checked by doc_markdown.
+doc-valid-idents = [
+    "API",
+    "APIs",
+    "ASCII",
+    "CLI",
+    "CPU",
+    "FFI",
+    "HTTP",
+    "HTTPS",
+    "ID",
+    "IDs",
+    "IO",
+    "JSON",
+    "MSRV",
+    "OS",
+    "TLS",
+    "URI",
+    "URL",
+    "URLs",
+    "UTF-8",
+    "UUID",
+]
 
 # Disallow certain types (optional, comment out if too strict)
 # disallowed-types = [
@@ -23,6 +47,3 @@ single-char-binding-names-threshold = 5
 
 # Set the maximum number of arguments for functions
 too-many-arguments-threshold = 7
-
-# Set the maximum number of lines for functions
-too-many-lines-threshold = 100

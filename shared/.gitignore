@@ -55,6 +55,16 @@ node_modules/
 /.turbo/
 /.vite/
 
+# Python
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.egg-info/
+/htmlcov/
+
 # mise
 mise.local.toml
 mise.*.local.toml
@@ -134,6 +144,8 @@ infection.log
 *.dSYM/
 
 # Rust
+/.cargo-tools/
+**/.cargo-tools/
 /target/
 **/target/
 **/*.rs.bk

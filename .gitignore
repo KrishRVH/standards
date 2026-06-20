@@ -64,6 +64,24 @@ node_modules/
 /.turbo/
 /.vite/
 
+# Python generated output
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.egg-info/
+/htmlcov/
+/testers/**/.coverage
+/testers/**/.mypy_cache/
+/testers/**/.pytest_cache/
+/testers/**/.ruff_cache/
+/testers/**/.venv/
+/testers/**/__pycache__/
+/testers/**/*.egg-info/
+/testers/**/htmlcov/
+
 # mise local state
 mise.local.toml
 mise.*.local.toml
@@ -168,6 +186,8 @@ infection.log
 /testers/**/compile_commands.json
 
 # Rust
+/.cargo-tools/
+**/.cargo-tools/
 /target/
 **/target/
 **/*.rs.bk

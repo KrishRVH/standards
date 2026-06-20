@@ -17,6 +17,7 @@ The standard local gate is:
 mise run elixir:fmt:check
 mise run elixir:lint
 mise run elixir:test
+mise run elixir:check
 ```
 
 `elixir:ci` adds dependency audits, docs, coverage, and web-security checks.
