@@ -7,6 +7,10 @@ The defaults assume this rule: every developer command goes through `mise run`.
 Dagger is pinned and invoked by mise; developers should not call `dagger`
 directly.
 
+Treat this as a strict, systems-level starting command surface. Keep the
+language tasks that fit the project, and relax or remove checks that do not
+match the project's risk, lifecycle, or team tolerance.
+
 These templates were written against mise `v2026.6.11` and Dagger `v0.21.7`.
 
 Recommended project entrypoints:

@@ -3,6 +3,10 @@
 Copy `go.mod`, `.golangci.yml`, and `Mise/conf.d/20-go.toml` into a Go module.
 Replace `example.com/project` with the real module path.
 
+This is a strict, systems-level generic starting template. Keep the native Go
+checks as the default, but relax or split slower/static/security gates when the
+project's lifecycle calls for a smaller local loop.
+
 The standard gate keeps Go's native toolchain as the source of truth:
 
 ```sh

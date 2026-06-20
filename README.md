@@ -8,6 +8,11 @@ root files maintain this standards repo itself. Files intended for downstream
 projects live in `shared/`, `Mise/`, `Dagger/`, and the language-specific
 folders.
 
+These templates are explicitly systems-level, strict, generic starting points
+for each language. They are meant to provide a high-signal baseline, not a
+universal final shape. Copy them, then relax, remove, or narrow checks and files
+based on the actual project's risk, lifecycle, team tolerance, and domain.
+
 ## Repository Layout
 
 - `shared/`: generic top-level files for a project, including `AGENTS.md`,

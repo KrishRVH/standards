@@ -5,6 +5,9 @@ copyable standards through the documented `.config/mise` layout. Each fixture
 commits `.config/mise/mise.lock` for the Linux tool assets used by the repo
 verification gate.
 
+They prove the strict generic starting templates run after copying; they do not
+mean every downstream project should keep every check unchanged.
+
 Run all tester projects from the repository root:
 
 ```sh
