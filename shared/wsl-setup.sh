@@ -15,6 +15,10 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
+#   BOOTSTRAP_APT_BUSY_TIMEOUT=120     seconds to wait for existing apt/dpkg work
+#   BOOTSTRAP_APT_LOCK_TIMEOUT=120     seconds apt-get waits on dpkg locks
+#   BOOTSTRAP_CURL_MAX_TIME=180        seconds before curl requests time out
+#   BOOTSTRAP_GIT_TIMEOUT=300          seconds before git network operations time out
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
   echo "error: run as your normal user (not root)" >&2
@@ -28,20 +32,48 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_GIT_UPDATE:=1}"
 : "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
 : "${BOOTSTRAP_TMUX_PLUGIN_UPDATE:=1}"
+: "${BOOTSTRAP_APT_BUSY_TIMEOUT:=120}"
+: "${BOOTSTRAP_APT_LOCK_TIMEOUT:=120}"
+: "${BOOTSTRAP_CURL_CONNECT_TIMEOUT:=10}"
+: "${BOOTSTRAP_CURL_MAX_TIME:=180}"
+: "${BOOTSTRAP_GIT_TIMEOUT:=300}"
+: "${BOOTSTRAP_TMUX_PLUGIN_TIMEOUT:=180}"
+: "${BOOTSTRAP_TLDR_TIMEOUT:=120}"
 
 has() { command -v "$1" >/dev/null 2>&1; }
 die() { echo "error: $*" >&2; exit 1; }
 msg() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
 
+command_string() {
+  printf '%q ' "$@"
+}
+
+run_with_timeout() {
+  local duration="$1"
+  shift
+
+  if [[ "$duration" == "0" ]]; then
+    "$@"
+  else
+    timeout --kill-after=15s "$duration" "$@"
+  fi
+}
+
 # Basic retry with exponential backoff (good for apt locks / transient net hiccups).
 retry() {
   local -r max_attempts="${RETRY_MAX_ATTEMPTS:-8}"
   local attempt=1
   local delay=2
+  local status
   while true; do
     if "$@"; then return 0; fi
-    if (( attempt >= max_attempts )); then return 1; fi
+    status=$?
+    if (( attempt >= max_attempts )); then
+      warn "failed after $attempt attempt(s): $(command_string "$@")"
+      return "$status"
+    fi
+    warn "attempt $attempt/$max_attempts failed; retrying in ${delay}s: $(command_string "$@")"
     sleep "$delay"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
@@ -54,6 +86,7 @@ retry_quiet() {
   local attempt=1
   local delay=2
   local tmp
+  local status
   tmp="$(mktemp)"
 
   while true; do
@@ -61,18 +94,28 @@ retry_quiet() {
       rm -f "$tmp"
       return 0
     fi
+    status=$?
 
     if (( attempt >= max_attempts )); then
       cat "$tmp" >&2
       rm -f "$tmp"
-      return 1
+      warn "failed after $attempt attempt(s): $(command_string "$@")"
+      return "$status"
     fi
 
+    warn "attempt $attempt/$max_attempts failed; retrying in ${delay}s: $(command_string "$@")"
     : >"$tmp"
     sleep "$delay"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
   done
+}
+
+curl_fetch() {
+  retry curl -fsSL \
+    --connect-timeout "$BOOTSTRAP_CURL_CONNECT_TIMEOUT" \
+    --max-time "$BOOTSTRAP_CURL_MAX_TIME" \
+    "$@"
 }
 
 ensure_sudo() {
@@ -86,13 +129,57 @@ ensure_sudo() {
   trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 }
 
+apt_lock_holders() {
+  local lock_paths=(
+    /var/lib/dpkg/lock-frontend
+    /var/lib/dpkg/lock
+    /var/cache/apt/archives/lock
+  )
+  local pids
+
+  pids="$({ sudo -n fuser "${lock_paths[@]}" 2>/dev/null || true; } | tr ' ' '\n' | awk '/^[0-9]+$/ && !seen[$0]++')"
+  [[ -n "$pids" ]] || return 0
+
+  ps -o pid=,ppid=,stat=,comm=,args= -p "$(printf '%s\n' "$pids" | paste -sd, -)" 2>/dev/null || true
+}
+
+wait_for_apt_idle() {
+  local deadline=$((SECONDS + BOOTSTRAP_APT_BUSY_TIMEOUT))
+  local holders
+  local reported=0
+
+  while true; do
+    holders="$(apt_lock_holders || true)"
+    [[ -z "$holders" ]] && return 0
+
+    if (( SECONDS >= deadline )); then
+      warn "apt/dpkg is already running; refusing to wait forever"
+      printf '%s\n' "$holders" >&2
+      warn "if this is from a cancelled setup run, clear it with:"
+      warn "  sudo kill <pid> ..."
+      warn "  sudo dpkg --configure -a"
+      return 1
+    fi
+
+    if (( reported == 0 )); then
+      warn "apt/dpkg is busy; waiting up to ${BOOTSTRAP_APT_BUSY_TIMEOUT}s"
+      printf '%s\n' "$holders" >&2
+      reported=1
+    fi
+
+    sleep 5
+  done
+}
+
 apt_get() {
-  retry_quiet sudo apt-get -y -qq \
-    -o Dpkg::Use-Pty=0 \
+  wait_for_apt_idle
+  retry_quiet sudo -n apt-get -y -qq \
+    -o "DPkg::Lock::Timeout=${BOOTSTRAP_APT_LOCK_TIMEOUT}" \
+    -o Dpkg::Use-Pty=false \
     -o APT::Color=0 \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
-    "$@"
+    "$@" </dev/null
 }
 
 atomic_install_file() {
@@ -196,7 +283,7 @@ git_repo() {
     fi
 
     if [[ "$BOOTSTRAP_GIT_UPDATE" = "1" ]]; then
-      retry_quiet git -C "$dest" pull --ff-only
+      retry_quiet run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git -C "$dest" pull --ff-only
     fi
     return 0
   fi
@@ -206,7 +293,7 @@ git_repo() {
     return 1
   fi
 
-  retry git clone --depth=1 --quiet "$url" "$dest"
+  retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git clone --depth=1 --quiet "$url" "$dest"
 }
 
 cargo_install_latest() {
@@ -230,7 +317,7 @@ install_or_update_mise() {
   tmpdir="$(mktemp -d)"
   installer="$tmpdir/mise-install.sh"
 
-  retry curl -fsSL https://mise.run -o "$installer"
+  curl_fetch https://mise.run -o "$installer"
   MISE_QUIET=1 sh "$installer"
   rm -rf "$tmpdir" || true
   hash -r 2>/dev/null || true
@@ -246,7 +333,7 @@ install_or_update_dagger() {
   tmpdir="$(mktemp -d)"
   installer="$tmpdir/dagger-install.sh"
 
-  retry curl -fsSL https://dl.dagger.io/dagger/install.sh -o "$installer"
+  curl_fetch https://dl.dagger.io/dagger/install.sh -o "$installer"
   retry_quiet env BIN_DIR="$HOME/.local/bin" sh "$installer"
   rm -rf "$tmpdir" || true
   hash -r 2>/dev/null || true
@@ -318,7 +405,7 @@ install_latest_neovim() {
   local min_version="$1"
   local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir
 
-  latest_json="$(retry curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest)"
+  latest_json="$(curl_fetch https://api.github.com/repos/neovim/neovim/releases/latest)"
   latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
   [[ "$latest_tag" == v* ]] || die "could not resolve latest Neovim release tag"
   latest_version="${latest_tag#v}"
@@ -351,7 +438,7 @@ install_latest_neovim() {
   fi
 
   tmpdir="$(mktemp -d)"
-  retry curl -fsSL "$url" -o "$tmpdir/nvim.tar.gz"
+  curl_fetch "$url" -o "$tmpdir/nvim.tar.gz"
   tar -C "$tmpdir" -xzf "$tmpdir/nvim.tar.gz"
   [[ -x "$tmpdir/$asset_dir/bin/nvim" ]] || die "downloaded Neovim archive did not contain $asset_dir/bin/nvim"
 
@@ -390,7 +477,7 @@ if ! has rustup; then
   url="https://static.rust-lang.org/rustup/dist/${target}/rustup-init"
   tmpdir="$(mktemp -d)"
   installer="$tmpdir/rustup-init" # IMPORTANT: rustup-init behavior depends on argv0
-  retry curl -fsSL "$url" -o "$installer"
+  curl_fetch "$url" -o "$installer"
   chmod +x "$installer"
   "$installer" -y --profile minimal --default-toolchain stable
   rm -rf "$tmpdir" || true
@@ -425,7 +512,7 @@ cargo_install_latest frawk frawk --no-default-features --features allow_avx2,use
 cargo_install_latest sd sd
 
 if has tldr; then
-  tldr -u >/dev/null 2>&1 || true
+  run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u >/dev/null 2>&1 || true
 fi
 
 # --- zsh (oh-my-zsh + plugins + zshrc) -------------------------------------
@@ -460,8 +547,10 @@ command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 command -v zoxide  >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
 
-[[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
-[[ -f /usr/share/doc/fzf/examples/completion.zsh   ]] && source /usr/share/doc/fzf/examples/completion.zsh
+if [[ -t 0 ]]; then
+  [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [[ -f /usr/share/doc/fzf/examples/completion.zsh   ]] && source /usr/share/doc/fzf/examples/completion.zsh
+fi
 
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
@@ -768,12 +857,12 @@ bash -n "$HOME/.local/bin/tmux-sessionizer"
 bash -n "$HOME/.local/bin/tmux-cht"
 
 if [[ -x "$TPM_DIR/bin/install_plugins" ]]; then
-  TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 ||
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 ||
     warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
 fi
 
 if [[ "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" && -x "$TPM_DIR/bin/update_plugins" ]]; then
-  TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 ||
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 ||
     warn "TPM plugin update failed; open tmux and press Prefix + U after networking is available"
 fi
 
@@ -785,7 +874,7 @@ NVIM_MARKER_FILE="$NVIM_DIR/.wsl-bootstrap-managed"
 if [[ "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
   tmpdir="$(mktemp -d)"
   clonedir="$tmpdir/nvim"
-  retry git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir"
+  retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir"
   mkdir -p "$(dirname "$NVIM_DIR")"
   mv "$clonedir" "$NVIM_DIR"
   rm -rf "$NVIM_DIR/.git" || true
