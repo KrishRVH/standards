@@ -32,7 +32,7 @@ printf '%s\n' "$projects" | while IFS= read -r project; do
   echo "==> $project"
   (
     cd "$project"
-    MISE_TRUSTED_CONFIG_PATHS="$root" mise run check:local
+    env -u GOROOT -u GOTOOLDIR MISE_TRUSTED_CONFIG_PATHS="$root" mise run check:local
   )
 done
 """
