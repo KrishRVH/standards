@@ -9,6 +9,10 @@ set -eu
 cargo_deny_version="0.19.9"
 cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
 cargo_deny="$cargo_tools_dir/bin/cargo-deny"
+toolchain="$(rustc -vV | sed -n 's/^host: //p')"
+version="$(rustc --version | awk '{print $2}')"
+
+rustup component add --toolchain "$version-$toolchain" rustfmt clippy
 
 if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -q "cargo-deny $cargo_deny_version"; then
   cargo install cargo-deny --version "$cargo_deny_version" --locked --root "$cargo_tools_dir"
@@ -34,15 +38,17 @@ cargo metadata --locked --format-version=1 >/dev/null
 
 [tasks."rust:fmt"]
 description = "Format Rust code"
+depends = ["rust:install"]
 run = "cargo fmt --all"
 
 [tasks."rust:fmt:check"]
 description = "Check Rust formatting"
+depends = ["rust:install"]
 run = "cargo fmt --all -- --check"
 
 [tasks."rust:lint"]
 description = "Run Clippy for all Rust workspace targets/features"
-depends = ["rust:lock:check"]
+depends = ["rust:install", "rust:lock:check"]
 run = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 
 [tasks."rust:test"]

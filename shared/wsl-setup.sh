@@ -372,7 +372,10 @@ fi
 BASE_PKGS=(
   ca-certificates curl wget git gnupg
   unzip zip xz-utils
-  build-essential pkg-config libssl-dev libsqlite3-dev
+  build-essential pkg-config autoconf bison re2c
+  libssl-dev libsqlite3-dev libncurses-dev libicu-dev
+  libcurl4-openssl-dev libreadline-dev libxml2-dev libzip-dev libsodium-dev
+  libpq-dev libonig-dev libgd-dev gettext zlib1g-dev
   tmux zsh fzf ripgrep jq bc tree fd-find bat wl-clipboard
   btop
 )
@@ -540,6 +543,7 @@ source "$ZSH/oh-my-zsh.sh"
 export EDITOR="nvim"
 export VISUAL="nvim"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+unset GOROOT GOTOOLDIR
 
 command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 
