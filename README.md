@@ -22,7 +22,7 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
   surface.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:check` and `dagger:ci` mise tasks.
-- `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `fortran/`,
+- `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
   `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
@@ -82,7 +82,7 @@ Finally, copy the language template files that match the project:
 - `Elixir/`: Mix project baseline with formatter, Credo, optional Dialyzer,
   xref cycle checks, docs, coverage, dependency audits, and project-specific
   Phoenix/Sobelow overlays.
-- `fortran/`: fpm project baseline with free-form source, implicit typing and
+- `Fortran/`: fpm project baseline with free-form source, implicit typing and
   implicit external disabled, Findent formatting, strict GNU Fortran warning
   gates, fortls parser diagnostics, test-drive tests, FORD docs, and fpm
   dependency pin policy.

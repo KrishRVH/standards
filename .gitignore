@@ -123,14 +123,13 @@ mise.*.local.lock
 /testers/**/.phpunit.cache/
 /testers/**/.phpunit.result.cache
 /testers/**/.phpstan.cache
-/testers/**/.phpstan.cache/
 /testers/**/.psalm-cache/
 /testers/**/.psalm/cache/
 /testers/**/.rector-cache/
 /testers/**/var/cache/
 /testers/**/var/log/
-infection-summary.log
 infection.log
+infection-summary.log
 
 # C# / .NET generated output
 /.vs/
