@@ -8,7 +8,11 @@ hlint = "3.10"
 ormolu = "0.8.1.1"
 
 [tasks."haskell:install"]
-description = "Install Haskell compiler and refresh Cabal package index"
+description = "Install the pinned Haskell compiler"
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- ghc --version"
+
+[tasks."haskell:update"]
+description = "Refresh the Cabal package index"
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal update"
 
 [tasks."haskell:fmt"]
@@ -60,8 +64,6 @@ else
 fi
 cabal check
 ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tests --enable-benchmarks
-ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal haddock all --haddock-all
-ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal sdist all
 """
 
 [tasks."haskell:test"]
@@ -73,6 +75,16 @@ run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal test all --te
 description = "Run Haskell benchmarks"
 depends = ["haskell:install"]
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal bench all"
+
+[tasks."haskell:docs"]
+description = "Build Haskell API documentation"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal haddock all --haddock-all"
+
+[tasks."haskell:package"]
+description = "Validate Haskell source distributions"
+depends = ["haskell:install"]
+run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal sdist all"
 
 [tasks."haskell:freeze"]
 description = "Refresh cabal.project.freeze"
@@ -89,4 +101,8 @@ mise run haskell:test
 
 [tasks."haskell:ci"]
 description = "Run the Haskell CI gate"
-depends = ["haskell:check"]
+run = """
+mise run haskell:check
+mise run haskell:docs
+mise run haskell:package
+"""

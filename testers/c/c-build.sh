@@ -50,6 +50,9 @@ target_link_libraries(consumer_static PRIVATE c_project::library)
 
 add_executable(consumer_shared main.c)
 target_link_libraries(consumer_shared PRIVATE c_project::library_shared)
+set_target_properties(consumer_shared PROPERTIES
+  BUILD_RPATH "$<TARGET_FILE_DIR:c_project::library_shared>"
+)
 EOF
 
   cat > "$consumer/main.c" <<'EOF'
@@ -65,7 +68,7 @@ EOF
     -DCMAKE_PREFIX_PATH="$install_prefix"
   cmake --build "$consumer/build" --parallel "$JOBS"
   "$consumer/build/consumer_static"
-  LD_LIBRARY_PATH="$install_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$consumer/build/consumer_shared"
+  "$consumer/build/consumer_shared"
 }
 
 presets=(clang)

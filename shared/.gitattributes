@@ -39,6 +39,8 @@
 *.fsi text
 *.fsx text
 *.go text diff=go
+*.f90 text
+*.F90 text
 *.hs text
 *.lhs text
 *.hs-boot text
@@ -114,7 +116,6 @@ go.work text
 go.work.sum text
 cabal.project text
 cabal.project.freeze text linguist-generated=true
-.sobelow-conf text
 
 # Docs/data
 *.csv text

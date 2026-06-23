@@ -1,18 +1,25 @@
 [tools]
 rust = "1.96.0"
 
-[tasks."rust:install"]
-description = "Install Rust project analysis tooling"
+[tasks."rust:components"]
+description = "Install Rust formatter and linter components"
+run = """
+set -eu
+
+toolchain="$(rustc -vV | sed -n 's/^host: //p')"
+version="$(rustc --version | awk '{print $2}')"
+
+rustup component add --toolchain "$version-$toolchain" rustfmt clippy
+"""
+
+[tasks."rust:deny:install"]
+description = "Install pinned cargo-deny"
 run = """
 set -eu
 
 cargo_deny_version="0.19.9"
 cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
 cargo_deny="$cargo_tools_dir/bin/cargo-deny"
-toolchain="$(rustc -vV | sed -n 's/^host: //p')"
-version="$(rustc --version | awk '{print $2}')"
-
-rustup component add --toolchain "$version-$toolchain" rustfmt clippy
 
 if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -q "cargo-deny $cargo_deny_version"; then
   cargo install cargo-deny --version "$cargo_deny_version" --locked --root "$cargo_tools_dir"
@@ -38,17 +45,17 @@ cargo metadata --locked --format-version=1 >/dev/null
 
 [tasks."rust:fmt"]
 description = "Format Rust code"
-depends = ["rust:install"]
+depends = ["rust:components"]
 run = "cargo fmt --all"
 
 [tasks."rust:fmt:check"]
 description = "Check Rust formatting"
-depends = ["rust:install"]
+depends = ["rust:components"]
 run = "cargo fmt --all -- --check"
 
 [tasks."rust:lint"]
 description = "Run Clippy for all Rust workspace targets/features"
-depends = ["rust:install", "rust:lock:check"]
+depends = ["rust:components", "rust:lock:check"]
 run = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 
 [tasks."rust:test"]
@@ -73,7 +80,7 @@ run = "cargo package --workspace --allow-dirty --locked"
 
 [tasks."rust:deny"]
 description = "Run cargo-deny dependency policy checks"
-depends = ["rust:install", "rust:lock:check"]
+depends = ["rust:deny:install", "rust:lock:check"]
 run = """
 set -eu
 

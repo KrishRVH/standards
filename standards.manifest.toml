@@ -5,6 +5,7 @@ tester = "testers/c"
 task_prefix = "c"
 task_fragment = "20-c.toml"
 mirror = [".clang-format", ".clang-tidy", "CMakeLists.txt", "CMakePresets.json", "cmake/project-name-config.cmake.in", "c-build.sh", "c-quality.sh", "include/project/library.h", "mingw-w64.cmake", "src/library.c", "src/main.c", "tests/project_tests.c"]
+dagger = true
 
 [profiles.csharp]
 name = "C#"
@@ -37,6 +38,7 @@ tester = "testers/go"
 task_prefix = "go"
 task_fragment = "20-go.toml"
 mirror = [".golangci.yml"]
+normalized_mirror = { "go.mod" = "go_mod" }
 
 [profiles.haskell]
 name = "Haskell"
@@ -46,6 +48,14 @@ task_prefix = "haskell"
 task_fragment = "20-haskell.toml"
 mirror = [".hlint.yaml"]
 
+[profiles.fortran]
+name = "Fortran"
+template = "fortran"
+tester = "testers/fortran"
+task_prefix = "fortran"
+task_fragment = "20-fortran.toml"
+mirror = [".fortls", "ford.md", "fpm.toml", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
+
 [profiles.kotlin]
 name = "Kotlin"
 template = "Kotlin"
@@ -53,6 +63,7 @@ tester = "testers/kotlin"
 task_prefix = "kotlin"
 task_fragment = "20-kotlin.toml"
 mirror = [".editorconfig", "detekt.yml", "gradle.properties"]
+required_tester_files = ["gradle.lockfile", "gradle/verification-metadata.xml"]
 
 [profiles.lua]
 name = "Lua"
@@ -61,6 +72,7 @@ tester = "testers/lua"
 task_prefix = "lua"
 task_fragment = "20-lua.toml"
 mirror = [".luacheckrc", ".luarc.json", "stylua.toml"]
+dagger = true
 
 [profiles.php]
 name = "PHP"
@@ -69,6 +81,8 @@ tester = "testers/php"
 task_prefix = "php"
 task_fragment = "20-php.toml"
 mirror = ["deptrac.yaml", "infection.json5", "phpbench.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "psalm.xml", "rector.php"]
+normalized_mirror = { "composer.json" = "php_composer_behavior" }
+dagger = true
 
 [profiles.python]
 name = "Python"
@@ -77,6 +91,7 @@ tester = "testers/python"
 task_prefix = "py"
 task_fragment = "20-python.toml"
 mirror = ["pyproject.toml"]
+dagger = true
 
 [profiles.rust]
 name = "Rust"
@@ -93,6 +108,7 @@ tester = "testers/ts"
 task_prefix = "ts"
 task_fragment = "20-ts.toml"
 mirror = ["biome.jsonc", "eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
+dagger = true
 
 [profiles.zig]
 name = "Zig"

@@ -17,7 +17,7 @@ HAS_CPPCHECK=0
 if command -v cppcheck >/dev/null 2>&1; then
   HAS_CPPCHECK=1
 else
-  note "cppcheck not found; skipping cppcheck checks."
+  note "Optional cppcheck not found; skipping cppcheck checks."
 fi
 
 list_files() {
@@ -97,7 +97,7 @@ else
 fi
 
 if ((HAS_CPPCHECK)); then
-  note "Running cppcheck (hard fail on warnings/perf/portability)..."
+  note "Running optional cppcheck (hard fail on warnings/perf/portability)..."
   cppcheck_extra_args=()
   if [[ -n "${CPPCHECK_EXTRA_ARGS:-}" ]]; then
     read -r -a cppcheck_extra_args <<< "$CPPCHECK_EXTRA_ARGS"
@@ -117,7 +117,7 @@ if ((HAS_CPPCHECK)); then
     if ((${#files[@]} == 0)); then
       note "No source files found; skipping cppcheck."
     else
-      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c++ --std=c++26 -I"$SRC_ROOT"
+      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c++ --std=c++23 -I"$SRC_ROOT"
     fi
   fi
 fi

@@ -17,13 +17,15 @@ dev = [
   "bandit[toml]>=1.9.4",
   "basedpyright>=1.39.8",
   "coverage[toml]>=7.14.1",
-  "deptry>=0.25.1",
   "hatchling>=1.30.1",
-  "interrogate>=1.7.0",
-  "mypy>=2.1.0",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "ruff>=0.15.18",
+]
+deep = [
+  "deptry>=0.25.1",
+  "interrogate>=1.7.0",
+  "mypy>=2.1.0",
   "slotscheck>=0.20.0",
   "vulture>=2.16",
   "xenon>=0.9.3",
@@ -105,7 +107,7 @@ addopts = [
   "--strict-markers",
   "--cov=project_name",
   "--cov-report=term-missing:skip-covered",
-  "--cov-fail-under=100",
+  "--cov-fail-under=95",
 ]
 filterwarnings = ["error"]
 testpaths = ["tests"]

@@ -8,12 +8,12 @@ This is a strict, systems-level generic starting template. Relax Detekt rules,
 warning policy, or dependency-verification expectations when the copied baseline
 is broader than the real project needs.
 
-This template pins Java, Gradle, Kotlin, Detekt, and ktlint through mise and
-Gradle. It uses the Java 25 toolchain because Detekt 2.x is the Detekt line
+This template pins Java, Gradle, and ktlint through mise; Gradle pins Kotlin
+and Detekt. It uses the Java 25 toolchain because Detekt 2.x is the Detekt line
 currently aligned with Kotlin 2.4.0. `kotlin:lint` runs typed `detektMain` and
-`detektTest` before compilation. It intentionally does not include generated
-`gradle.lockfile` or `gradle/verification-metadata.xml`; generate and commit
-those after copying:
+`detektTest` before compilation. Generate and commit `gradle.lockfile` and
+`gradle/verification-metadata.xml` after copying; `kotlin:check` fails until
+they exist:
 
 ```sh
 mise run kotlin:locks

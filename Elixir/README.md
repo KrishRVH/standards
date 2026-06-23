@@ -20,4 +20,5 @@ mise run elixir:test
 mise run elixir:check
 ```
 
-`elixir:ci` adds dependency audits, docs, coverage, and web-security checks.
+`elixir:ci` adds Dialyzer, dependency audits, docs, and coverage. Add Sobelow
+in a Phoenix/web overlay when the project has that surface.

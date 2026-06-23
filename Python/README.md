@@ -6,14 +6,11 @@ names:
 - `project-name`: the distribution name.
 - `project_name`: the import package under `src/`.
 
-Use this with the shared mise and Dagger templates:
+Use this with the shared mise template:
 
 ```text
 .config/mise/config.toml
-.config/mise/conf.d/10-dagger.toml
 .config/mise/conf.d/20-python.toml
-dagger.json
-dagger/
 ```
 
 Day-to-day commands should go through mise:
@@ -24,13 +21,15 @@ mise run py:lint
 mise run py:test
 mise run py:build
 mise run py:check
+mise run py:deep
 ```
 
-The baseline is intentionally strict: Ruff selects all rules, basedpyright and
-mypy both run in strict modes, tests require branch coverage, `py:build`
-verifies wheel and source distributions, and linting also checks dependency
-hygiene, doc coverage, complexity, dataclass slots, security, and
-high-confidence dead code.
+The default baseline is intentionally strict: Ruff selects all rules,
+basedpyright runs in strict mode, Bandit checks source security, tests require
+branch coverage, and `py:build` verifies wheel and source distributions.
+`py:deep` adds mypy, dependency hygiene, doc coverage, complexity, dataclass
+slots, and high-confidence dead-code checks for projects that want the heavier
+analysis profile.
 
 That strictness is a starting point, not an obligation. Relax or remove checks
 that do not fit the project's risk, lifecycle, typing surface, or migration

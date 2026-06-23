@@ -419,39 +419,43 @@ version = "0.1.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
+deep = [
+    { name = "deptry" },
+    { name = "interrogate" },
+    { name = "mypy" },
+    { name = "slotscheck" },
+    { name = "vulture" },
+    { name = "xenon" },
+]
 dev = [
     { name = "bandit" },
     { name = "basedpyright" },
     { name = "coverage" },
-    { name = "deptry" },
     { name = "hatchling" },
-    { name = "interrogate" },
-    { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-    { name = "slotscheck" },
-    { name = "vulture" },
-    { name = "xenon" },
 ]
 
 [package.metadata]
 
 [package.metadata.requires-dev]
+deep = [
+    { name = "deptry", specifier = ">=0.25.1" },
+    { name = "interrogate", specifier = ">=1.7.0" },
+    { name = "mypy", specifier = ">=2.1.0" },
+    { name = "slotscheck", specifier = ">=0.20.0" },
+    { name = "vulture", specifier = ">=2.16" },
+    { name = "xenon", specifier = ">=0.9.3" },
+]
 dev = [
     { name = "bandit", extras = ["toml"], specifier = ">=1.9.4" },
     { name = "basedpyright", specifier = ">=1.39.8" },
     { name = "coverage", extras = ["toml"], specifier = ">=7.14.1" },
-    { name = "deptry", specifier = ">=0.25.1" },
     { name = "hatchling", specifier = ">=1.30.1" },
-    { name = "interrogate", specifier = ">=1.7.0" },
-    { name = "mypy", specifier = ">=2.1.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.15.18" },
-    { name = "slotscheck", specifier = ">=0.20.0" },
-    { name = "vulture", specifier = ">=2.16" },
-    { name = "xenon", specifier = ">=0.9.3" },
 ]
 
 [[package]]

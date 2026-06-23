@@ -6,7 +6,7 @@ include(GNUInstallDirs)
 include(CTest)
 
 set(PROJECT_CXX_STANDARD
-    26
+    23
     CACHE STRING "C++ language standard to require")
 option(PROJECT_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang only)" OFF)
 option(PROJECT_ENABLE_THREAD_SANITIZER "Enable ThreadSanitizer (GCC/Clang only)" OFF)

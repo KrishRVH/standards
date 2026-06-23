@@ -203,6 +203,11 @@ luac.out
 # Go generated output
 *.test
 
+# Fortran generated output
+*.mod
+!go.mod
+*.smod
+
 # JVM / Kotlin / Gradle generated output
 /.gradle/
 /.kotlin/
