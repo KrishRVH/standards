@@ -1,37 +1,37 @@
 {
-  "name": "standards/php-tester",
-  "description": "Smoke-test fixture for the PHP standards.",
+  "name": "vendor/project",
+  "description": "Reusable PHP quality-tooling baseline.",
   "license": "MIT",
   "type": "project",
   "authors": [
     {
-      "name": "Standards contributors"
+      "name": "Project Maintainers"
     }
   ],
   "require": {
     "php": ">=8.5"
   },
   "require-dev": {
-    "deptrac/deptrac": "^4.6.0",
-    "ergebnis/composer-normalize": "^2.50.0",
+    "deptrac/deptrac": "^4.6.1",
+    "ergebnis/composer-normalize": "^2.52.0",
     "icanhazstring/composer-unused": "^0.9.6",
-    "infection/infection": "^0.32.0",
-    "maglnet/composer-require-checker": "^4.20.0",
-    "phpbench/phpbench": "^1.4.3",
+    "infection/infection": "0.32.7",
+    "maglnet/composer-require-checker": "^4.24.0",
+    "phpbench/phpbench": "^1.7.0",
     "phpmd/phpmd": "^2.15.0",
     "phpstan/extension-installer": "^1.4.3",
-    "phpstan/phpstan": "^2.1.39",
-    "phpstan/phpstan-phpunit": "^2.0.15",
-    "phpstan/phpstan-strict-rules": "^2.0.10",
-    "phpunit/phpunit": "^12.5.11",
-    "psalm/plugin-phpunit": "^0.19.5",
-    "rector/rector": "^2.3.6",
-    "roave/infection-static-analysis-plugin": "^1.43.0",
+    "phpstan/phpstan": "^2.2.2",
+    "phpstan/phpstan-phpunit": "^2.0.16",
+    "phpstan/phpstan-strict-rules": "^2.0.11",
+    "phpunit/phpunit": "^12.5.30",
+    "psalm/plugin-phpunit": "^0.19.7",
+    "rector/rector": "^2.5.2",
+    "roave/infection-static-analysis-plugin": "^1.44.0",
     "roave/security-advisories": "dev-latest",
     "shipmonk/composer-dependency-analyser": "^1.8.4",
-    "slevomat/coding-standard": "^8.27.1",
+    "slevomat/coding-standard": "^8.29.0",
     "squizlabs/php_codesniffer": "^4.0.1",
-    "vimeo/psalm": "^6.15.1"
+    "vimeo/psalm": "^6.16.1"
   },
   "autoload": {
     "psr-4": {

@@ -1,6 +1,6 @@
 import { type Container, type Directory, dag, func, object } from '@dagger.io/dagger';
 
-const MISE_VERSION = 'v2026.6.11';
+const MISE_VERSION = 'v2026.6.12';
 
 const SOURCE_EXCLUDES = [
   '.cache',

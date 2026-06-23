@@ -117,7 +117,7 @@ if ((HAS_CPPCHECK)); then
     if ((${#files[@]} == 0)); then
       note "No source files found; skipping cppcheck."
     else
-      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c++ --std=c++23 -I"$SRC_ROOT"
+      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c++ --std=c++20 -I"$SRC_ROOT"
     fi
   fi
 fi
