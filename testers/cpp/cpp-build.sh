@@ -77,10 +77,10 @@ else
 fi
 
 if command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1 \
-  && (( $(compiler_major_version x86_64-w64-mingw32-g++) >= 15 )); then
+  && (( $(compiler_major_version x86_64-w64-mingw32-g++) >= 13 )); then
   presets+=(mingw)
 else
-  echo "[INFO] x86_64-w64-mingw32-g++ with C++26 support not found; skipping MinGW preset."
+  echo "[INFO] x86_64-w64-mingw32-g++ with C++23 support not found; skipping MinGW preset."
 fi
 
 presets+=(release)

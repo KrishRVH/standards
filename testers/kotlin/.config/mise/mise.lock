@@ -16,18 +16,6 @@ backend = "core:java"
 checksum = "sha256:69264a7a211bf5029830d07bc3370f879769d62ebc5b5488e90c9343a2da0e1f"
 url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jdk_x64_linux_hotspot_25.0.3_9.tar.gz"
 
-[[tools.kotlin]]
-version = "2.4.0"
-backend = "github:JetBrains/kotlin"
-
-[tools.kotlin.options]
-asset_pattern = "kotlin-compiler-*.zip"
-
-[tools.kotlin."platforms.linux-x64"]
-checksum = "sha256:ba1b9e6eb6ddc3275079224f2e9ea4a2b02eef7d59ce2d38404f04b22613c20a"
-url = "https://github.com/JetBrains/kotlin/releases/download/v2.4.0/kotlin-compiler-2.4.0.zip"
-url_api = "https://api.github.com/repos/JetBrains/kotlin/releases/assets/437101463"
-
 [[tools.ktlint]]
 version = "1.8.0"
 backend = "aqua:pinterest/ktlint"

@@ -26,11 +26,14 @@ Everything a developer does goes through mise.
 - `mise run fmt:check`: verify formatting.
 - `mise run lint`: lint/static analysis.
 - `mise run test`: tests.
-- `mise run check`: standard local gate through Dagger.
-- `mise run ci`: full CI gate through Dagger.
+- `mise run check`: standard local aggregate gate.
+- `mise run ci`: full local CI gate.
+- `mise run dagger:check`: optional isolated check gate when Dagger is configured.
+- `mise run dagger:ci`: optional isolated CI gate when Dagger is configured.
 
-Do not call `dagger`, package managers, compilers, or test runners directly
-unless you are fixing the mise task itself. Dagger is invoked through mise only.
+Do not call package managers, compilers, test runners, or Dagger directly
+unless you are fixing the mise task itself. Dagger is invoked through mise only
+when the project keeps the optional Dagger task fragment.
 
 ## Editing
 

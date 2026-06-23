@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import json
 import sys
 from pathlib import Path
 
@@ -17,7 +18,10 @@ except ModuleNotFoundError:
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
-PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
+REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "normalized_mirror", "required_tester_files"}
+PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
+NORMALIZED_MIRROR_KINDS = {"go_mod", "php_composer_behavior"}
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "check", "ci")
 AGGREGATE_TASKS = {
     "fmt": "fmt",
@@ -27,6 +31,7 @@ AGGREGATE_TASKS = {
     "check": "check:local",
     "ci": "ci:local",
 }
+DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 
 
 def load_profiles() -> dict[str, dict[str, object]]:
@@ -65,6 +70,63 @@ def compare_file(profile_id: str, label: str, left: Path, right: Path) -> list[s
     return []
 
 
+def normalize_json(path: Path, ignored_top_level: set[str]) -> object:
+    with path.open(encoding="utf-8") as file:
+        value = json.load(file)
+    if not isinstance(value, dict):
+        raise ValueError("top-level JSON value must be an object")
+    return {key: item for key, item in value.items() if key not in ignored_top_level}
+
+
+def normalize_go_mod(path: Path) -> list[str]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    normalized: list[str] = []
+    saw_module = False
+    for line in lines:
+        if line.startswith("module "):
+            normalized.append("module <ignored>")
+            saw_module = True
+        else:
+            normalized.append(line)
+    if not saw_module:
+        raise ValueError("go.mod must contain a module line")
+    return normalized
+
+
+def normalize_mirror(kind: str, path: Path) -> object:
+    if kind == "go_mod":
+        return normalize_go_mod(path)
+    if kind == "php_composer_behavior":
+        return normalize_json(path, {"name", "description", "license", "authors"})
+    raise ValueError(f"unsupported normalized mirror kind: {kind}")
+
+
+def compare_normalized_file(
+    profile_id: str,
+    label: str,
+    kind: str,
+    left: Path,
+    right: Path,
+) -> list[str]:
+    if not left.is_file():
+        return [f"{profile_id}: missing canonical {label}: {rel(left)}"]
+    if not right.is_file():
+        return [f"{profile_id}: missing fixture {label}: {rel(right)}"]
+
+    try:
+        left_value = normalize_mirror(kind, left)
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        return [f"{profile_id}: invalid canonical {label} {rel(left)}: {error}"]
+    try:
+        right_value = normalize_mirror(kind, right)
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        return [f"{profile_id}: invalid fixture {label} {rel(right)}: {error}"]
+
+    if left_value != right_value:
+        return [f"{profile_id}: {label} drift: {rel(left)} != {rel(right)}"]
+    return []
+
+
 def is_relative_path(value: str) -> bool:
     path = Path(value)
     return bool(value) and not path.is_absolute() and ".." not in path.parts and "." not in path.parts
@@ -88,7 +150,7 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             continue
 
         unknown = set(profile) - PROFILE_KEYS
-        missing = PROFILE_KEYS - set(profile)
+        missing = REQUIRED_PROFILE_KEYS - set(profile)
         if unknown:
             errors.append(f"{profile_id}: unknown keys: {', '.join(sorted(unknown))}")
         if missing:
@@ -115,6 +177,56 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         for item in mirror:
             if not isinstance(item, str) or not is_relative_path(item):
                 errors.append(f"{profile_id}: mirror entries must be normalized relative paths: {item!r}")
+
+        normalized_mirror = profile.get("normalized_mirror", {})
+        if not isinstance(normalized_mirror, dict):
+            errors.append(f"{profile_id}: normalized_mirror must be a table")
+        else:
+            for item, kind in normalized_mirror.items():
+                if not isinstance(item, str) or not is_relative_path(item):
+                    errors.append(
+                        f"{profile_id}: normalized_mirror keys must be normalized relative paths: {item!r}"
+                    )
+                if kind not in NORMALIZED_MIRROR_KINDS:
+                    errors.append(f"{profile_id}: unsupported normalized_mirror kind for {item}: {kind!r}")
+
+        required_tester_files = profile.get("required_tester_files", [])
+        if not isinstance(required_tester_files, list):
+            errors.append(f"{profile_id}: required_tester_files must be a list")
+        else:
+            for item in required_tester_files:
+                if not isinstance(item, str) or not is_relative_path(item):
+                    errors.append(
+                        f"{profile_id}: required_tester_files entries must be normalized relative paths: {item!r}"
+                    )
+
+        dagger = profile.get("dagger", False)
+        if not isinstance(dagger, bool):
+            errors.append(f"{profile_id}: dagger must be a boolean")
+
+    return errors
+
+
+def check_tester_inventory(profiles: dict[str, dict[str, object]]) -> list[str]:
+    errors: list[str] = []
+    declared: dict[Path, str] = {}
+
+    for profile_id, profile in profiles.items():
+        tester = ROOT / str(profile["tester"])
+        declared[tester] = profile_id
+        fixture_config = tester / ".config" / "mise" / "config.toml"
+        if not fixture_config.is_file():
+            errors.append(f"{profile_id}: missing fixture config {rel(fixture_config)}")
+
+    actual = {
+        config.parents[2]: config
+        for config in (ROOT / "testers").glob("*/.config/mise/config.toml")
+    }
+    for tester, config in sorted(actual.items(), key=lambda item: rel(item[0])):
+        if tester not in declared:
+            errors.append(f"{rel(tester)}: tester fixture is not declared in standards.manifest.toml")
+        elif config != tester / ".config" / "mise" / "config.toml":
+            errors.append(f"{rel(config)}: unexpected tester config location")
 
     return errors
 
@@ -185,6 +297,13 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         if not isinstance(tasks, dict):
             return [f"{profile_id}: minimal fixture config must contain [tasks]"]
 
+        settings = data.get("settings", {})
+        if not isinstance(settings, dict) or settings.get("lockfile") is not True:
+            errors.append(f"{profile_id}: minimal fixture config must set [settings] lockfile = true")
+
+        if set(tasks) != {"check", "check:local"}:
+            errors.append(f"{profile_id}: minimal fixture config must contain only check and check:local tasks")
+
         check = tasks.get("check", {})
         check_local = tasks.get("check:local", {})
         if not isinstance(check, dict) or check.get("depends") != ["check:local"]:
@@ -200,11 +319,24 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
     return errors
 
 
+def check_dagger_copy(profile_id: str, tester: Path) -> list[str]:
+    errors: list[str] = []
+    dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
+    if not dagger_fragment.is_file():
+        errors.append(f"{profile_id}: missing Dagger fragment {rel(dagger_fragment)}")
+
+    errors.extend(compare_file(profile_id, "Dagger metadata", ROOT / "Dagger" / "dagger.json", tester / "dagger.json"))
+    for item in DAGGER_MIRROR:
+        errors.extend(compare_file(profile_id, "Dagger module", ROOT / "Dagger" / item, tester / item))
+    return errors
+
+
 def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors = validate_profiles(profiles)
     if errors:
         return errors
 
+    errors.extend(check_tester_inventory(profiles))
     errors.extend(check_aggregate_dispatch(profiles))
 
     for profile_id, profile in profiles.items():
@@ -228,6 +360,8 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             errors.extend(check_task_surface(profile_id, task_left, task_prefix))
         if has_tester:
             errors.extend(check_fixture_config(profile_id, tester, task_prefix))
+            if profile.get("dagger", False):
+                errors.extend(check_dagger_copy(profile_id, tester))
 
         mirror = profile.get("mirror", [])
         if has_template and has_tester:
@@ -235,8 +369,25 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
                 left = template / str(item)
                 right = tester / str(item)
                 errors.extend(compare_file(profile_id, "mirror", left, right))
+            for item, kind in profile.get("normalized_mirror", {}).items():
+                left = template / str(item)
+                right = tester / str(item)
+                errors.extend(compare_normalized_file(profile_id, "normalized mirror", str(kind), left, right))
+
+        if has_tester:
+            for item in profile.get("required_tester_files", []):
+                required = tester / str(item)
+                if not required.is_file():
+                    errors.append(f"{profile_id}: missing required tester file {rel(required)}")
 
     return errors
+
+
+def validate_for_listing(profiles: dict[str, dict[str, object]]) -> list[str]:
+    errors = validate_profiles(profiles)
+    if errors:
+        return errors
+    return check_tester_inventory(profiles)
 
 
 def main() -> int:
@@ -247,6 +398,11 @@ def main() -> int:
     profiles = load_profiles()
 
     if args.list_testers:
+        errors = validate_for_listing(profiles)
+        if errors:
+            for error in errors:
+                print(error, file=sys.stderr)
+            return 1
         for profile in profiles.values():
             print(profile["tester"])
         return 0

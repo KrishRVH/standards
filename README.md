@@ -19,10 +19,12 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
   `CLAUDE.md`, `.gitattributes`, `.gitignore`, and optional platform bootstrap
   scripts.
 - `Mise/`: `.config/mise` templates. These define the developer command
-  surface and pin Dagger.
-- `Dagger/`: Dagger module template used by the mise `check` and `ci` tasks.
-- `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `Kotlin/`, `Lua/`,
-  `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`: language/tooling templates.
+  surface.
+- `Dagger/`: optional Dagger module template used by the explicit
+  `dagger:check` and `dagger:ci` mise tasks.
+- `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `fortran/`,
+  `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`:
+  language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
   works through the documented mise layout. Each fixture commits its
   `.config/mise/mise.lock` for deterministic Linux tool resolution.
@@ -57,12 +59,13 @@ Mise/conf.d/*.toml     -> .config/mise/conf.d/
 ```
 
 Only keep the language `conf.d` files that apply to the project. For example, a
-PHP and TypeScript project would keep `10-dagger.toml`, `20-php.toml`, and
-`20-ts.toml`.
+PHP and TypeScript project would keep `20-php.toml` and `20-ts.toml`.
 
-If the project should use isolated CI checks, copy the Dagger template too:
+If the project should use isolated Dagger checks, copy the Dagger task fragment
+and module too:
 
 ```text
+Mise/conf.d/10-dagger.toml -> .config/mise/conf.d/10-dagger.toml
 Dagger/dagger.json     -> dagger.json
 Dagger/dagger/         -> dagger/
 ```
@@ -73,15 +76,21 @@ Finally, copy the language template files that match the project:
   scripts.
 - `C#/`: strict .NET formatting, analyzer, central package, locked restore, and
   Release build/test defaults.
-- `C++/`: CMake C++26 library/CLI/test template, Clang format/tidy config,
-  sanitizer presets, optional `cppcheck`, and MinGW cross-toolchain support.
-- `Elixir/`: Mix project baseline with formatter, Credo, Dialyzer, xref cycle
-  checks, docs, coverage, dependency audits, and Phoenix-detected Sobelow.
+- `C++/`: CMake C++23 library/CLI/test template with an opt-in C++26 preset,
+  Clang format/tidy config, sanitizer presets, optional `cppcheck`, and MinGW
+  cross-toolchain support.
+- `Elixir/`: Mix project baseline with formatter, Credo, optional Dialyzer,
+  xref cycle checks, docs, coverage, dependency audits, and project-specific
+  Phoenix/Sobelow overlays.
+- `fortran/`: fpm project baseline with free-form source, implicit typing and
+  implicit external disabled, Findent formatting, strict GNU Fortran warning
+  gates, fortls parser diagnostics, test-drive tests, FORD docs, and fpm
+  dependency pin policy.
 - `Go/`: Go module baseline with gofumpt, module hygiene, `go vet`,
   golangci-lint, govulncheck, tests, race, coverage, and benchmark tasks.
 - `Haskell/`: Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
-  errors in the local gate, Cabal check/build/test/haddock/sdist, and optional
-  freeze support.
+  errors in the local gate, named Haddock/source-distribution tasks, and
+  optional freeze support.
 - `Kotlin/`: Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/`: Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
@@ -89,8 +98,8 @@ Finally, copy the language template files that match the project:
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
   PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
-  mypy, pytest/coverage, wheel/source builds, dependency hygiene, docs,
-  complexity, slots, security, and dead-code checks.
+  Bandit, pytest/coverage, wheel/source builds, and optional deeper mypy,
+  dependency, documentation, complexity, slots, and dead-code checks.
 - `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
   cargo package/cargo-deny dependency-policy defaults.
 - `TS/`: Bun-backed TypeScript, ESLint, Prettier, package scripts, and a
@@ -117,10 +126,10 @@ mise run check
 mise run ci
 ```
 
-`mise run check` and `mise run ci` invoke Dagger through mise. The Dagger module
-then runs `mise run check:local` or `mise run ci:local` inside an isolated
-container, keeping task definitions in one place while still giving CI a clean
-environment.
+`mise run check` and `mise run ci` run local aggregate gates by default. If the
+project copied the Dagger template, `mise run dagger:check` and
+`mise run dagger:ci` run `check:local` and `ci:local` inside an isolated
+container while keeping task definitions in mise.
 
 After copying templates into a project:
 
@@ -140,10 +149,10 @@ Use the repo-local maintenance gate:
 mise run check
 ```
 
-That runs the tester fixtures for C, C#, C++, Elixir, Go, Haskell, Kotlin, Lua,
-PHP, Python, Rust, TypeScript, and Zig. When changing a template, update the
-matching fixture and refresh affected lockfiles so future changes prove the
-copied layout still works.
+That runs the tester fixtures for C, C#, C++, Elixir, Fortran, Go, Haskell,
+Kotlin, Lua, PHP, Python, Rust, TypeScript, and Zig. When changing a template,
+update the matching fixture and refresh affected lockfiles so future changes
+prove the copied layout still works.
 
 The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
 shared task fragments, aggregate task dispatch, fixture configs, Dagger

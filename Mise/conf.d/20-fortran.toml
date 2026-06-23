@@ -1,0 +1,152 @@
+[env]
+FPM_FC = "gfortran"
+
+[tools]
+"conda:fpm" = "0.13.0"
+"conda:gfortran" = "15.2.0"
+"conda:findent" = "4.3.7"
+"conda:fortls" = "3.2.2"
+"conda:ford" = "7.0.13"
+
+[tasks."fortran:install"]
+description = "Install pinned Fortran project tooling"
+run = """
+set -eu
+fpm --version
+gfortran --version | sed -n '1p'
+findent --version
+fortls --version
+ford --version
+"""
+
+[tasks."fortran:manifest"]
+description = "Check Fortran manifest and source policy"
+run = """
+set -eu
+
+if [ ! -f fpm.toml ]; then
+  echo "fpm.toml is required for the Fortran standard." >&2
+  exit 1
+fi
+
+if grep -nE '=[[:space:]]*"\\*"' fpm.toml; then
+  echo "Wildcard fpm dependency versions are not allowed; pin a tag, rev, or exact registry version." >&2
+  exit 1
+fi
+
+if grep -nE 'branch[[:space:]]*=' fpm.toml; then
+  echo "Moving branch dependencies are not allowed; pin a tag or rev." >&2
+  exit 1
+fi
+
+fixed_form="$(
+  find . \
+    -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+    -o -type f \\( -name '*.f' -o -name '*.for' -o -name '*.ftn' \\) -print
+)"
+if [ -n "$fixed_form" ]; then
+  echo "Fixed-form Fortran sources are outside this modern baseline:" >&2
+  printf '%s\n' "$fixed_form" >&2
+  exit 1
+fi
+"""
+
+[tasks."fortran:fmt"]
+description = "Format free-form Fortran source"
+run = """
+set -eu
+tmp="$(mktemp)"
+list="$(mktemp)"
+trap 'rm -f "$tmp" "$list"' EXIT
+
+find . -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+  -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
+
+if [ -s "$list" ]; then
+  xargs -0 -I{} sh -c '
+    tmp="$(mktemp)"
+    trap "rm -f \"$tmp\"" EXIT
+    findent -ifree -ofree -i3 -Rr < "$1" > "$tmp"
+    mv "$tmp" "$1"
+  ' sh {} < "$list"
+fi
+"""
+
+[tasks."fortran:fmt:check"]
+description = "Check free-form Fortran formatting"
+run = """
+set -eu
+tmp="$(mktemp)"
+list="$(mktemp)"
+trap 'rm -f "$tmp" "$list"' EXIT
+
+find . -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+  -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
+
+if [ -s "$list" ]; then
+  xargs -0 -I{} sh -c '
+    findent -ifree -ofree -i3 -Rr < "$1" > "$2"
+    if ! cmp -s "$1" "$2"; then
+      echo "Fortran source is not formatted: $1" >&2
+      exit 1
+    fi
+  ' sh {} "$tmp" < "$list"
+fi
+"""
+
+[tasks."fortran:lint"]
+description = "Run strict Fortran static checks"
+depends = ["fortran:manifest"]
+run = """
+set -eu
+
+strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic -fcheck=all -fbacktrace"
+fpm build --compiler gfortran --profile debug --flag "$strict_flags"
+fpm build --compiler gfortran --profile release --flag "-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic"
+
+list="$(mktemp)"
+trap 'rm -f "$list"' EXIT
+
+set --
+for dir in src app test; do
+  [ -d "$dir" ] && set -- "$@" "$dir"
+done
+
+if [ "$#" -gt 0 ]; then
+  find "$@" -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 | sort -z > "$list"
+  if [ -s "$list" ]; then
+    xargs -0 -I{} fortls --debug_rootpath . --debug_filepath {} --debug_parser >/dev/null < "$list"
+  fi
+fi
+"""
+
+[tasks."fortran:test"]
+description = "Run Fortran tests"
+depends = ["fortran:manifest"]
+run = """
+set -eu
+strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -Wno-error=unused-function -Wno-error=maybe-uninitialized -pedantic -fcheck=all -fbacktrace"
+fpm test --compiler gfortran --profile debug --flag "$strict_flags"
+"""
+
+[tasks."fortran:doc"]
+description = "Generate Fortran API documentation"
+run = "ford ford.md"
+
+[tasks."fortran:clean"]
+description = "Remove Fortran build output"
+run = "fpm clean --all"
+
+[tasks."fortran:check"]
+description = "Run Fortran formatting, manifest, lint, tests, and docs"
+run = """
+mise run fortran:fmt:check
+mise run fortran:manifest
+mise run fortran:lint
+mise run fortran:test
+mise run fortran:doc
+"""
+
+[tasks."fortran:ci"]
+description = "Run the Fortran CI gate"
+depends = ["fortran:check"]

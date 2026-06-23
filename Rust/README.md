@@ -9,6 +9,8 @@ guardrails; relax or remove checks that do not fit the project.
 ## Tooling
 
 ```sh
+mise run rust:components
+mise run rust:deny:install
 mise run rust:lock:check
 mise run rust:fmt:check
 mise run rust:lint
@@ -28,9 +30,9 @@ Lock-sensitive gates run `rust:lock:check` first. That task generates
 `Cargo.lock` locally when it is missing, fails in CI when it is missing, and
 then lint/test/doc/package/deny tasks run with `--locked`. `rust:package`
 validates publishable package contents with `cargo package --workspace`.
-`rust:deny` installs pinned `cargo-deny` into local `.cargo-tools` and checks
-advisories, licenses, duplicate-version warnings, wildcard dependency
-requirements, and dependency sources.
+`rust:deny:install` installs pinned `cargo-deny` into local `.cargo-tools`;
+`rust:deny` checks advisories, licenses, duplicate-version warnings, wildcard
+dependency requirements, and dependency sources.
 
 The template keeps noisy systems-code lints relaxed by default: numeric casts,
 entire `clippy::restriction` or `clippy::cargo` groups, dependency unsafe

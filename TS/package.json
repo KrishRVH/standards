@@ -13,7 +13,7 @@
     "lint:check": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "standards": "bun run lint:fix && bun run format:fix && bun run typecheck",
-    "standards:check": "concurrently -n eslint,tsc,prettier -c \"yellow,blue.bold,magenta.bold\" \"bun:lint:check\" \"bun:typecheck\" \"bun:format:check\"",
+    "standards:check": "bun run lint:check && bun run typecheck && bun run format:check",
     "test": "bun run tests/math.test.ts",
     "typecheck": "tsc --pretty --noEmit -p tsconfig.json",
     "watch": "tsc --pretty --noEmit --watch -p tsconfig.json"
@@ -21,7 +21,6 @@
   "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "concurrently": "^10.0.3",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",

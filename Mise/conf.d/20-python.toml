@@ -11,9 +11,24 @@ if [ ! -f pyproject.toml ]; then
 fi
 
 if [ -f uv.lock ]; then
-  uv sync --all-groups --locked
+  uv sync --locked
 else
-  uv sync --all-groups
+  uv sync
+fi
+"""
+
+[tasks."py:install:deep"]
+description = "Install Python dependencies including optional deep analyzers"
+run = """
+if [ ! -f pyproject.toml ]; then
+  echo "No pyproject.toml found."
+  exit 0
+fi
+
+if [ -f uv.lock ]; then
+  uv sync --group deep --locked
+else
+  uv sync --group deep
 fi
 """
 
@@ -35,24 +50,26 @@ run = "uv run ruff check ."
 [tasks."py:type"]
 description = "Run strict Python type analysis"
 depends = ["py:install"]
-run = """
-uv run basedpyright --warnings
-uv run mypy
-"""
+run = "uv run basedpyright --warnings"
+
+[tasks."py:type:mypy"]
+description = "Run optional strict mypy analysis"
+depends = ["py:install:deep"]
+run = "uv run --no-sync mypy"
 
 [tasks."py:deps"]
 description = "Check Python dependency hygiene"
-depends = ["py:install"]
-run = "uv run deptry ."
+depends = ["py:install:deep"]
+run = "uv run --no-sync deptry ."
 
 [tasks."py:docs"]
 description = "Check Python docstring coverage"
-depends = ["py:install"]
-run = "uv run interrogate ."
+depends = ["py:install:deep"]
+run = "uv run --no-sync interrogate ."
 
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
-depends = ["py:install"]
+depends = ["py:install:deep"]
 run = """
 paths=""
 [ -d src ] && paths="$paths src"
@@ -61,20 +78,20 @@ paths=""
 if [ -z "$paths" ]; then
   echo "No src or tests directories found; skipping xenon."
 else
-  uv run xenon --max-absolute B --max-modules A --max-average A $paths
+  uv run --no-sync xenon --max-absolute B --max-modules A --max-average A $paths
 fi
 """
 
 [tasks."py:slots"]
 description = "Check dataclass slot coverage"
-depends = ["py:install"]
+depends = ["py:install:deep"]
 run = """
 if [ ! -d src ]; then
   echo "No src directory found; skipping slotscheck."
   exit 0
 fi
 
-uv run slotscheck src
+uv run --no-sync slotscheck src
 """
 
 [tasks."py:security"]
@@ -90,20 +107,27 @@ fi
 
 [tasks."py:deadcode"]
 description = "Check for high-confidence dead Python code"
-depends = ["py:install"]
-run = "uv run vulture"
+depends = ["py:install:deep"]
+run = "uv run --no-sync vulture"
 
 [tasks."py:lint"]
-description = "Run all Python static analysis"
+description = "Run default Python static analysis"
 depends = ["py:install"]
 run = """
 mise run py:ruff
 mise run py:type
+mise run py:security
+"""
+
+[tasks."py:deep"]
+description = "Run optional dependency-sensitive Python analysis"
+depends = ["py:install:deep"]
+run = """
+mise run py:type:mypy
 mise run py:deps
 mise run py:docs
 mise run py:complexity
 mise run py:slots
-mise run py:security
 mise run py:deadcode
 """
 
@@ -126,10 +150,13 @@ mise run py:test
 mise run py:build
 """
 
-[tasks."standards:check"]
-description = "Run the Python standards reference gate locally"
-depends = ["py:check"]
-
 [tasks."py:ci"]
 description = "Run the Python CI gate"
 depends = ["py:check"]
+
+[tasks."py:ci:deep"]
+description = "Run the Python CI gate plus optional deep analysis"
+run = """
+mise run py:check
+mise run py:deep
+"""

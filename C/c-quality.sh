@@ -24,7 +24,7 @@ HAS_CPPCHECK=0
 if command -v cppcheck >/dev/null 2>&1; then
   HAS_CPPCHECK=1
 else
-  note "cppcheck not found; skipping cppcheck checks."
+  note "Optional cppcheck not found; skipping cppcheck checks."
 fi
 
 # Prefer git-tracked sources so we don't format/check build artifacts.
@@ -106,60 +106,60 @@ else
   note "No $CDB found (expected in repo root or build dir); skipping clangd."
 fi
 
-note "Running cppcheck (hard fail on warnings/perf/portability)..."
 if ((HAS_CPPCHECK)); then
-cppcheck_extra_args=()
-if [[ -n "${CPPCHECK_EXTRA_ARGS:-}" ]]; then
-  read -r -a cppcheck_extra_args <<< "$CPPCHECK_EXTRA_ARGS"
-fi
-hard_args=(
-  --check-level=exhaustive
-  --enable=warning,performance,portability
-  --inconclusive --quiet --inline-suppr
-  --suppress=missingIncludeSystem
-  --suppress=unmatchedSuppression
-  --error-exitcode=1 -j "$JOBS"
-)
-
-if cdb_dir="$(detect_cdb_dir)"; then
-  cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --project="$cdb_dir/$CDB"
-else
-  files=()
-  while IFS= read -r -d '' f; do
-    files+=("$f")
-  done < <(list_files)
-  if ((${#files[@]} == 0)); then
-    note "No source files found; skipping cppcheck (hard)."
-  else
-    printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c --std=c99 -I"$SRC_ROOT"
+  note "Running optional cppcheck (hard fail on warnings/perf/portability)..."
+  cppcheck_extra_args=()
+  if [[ -n "${CPPCHECK_EXTRA_ARGS:-}" ]]; then
+    read -r -a cppcheck_extra_args <<< "$CPPCHECK_EXTRA_ARGS"
   fi
-fi
+  hard_args=(
+    --check-level=exhaustive
+    --enable=warning,performance,portability
+    --inconclusive --quiet --inline-suppr
+    --suppress=missingIncludeSystem
+    --suppress=unmatchedSuppression
+    --error-exitcode=1 -j "$JOBS"
+  )
 
-note "Running cppcheck (style, informational only)..."
-soft_args=(
-  --check-level=exhaustive
-  --enable=style
-  --inconclusive --quiet --inline-suppr
-  --suppress=missingIncludeSystem
-  --suppress=unmatchedSuppression
-  # Public API headers will *always* look unused to cppcheck inside the library itself.
-  --suppress=unusedStructMember
-  -j "$JOBS"
-)
-
-if cdb_dir="$(detect_cdb_dir)"; then
-  cppcheck "${soft_args[@]}" "${cppcheck_extra_args[@]}" --project="$cdb_dir/$CDB" || true
-else
-  files=()
-  while IFS= read -r -d '' f; do
-    files+=("$f")
-  done < <(list_files)
-  if ((${#files[@]} == 0)); then
-    note "No source files found; skipping cppcheck (style)."
+  if cdb_dir="$(detect_cdb_dir)"; then
+    cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --project="$cdb_dir/$CDB"
   else
-    printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${soft_args[@]}" "${cppcheck_extra_args[@]}" --language=c --std=c99 -I"$SRC_ROOT" || true
+    files=()
+    while IFS= read -r -d '' f; do
+      files+=("$f")
+    done < <(list_files)
+    if ((${#files[@]} == 0)); then
+      note "No source files found; skipping cppcheck (hard)."
+    else
+      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${hard_args[@]}" "${cppcheck_extra_args[@]}" --language=c --std=c99 -I"$SRC_ROOT"
+    fi
   fi
-fi
+
+  note "Running optional cppcheck (style, informational only)..."
+  soft_args=(
+    --check-level=exhaustive
+    --enable=style
+    --inconclusive --quiet --inline-suppr
+    --suppress=missingIncludeSystem
+    --suppress=unmatchedSuppression
+    # Public API headers will *always* look unused to cppcheck inside the library itself.
+    --suppress=unusedStructMember
+    -j "$JOBS"
+  )
+
+  if cdb_dir="$(detect_cdb_dir)"; then
+    cppcheck "${soft_args[@]}" "${cppcheck_extra_args[@]}" --project="$cdb_dir/$CDB" || true
+  else
+    files=()
+    while IFS= read -r -d '' f; do
+      files+=("$f")
+    done < <(list_files)
+    if ((${#files[@]} == 0)); then
+      note "No source files found; skipping cppcheck (style)."
+    else
+      printf '%s\0' "${files[@]}" | xargs -0 cppcheck "${soft_args[@]}" "${cppcheck_extra_args[@]}" --language=c --std=c99 -I"$SRC_ROOT" || true
+    fi
+  fi
 fi
 
 note "All quality checks passed (hard checks)."

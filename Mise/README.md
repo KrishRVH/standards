@@ -4,14 +4,15 @@ Copy `config.toml` to `.config/mise/config.toml` and copy the selected
 `conf.d/*.toml` files to `.config/mise/conf.d/`.
 
 The defaults assume this rule: every developer command goes through `mise run`.
-Dagger is pinned and invoked by mise; developers should not call `dagger`
-directly.
+Dagger is optional. If a project keeps `conf.d/10-dagger.toml`, Dagger is
+pinned and invoked by mise; developers should not call `dagger` directly.
 
 Treat this as a strict, systems-level starting command surface. Keep the
 language tasks that fit the project, and relax or remove checks that do not
 match the project's risk, lifecycle, or team tolerance.
 
-These templates were written against mise `v2026.6.11` and Dagger `v0.21.7`.
+These templates were written against mise `v2026.6.11`; the optional Dagger
+fragment pins Dagger `v0.21.7`.
 
 Recommended project entrypoints:
 
@@ -22,13 +23,14 @@ mise run fmt:check
 mise run lint
 mise run test
 mise run check
-mise run ci:local
 mise run ci
+mise run dagger:check
+mise run dagger:ci
 ```
 
-`check`, `ci`, and other Dagger-backed commands call the Dagger module. The
-module then runs `mise run check:local` or `mise run ci:local` inside an
-isolated container.
+`check` and `ci` run local aggregate tasks by default. If `10-dagger.toml` and
+the Dagger module are copied, `dagger:check` and `dagger:ci` run
+`check:local` and `ci:local` inside an isolated container.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use

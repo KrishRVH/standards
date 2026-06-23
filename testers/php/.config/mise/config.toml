@@ -3,10 +3,6 @@
 [settings]
 lockfile = true
 
-[tools]
-# Keep Dagger pinned here so both local CI runs and hosted CI use the same CLI.
-dagger = "0.21.7"
-
 [tasks.install]
 description = "Install pinned project tools"
 run = "mise install"
@@ -61,6 +57,11 @@ fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
   mise run haskell:fmt
+  ran=1
+fi
+
+if [ -f fpm.toml ]; then
+  mise run fortran:fmt
   ran=1
 fi
 
@@ -140,6 +141,11 @@ if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | gre
   ran=1
 fi
 
+if [ -f fpm.toml ]; then
+  mise run fortran:fmt:check
+  ran=1
+fi
+
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
   mise run kotlin:fmt:check
   ran=1
@@ -213,6 +219,11 @@ fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
   mise run haskell:lint
+  ran=1
+fi
+
+if [ -f fpm.toml ]; then
+  mise run fortran:lint
   ran=1
 fi
 
@@ -292,6 +303,11 @@ if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | gre
   ran=1
 fi
 
+if [ -f fpm.toml ]; then
+  mise run fortran:test
+  ran=1
+fi
+
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
   mise run kotlin:test
   ran=1
@@ -365,6 +381,11 @@ fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
   mise run haskell:check
+  ran=1
+fi
+
+if [ -f fpm.toml ]; then
+  mise run fortran:check
   ran=1
 fi
 
@@ -444,6 +465,11 @@ if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | gre
   ran=1
 fi
 
+if [ -f fpm.toml ]; then
+  mise run fortran:ci
+  ran=1
+fi
+
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
   mise run kotlin:ci
   ran=1
@@ -480,9 +506,9 @@ fi
 """
 
 [tasks.check]
-description = "Run all checks through Dagger"
-depends = ["dagger:check"]
+description = "Run all checks directly on the current machine"
+depends = ["check:local"]
 
 [tasks.ci]
-description = "Run the CI pipeline through Dagger"
-depends = ["dagger:ci"]
+description = "Run the CI pipeline directly on the current machine"
+depends = ["ci:local"]

@@ -159,6 +159,11 @@ luac.out
 # Go
 *.test
 
+# Fortran
+*.mod
+!go.mod
+*.smod
+
 # JVM / Kotlin / Gradle
 /.gradle/
 /.kotlin/

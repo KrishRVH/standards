@@ -29,8 +29,7 @@ defmodule StandardsElixirTester.MixProject do
         coveralls: :test,
         "coveralls.html": :test,
         dialyzer: :test,
-        "deps.audit": :test,
-        sobelow: :test
+        "deps.audit": :test
       ]
     ]
   end
@@ -45,8 +44,7 @@ defmodule StandardsElixirTester.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.38", only: [:dev], runtime: false},
       {:excoveralls, "~> 0.18", only: [:test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 end

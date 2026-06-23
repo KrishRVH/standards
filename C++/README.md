@@ -12,6 +12,9 @@ The baseline is intentionally dependency-manager agnostic. Use Conan, vcpkg,
 FetchContent, or system packages only after the project has a concrete
 dependency policy.
 
+The default language level is C++23. Use the `cxx26` CMake preset or set
+`PROJECT_CXX_STANDARD=26` when a project intentionally opts into C++26.
+
 The standard gate is:
 
 ```sh

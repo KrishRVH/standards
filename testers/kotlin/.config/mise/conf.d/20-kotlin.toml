@@ -1,7 +1,6 @@
 [tools]
 java = "temurin-25.0.3+9.0.LTS"
 gradle = "9.5.0"
-kotlin = "2.4.0"
 ktlint = "1.8.0"
 
 [tasks."kotlin:fmt"]
@@ -28,9 +27,25 @@ run = "gradle --no-daemon dependencies --write-locks"
 description = "Refresh Gradle dependency verification metadata"
 run = "gradle --no-daemon --write-verification-metadata sha256 help"
 
+[tasks."kotlin:lock:check"]
+description = "Ensure Gradle dependency locks and verification metadata are committed"
+run = """
+set -eu
+
+missing=0
+for path in gradle.lockfile gradle/verification-metadata.xml; do
+  if [ ! -f "$path" ]; then
+    echo "Missing $path. Run mise run kotlin:locks and mise run kotlin:verification-metadata, then commit the generated files." >&2
+    missing=1
+  fi
+done
+exit "$missing"
+"""
+
 [tasks."kotlin:check"]
 description = "Run Kotlin formatting, static analysis, and tests"
 run = """
+mise run kotlin:lock:check
 mise run kotlin:fmt:check
 mise run kotlin:lint
 mise run kotlin:test

@@ -2,8 +2,8 @@
 
 Copy the Cabal files into a Haskell project and replace `project-name` plus
 module names with the real package. The template uses Cabal, GHCup, Ormolu,
-HLint, GHC2024, warnings-as-errors in the project gate, Haddock, and source
-distribution checks.
+HLint, GHC2024, warnings-as-errors in the project gate, and named tasks for
+Haddock and source distribution checks.
 
 This is a strict, systems-level generic starting template. Keep the high-signal
 checks, but relax warnings, docs, or distribution tasks when the real package
@@ -19,4 +19,7 @@ mise run haskell:fmt:check
 mise run haskell:lint
 mise run haskell:test
 mise run haskell:check
+mise run haskell:update
+mise run haskell:docs
+mise run haskell:package
 ```
