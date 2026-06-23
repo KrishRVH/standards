@@ -1,10 +1,10 @@
 name = "project_name"
 version = "0.1.0"
+description = "A strict modern Fortran project."
 license = "MIT OR Apache-2.0"
 author = ["Project Maintainers"]
 maintainer = ["maintainers@example.com"]
 copyright = "Copyright 2026 Project Maintainers"
-description = "A strict modern Fortran project."
 categories = ["library"]
 keywords = ["fortran"]
 
@@ -14,8 +14,8 @@ auto-examples = false
 auto-tests = false
 
 [fortran]
-implicit-typing = false
 implicit-external = false
+implicit-typing = false
 source-form = "free"
 
 [library]
@@ -23,13 +23,13 @@ source-dir = "src"
 
 [[executable]]
 name = "project-name"
-source-dir = "app"
 main = "main.f90"
+source-dir = "app"
 
 [[test]]
 name = "project-tests"
-source-dir = "test"
 main = "main.f90"
+source-dir = "test"
 
 [install]
 library = true
@@ -39,13 +39,13 @@ test-drive.git = "https://github.com/fortran-lang/test-drive"
 test-drive.tag = "v0.6.1"
 
 [extra.ford]
-project = "project_name"
-summary = "Strict modern Fortran project template."
 author = "Project Maintainers"
-src_dir = ["src"]
-output_dir = "build/doc"
 display = ["public", "protected"]
-preprocess = false
-source = true
-search = true
 graph = false
+output_dir = "build/doc"
+preprocess = false
+project = "project_name"
+search = true
+source = true
+src_dir = ["src"]
+summary = "Strict modern Fortran project template."

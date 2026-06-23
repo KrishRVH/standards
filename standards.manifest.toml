@@ -31,6 +31,14 @@ task_prefix = "elixir"
 task_fragment = "20-elixir.toml"
 mirror = [".credo.exs", ".formatter.exs"]
 
+[profiles.fortran]
+name = "Fortran"
+template = "Fortran"
+tester = "testers/fortran"
+task_prefix = "fortran"
+task_fragment = "20-fortran.toml"
+mirror = [".fortls", "ford.md", "fpm.toml", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
+
 [profiles.go]
 name = "Go"
 template = "Go"
@@ -47,14 +55,6 @@ tester = "testers/haskell"
 task_prefix = "haskell"
 task_fragment = "20-haskell.toml"
 mirror = [".hlint.yaml"]
-
-[profiles.fortran]
-name = "Fortran"
-template = "fortran"
-tester = "testers/fortran"
-task_prefix = "fortran"
-task_fragment = "20-fortran.toml"
-mirror = [".fortls", "ford.md", "fpm.toml", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
 
 [profiles.kotlin]
 name = "Kotlin"

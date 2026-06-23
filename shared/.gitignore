@@ -95,8 +95,8 @@ mise.*.local.lock
 /composer.phar
 /var/cache/
 /var/log/
-infection-summary.log
 infection.log
+infection-summary.log
 
 # C# / .NET
 /.vs/

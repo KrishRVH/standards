@@ -1,7 +1,7 @@
 # Agent Guide
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
-`Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Go/`, `Haskell/`, `fortran/`,
+`Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
 `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `TS/`, `Zig/`. Root docs/config
 maintain this repo. `testers/` smoke-test copied standards for every language
 template.
