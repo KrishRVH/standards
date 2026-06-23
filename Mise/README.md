@@ -11,7 +11,7 @@ Treat this as a strict, systems-level starting command surface. Keep the
 language tasks that fit the project, and relax or remove checks that do not
 match the project's risk, lifecycle, or team tolerance.
 
-These templates were written against mise `v2026.6.11`; the optional Dagger
+These templates were written against mise `v2026.6.12`; the optional Dagger
 fragment pins Dagger `v0.21.7`.
 
 Recommended project entrypoints:
@@ -38,9 +38,9 @@ Commit the lockfile generated for the chosen config layout. With this template's
 
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
-`check:local`, and `ci:local` tasks dispatch to C, C#, C++, Elixir, Go,
-Haskell, Kotlin, Lua, PHP, Python, Rust, Bun-backed TypeScript/JavaScript, and
-Zig when their project files are detected.
+`check:local`, and `ci:local` tasks dispatch to C, C#, C++, Elixir, Fortran,
+Go, Haskell, Kotlin, Lua, PHP, Python, Rust, Bun-backed TypeScript/JavaScript,
+and Zig when their project files are detected.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one

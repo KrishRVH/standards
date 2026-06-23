@@ -76,8 +76,8 @@ Finally, copy the language template files that match the project:
   scripts.
 - `C#/`: strict .NET formatting, analyzer, central package, locked restore, and
   Release build/test defaults.
-- `C++/`: CMake C++23 library/CLI/test template with an opt-in C++26 preset,
-  Clang format/tidy config, sanitizer presets, optional `cppcheck`, and MinGW
+- `C++/`: idiomatic C++20 CMake library/CLI/test template with Clang
+  format/tidy config, sanitizer presets, optional `cppcheck`, and MinGW
   cross-toolchain support.
 - `Elixir/`: Mix project baseline with formatter, Credo, optional Dialyzer,
   xref cycle checks, docs, coverage, dependency audits, and project-specific

@@ -28,4 +28,4 @@ Use this as the isolated runner for the strict starting baseline. Downstream
 projects should still trim or relax the underlying mise/language checks when
 the generic gate is broader than the project needs.
 
-These templates were written against mise `v2026.6.11` and Dagger `v0.21.7`.
+These templates were written against mise `v2026.6.12` and Dagger `v0.21.7`.

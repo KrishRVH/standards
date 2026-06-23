@@ -28,14 +28,6 @@
       }
     },
     {
-      "name": "cxx26",
-      "inherits": "clang",
-      "displayName": "Clang++ (C++26 opt-in)",
-      "cacheVariables": {
-        "PROJECT_CXX_STANDARD": "26"
-      }
-    },
-    {
       "name": "gcc",
       "inherits": "base",
       "displayName": "G++ (Debug + ASan/UBSan)",
@@ -77,7 +69,6 @@
   ],
   "buildPresets": [
     { "name": "clang", "configurePreset": "clang" },
-    { "name": "cxx26", "configurePreset": "cxx26" },
     { "name": "gcc", "configurePreset": "gcc" },
     { "name": "mingw", "configurePreset": "mingw" },
     { "name": "release", "configurePreset": "release" },
@@ -92,11 +83,6 @@
     {
       "name": "gcc",
       "configurePreset": "gcc",
-      "output": { "outputOnFailure": true }
-    },
-    {
-      "name": "cxx26",
-      "configurePreset": "cxx26",
       "output": { "outputOnFailure": true }
     },
     {

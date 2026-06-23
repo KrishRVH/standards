@@ -5,9 +5,6 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(CTest)
 
-set(PROJECT_CXX_STANDARD
-    23
-    CACHE STRING "C++ language standard to require")
 option(PROJECT_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang only)" OFF)
 option(PROJECT_ENABLE_THREAD_SANITIZER "Enable ThreadSanitizer (GCC/Clang only)" OFF)
 option(PROJECT_WERROR "Treat compiler warnings as errors when supported" OFF)
@@ -32,15 +29,7 @@ function(project_require_cxx_standard target scope)
     CXX_EXTENSIONS OFF
   )
 
-  if(PROJECT_CXX_STANDARD STREQUAL "26")
-    target_compile_features(${target} ${scope} cxx_std_26)
-  elseif(PROJECT_CXX_STANDARD STREQUAL "23")
-    target_compile_features(${target} ${scope} cxx_std_23)
-  elseif(PROJECT_CXX_STANDARD STREQUAL "20")
-    target_compile_features(${target} ${scope} cxx_std_20)
-  else()
-    message(FATAL_ERROR "Unsupported PROJECT_CXX_STANDARD=${PROJECT_CXX_STANDARD}; use 20, 23, or 26.")
-  endif()
+  target_compile_features(${target} ${scope} cxx_std_20)
 endfunction()
 
 function(project_apply_common target)

@@ -12,7 +12,7 @@ dependencyLocking {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(26)
     explicitApi()
 }
 
@@ -38,7 +38,7 @@ detekt {
 }
 
 tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
-    jvmTarget.set("25")
+    jvmTarget.set("26")
     reports {
         checkstyle.required.set(true)
         html.required.set(false)

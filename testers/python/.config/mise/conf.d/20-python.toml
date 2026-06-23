@@ -1,6 +1,6 @@
 [tools]
 python = "3.14.6"
-uv = "0.11.22"
+uv = "0.11.23"
 
 [tasks."py:install"]
 description = "Install Python dependencies"

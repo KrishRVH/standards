@@ -21,6 +21,10 @@ mise run php:check
 `composer install`. Commit `composer.lock` for applications, CLIs, and fixtures
 that want locked CI behavior.
 
+The Psalm PHPUnit plugin intentionally stays on the `0.19.x` line while this
+template uses Psalm 6; `psalm/plugin-phpunit` `0.20.x` requires the Psalm 7
+plugin API.
+
 `composer ci` keeps to checks that should be green on a normal checkout:
 normalization, strict Composer validation, lint/static analysis, tests,
 dependency hygiene, Composer audit, and Rector dry-run. Mutation testing stays
