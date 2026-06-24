@@ -207,6 +207,14 @@ luac.out
 !go.mod
 *.smod
 
+# Ada / SPARK generated output
+/alire/build_hash_inputs
+/alire/settings.toml
+/config/
+/testers/**/alire/build_hash_inputs
+/testers/**/alire/settings.toml
+/testers/**/config/
+
 # JVM / Kotlin / Gradle generated output
 /.gradle/
 /.kotlin/

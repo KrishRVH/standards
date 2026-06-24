@@ -45,6 +45,11 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:fmt
+  ran=1
+fi
+
 if [ -f go.mod ]; then
   mise run go:fmt
   ran=1
@@ -123,6 +128,11 @@ fi
 
 if [ -f Cargo.toml ]; then
   mise run rust:fmt:check
+  ran=1
+fi
+
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:fmt:check
   ran=1
 fi
 
@@ -207,6 +217,11 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:lint
+  ran=1
+fi
+
 if [ -f go.mod ]; then
   mise run go:lint
   ran=1
@@ -285,6 +300,11 @@ fi
 
 if [ -f Cargo.toml ]; then
   mise run rust:test
+  ran=1
+fi
+
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:test
   ran=1
 fi
 
@@ -369,6 +389,11 @@ if [ -f Cargo.toml ]; then
   ran=1
 fi
 
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:check
+  ran=1
+fi
+
 if [ -f go.mod ]; then
   mise run go:check
   ran=1
@@ -447,6 +472,11 @@ fi
 
 if [ -f Cargo.toml ]; then
   mise run rust:ci
+  ran=1
+fi
+
+if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
+  mise run spark:ci
   ran=1
 fi
 

@@ -101,6 +101,15 @@ task_prefix = "rust"
 task_fragment = "20-rust.toml"
 mirror = ["clippy.toml", "deny.toml", "rustfmt.toml"]
 
+[profiles.spark]
+name = "SPARK (Ada)"
+template = "SPARK"
+tester = "testers/spark"
+task_prefix = "spark"
+task_fragment = "20-spark.toml"
+mirror = ["alire.toml", "gnat.adc", "project_name.gpr", "project_name_tests.gpr", "src/project_name.adb", "src/project_name.ads", "tests/project_name_tests.adb"]
+required_tester_files = ["alire/alire.lock"]
+
 [profiles.ts]
 name = "TypeScript"
 template = "TS"

@@ -1,0 +1,143 @@
+[tools]
+"github:alire-project/alire" = { version = "2.1.1", exe = "alr" }
+
+[tasks."spark:install"]
+description = "Install pinned SPARK/Ada project tooling"
+run = """
+set -eu
+alr --version
+alr -n update
+alr -n exec -- gprbuild --version | sed -n '1p'
+alr -n exec -- gnat --version | sed -n '1p'
+alr -n exec -- gnatprove --version | sed -n '1p'
+alr -n exec -- gnatformat --version
+"""
+
+[tasks."spark:manifest"]
+description = "Check SPARK/Ada manifest and source policy"
+run = """
+set -eu
+
+if [ ! -f alire.toml ]; then
+  echo "alire.toml is required for the SPARK standard." >&2
+  exit 1
+fi
+
+if [ ! -f "${SPARK_PROJECT_FILE:-project_name.gpr}" ]; then
+  echo "SPARK project file is missing: ${SPARK_PROJECT_FILE:-project_name.gpr}" >&2
+  exit 1
+fi
+
+if [ ! -f "${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}" ]; then
+  echo "SPARK test project file is missing: ${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}" >&2
+  exit 1
+fi
+
+if awk '
+  /^\\[\\[depends-on\\]\\]/ { in_deps = 1; next }
+  /^\\[/ { in_deps = 0 }
+  in_deps && /^[[:space:]]*[[:alnum:]_][[:alnum:]_-]*[[:space:]]*=/ {
+    value = substr($0, index($0, "=") + 1)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+    if (value !~ /^"=[0-9][^"]*"$/) {
+      print FILENAME ":" FNR ": dependency must use an exact =x.y.z constraint: " $0
+      bad = 1
+    }
+  }
+  END { exit bad }
+' alire.toml; then
+  :
+else
+  exit 1
+fi
+
+if find . -type d \\( -name .git -o -name alire -o -name build -o -name config -o -name obj \\) -prune \
+  -o -type f \\( -name '*.ads' -o -name '*.adb' \\) -print0 |
+  xargs -0 grep -L 'SPARK_Mode' 2>/dev/null |
+  grep -q .; then
+  echo "Ada sources must declare or inherit SPARK_Mode explicitly." >&2
+  exit 1
+fi
+"""
+
+[tasks."spark:lock:check"]
+description = "Ensure the Alire lockfile exists and matches exact dependencies"
+depends = ["spark:manifest"]
+run = """
+set -eu
+
+if [ ! -f alire/alire.lock ]; then
+  if [ "${CI:-false}" = "true" ]; then
+    echo "alire/alire.lock is required in CI. Run mise run spark:lock:check locally and commit it." >&2
+    exit 1
+  fi
+
+  alr -n update
+fi
+
+alr -n update
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git diff --exit-code -- alire/alire.lock
+fi
+"""
+
+[tasks."spark:fmt"]
+description = "Format SPARK/Ada source"
+depends = ["spark:lock:check"]
+run = """
+set -eu
+project="${SPARK_PROJECT_FILE:-project_name.gpr}"
+test_project="${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}"
+alr -n exec -- gnatformat -P "$project" -U --charset=utf-8 --width=79 --indentation=3
+alr -n exec -- gnatformat -P "$test_project" -U --charset=utf-8 --width=79 --indentation=3
+"""
+
+[tasks."spark:fmt:check"]
+description = "Check SPARK/Ada source formatting"
+depends = ["spark:lock:check"]
+run = """
+set -eu
+project="${SPARK_PROJECT_FILE:-project_name.gpr}"
+test_project="${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}"
+alr -n exec -- gnatformat --check -P "$project" -U --charset=utf-8 --width=79 --indentation=3
+alr -n exec -- gnatformat --check -P "$test_project" -U --charset=utf-8 --width=79 --indentation=3
+"""
+
+[tasks."spark:lint"]
+description = "Compile SPARK/Ada with strict GNAT diagnostics"
+depends = ["spark:lock:check"]
+run = "alr -n build --validation"
+
+[tasks."spark:prove"]
+description = "Prove SPARK contracts and absence of run-time errors"
+depends = ["spark:lock:check"]
+run = """
+set -eu
+project="${SPARK_PROJECT_FILE:-project_name.gpr}"
+alr -n exec -- gnatprove -P "$project" -U --mode=all --level=4 --warnings=error --checks-as-errors=on --pedantic --report=fail --output=oneline -j0
+"""
+
+[tasks."spark:test"]
+description = "Build and run SPARK/Ada tests"
+depends = ["spark:lock:check"]
+run = """
+set -eu
+test_project="${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}"
+alr -n exec -- gprbuild -P "$test_project" -p
+./build/tests/bin/project_name_tests
+"""
+
+[tasks."spark:check"]
+description = "Run SPARK/Ada formatting, manifest, build, proof, and tests"
+run = """
+mise run spark:fmt:check
+mise run spark:manifest
+mise run spark:lock:check
+mise run spark:lint
+mise run spark:prove
+mise run spark:test
+"""
+
+[tasks."spark:ci"]
+description = "Run the SPARK/Ada CI gate"
+depends = ["spark:check"]
