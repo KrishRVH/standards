@@ -1,0 +1,20 @@
+name = "project_name"
+description = "A strict SPARK/Ada project."
+version = "0.1.0-dev"
+licenses = "MIT OR Apache-2.0"
+authors = ["Project Maintainers"]
+maintainers = ["Project Maintainers <maintainers@example.com>"]
+tags = ["ada", "spark"]
+project-files = ["project_name.gpr"]
+
+[[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
+gprbuild = "=26.0.1"
+
+[[depends-on]]
+gnatprove = "=15.1.0"
+
+[[depends-on]]
+gnatformat_bin = "=26.0.0"
