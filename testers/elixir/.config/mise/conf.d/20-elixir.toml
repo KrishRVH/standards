@@ -55,22 +55,20 @@ depends = ["elixir:install"]
 run = "MIX_ENV=dev mix docs --warnings-as-errors"
 
 [tasks."elixir:coverage"]
-description = "Run Elixir coverage gate"
+description = "Run Elixir coverage report"
 depends = ["elixir:install"]
 run = "MIX_ENV=test mix coveralls"
 
-[tasks."elixir:check"]
-description = "Run Elixir formatting, static analysis, and tests"
+[tasks."elixir:standards"]
+description = "Run the Elixir standards workflow with autofixes"
+run = "mise run elixir:fmt"
+
+[tasks."elixir:standards:check"]
+description = "Run the Elixir standards CI gate"
 run = """
 mise run elixir:fmt:check
 mise run elixir:lint
 mise run elixir:test
-"""
-
-[tasks."elixir:ci"]
-description = "Run the extended Elixir quality gate"
-run = """
-mise run elixir:check
 mise run elixir:types
 mise run elixir:deps
 mise run elixir:docs

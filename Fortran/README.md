@@ -10,12 +10,13 @@ project has a clear compiler, platform, or dependency reason.
 ## Tooling
 
 ```sh
+mise run fortran:standards
 mise run fortran:fmt:check
 mise run fortran:manifest
 mise run fortran:lint
 mise run fortran:test
 mise run fortran:doc
-mise run fortran:check
+mise run fortran:standards:check
 ```
 
 The baseline pins `fpm`, GNU Fortran, Findent, fortls, and FORD through mise.
@@ -23,7 +24,7 @@ The baseline pins `fpm`, GNU Fortran, Findent, fortls, and FORD through mise.
 free-form source, and pins the test framework to a Git tag because fpm does not
 provide a project lockfile equivalent to Cargo or Composer.
 
-The standard gate formats all tracked `.f90` and `.F90` sources with Findent,
+The standards check formats all tracked `.f90` and `.F90` sources with Findent,
 rejects fixed-form source extensions, rejects wildcard and branch dependencies,
 builds and tests with GNU Fortran warnings promoted to errors, parses source
 through fortls debug diagnostics, and generates API documentation with FORD.
@@ -45,7 +46,7 @@ through fortls debug diagnostics, and generates API documentation with FORD.
 - Pin fpm Git dependencies by `tag` or `rev`; do not use wildcard registry
   versions or moving branches in reusable baselines.
 - Put public API documentation in FORD comments near the symbol being
-  documented, and make `mise run fortran:doc` part of the normal check.
+  documented, and keep `mise run fortran:doc` in the standards check.
 
 ## Copy Notes
 

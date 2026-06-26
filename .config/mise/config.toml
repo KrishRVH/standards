@@ -16,8 +16,8 @@ run = "mise lock"
 description = "Check standards profile manifest and fixture drift"
 run = "scripts/check-standards-drift.py"
 
-[tasks."testers:check"]
-description = "Run all tester mini projects through mise"
+[tasks."testers:standards"]
+description = "Run all tester mini projects through their standards autofixes"
 run = """
 set -eu
 
@@ -32,11 +32,36 @@ printf '%s\n' "$projects" | while IFS= read -r project; do
   echo "==> $project"
   (
     cd "$project"
-    env -u GOROOT -u GOTOOLDIR MISE_TRUSTED_CONFIG_PATHS="$root" mise run check:local
+    env -u GOROOT -u GOTOOLDIR MISE_TRUSTED_CONFIG_PATHS="$root" mise run standards
   )
 done
 """
 
-[tasks.check]
-description = "Run the standards repository verification gate"
-depends = ["standards:drift", "testers:check"]
+[tasks."testers:standards:check"]
+description = "Run all tester mini projects through their standards CI gates"
+run = """
+set -eu
+
+root="$(pwd)"
+projects="$(scripts/check-standards-drift.py --list-testers)"
+if [ -z "$projects" ]; then
+  echo "No tester projects found in standards.manifest.toml." >&2
+  exit 1
+fi
+
+printf '%s\n' "$projects" | while IFS= read -r project; do
+  echo "==> $project"
+  (
+    cd "$project"
+    env -u GOROOT -u GOTOOLDIR MISE_TRUSTED_CONFIG_PATHS="$root" mise run standards:check
+  )
+done
+"""
+
+[tasks.standards]
+description = "Run the standards repository autofix workflow"
+depends = ["testers:standards"]
+
+[tasks."standards:check"]
+description = "Run the standards repository CI gate"
+depends = ["standards:drift", "testers:standards:check"]

@@ -12,14 +12,15 @@ type and maturity make a narrower gate more appropriate.
 Use `cabal.project.freeze` deliberately: commit it for applications and CLIs
 that want locked CI, and usually omit it for reusable libraries.
 
-The standard gate is:
+Common tasks are:
 
 ```sh
+mise run haskell:standards
 mise run haskell:fmt:check
 mise run haskell:lint
 mise run haskell:test
-mise run haskell:check
 mise run haskell:update
 mise run haskell:docs
 mise run haskell:package
+mise run haskell:standards:check
 ```

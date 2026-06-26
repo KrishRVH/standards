@@ -73,14 +73,14 @@ else
 fi
 """
 
-[tasks."lua:check"]
-description = "Run Lua formatting, linting, and tests"
+[tasks."lua:standards"]
+description = "Run the Lua standards workflow with autofixes"
+run = "mise run lua:fmt"
+
+[tasks."lua:standards:check"]
+description = "Run the Lua standards CI gate"
 run = """
 mise run lua:fmt:check
 mise run lua:lint
 mise run lua:test
 """
-
-[tasks."lua:ci"]
-description = "Run the Lua CI gate"
-depends = ["lua:check"]

@@ -31,7 +31,7 @@
     "strict": true,
     "target": "ES2024",
     "tsBuildInfoFile": ".tsbuildinfo",
-    "types": [],
+    "types": ["bun-types"],
     "useDefineForClassFields": true,
     "useUnknownInCatchVariables": true,
     "verbatimModuleSyntax": true

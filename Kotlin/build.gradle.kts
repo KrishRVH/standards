@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.4.0"
-    id("dev.detekt") version "2.0.0-alpha.5"
+    kotlin("jvm") version "2.0.21"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
     `java-library`
 }
 
@@ -12,7 +12,7 @@ dependencyLocking {
 }
 
 kotlin {
-    jvmToolchain(26)
+    jvmToolchain(21)
     explicitApi()
 }
 
@@ -37,12 +37,12 @@ detekt {
     config.setFrom(files("detekt.yml"))
 }
 
-tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
-    jvmTarget.set("26")
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = "21"
     reports {
-        checkstyle.required.set(true)
+        xml.required.set(true)
         html.required.set(false)
-        markdown.required.set(false)
+        txt.required.set(false)
         sarif.required.set(false)
     }
 }

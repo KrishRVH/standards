@@ -5,10 +5,6 @@ dagger = "0.21.7"
 description = "Regenerate/update Dagger module bindings"
 run = "dagger develop"
 
-[tasks."dagger:check"]
-description = "Run local checks inside Dagger"
-run = "dagger call check --source=."
-
-[tasks."dagger:ci"]
-description = "Run the CI pipeline inside Dagger"
-run = "dagger call ci --source=."
+[tasks."dagger:standards:check"]
+description = "Run standards:check inside Dagger"
+run = "dagger call standards-check --source=."

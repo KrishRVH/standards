@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the SPARK/Ada tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the SPARK/Ada tester standards workflow"
+depends = ["spark:standards"]
 
-[tasks."check:local"]
-description = "Run the SPARK/Ada tester gate"
-depends = ["spark:check"]
+[tasks."standards:check"]
+description = "Run the SPARK/Ada tester standards CI gate"
+depends = ["spark:standards:check"]

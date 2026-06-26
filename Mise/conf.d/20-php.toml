@@ -2,7 +2,7 @@
 php = "8.5.7"
 
 [env]
-PHP_CONFIGURE_OPTIONS = "--with-openssl --with-readline --with-gettext --with-sodium"
+PHP_CONFIGURE_OPTIONS = "--with-openssl --with-readline --with-gettext"
 
 [tasks."php:install"]
 description = "Install PHP dependencies"
@@ -12,14 +12,12 @@ if ! command -v composer >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! php -m | grep -qi '^sodium$'; then
-  echo "PHP extension ext-sodium is required by the locked PHP quality tooling." >&2
-  echo "Rebuild or install the pinned PHP runtime with sodium enabled before running PHP tasks." >&2
-  exit 1
-fi
-
 composer install --no-interaction
 """
+
+[tasks."php:lock"]
+description = "Refresh the PHP Composer lockfile"
+run = "composer update --no-interaction --no-install"
 
 [tasks."php:fmt"]
 description = "Auto-fix PHP style issues"
@@ -41,12 +39,12 @@ description = "Run PHP tests"
 depends = ["php:install"]
 run = "composer test"
 
-[tasks."php:check"]
-description = "Run the PHP project check script"
+[tasks."php:standards"]
+description = "Run the PHP standards workflow with autofixes"
 depends = ["php:install"]
-run = "composer check"
+run = "composer standards"
 
-[tasks."php:ci"]
-description = "Run the PHP CI script"
+[tasks."php:standards:check"]
+description = "Run the PHP standards CI gate"
 depends = ["php:install"]
-run = "composer ci"
+run = "composer standards:check"

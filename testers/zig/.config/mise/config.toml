@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Zig tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Zig tester standards workflow"
+depends = ["zig:standards"]
 
-[tasks."check:local"]
-description = "Run the Zig tester gate"
-depends = ["zig:check"]
+[tasks."standards:check"]
+description = "Run the Zig tester standards CI gate"
+depends = ["zig:standards:check"]

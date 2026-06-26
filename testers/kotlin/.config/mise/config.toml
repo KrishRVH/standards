@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Kotlin tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Kotlin tester standards workflow"
+depends = ["kotlin:standards"]
 
-[tasks."check:local"]
-description = "Run the Kotlin tester gate"
-depends = ["kotlin:check"]
+[tasks."standards:check"]
+description = "Run the Kotlin tester standards CI gate"
+depends = ["kotlin:standards:check"]

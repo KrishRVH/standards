@@ -11,14 +11,16 @@ Commit `mix.lock` for applications and CLI tools. Add Phoenix/Ecto formatter
 imports and Sobelow tuning only when the project has that web surface. Add
 Boundary or other architecture checks after real module boundaries exist.
 
-The standard local gate is:
+The standards workflow is:
 
 ```sh
+mise run elixir:standards
 mise run elixir:fmt:check
 mise run elixir:lint
 mise run elixir:test
-mise run elixir:check
+mise run elixir:standards:check
 ```
 
-`elixir:ci` adds Dialyzer, dependency audits, docs, and coverage. Add Sobelow
-in a Phoenix/web overlay when the project has that surface.
+`elixir:standards:check` includes Dialyzer, dependency audits, docs, and
+coverage. Add Sobelow in a Phoenix/web overlay when the project has that
+surface.

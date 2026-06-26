@@ -3,6 +3,10 @@
 [settings]
 lockfile = true
 
+[tools]
+gitleaks = "8.30.1"
+syft = "1.45.1"
+
 [tasks.install]
 description = "Install pinned project tools"
 run = "mise install"
@@ -18,6 +22,22 @@ run = "mise doctor"
 [tasks.tasks]
 description = "List available project tasks"
 run = "mise tasks"
+
+[tasks.secrets]
+description = "Scan the working tree for secrets"
+run = "gitleaks dir . --redact --no-banner"
+
+[tasks.sbom]
+description = "Generate a CycloneDX JSON SBOM for the project filesystem"
+run = """
+set -eu
+source_name="${SYFT_SOURCE_NAME:-$(basename "$PWD")}"
+source_version="${SYFT_SOURCE_VERSION:-0.0.0}"
+export SYFT_CHECK_FOR_APP_UPDATE="${SYFT_CHECK_FOR_APP_UPDATE:-false}"
+rm -rf sbom
+mkdir -p sbom
+syft scan dir:. --source-name "$source_name" --source-version "$source_version" --exclude ./sbom --exclude ./.git --output cyclonedx-json=sbom/sbom.cdx.json
+"""
 
 [tasks.fmt]
 description = "Format the project using detected language tasks"
@@ -35,7 +55,7 @@ if [ -f pyproject.toml ]; then
   ran=1
 fi
 
-if [ -f package.json ]; then
+if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:fmt
   ran=1
 fi
@@ -121,7 +141,7 @@ if [ -f pyproject.toml ]; then
   ran=1
 fi
 
-if [ -f package.json ]; then
+if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:fmt:check
   ran=1
 fi
@@ -207,7 +227,7 @@ if [ -f pyproject.toml ]; then
   ran=1
 fi
 
-if [ -f package.json ]; then
+if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:lint
   ran=1
 fi
@@ -293,7 +313,7 @@ if [ -f pyproject.toml ]; then
   ran=1
 fi
 
-if [ -f package.json ]; then
+if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:test
   ran=1
 fi
@@ -363,182 +383,176 @@ if [ "$ran" = 0 ]; then
 fi
 """
 
-[tasks."check:local"]
-description = "Run all checks directly on the current machine"
+[tasks.standards]
+description = "Run standards autofixes using detected language tasks"
 run = """
 set -eu
 ran=0
 
 if [ -f composer.json ]; then
-  mise run php:check
+  mise run php:standards
   ran=1
 fi
 
 if [ -f pyproject.toml ]; then
-  mise run py:check
+  mise run py:standards
   ran=1
 fi
 
-if [ -f package.json ]; then
-  mise run ts:check
+if [ -f package.json ] && [ -f tsconfig.json ]; then
+  mise run ts:standards
   ran=1
 fi
 
 if [ -f Cargo.toml ]; then
-  mise run rust:check
+  mise run rust:standards
   ran=1
 fi
 
 if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:check
+  mise run spark:standards
   ran=1
 fi
 
 if [ -f go.mod ]; then
-  mise run go:check
+  mise run go:standards
   ran=1
 fi
 
 if [ -f mix.exs ]; then
-  mise run elixir:check
+  mise run elixir:standards
   ran=1
 fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:check
+  mise run haskell:standards
   ran=1
 fi
 
 if [ -f fpm.toml ]; then
-  mise run fortran:check
+  mise run fortran:standards
   ran=1
 fi
 
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:check
+  mise run kotlin:standards
   ran=1
 fi
 
 if [ -f build.zig ]; then
-  mise run zig:check
+  mise run zig:standards
   ran=1
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:check
+  mise run cpp:standards
   ran=1
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:check
+  mise run c:standards
   ran=1
 fi
 
 if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:check
+  mise run csharp:standards
   ran=1
 fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:check
+  mise run lua:standards
   ran=1
 fi
 
 if [ "$ran" = 0 ]; then
-  echo "No check tasks detected."
+  echo "No standards tasks detected."
 fi
 """
 
-[tasks."ci:local"]
-description = "Run CI-grade checks directly on the current machine"
+[tasks."standards:check"]
+description = "Run standards CI checks using detected language tasks"
 run = """
 set -eu
 ran=0
 
+mise run secrets
+
 if [ -f composer.json ]; then
-  mise run php:ci
+  mise run php:standards:check
   ran=1
 fi
 
 if [ -f pyproject.toml ]; then
-  mise run py:ci
+  mise run py:standards:check
   ran=1
 fi
 
-if [ -f package.json ]; then
-  mise run ts:ci
+if [ -f package.json ] && [ -f tsconfig.json ]; then
+  mise run ts:standards:check
   ran=1
 fi
 
 if [ -f Cargo.toml ]; then
-  mise run rust:ci
+  mise run rust:standards:check
   ran=1
 fi
 
 if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:ci
+  mise run spark:standards:check
   ran=1
 fi
 
 if [ -f go.mod ]; then
-  mise run go:ci
+  mise run go:standards:check
   ran=1
 fi
 
 if [ -f mix.exs ]; then
-  mise run elixir:ci
+  mise run elixir:standards:check
   ran=1
 fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:ci
+  mise run haskell:standards:check
   ran=1
 fi
 
 if [ -f fpm.toml ]; then
-  mise run fortran:ci
+  mise run fortran:standards:check
   ran=1
 fi
 
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:ci
+  mise run kotlin:standards:check
   ran=1
 fi
 
 if [ -f build.zig ]; then
-  mise run zig:ci
+  mise run zig:standards:check
   ran=1
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:ci
+  mise run cpp:standards:check
   ran=1
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:ci
+  mise run c:standards:check
   ran=1
 fi
 
 if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:ci
+  mise run csharp:standards:check
   ran=1
 fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:ci
+  mise run lua:standards:check
   ran=1
 fi
 
 if [ "$ran" = 0 ]; then
-  echo "No CI tasks detected."
+  echo "No standards checks detected."
 fi
 """
-
-[tasks.check]
-description = "Run all checks directly on the current machine"
-depends = ["check:local"]
-
-[tasks.ci]
-description = "Run the CI pipeline directly on the current machine"
-depends = ["ci:local"]

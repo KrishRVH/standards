@@ -1,6 +1,6 @@
 [tools]
-java = "temurin-26.0.1+8"
-gradle = "9.6.0"
+java = "temurin-21.0.11+10.0.LTS"
+gradle = "8.14.5"
 ktlint = "1.8.0"
 
 [tasks."kotlin:fmt"]
@@ -21,11 +21,11 @@ run = "gradle --no-daemon --warning-mode=fail test"
 
 [tasks."kotlin:locks"]
 description = "Refresh Gradle dependency locks"
-run = "gradle --no-daemon dependencies --write-locks"
+run = "gradle --no-daemon --warning-mode=fail --write-locks detektMain detektTest classes test"
 
 [tasks."kotlin:verification-metadata"]
 description = "Refresh Gradle dependency verification metadata"
-run = "gradle --no-daemon --write-verification-metadata sha256 help"
+run = "gradle --no-daemon --warning-mode=fail --write-verification-metadata sha256 detektMain detektTest classes test"
 
 [tasks."kotlin:lock:check"]
 description = "Ensure Gradle dependency locks and verification metadata are committed"
@@ -39,18 +39,22 @@ for path in gradle.lockfile gradle/verification-metadata.xml; do
     missing=1
   fi
 done
+if [ "$missing" -eq 0 ] && grep -nE 'dev\\.detekt|[.-](alpha|Alpha|beta|Beta|rc|RC|m|M)([0-9.]|$)|[.-](milestone|Milestone)([0-9.]|$)|SNAPSHOT' gradle.lockfile gradle/verification-metadata.xml; then
+  echo "Kotlin generated artifacts contain prerelease or stale coordinates." >&2
+  missing=1
+fi
 exit "$missing"
 """
 
-[tasks."kotlin:check"]
-description = "Run Kotlin formatting, static analysis, and tests"
+[tasks."kotlin:standards"]
+description = "Run the Kotlin standards workflow with autofixes"
+run = "mise run kotlin:fmt"
+
+[tasks."kotlin:standards:check"]
+description = "Run the Kotlin standards CI gate"
 run = """
 mise run kotlin:lock:check
 mise run kotlin:fmt:check
 mise run kotlin:lint
 mise run kotlin:test
 """
-
-[tasks."kotlin:ci"]
-description = "Run the Kotlin CI gate"
-depends = ["kotlin:check"]

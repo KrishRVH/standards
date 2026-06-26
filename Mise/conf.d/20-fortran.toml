@@ -137,8 +137,12 @@ run = "ford ford.md"
 description = "Remove Fortran build output"
 run = "fpm clean --all"
 
-[tasks."fortran:check"]
-description = "Run Fortran formatting, manifest, lint, tests, and docs"
+[tasks."fortran:standards"]
+description = "Run the Fortran standards workflow with autofixes"
+run = "mise run fortran:fmt"
+
+[tasks."fortran:standards:check"]
+description = "Run the Fortran standards CI gate"
 run = """
 mise run fortran:fmt:check
 mise run fortran:manifest
@@ -146,7 +150,3 @@ mise run fortran:lint
 mise run fortran:test
 mise run fortran:doc
 """
-
-[tasks."fortran:ci"]
-description = "Run the Fortran CI gate"
-depends = ["fortran:check"]

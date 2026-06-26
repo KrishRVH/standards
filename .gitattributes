@@ -136,19 +136,19 @@ cabal.project.freeze text linguist-generated=true
 *.ez binary
 *.gif binary
 *.gz binary
-*.ico binary
 *.icns binary
+*.ico binary
 *.jar binary
 *.jpeg binary
 *.jpg binary
 *.lib binary
 *.mp3 binary
 *.mp4 binary
-*.otf binary
-*.pdf binary
-*.pdb binary
-*.png binary
 *.nupkg binary
+*.otf binary
+*.pdb binary
+*.pdf binary
+*.png binary
 *.snupkg binary
 *.so binary
 *.sqlite binary
@@ -211,17 +211,15 @@ Mise/conf.d/20-fortran.toml linguist-language=Fortran
 Mise/conf.d/20-haskell.toml linguist-language=Haskell
 Mise/conf.d/20-spark.toml linguist-language=Ada
 
-# Platform setup scripts are bootstrap templates, not the primary language
+# Workstation setup scripts are bootstrap templates, not the primary language
 # surface of this standards catalog.
-shared/macbook-setup.sh linguist-detectable=false
-shared/wsl-setup.sh linguist-detectable=false
+extras/workstation/macbook-setup.sh linguist-detectable=false
+extras/workstation/wsl-setup.sh linguist-detectable=false
 
 # Generated or dependency-derived files should stay out of Linguist stats if
 # they are ever present in a fixture.
 *.lock linguist-generated=true
 **/.coverage linguist-generated=true
-**/.deptrac.cache linguist-generated=true
-**/.pdepend/** linguist-generated=true
 **/.phpunit.cache/** linguist-generated=true
 **/__pycache__/** linguist-generated=true
 **/_build/** linguist-generated=true
@@ -232,7 +230,6 @@ shared/wsl-setup.sh linguist-detectable=false
 **/cover/** linguist-generated=true
 **/deps/** linguist-vendored=true linguist-detectable=false
 **/dist-newstyle/** linguist-generated=true
-**/doc/** linguist-generated=true
 **/vendor/** linguist-vendored=true linguist-detectable=false
 **/zig-cache/** linguist-generated=true
 **/zig-out/** linguist-generated=true

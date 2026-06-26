@@ -40,11 +40,13 @@ node_modules/
 /coverage/
 /dist/
 /out/
+/sbom/
 **/.cache/
 **/build/
 **/coverage/
 **/dist/
 **/out/
+**/sbom/
 /testers/**/.cache/
 /testers/**/build/
 /testers/**/coverage/
@@ -99,37 +101,19 @@ mise.*.local.lock
 /testers/**/dagger/dist/
 
 # PHP generated output
-/.deptrac.cache
-/.infection/
-/.pdepend/
-/.php-cs-fixer.cache
-/.php-cs-fixer.php.cache
-/.phpbench/
+/.phpstan.cache/
 /.phpunit.cache/
 /.phpunit.result.cache
-/.phpstan.cache/
-/.psalm-cache/
-/.psalm/cache/
 /.rector-cache/
 /composer.phar
 /var/cache/
 /var/log/
-/testers/**/.deptrac.cache
-/testers/**/.infection/
-/testers/**/.pdepend/
-/testers/**/.php-cs-fixer.cache
-/testers/**/.php-cs-fixer.php.cache
-/testers/**/.phpbench/
+/testers/**/.phpstan.cache/
 /testers/**/.phpunit.cache/
 /testers/**/.phpunit.result.cache
-/testers/**/.phpstan.cache
-/testers/**/.psalm-cache/
-/testers/**/.psalm/cache/
 /testers/**/.rector-cache/
 /testers/**/var/cache/
 /testers/**/var/log/
-infection.log
-infection-summary.log
 
 # C# / .NET generated output
 /.vs/

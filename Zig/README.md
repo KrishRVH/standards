@@ -12,12 +12,13 @@ Run `zig build` after copying so the project can get a project-specific package
 fingerprint when dependencies are added. Zig dependency hashes live in
 `build.zig.zon`; there is no separate lockfile.
 
-The standard gate is:
+The standards workflow is:
 
 ```sh
+mise run zig:standards
 mise run zig:fmt:check
 mise run zig:lint
 mise run zig:test
 mise run zig:release
-mise run zig:check
+mise run zig:standards:check
 ```

@@ -11,6 +11,19 @@ else
 fi
 """
 
+[tasks."ts:lock"]
+description = "Refresh the Bun lockfile"
+run = "bun install"
+
+[tasks."ts:lock:check"]
+description = "Ensure the Bun lockfile is present"
+run = """
+if [ ! -f bun.lock ]; then
+  echo "bun.lock is required for TypeScript/JavaScript CI. Run mise run ts:lock and commit the generated lockfile." >&2
+  exit 1
+fi
+"""
+
 [tasks."ts:run"]
 description = "Run a Bun package script: mise run ts:run -- <script>"
 usage = "arg \"script\""
@@ -19,7 +32,7 @@ run = "bun run \"$usage_script\""
 [tasks."ts:fmt"]
 description = "Format TypeScript/JavaScript"
 depends = ["ts:install"]
-run = "mise run ts:run -- format:fix"
+run = "mise run ts:run -- format"
 
 [tasks."ts:fmt:check"]
 description = "Check TypeScript/JavaScript formatting"
@@ -29,7 +42,7 @@ run = "mise run ts:run -- format:check"
 [tasks."ts:lint"]
 description = "Lint TypeScript/JavaScript"
 depends = ["ts:install"]
-run = "mise run ts:run -- lint:check"
+run = "mise run ts:run -- lint"
 
 [tasks."ts:type"]
 description = "Run TypeScript type checks"
@@ -41,11 +54,20 @@ description = "Run TypeScript/JavaScript tests"
 depends = ["ts:install"]
 run = "mise run ts:run -- test"
 
-[tasks."ts:check"]
-description = "Run TypeScript/JavaScript formatting, linting, type checks, and tests"
+[tasks."ts:audit"]
+description = "Audit TypeScript/JavaScript dependencies"
 depends = ["ts:install"]
-run = "mise run ts:run -- ci"
+run = "mise run ts:run -- audit"
 
-[tasks."ts:ci"]
-description = "Run the TypeScript/JavaScript CI gate"
-depends = ["ts:check"]
+[tasks."ts:standards"]
+description = "Run the TypeScript/JavaScript standards workflow with autofixes"
+depends = ["ts:install"]
+run = "mise run ts:run -- standards"
+
+[tasks."ts:standards:check"]
+description = "Run the TypeScript/JavaScript standards CI gate"
+run = """
+mise run ts:lock:check
+mise run ts:install
+mise run ts:run -- standards:check
+"""

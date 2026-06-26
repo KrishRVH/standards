@@ -11,17 +11,17 @@ mean every downstream project should keep every check unchanged.
 Run all tester projects from the repository root:
 
 ```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:check
+MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:standards:check
 ```
 
 Or run one fixture directly:
 
 ```sh
 cd testers/ts
-MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run check:local
+MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run standards:check
 ```
 
-Use `mise run check:local` inside a Dagger-backed fixture when you want the
+Use `mise run standards:check` inside a Dagger-backed fixture when you want the
 same host-local gate used by the repository aggregate task.
 
 The fixtures cover C, C#, C++, Elixir, Fortran, Go, Haskell, Kotlin, Lua, PHP,

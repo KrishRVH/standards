@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Rust tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Rust tester standards workflow"
+depends = ["rust:standards"]
 
-[tasks."check:local"]
-description = "Run the Rust tester gate"
-depends = ["rust:check"]
+[tasks."standards:check"]
+description = "Run the Rust tester standards CI gate"
+depends = ["rust:standards:check"]

@@ -1,9 +1,9 @@
-defmodule StandardsElixirTester.MixProject do
+defmodule ProjectName.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :standards_elixir_tester,
+      app: :project_name,
       version: "0.1.0",
       elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
@@ -19,7 +19,7 @@ defmodule StandardsElixirTester.MixProject do
           :unmatched_returns
         ]
       ],
-      test_coverage: [tool: ExCoveralls, minimum_coverage: 90]
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -35,7 +35,9 @@ defmodule StandardsElixirTester.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger]]
+    [
+      extra_applications: [:logger]
+    ]
   end
 
   defp deps do

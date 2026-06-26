@@ -22,16 +22,18 @@ REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_frag
 OPTIONAL_PROFILE_KEYS = {"dagger", "normalized_mirror", "required_tester_files"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
 NORMALIZED_MIRROR_KINDS = {"go_mod", "php_composer_behavior"}
-REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "check", "ci")
+REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_TASKS = {
     "fmt": "fmt",
     "fmt:check": "fmt:check",
     "lint": "lint",
     "test": "test",
-    "check": "check:local",
-    "ci": "ci:local",
+    "standards": "standards",
+    "standards:check": "standards:check",
 }
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
+FULL_CONFIG_MIRROR = (".gitleaks.toml",)
+ROOT_SHARED_MIRROR = (".gitleaks.toml",)
 
 
 def load_profiles() -> dict[str, dict[str, object]]:
@@ -287,7 +289,10 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         return [f"{profile_id}: missing fixture config {rel(fixture_config)}"]
 
     full_config = same_file(canonical_config, fixture_config)
-    if not full_config:
+    if full_config:
+        for item in FULL_CONFIG_MIRROR:
+            errors.extend(compare_file(profile_id, "full-config shared file", ROOT / "shared" / item, tester / item))
+    else:
         try:
             data = load_toml(fixture_config)
         except tomllib.TOMLDecodeError as error:
@@ -301,21 +306,34 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         if not isinstance(settings, dict) or settings.get("lockfile") is not True:
             errors.append(f"{profile_id}: minimal fixture config must set [settings] lockfile = true")
 
-        if set(tasks) != {"check", "check:local"}:
-            errors.append(f"{profile_id}: minimal fixture config must contain only check and check:local tasks")
+        if set(tasks) != {"standards", "standards:check"}:
+            errors.append(
+                f"{profile_id}: minimal fixture config must contain only standards and standards:check tasks"
+            )
 
-        check = tasks.get("check", {})
-        check_local = tasks.get("check:local", {})
-        if not isinstance(check, dict) or check.get("depends") != ["check:local"]:
-            errors.append(f"{profile_id}: minimal fixture config check must depend on check:local")
-        if not isinstance(check_local, dict) or check_local.get("depends") != [f"{prefix}:check"]:
-            errors.append(f"{profile_id}: minimal fixture config check:local must depend on {prefix}:check")
+        standards = tasks.get("standards", {})
+        standards_check = tasks.get("standards:check", {})
+        if not isinstance(standards, dict) or standards.get("depends") != [f"{prefix}:standards"]:
+            errors.append(f"{profile_id}: minimal fixture config standards must depend on {prefix}:standards")
+        if not isinstance(standards_check, dict) or standards_check.get("depends") != [
+            f"{prefix}:standards:check"
+        ]:
+            errors.append(
+                f"{profile_id}: minimal fixture config standards:check must depend on {prefix}:standards:check"
+            )
 
     dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
     canonical_dagger = ROOT / "Mise" / "conf.d" / "10-dagger.toml"
     if dagger_fragment.exists():
         errors.extend(compare_file(profile_id, "Dagger fragment", canonical_dagger, dagger_fragment))
 
+    return errors
+
+
+def check_root_shared_files() -> list[str]:
+    errors: list[str] = []
+    for item in ROOT_SHARED_MIRROR:
+        errors.extend(compare_file("root", "shared file", ROOT / "shared" / item, ROOT / item))
     return errors
 
 
@@ -338,6 +356,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
 
     errors.extend(check_tester_inventory(profiles))
     errors.extend(check_aggregate_dispatch(profiles))
+    errors.extend(check_root_shared_files())
 
     for profile_id, profile in profiles.items():
         tester = ROOT / str(profile["tester"])

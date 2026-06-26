@@ -91,18 +91,16 @@ description = "Refresh cabal.project.freeze"
 depends = ["haskell:install"]
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal freeze"
 
-[tasks."haskell:check"]
-description = "Run Haskell formatting, static analysis, and tests"
+[tasks."haskell:standards"]
+description = "Run the Haskell standards workflow with autofixes"
+run = "mise run haskell:fmt"
+
+[tasks."haskell:standards:check"]
+description = "Run the Haskell standards CI gate"
 run = """
 mise run haskell:fmt:check
 mise run haskell:lint
 mise run haskell:test
-"""
-
-[tasks."haskell:ci"]
-description = "Run the Haskell CI gate"
-run = """
-mise run haskell:check
 mise run haskell:docs
 mise run haskell:package
 """
