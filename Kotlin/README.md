@@ -8,9 +8,16 @@ This is a strict, systems-level generic starting template. Relax Detekt rules,
 warning policy, or dependency-verification expectations when the copied baseline
 is broader than the real project needs.
 
-This template pins Java, Gradle, and ktlint through mise; Gradle pins Kotlin
-and Detekt. It uses the Java 21 LTS toolchain with Kotlin 2.0.21 and Detekt 1.23.
-`kotlin:lint` runs typed `detektMain` and `detektTest` before compilation.
+This template pins Java 25 LTS, Gradle, and ktlint through mise; Gradle pins
+Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
+`detektTest` before compilation.
+
+Detekt is pinned to `2.0.0-alpha.5` because that release is the Detekt line
+tested against JDK 25, Kotlin 2.4, and Gradle 9.5. The Kotlin lock guard allows
+that Detekt alpha plus the exact `org.jetbrains.intellij.deps.kotlinx`
+`1.10.2-intellij-1` coroutine fork pulled by Detekt, and rejects unrelated
+prerelease or qualified analyzer coordinates.
+
 Generate and commit `gradle.lockfile` and
 `gradle/verification-metadata.xml` after copying; `kotlin:standards:check`
 fails until they exist:
