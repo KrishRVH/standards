@@ -19,7 +19,8 @@ mise run rust:test:doc
 mise run rust:doc
 mise run rust:package
 mise run rust:deny
-mise run rust:check
+mise run rust:standards
+mise run rust:standards:check
 ```
 
 The baseline pins Rust, uses edition 2024, forbids local unsafe code, requires

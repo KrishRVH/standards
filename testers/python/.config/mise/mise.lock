@@ -8,14 +8,30 @@ backend = "aqua:dagger/dagger"
 checksum = "sha256:44430afc6f9c390fc47c4f352b15de9309a5e97ebd1ae563839617d6df8e8cc5"
 url = "https://github.com/dagger/dagger/releases/download/v0.21.7/dagger_v0.21.7_linux_amd64.tar.gz"
 
+[[tools.gitleaks]]
+version = "8.30.1"
+backend = "aqua:gitleaks/gitleaks"
+
+[tools.gitleaks."platforms.linux-x64"]
+checksum = "sha256:551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+url = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+
 [[tools.python]]
 version = "3.14.6"
 backend = "core:python"
 
 [tools.python."platforms.linux-x64"]
-checksum = "sha256:0881fbde2c78605720fb2e240d1a6df38652a896e40a5fce2e10908dbee5f5b7"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.14.6+20260610-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+checksum = "sha256:c172314f4a8ec137a8f605289010c3d19c8b56867d968f0095074cc68efa1d29"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/cpython-3.14.6+20260623-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
 provenance = "github-attestations"
+
+[[tools.syft]]
+version = "1.45.1"
+backend = "aqua:anchore/syft"
+
+[tools.syft."platforms.linux-x64"]
+checksum = "sha256:20c84195e24927f50a3b2269946be51f4c4abc9d2f145fee7388b4199149f716"
+url = "https://github.com/anchore/syft/releases/download/v1.45.1/syft_1.45.1_linux_amd64.tar.gz"
 
 [[tools.uv]]
 version = "0.11.23"

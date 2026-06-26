@@ -22,15 +22,20 @@ mise run fmt
 mise run fmt:check
 mise run lint
 mise run test
-mise run check
-mise run ci
-mise run dagger:check
-mise run dagger:ci
+mise run standards
+mise run standards:check
+mise run secrets
+mise run sbom
+mise run dagger:standards:check
 ```
 
-`check` and `ci` run local aggregate tasks by default. If `10-dagger.toml` and
-the Dagger module are copied, `dagger:check` and `dagger:ci` run
-`check:local` and `ci:local` inside an isolated container.
+`standards` runs mutating formatter/fixer workflows for detected languages.
+`standards:check` runs the CI-grade aggregate task and the shared secret scan
+through the project's `.gitleaks.toml`. `sbom` writes a fresh CycloneDX JSON
+SBOM under `sbom/` for release and audit workflows. Set `SYFT_SOURCE_NAME` and
+`SYFT_SOURCE_VERSION` to control SBOM source metadata. If `10-dagger.toml` and
+the Dagger module are copied, `dagger:standards:check` runs `standards:check`
+inside an isolated Ubuntu Linux reference container.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use
@@ -38,9 +43,10 @@ Commit the lockfile generated for the chosen config layout. With this template's
 
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
-`check:local`, and `ci:local` tasks dispatch to C, C#, C++, Elixir, Fortran,
-Go, Haskell, Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, Bun-backed
+`standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
+Fortran, Go, Haskell, Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, Bun-backed
 TypeScript/JavaScript, and Zig when their project files are detected.
+TypeScript dispatch requires both `package.json` and `tsconfig.json`.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one

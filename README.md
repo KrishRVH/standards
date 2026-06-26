@@ -16,12 +16,12 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
 ## Repository Layout
 
 - `shared/`: generic top-level files for a project, including `AGENTS.md`,
-  `CLAUDE.md`, `.gitattributes`, `.gitignore`, and optional platform bootstrap
-  scripts.
+  `CLAUDE.md`, `.gitattributes`, `.gitleaks.toml`, and `.gitignore`.
+- `extras/workstation/`: optional personal workstation bootstrap scripts.
 - `Mise/`: `.config/mise` templates. These define the developer command
   surface.
 - `Dagger/`: optional Dagger module template used by the explicit
-  `dagger:check` and `dagger:ci` mise tasks.
+  `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
   `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
@@ -44,12 +44,13 @@ Start with the shared files:
 cp shared/AGENTS.md /path/to/project/AGENTS.md
 cp shared/CLAUDE.md /path/to/project/CLAUDE.md
 cp shared/.gitattributes /path/to/project/.gitattributes
+cp shared/.gitleaks.toml /path/to/project/.gitleaks.toml
 cp shared/.gitignore /path/to/project/.gitignore
 ```
 
-`shared/macbook-setup.sh` and `shared/wsl-setup.sh` are optional bootstrap
-scripts for personal workstation setup. Read them first, then run the relevant
-script directly from the target machine.
+`extras/workstation/macbook-setup.sh` and `extras/workstation/wsl-setup.sh` are
+optional bootstrap scripts for personal workstation setup. Read them first, then
+run the relevant script directly from the target machine.
 
 Then copy the mise baseline:
 
@@ -95,8 +96,9 @@ Finally, copy the language template files that match the project:
   errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/`: Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
   tests.
-- `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan, Psalm, Rector,
-  PHPCS, PHPMD, Deptrac, PHPBench, and Infection.
+- `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan,
+  PHPCS/Slevomat, PHPMD, Rector, ShipMonk dependency analysis, Composer audit,
+  and Roave security advisories.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
   Bandit, pytest/coverage, wheel/source builds, and optional deeper mypy,
   dependency, documentation, complexity, slots, and dead-code checks.
@@ -115,6 +117,23 @@ The files intentionally use neutral project names, conventional `src` and
 `tests` directories, and generic package namespaces. Replace those placeholders
 when a project uses a different layout or architectural boundary.
 
+## Adoption Posture
+
+Treat each template as a strict seed, not a finished architecture. Keep the
+ecosystem-native formatter, compiler/type checker, test runner, lockfile policy,
+and dependency audit first. Tune style-only rules, coverage policy, release
+profiles, and heavier optional analyzers after the project shape is known.
+
+Applications and CLIs should usually keep committed lockfiles, exact toolchain
+pins, and CI-only audits. Libraries may need wider runtime version ranges,
+different release profiles, and narrower public API gates. Existing projects
+should adopt strict checks with reviewed suppressions or CI ratchets instead of
+trying to become green by broad disabling.
+
+The aggregate mise tasks use marker-file detection for copyable defaults. In
+monorepos or mixed-tooling repositories, replace those aggregate blocks with
+explicit project-specific task dependencies or narrower markers.
+
 ## Command Model
 
 Developer and CI entrypoints go through mise:
@@ -125,31 +144,39 @@ mise run fmt
 mise run fmt:check
 mise run lint
 mise run test
-mise run check
-mise run ci
+mise run standards
+mise run standards:check
+mise run secrets
+mise run sbom
 ```
 
-`mise run check` and `mise run ci` run local aggregate gates by default. If the
-project copied the Dagger template, `mise run dagger:check` and
-`mise run dagger:ci` run `check:local` and `ci:local` inside an isolated
-container while keeping task definitions in mise.
+`mise run standards` runs the mutating local workflow for detected languages.
+`mise run standards:check` runs the CI-grade aggregate gate and the shared
+secret scan through `.gitleaks.toml`.
+`mise run sbom` emits a fresh optional CycloneDX JSON SBOM under `sbom/`; set
+`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when release metadata should differ
+from the default directory name and `0.0.0` version. If the project copied the
+Dagger template, `mise run dagger:standards:check` runs `standards:check`
+inside an isolated Ubuntu Linux reference container while keeping task
+definitions in mise.
 
 After copying templates into a project:
 
 1. Remove language task files that do not apply.
 2. Adjust package names, namespaces, source directories, and test directories.
 3. Run `mise run install`.
-4. Run `mise run check`.
-5. Commit the resulting lockfiles, including the mise lockfile written for the
+4. Run `mise run standards`.
+5. Run `mise run standards:check`.
+6. Commit the resulting lockfiles, including the mise lockfile written for the
    chosen config layout, such as `.config/mise/mise.lock`, and any
    package-manager lockfiles used by the project.
 
 ## Maintaining These Standards
 
-Use the repo-local maintenance gate:
+Use the repo-local maintenance gate for local fixture checks:
 
 ```sh
-mise run check
+mise run standards:check
 ```
 
 That runs the tester fixtures for C, C#, C++, Elixir, Fortran, Go, Haskell,
@@ -157,10 +184,13 @@ Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, TypeScript, and Zig. When changing a
 template, update the matching fixture and refresh affected lockfiles so future
 changes prove the copied layout still works.
 
+That runs every fixture through `standards:check`, including shared secret
+scans, audits, proof, package, and slower quality gates.
+
 The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
 shared task fragments, aggregate task dispatch, fixture configs, Dagger
-fragments, and declared mirror files in sync while leaving undeclared fixture
-source and tests free to stay tiny.
+fragments, full-config shared files, and declared mirror files in sync while
+leaving undeclared fixture source and tests free to stay tiny.
 
 When adding or changing a standards profile:
 
@@ -168,4 +198,4 @@ When adding or changing a standards profile:
 2. Add or update the matching `testers/<profile>` fixture.
 3. Keep every declared mirror path byte-for-byte aligned.
 4. Refresh affected fixture lockfiles.
-5. Run `mise run standards:drift`, then `mise run check`.
+5. Run `mise run standards:drift` and `mise run standards:check`.

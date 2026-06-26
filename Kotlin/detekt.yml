@@ -5,24 +5,24 @@ config:
 complexity:
   CyclomaticComplexMethod:
     active: true
-    allowedComplexity: 10
+    threshold: 10
   LongMethod:
     active: true
-    allowedLines: 60
+    threshold: 60
   LongParameterList:
     active: true
-    allowedFunctionParameters: 6
-    allowedConstructorParameters: 8
+    functionThreshold: 6
+    constructorThreshold: 8
   NestedBlockDepth:
     active: true
-    allowedDepth: 3
+    threshold: 3
   TooManyFunctions:
     active: true
-    allowedFunctionsPerFile: 20
-    allowedFunctionsPerClass: 12
-    allowedFunctionsPerInterface: 12
-    allowedFunctionsPerObject: 12
-    allowedFunctionsPerEnum: 12
+    thresholdInFiles: 20
+    thresholdInClasses: 12
+    thresholdInInterfaces: 12
+    thresholdInObjects: 12
+    thresholdInEnums: 12
 
 exceptions:
   TooGenericExceptionCaught:
@@ -52,7 +52,7 @@ style:
   MaxLineLength:
     active: true
     maxLineLength: 100
-  RedundantVisibilityModifier:
+  RedundantVisibilityModifierRule:
     active: false
   ReturnCount:
     active: true

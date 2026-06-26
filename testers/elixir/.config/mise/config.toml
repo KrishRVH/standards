@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Elixir tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Elixir tester standards workflow"
+depends = ["elixir:standards"]
 
-[tasks."check:local"]
-description = "Run the Elixir tester gate"
-depends = ["elixir:check"]
+[tasks."standards:check"]
+description = "Run the Elixir tester standards CI gate"
+depends = ["elixir:standards:check"]

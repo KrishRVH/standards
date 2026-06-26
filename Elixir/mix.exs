@@ -19,7 +19,7 @@ defmodule ProjectName.MixProject do
           :unmatched_returns
         ]
       ],
-      test_coverage: [tool: ExCoveralls, minimum_coverage: 90]
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 

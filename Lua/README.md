@@ -8,13 +8,14 @@ because Luacheck 1.2.0 does not currently run under Lua 5.5 in this toolchain.
 Relax globals, complexity, or test-runner settings when the copied baseline does
 not fit the real host environment.
 
-The standard gate is:
+The standards workflow is:
 
 ```sh
+mise run lua:standards
 mise run lua:fmt:check
 mise run lua:lint
 mise run lua:test
-mise run lua:check
+mise run lua:standards:check
 ```
 
 `lua:lint` installs pinned Luacheck into `.lua_modules`, then runs Luacheck and

@@ -23,7 +23,9 @@ every language template.
 
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
-- `mise run check`: root gate, manifest/drift check plus all fixtures.
+- `mise run standards`: root autofix workflow across all fixtures.
+- `mise run standards:check`: root gate, manifest/drift check plus all fixture
+  standards CI gates.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing/investigating the relevant mise task. If install needs network, run it
@@ -51,8 +53,8 @@ through mise and report that.
 
 ## Verification
 
-Run `mise run check` before handoff unless blocked. One fixture first is fine;
-finish with the root gate before calling the repo green.
+Run `mise run standards:check` before handoff unless blocked. One fixture first
+is fine; finish with the root gate before calling the repo green.
 
 ## Git
 

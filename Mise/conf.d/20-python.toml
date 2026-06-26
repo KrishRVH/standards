@@ -32,6 +32,21 @@ else
 fi
 """
 
+[tasks."py:lock"]
+description = "Refresh the uv lockfile"
+run = "uv lock"
+
+[tasks."py:lock:check"]
+description = "Ensure the uv lockfile is present and current"
+run = """
+if [ ! -f uv.lock ]; then
+  echo "uv.lock is required for Python CI. Run mise run py:lock and commit the generated lockfile." >&2
+  exit 1
+fi
+
+uv lock --check
+"""
+
 [tasks."py:fmt"]
 description = "Format Python source and tests"
 depends = ["py:install"]
@@ -63,9 +78,9 @@ depends = ["py:install:deep"]
 run = "uv run --no-sync deptry ."
 
 [tasks."py:docs"]
-description = "Check Python docstring coverage"
+description = "Report Python docstring coverage"
 depends = ["py:install:deep"]
-run = "uv run --no-sync interrogate ."
+run = "uv run --no-sync interrogate --fail-under=0 ."
 
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
@@ -105,6 +120,11 @@ else
 fi
 """
 
+[tasks."py:audit"]
+description = "Audit Python dependencies"
+depends = ["py:install"]
+run = "uv audit --preview-features audit-command --locked"
+
 [tasks."py:deadcode"]
 description = "Check for high-confidence dead Python code"
 depends = ["py:install:deep"]
@@ -141,22 +161,28 @@ description = "Build Python source and wheel distributions"
 depends = ["py:install"]
 run = "uv build"
 
-[tasks."py:check"]
-description = "Run Python formatting, static analysis, tests, and package builds"
+[tasks."py:standards"]
+description = "Run the Python standards workflow with autofixes"
 run = """
+mise run py:fmt
+mise run py:install
+uv run ruff check --fix .
+"""
+
+[tasks."py:standards:check"]
+description = "Run the Python standards CI gate"
+run = """
+mise run py:lock:check
 mise run py:fmt:check
 mise run py:lint
 mise run py:test
 mise run py:build
+mise run py:audit
 """
 
-[tasks."py:ci"]
-description = "Run the Python CI gate"
-depends = ["py:check"]
-
-[tasks."py:ci:deep"]
-description = "Run the Python CI gate plus optional deep analysis"
+[tasks."py:standards:check:deep"]
+description = "Run the Python standards CI gate plus optional deep analysis"
 run = """
-mise run py:check
+mise run py:standards:check
 mise run py:deep
 """

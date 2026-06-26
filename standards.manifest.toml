@@ -29,7 +29,7 @@ template = "Elixir"
 tester = "testers/elixir"
 task_prefix = "elixir"
 task_fragment = "20-elixir.toml"
-mirror = [".credo.exs", ".formatter.exs"]
+mirror = [".credo.exs", ".formatter.exs", "mix.exs"]
 
 [profiles.fortran]
 name = "Fortran"
@@ -62,7 +62,7 @@ template = "Kotlin"
 tester = "testers/kotlin"
 task_prefix = "kotlin"
 task_fragment = "20-kotlin.toml"
-mirror = [".editorconfig", "detekt.yml", "gradle.properties"]
+mirror = [".editorconfig", "build.gradle.kts", "detekt.yml", "gradle.properties"]
 required_tester_files = ["gradle.lockfile", "gradle/verification-metadata.xml"]
 
 [profiles.lua]
@@ -80,7 +80,7 @@ template = "PHP"
 tester = "testers/php"
 task_prefix = "php"
 task_fragment = "20-php.toml"
-mirror = ["deptrac.yaml", "infection.json5", "phpbench.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "psalm.xml", "rector.php"]
+mirror = ["phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "rector.php"]
 normalized_mirror = { "composer.json" = "php_composer_behavior" }
 dagger = true
 

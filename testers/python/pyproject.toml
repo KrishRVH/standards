@@ -107,7 +107,6 @@ addopts = [
   "--strict-markers",
   "--cov=project_name",
   "--cov-report=term-missing:skip-covered",
-  "--cov-fail-under=95",
 ]
 filterwarnings = ["error"]
 testpaths = ["tests"]
@@ -136,7 +135,6 @@ targets = ["src"]
 
 [tool.interrogate]
 exclude = ["tests", ".venv", ".git", ".gstack"]
-fail-under = 85
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = true

@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Fortran tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Fortran tester standards workflow"
+depends = ["fortran:standards"]
 
-[tasks."check:local"]
-description = "Run the Fortran tester gate"
-depends = ["fortran:check"]
+[tasks."standards:check"]
+description = "Run the Fortran tester standards CI gate"
+depends = ["fortran:standards:check"]

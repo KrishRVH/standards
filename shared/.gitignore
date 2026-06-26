@@ -41,6 +41,7 @@ node_modules/
 /coverage/
 /dist/
 /out/
+/sbom/
 
 # JavaScript / TypeScript
 *.tsbuildinfo
@@ -80,23 +81,13 @@ mise.*.local.lock
 /dagger/dist/
 
 # PHP
-/.deptrac.cache
-/.infection/
-/.pdepend/
-/.php-cs-fixer.cache
-/.php-cs-fixer.php.cache
-/.phpbench/
+/.phpstan.cache/
 /.phpunit.cache/
 /.phpunit.result.cache
-/.phpstan.cache/
-/.psalm-cache/
-/.psalm/cache/
 /.rector-cache/
 /composer.phar
 /var/cache/
 /var/log/
-infection.log
-infection-summary.log
 
 # C# / .NET
 /.vs/

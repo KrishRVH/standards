@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the C++ tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the C++ tester standards workflow"
+depends = ["cpp:standards"]
 
-[tasks."check:local"]
-description = "Run the C++ tester gate"
-depends = ["cpp:check"]
+[tasks."standards:check"]
+description = "Run the C++ tester standards CI gate"
+depends = ["cpp:standards:check"]

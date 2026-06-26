@@ -68,14 +68,14 @@ cmake --build --preset clang
 description = "Run C++ tests"
 run = "./cpp-build.sh"
 
-[tasks."cpp:check"]
-description = "Run C++ formatting, linting, and tests"
+[tasks."cpp:standards"]
+description = "Run the C++ standards workflow with autofixes"
+run = "mise run cpp:fmt"
+
+[tasks."cpp:standards:check"]
+description = "Run the C++ standards CI gate"
 run = """
 mise run cpp:fmt:check
 mise run cpp:lint
 mise run cpp:test
 """
-
-[tasks."cpp:ci"]
-description = "Run the C++ CI gate"
-depends = ["cpp:check"]

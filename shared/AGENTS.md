@@ -26,10 +26,12 @@ Everything a developer does goes through mise.
 - `mise run fmt:check`: verify formatting.
 - `mise run lint`: lint/static analysis.
 - `mise run test`: tests.
-- `mise run check`: standard local aggregate gate.
-- `mise run ci`: full local CI gate.
-- `mise run dagger:check`: optional isolated check gate when Dagger is configured.
-- `mise run dagger:ci`: optional isolated CI gate when Dagger is configured.
+- `mise run standards`: local autofix workflow before `standards:check`.
+- `mise run standards:check`: full CI gate.
+- `mise run secrets`: scan the working tree for secrets.
+- `mise run sbom`: generate a CycloneDX JSON SBOM under `sbom/`.
+- `mise run dagger:standards:check`: optional isolated CI gate when Dagger is
+  configured.
 
 Do not call package managers, compilers, test runners, or Dagger directly
 unless you are fixing the mise task itself. Dagger is invoked through mise only
@@ -52,12 +54,13 @@ Treat these as generated unless the task is specifically about them:
 
 - dependency dirs: `node_modules/`, `vendor/`
 - build/cache dirs: `build/`, `dist/`, `out/`, `coverage/`, `.cache/`
+- release output: `sbom/`
 - framework/tool dirs: `.next/`, `.nuxt/`, `.turbo/`, `.vite/`, `.svelte-kit/`
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
   `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
-- tool caches: `.phpunit.cache/`, `.psalm-cache/`, `.rector-cache/`,
-  `.infection/`, `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
+- tool caches: `.phpunit.cache/`, `.phpstan.cache/`, `.rector-cache/`,
+  `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 
 If generated output is stale, fix the generator or mise task and regenerate.
 
@@ -75,7 +78,7 @@ If generated output is stale, fix the generator or mise task and regenerate.
 - Prefer stable behavior/integration tests around real cut points.
 - Keep E2E coverage small, important, and reliable.
 - Do not chase coverage numbers for their own sake.
-- Before handoff, run `mise run check` unless blocked; report any skipped
+- Before handoff, run `mise run standards:check` unless blocked; report any skipped
   verification and why.
 
 ## Git

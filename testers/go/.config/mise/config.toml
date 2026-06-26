@@ -1,10 +1,10 @@
 [settings]
 lockfile = true
 
-[tasks.check]
-description = "Run the Go tester gate"
-depends = ["check:local"]
+[tasks.standards]
+description = "Run the Go tester standards workflow"
+depends = ["go:standards"]
 
-[tasks."check:local"]
-description = "Run the Go tester gate"
-depends = ["go:check"]
+[tasks."standards:check"]
+description = "Run the Go tester standards CI gate"
+depends = ["go:standards:check"]

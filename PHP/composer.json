@@ -9,29 +9,21 @@
     }
   ],
   "require": {
-    "php": ">=8.5"
+    "php": ">=8.4"
   },
   "require-dev": {
-    "deptrac/deptrac": "^4.6.1",
     "ergebnis/composer-normalize": "^2.52.0",
-    "icanhazstring/composer-unused": "^0.9.6",
-    "infection/infection": "0.32.7",
-    "maglnet/composer-require-checker": "^4.24.0",
-    "phpbench/phpbench": "^1.7.0",
     "phpmd/phpmd": "^2.15.0",
     "phpstan/extension-installer": "^1.4.3",
     "phpstan/phpstan": "^2.2.2",
     "phpstan/phpstan-phpunit": "^2.0.16",
     "phpstan/phpstan-strict-rules": "^2.0.11",
     "phpunit/phpunit": "^12.5.30",
-    "psalm/plugin-phpunit": "^0.19.7",
     "rector/rector": "^2.5.2",
-    "roave/infection-static-analysis-plugin": "^1.44.0",
     "roave/security-advisories": "dev-latest",
     "shipmonk/composer-dependency-analyser": "^1.8.4",
     "slevomat/coding-standard": "^8.29.0",
-    "squizlabs/php_codesniffer": "^4.0.1",
-    "vimeo/psalm": "^6.16.1"
+    "squizlabs/php_codesniffer": "^4.0.1"
   },
   "autoload": {
     "psr-4": {
@@ -47,88 +39,67 @@
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "ergebnis/composer-normalize": true,
-      "infection/extension-installer": true,
       "phpstan/extension-installer": true
     },
     "sort-packages": true
   },
   "scripts": {
-    "analyze": [
-      "@phpstan",
-      "@psalm"
-    ],
-    "bench": "if [ -d benchmarks ]; then phpbench run --report=aggregate; else echo 'No PHPBench benchmarks configured.'; fi",
-    "check": [
-      "@normalize:check",
-      "@composer:validate",
-      "@lint",
-      "@test"
-    ],
-    "ci": [
-      "@check",
-      "@deps",
-      "@composer:audit",
-      "@rector:dry"
-    ],
+    "analyze": "@phpstan",
     "composer:audit": "composer audit --locked --abandoned=report --format=summary",
+    "composer:normalize": "composer normalize",
     "composer:validate": "composer validate --strict",
-    "deep-check": [
-      "@ci",
-      "@bench"
-    ],
     "dependency-analyser": "composer-dependency-analyser",
-    "deps": [
-      "@dependency-analyser",
-      "@unused",
-      "@require-check"
-    ],
-    "deptrac": "deptrac analyze",
-    "infection": "infection",
+    "deps": "@dependency-analyser",
     "lint": [
       "@style",
       "@analyze",
-      "@deptrac"
+      "@smell"
     ],
     "normalize:check": "composer normalize --dry-run --diff",
     "phpcbf": "phpcbf",
     "phpcs": "phpcs",
-    "phpmd": "HOME=. php -d error_reporting='E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED' vendor/bin/phpmd src text phpmd.xml",
+    "phpmd": "php -d error_reporting='E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED' vendor/bin/phpmd src text phpmd.xml",
     "phpstan": "php -d disable_functions=proc_open vendor/bin/phpstan analyse --memory-limit=512M",
-    "psalm": "psalm",
     "rector": "rector process",
     "rector:dry": "rector process --dry-run",
-    "require-check": "composer-require-checker check",
-    "style": [
-      "@phpcs",
-      "@phpmd"
+    "smell": "@phpmd",
+    "standards": [
+      "@composer:normalize",
+      "@rector",
+      "@phpcbf",
+      "@phpcs"
     ],
-    "test": "phpunit",
-    "unused": "composer-unused --excludePackage=php"
+    "standards:check": [
+      "@normalize:check",
+      "@composer:validate",
+      "@lint",
+      "@test",
+      "@deps",
+      "@composer:audit",
+      "@rector:dry"
+    ],
+    "style": "@phpcs",
+    "test": "phpunit"
   },
   "scripts-descriptions": {
-    "analyze": "Run static analysis (PHPStan + Psalm).",
-    "bench": "Run microbenchmarks with PHPBench (aggregate report).",
-    "check": "Run the standard local checks (normalize + validate + lint + tests).",
-    "ci": "Run CI pipeline (check + dependency hygiene + audit + Rector dry-run).",
+    "analyze": "Run static analysis (PHPStan).",
     "composer:audit": "Run Composer vulnerability and abandoned-package audit.",
+    "composer:normalize": "Normalize composer.json.",
     "composer:validate": "Validate composer.json strictly.",
-    "deep-check": "Run the full, expensive quality gate, including benchmarks.",
     "dependency-analyser": "Analyze dependency usage correctness (shipmonk/composer-dependency-analyser).",
-    "deps": "Run dependency hygiene suite (dependency analyser + unused deps + require-check).",
-    "deptrac": "Run architecture/dependency rules analysis (Deptrac).",
-    "infection": "Run mutation testing. Requires pcov or xdebug coverage support.",
-    "lint": "Run lint suite (style + static analysis + architecture checks).",
+    "deps": "Run dependency usage analysis.",
+    "lint": "Run lint suite (style + static analysis).",
     "normalize:check": "Verify composer.json is normalized (dry-run + diff).",
     "phpcbf": "Auto-fix coding standard violations (PHPCBF).",
     "phpcs": "Check coding standards (PHPCS).",
-    "phpmd": "Run PHPMD ruleset checks on src/.",
+    "phpmd": "Run maintainability smell checks (PHPMD).",
     "phpstan": "Run PHPStan analysis.",
-    "psalm": "Run Psalm analysis.",
     "rector": "Apply Rector automated refactorings.",
     "rector:dry": "Preview Rector refactorings without modifying files (dry-run).",
-    "require-check": "Verify composer.json requirements match actual used symbols (composer-require-checker).",
-    "style": "Run style checks (PHPCS + PHPMD).",
-    "test": "Run unit tests (PHPUnit).",
-    "unused": "Detect unused composer dependencies."
+    "smell": "Run maintainability smell checks.",
+    "standards": "Run the local standards workflow with autofixes.",
+    "standards:check": "Run the standards CI gate.",
+    "style": "Run style checks (PHPCS).",
+    "test": "Run unit tests (PHPUnit)."
   }
 }

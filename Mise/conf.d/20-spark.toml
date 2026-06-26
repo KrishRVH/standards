@@ -127,8 +127,12 @@ alr -n exec -- gprbuild -P "$test_project" -p
 ./build/tests/bin/project_name_tests
 """
 
-[tasks."spark:check"]
-description = "Run SPARK/Ada formatting, manifest, build, proof, and tests"
+[tasks."spark:standards"]
+description = "Run the SPARK/Ada standards workflow with autofixes"
+run = "mise run spark:fmt"
+
+[tasks."spark:standards:check"]
+description = "Run the SPARK/Ada standards CI gate"
 run = """
 mise run spark:fmt:check
 mise run spark:manifest
@@ -137,7 +141,3 @@ mise run spark:lint
 mise run spark:prove
 mise run spark:test
 """
-
-[tasks."spark:ci"]
-description = "Run the SPARK/Ada CI gate"
-depends = ["spark:check"]
