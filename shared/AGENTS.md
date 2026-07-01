@@ -6,15 +6,16 @@ changing architecture or domain language. Use this file for agent working rules.
 ## Principles
 
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
-  flow over clever abstractions.
+  flow over clever abstractions. See: https://grugbrain.dev/.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or
   replacing it.
-- Keep one source of truth. Do not create doc twins for executable config.
+- By default, do not add backwards-compatibility fallback code/versioning unless the repo is Production-critical
+  or the user specifically requests it.
 - Add structure after the shape is visible. Small duplication beats premature
   indirection.
-- Optimize only with evidence from real profiles or failing user experience.
+- Do not prematurely optimize; good-enough easy to reason about idiomatic code is best.
 
 ## Commands
 
@@ -85,4 +86,4 @@ If generated output is stale, fix the generator or mise task and regenerate.
 
 - Do not revert user changes unless explicitly asked.
 - Keep generated and local-only files out of commits.
-- Follow Conventional Commits standards for all git commit messages.
+- Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification) for all git commit messages.
