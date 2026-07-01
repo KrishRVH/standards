@@ -53,9 +53,9 @@ yarn, or npm, replace the TypeScript task file with a project-specific one
 instead of keeping multiple unpinned package-manager branches in the shared
 standard.
 
-The C# task file restores with `--locked-mode` when any `packages.lock.json` is
-present, otherwise it creates package locks with `--use-lock-file`; lint and
-test run Release builds with analyzer warnings promoted to failures.
+The C# template enables locked package restore in project MSBuild properties:
+package locks are created by default, and CI restore runs in locked mode. Lint
+and test run Release builds with analyzer warnings promoted to failures.
 
 The Rust task file runs Cargo in workspace and locked modes, generates a local
 `Cargo.lock` only when missing outside CI, builds docs with rustdoc warnings

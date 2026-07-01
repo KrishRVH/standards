@@ -12,4 +12,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "standards-kotlin-tester"
+rootProject.name = "project-name"

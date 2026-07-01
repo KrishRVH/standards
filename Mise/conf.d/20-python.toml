@@ -163,10 +163,10 @@ run = "uv build"
 
 [tasks."py:standards"]
 description = "Run the Python standards workflow with autofixes"
+depends = ["py:install"]
 run = """
-mise run py:fmt
-mise run py:install
 uv run ruff check --fix .
+uv run ruff format .
 """
 
 [tasks."py:standards:check"]

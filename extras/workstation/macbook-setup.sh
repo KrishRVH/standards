@@ -501,7 +501,9 @@ put_managed_block() {
 normalize_git_url() {
   local url
   url="$1"
+  url="${url%/}"
   url="${url%.git}"
+  url="${url%/}"
   printf '%s\n' "$url"
 }
 

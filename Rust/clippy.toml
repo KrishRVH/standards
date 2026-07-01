@@ -27,12 +27,6 @@ doc-valid-idents = [
     "UUID",
 ]
 
-# Disallow certain types (optional, comment out if too strict)
-# disallowed-types = [
-#     "std::collections::HashMap",
-#     "std::collections::HashSet",
-# ]
-
 # Warn on large enum variants
 enum-variant-size-threshold = 200
 

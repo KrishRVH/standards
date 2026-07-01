@@ -39,7 +39,7 @@ if awk '
   in_deps && /^[[:space:]]*[[:alnum:]_][[:alnum:]_-]*[[:space:]]*=/ {
     value = substr($0, index($0, "=") + 1)
     gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-    if (value !~ /^"=[0-9][^"]*"$/) {
+    if (value !~ /^"=[0-9]+[.][0-9]+[.][0-9]+"$/) {
       print FILENAME ":" FNR ": dependency must use an exact =x.y.z constraint: " $0
       bad = 1
     }
@@ -51,10 +51,22 @@ else
   exit 1
 fi
 
-if find . -type d \\( -name .git -o -name alire -o -name build -o -name config -o -name obj \\) -prune \
-  -o -type f \\( -name '*.ads' -o -name '*.adb' \\) -print0 |
-  xargs -0 grep -L 'SPARK_Mode' 2>/dev/null |
-  grep -q .; then
+missing_spark_mode="$(
+  find . -type d \\( -name .git -o -name alire -o -name build -o -name config -o -name obj \\) -prune \
+    -o -type f \\( -name '*.ads' -o -name '*.adb' \\) \
+    ! -exec awk '
+      {
+        line = $0
+        sub(/[[:space:]]*--.*/, "", line)
+        if (line ~ /SPARK_Mode/) {
+          found = 1
+        }
+      }
+      END { exit found ? 0 : 1 }
+    ' {} \\; -print
+)"
+if [ -n "$missing_spark_mode" ]; then
+  printf '%s\n' "$missing_spark_mode" >&2
   echo "Ada sources must declare or inherit SPARK_Mode explicitly." >&2
   exit 1
 fi

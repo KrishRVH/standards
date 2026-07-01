@@ -88,7 +88,7 @@
     "composer:validate": "Validate composer.json strictly.",
     "dependency-analyser": "Analyze dependency usage correctness (shipmonk/composer-dependency-analyser).",
     "deps": "Run dependency usage analysis.",
-    "lint": "Run lint suite (style + static analysis).",
+    "lint": "Run lint suite (style, static analysis, and maintainability smell checks).",
     "normalize:check": "Verify composer.json is normalized (dry-run + diff).",
     "phpcbf": "Auto-fix coding standard violations (PHPCBF).",
     "phpcs": "Check coding standards (PHPCS).",

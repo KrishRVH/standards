@@ -33,7 +33,7 @@ set -eu
 
 if [ ! -f Cargo.lock ]; then
   if [ "${CI:-false}" = "true" ]; then
-    echo "Cargo.lock is required in CI. Run cargo generate-lockfile locally and commit it." >&2
+    echo "Cargo.lock is required in CI. Run mise run rust:lock:check locally and commit Cargo.lock." >&2
     exit 1
   fi
 

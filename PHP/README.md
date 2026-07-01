@@ -13,15 +13,16 @@ The standards workflow is:
 
 ```sh
 mise run php:standards
+mise run php:lock
 mise run php:fmt:check
 mise run php:lint
 mise run php:test
 mise run php:standards:check
 ```
 
-`php:install` requires Composer, then runs `composer install`. Commit
-`composer.lock` for applications, CLIs, and fixtures that want locked CI
-behavior.
+`php:install` requires Composer, then runs `composer install`. `php:lock`
+refreshes `composer.lock`; commit it for applications, CLIs, and fixtures that
+want locked CI behavior.
 
 `composer standards` runs Composer normalization, Rector, PHPCBF, and a PHPCS
 post-check for unfixed style violations. `composer standards:check` runs

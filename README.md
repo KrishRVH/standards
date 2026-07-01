@@ -179,13 +179,12 @@ Use the repo-local maintenance gate for local fixture checks:
 mise run standards:check
 ```
 
-That runs the tester fixtures for C, C#, C++, Elixir, Fortran, Go, Haskell,
-Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, TypeScript, and Zig. When changing a
-template, update the matching fixture and refresh affected lockfiles so future
-changes prove the copied layout still works.
-
-That runs every fixture through `standards:check`, including shared secret
-scans, audits, proof, package, and slower quality gates.
+That runs every tester fixture for C, C#, C++, Elixir, Fortran, Go, Haskell,
+Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, TypeScript, and Zig through
+`standards:check`, including shared secret scans, audits, proof, package, and
+slower quality gates. When changing a template, update the matching fixture and
+refresh affected lockfiles so future changes prove the copied layout still
+works.
 
 The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
 shared task fragments, aggregate task dispatch, fixture configs, Dagger

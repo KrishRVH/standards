@@ -92,7 +92,7 @@ mise.*.local.lock
 # C# / .NET
 /.vs/
 /artifacts/
-/TestResults/
+**/TestResults/
 **/[Bb]in/[Dd]ebug/
 **/[Bb]in/[Rr]elease/
 **/[Oo]bj/

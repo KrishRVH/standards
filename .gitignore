@@ -47,11 +47,6 @@ node_modules/
 **/dist/
 **/out/
 **/sbom/
-/testers/**/.cache/
-/testers/**/build/
-/testers/**/coverage/
-/testers/**/dist/
-/testers/**/out/
 
 # JavaScript / TypeScript
 *.tsbuildinfo
@@ -118,7 +113,7 @@ mise.*.local.lock
 # C# / .NET generated output
 /.vs/
 /artifacts/
-/TestResults/
+**/TestResults/
 **/[Bb]in/[Dd]ebug/
 **/[Bb]in/[Rr]elease/
 **/[Oo]bj/

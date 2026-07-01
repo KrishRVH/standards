@@ -257,6 +257,7 @@ write_managed_file() {
 
 normalize_git_url() {
   local url="$1"
+  url="${url%/}"
   url="${url%.git}"
   url="${url%/}"
   printf '%s\n' "$url"
@@ -817,7 +818,8 @@ write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 075
 set -euo pipefail
 # >>> wsl-bootstrap managed tmux-sessionizer >>>
 
-roots=("$HOME" "$HOME/dev" "$HOME/src" "$HOME/projects")
+roots_raw="${TMUX_SESSIONIZER_ROOTS:-$HOME/dev:$HOME/src:$HOME/projects:$HOME/Developer:$HOME/Code}"
+IFS=':' read -r -a roots <<< "$roots_raw"
 
 candidates=()
 for r in "${roots[@]}"; do
@@ -829,7 +831,8 @@ mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | awk '!seen[$0]++')
 selected="$(printf '%s\n' "${candidates[@]}" | fzf --height=40% --reverse --prompt='session> ' || true)"
 [[ -n "$selected" ]] || exit 0
 
-name="$(basename "$selected" | tr . _)"
+name="$(basename "$selected" | tr -c '[:alnum:]_-' '_' | sed 's/^_*//; s/_*$//')"
+[[ -n "$name" ]] || name="session"
 tmux has-session -t "$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$selected"
 tmux switch-client -t "$name" 2>/dev/null || tmux attach -t "$name"
 

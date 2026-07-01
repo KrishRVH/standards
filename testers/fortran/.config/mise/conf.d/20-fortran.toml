@@ -55,9 +55,8 @@ fi
 description = "Format free-form Fortran source"
 run = """
 set -eu
-tmp="$(mktemp)"
 list="$(mktemp)"
-trap 'rm -f "$tmp" "$list"' EXIT
+trap 'rm -f "$list"' EXIT
 
 find . -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
   -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"

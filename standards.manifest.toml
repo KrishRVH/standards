@@ -62,7 +62,7 @@ template = "Kotlin"
 tester = "testers/kotlin"
 task_prefix = "kotlin"
 task_fragment = "20-kotlin.toml"
-mirror = [".editorconfig", "build.gradle.kts", "detekt.yml", "gradle.properties"]
+mirror = [".editorconfig", "build.gradle.kts", "detekt.yml", "gradle.properties", "settings.gradle.kts"]
 required_tester_files = ["gradle.lockfile", "gradle/verification-metadata.xml"]
 
 [profiles.lua]
