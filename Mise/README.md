@@ -44,8 +44,8 @@ Commit the lockfile generated for the chosen config layout. With this template's
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, Go, Haskell, Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, Bun-backed
-TypeScript/JavaScript, and Zig when their project files are detected.
+Fortran, Go, Haskell, Kotlin, Lua, PHP, Python, Rust, Shell, SPARK/Ada,
+Bun-backed TypeScript/JavaScript, and Zig when their project files are detected.
 TypeScript dispatch requires both `package.json` and `tsconfig.json`.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,

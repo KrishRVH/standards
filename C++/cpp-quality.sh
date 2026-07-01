@@ -1,27 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 4)}"
+readonly JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2> /dev/null || nproc 2> /dev/null || echo 4)}"
 readonly SRC_ROOT="${1:-.}"
 readonly BUILD_HINT="${2:-}"
 readonly CDB="compile_commands.json"
 
 note() { printf '\033[0;34m[INFO]\033[0m %s\n' "$*"; }
-fail() { printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
+fail() {
+  printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" >&2
+  exit 1
+}
 
 for tool in clang-format clangd; do
-  command -v "$tool" >/dev/null 2>&1 || fail "Missing tool: $tool"
+  command -v "$tool" > /dev/null 2>&1 || fail "Missing tool: $tool"
 done
 
 HAS_CPPCHECK=0
-if command -v cppcheck >/dev/null 2>&1; then
+if command -v cppcheck > /dev/null 2>&1; then
   HAS_CPPCHECK=1
 else
   note "Optional cppcheck not found; skipping cppcheck checks."
 fi
 
 list_files() {
-  if command -v git >/dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
       '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' \
       ':(exclude)build/**' ':(exclude)build-*/**'
@@ -32,7 +35,7 @@ list_files() {
 }
 
 list_cpp_files() {
-  if command -v git >/dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
       '*.cc' '*.cpp' '*.cxx' ':(exclude)build/**' ':(exclude)build-*/**'
   else
@@ -104,7 +107,7 @@ if ((HAS_CPPCHECK)); then
   fi
   hard_args=(
     --check-level=exhaustive
-    --enable=warning,performance,portability
+    "--enable=warning,performance,portability"
     --inconclusive --quiet --inline-suppr
     --suppress=missingIncludeSystem
     --suppress=unmatchedSuppression

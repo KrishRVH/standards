@@ -101,6 +101,14 @@ task_prefix = "rust"
 task_fragment = "20-rust.toml"
 mirror = ["clippy.toml", "deny.toml", "rustfmt.toml"]
 
+[profiles.shell]
+name = "Shell"
+template = "Shell"
+tester = "testers/shell"
+task_prefix = "shell"
+task_fragment = "20-shell.toml"
+mirror = [".editorconfig", ".shellcheckrc", "scripts/project-name.sh", "tests/project-name.bats"]
+
 [profiles.spark]
 name = "SPARK (Ada)"
 template = "SPARK"

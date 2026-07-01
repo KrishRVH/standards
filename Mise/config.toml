@@ -120,6 +120,11 @@ if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   ran=1
 fi
 
+if [ -f .shellcheckrc ]; then
+  mise run shell:fmt
+  ran=1
+fi
+
 if [ "$ran" = 0 ]; then
   echo "No formatter tasks detected."
 fi
@@ -203,6 +208,11 @@ fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:fmt:check
+  ran=1
+fi
+
+if [ -f .shellcheckrc ]; then
+  mise run shell:fmt:check
   ran=1
 fi
 
@@ -292,6 +302,11 @@ if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   ran=1
 fi
 
+if [ -f .shellcheckrc ]; then
+  mise run shell:lint
+  ran=1
+fi
+
 if [ "$ran" = 0 ]; then
   echo "No lint tasks detected."
 fi
@@ -375,6 +390,11 @@ fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:test
+  ran=1
+fi
+
+if [ -f .shellcheckrc ]; then
+  mise run shell:test
   ran=1
 fi
 
@@ -464,6 +484,11 @@ if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   ran=1
 fi
 
+if [ -f .shellcheckrc ]; then
+  mise run shell:standards
+  ran=1
+fi
+
 if [ "$ran" = 0 ]; then
   echo "No standards tasks detected."
 fi
@@ -549,6 +574,11 @@ fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
   mise run lua:standards:check
+  ran=1
+fi
+
+if [ -f .shellcheckrc ]; then
+  mise run shell:standards:check
   ran=1
 fi
 

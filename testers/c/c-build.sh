@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 4)}"
+JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2> /dev/null || nproc 2> /dev/null || echo 4)}"
 
 run_preset() {
   local preset="$1"
@@ -39,7 +39,7 @@ run_install_check() {
   rm -rf "$consumer"
   mkdir -p "$consumer"
 
-  cat > "$consumer/CMakeLists.txt" <<'EOF'
+  cat > "$consumer/CMakeLists.txt" << 'EOF'
 cmake_minimum_required(VERSION 3.20)
 project(c_project_consumer LANGUAGES C)
 
@@ -55,7 +55,7 @@ set_target_properties(consumer_shared PROPERTIES
 )
 EOF
 
-  cat > "$consumer/main.c" <<'EOF'
+  cat > "$consumer/main.c" << 'EOF'
 #include <project/library.h>
 
 int main(void)
@@ -73,7 +73,7 @@ EOF
 
 presets=(clang)
 
-if command -v ccomp >/dev/null 2>&1; then
+if command -v ccomp > /dev/null 2>&1; then
   presets+=(compcert)
 else
   echo "[INFO] ccomp not found; skipping CompCert preset."
@@ -85,7 +85,7 @@ else
   echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
 fi
 
-if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+if command -v x86_64-w64-mingw32-gcc > /dev/null 2>&1; then
   presets+=(mingw)
 else
   echo "[INFO] x86_64-w64-mingw32-gcc not found; skipping MinGW preset."

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 4)}"
+JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2> /dev/null || nproc 2> /dev/null || echo 4)}"
 
 run_preset() {
   local preset="$1"
@@ -36,7 +36,7 @@ run_install_check() {
   rm -rf "$consumer"
   mkdir -p "$consumer"
 
-  cat > "$consumer/CMakeLists.txt" <<'EOF'
+  cat > "$consumer/CMakeLists.txt" << 'EOF'
 cmake_minimum_required(VERSION 3.30)
 project(cpp_project_consumer LANGUAGES CXX)
 
@@ -49,7 +49,7 @@ add_executable(consumer main.cpp)
 target_link_libraries(consumer PRIVATE cpp_project::library)
 EOF
 
-  cat > "$consumer/main.cpp" <<'EOF'
+  cat > "$consumer/main.cpp" << 'EOF'
 #include <project/library.h>
 
 int main() {
@@ -76,8 +76,8 @@ else
   echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
 fi
 
-if command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1 \
-  && (( $(compiler_major_version x86_64-w64-mingw32-g++) >= 10 )); then
+if command -v x86_64-w64-mingw32-g++ > /dev/null 2>&1 &&
+  (($(compiler_major_version x86_64-w64-mingw32-g++) >= 10)); then
   presets+=(mingw)
 else
   echo "[INFO] x86_64-w64-mingw32-g++ with C++20 support not found; skipping MinGW preset."

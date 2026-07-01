@@ -1,0 +1,22 @@
+# Shell Standards
+
+Bash-first standards for project glue code. zsh and POSIX `sh` are supported
+when scripts declare those dialects with a shebang.
+
+Default checks:
+
+- `shfmt` formats Bash, POSIX `sh`, Bats, and zsh files with two-space
+  indentation.
+- `shellcheck` runs with optional checks enabled for Bash, POSIX `sh`, and Bats
+  files, with noisy style/info rules excluded.
+- `bash -n`, `sh -n`, and `zsh -n` validate declared script syntax.
+- Bats runs behavior tests.
+
+Project-owned Bash glue under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
+must declare Bash and use:
+
+```bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+```

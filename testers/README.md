@@ -25,7 +25,7 @@ Use `mise run standards:check` inside a Dagger-backed fixture when you want the
 same host-local gate used by the repository aggregate task.
 
 The fixtures cover C, C#, C++, Elixir, Fortran, Go, Haskell, Kotlin, Lua, PHP,
-Python, Rust, SPARK/Ada, TypeScript, and Zig.
+Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig.
 
 The fixture list comes from `standards.manifest.toml`, not a hand-maintained
 shell loop. Declared mirror files must stay byte-for-byte aligned with their

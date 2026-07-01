@@ -85,4 +85,4 @@ If generated output is stale, fix the generator or mise task and regenerate.
 
 - Do not revert user changes unless explicitly asked.
 - Keep generated and local-only files out of commits.
-- Commit messages should be short, imperative, and specific.
+- Follow Conventional Commits standards for all git commit messages.

@@ -60,8 +60,8 @@ done
 
 [tasks.standards]
 description = "Run the standards repository autofix workflow"
-depends = ["testers:standards"]
+depends = ["shell:standards", "testers:standards"]
 
 [tasks."standards:check"]
 description = "Run the standards repository CI gate"
-depends = ["standards:drift", "testers:standards:check"]
+depends = ["standards:drift", "shell:standards:check", "testers:standards:check"]

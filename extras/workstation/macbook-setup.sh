@@ -46,11 +46,14 @@ TMP_PATHS=()
 SUDO_KEEPALIVE_PID=""
 HOMEBREW_PREFIX=""
 
-has() { command -v "$1" >/dev/null 2>&1; }
+has() { command -v "$1" > /dev/null 2>&1; }
 msg() { printf '==> %s\n' "$*"; }
 ok() { printf 'ok: %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
-fatal() { printf 'error: %s\n' "$*" >&2; exit 2; }
+fatal() {
+  printf 'error: %s\n' "$*" >&2
+  exit 2
+}
 
 append_required_failure() {
   REQUIRED_FAILURES[${#REQUIRED_FAILURES[@]}]="$1"
@@ -68,11 +71,11 @@ register_tmp() {
 cleanup() {
   local p
   if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
-    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    kill "$SUDO_KEEPALIVE_PID" 2> /dev/null || true
   fi
   for p in "${TMP_PATHS[@]}"; do
     if [ -n "$p" ]; then
-      rm -rf "$p" 2>/dev/null || true
+      rm -rf "$p" 2> /dev/null || true
     fi
   done
 }
@@ -118,7 +121,7 @@ retry_quiet() {
   rc=0
 
   while :; do
-    "$@" >"$tmp" 2>&1
+    "$@" > "$tmp" 2>&1
     rc=$?
     if [ "$rc" -eq 0 ]; then
       rm -f "$tmp"
@@ -131,7 +134,7 @@ retry_quiet() {
       return "$rc"
     fi
 
-    : >"$tmp"
+    : > "$tmp"
     sleep "$delay"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
@@ -188,12 +191,12 @@ require_expected_arch() {
 }
 
 ensure_xcode_command_line_tools() {
-  if xcode-select -p >/dev/null 2>&1 && xcrun --find git >/dev/null 2>&1; then
+  if xcode-select -p > /dev/null 2>&1 && xcrun --find git > /dev/null 2>&1; then
     return 0
   fi
 
   warn "Apple Command Line Tools are missing or incomplete"
-  xcode-select --install >/dev/null 2>&1 || true
+  xcode-select --install > /dev/null 2>&1 || true
   warn "Install Command Line Tools from the Apple prompt, then run this script again"
   return 1
 }
@@ -204,7 +207,7 @@ ensure_sudo() {
     while :; do
       sudo -n true || exit 0
       sleep 60
-    done 2>/dev/null &
+    done 2> /dev/null &
     SUDO_KEEPALIVE_PID=$!
   fi
   return 0
@@ -267,10 +270,10 @@ ensure_homebrew() {
     }
   fi
 
-  shellenv="$("$brew_cmd" shellenv 2>/dev/null)" || return 1
+  shellenv="$("$brew_cmd" shellenv 2> /dev/null)" || return 1
   # shellcheck disable=SC1090
   eval "$shellenv" || return 1
-  HOMEBREW_PREFIX="$("$brew_cmd" --prefix 2>/dev/null)" || return 1
+  HOMEBREW_PREFIX="$("$brew_cmd" --prefix 2> /dev/null)" || return 1
   export HOMEBREW_PREFIX
   export HOMEBREW_NO_ENV_HINTS=1
 
@@ -300,9 +303,9 @@ brew_install_formulae() {
   fi
 
   for formula in "$@"; do
-    if brew list --formula "$formula" >/dev/null 2>&1; then
+    if brew list --formula "$formula" > /dev/null 2>&1; then
       if [ "$BOOTSTRAP_BREW_UPGRADE" = "1" ]; then
-        outdated_output="$(brew outdated --quiet --formula "$formula" 2>/dev/null || true)"
+        outdated_output="$(brew outdated --quiet --formula "$formula" 2> /dev/null || true)"
         if [ -n "$outdated_output" ]; then
           msg "homebrew: upgrade $formula"
           retry_quiet brew upgrade "$formula" || failed="$failed $formula"
@@ -315,7 +318,7 @@ brew_install_formulae() {
   done
 
   if [ "$BOOTSTRAP_BREW_CLEANUP" = "1" ]; then
-    brew cleanup >/dev/null 2>&1 || warn "brew cleanup failed; continuing"
+    brew cleanup > /dev/null 2>&1 || warn "brew cleanup failed; continuing"
   fi
 
   if [ "$update_failed" -ne 0 ] || [ -n "$failed" ]; then
@@ -348,10 +351,19 @@ atomic_install_file() {
 
   tmp="$(mktemp "$dir/.${base}.tmp.XXXXXX")" || return 1
   register_tmp "$tmp"
-  cat "$src" >"$tmp" || { rm -f "$tmp"; return 1; }
-  chmod "$mode" "$tmp" || { rm -f "$tmp"; return 1; }
+  cat "$src" > "$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
+  chmod "$mode" "$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
 
-  mv -f "$tmp" "$path" || { rm -f "$tmp"; return 1; }
+  mv -f "$tmp" "$path" || {
+    rm -f "$tmp"
+    return 1
+  }
   return 0
 }
 
@@ -363,7 +375,10 @@ write_managed_file() {
   src="$(mktemp_file)" || return 1
   register_tmp "$src"
 
-  cat >"$src" || { rm -f "$src"; return 1; }
+  cat > "$src" || {
+    rm -f "$src"
+    return 1
+  }
 
   if ! grep -qF -- "$marker" "$src"; then
     warn "managed content for $path is missing marker"
@@ -406,7 +421,10 @@ put_managed_block() {
   block="$(mktemp_file)" || return 1
   register_tmp "$block"
 
-  cat >"$block" || { rm -f "$block"; return 1; }
+  cat > "$block" || {
+    rm -f "$block"
+    return 1
+  }
 
   if ! grep -qF -- "$begin" "$block"; then
     warn "managed block for $path is missing begin marker"
@@ -439,7 +457,10 @@ put_managed_block() {
     return 1
   fi
 
-  out="$(mktemp_file)" || { rm -f "$block"; return 1; }
+  out="$(mktemp_file)" || {
+    rm -f "$block"
+    return 1
+  }
   register_tmp "$out"
 
   if grep -qF -- "$begin" "$path"; then
@@ -477,7 +498,7 @@ put_managed_block() {
           exit 2
         }
       }
-    ' "$path" >"$out"
+    ' "$path" > "$out"
     rc=$?
     if [ "$rc" -ne 0 ]; then
       warn "failed to update managed block in $path"
@@ -485,11 +506,20 @@ put_managed_block() {
       return "$rc"
     fi
   else
-    cat "$path" >"$out" || { rm -f "$block" "$out"; return 1; }
+    cat "$path" > "$out" || {
+      rm -f "$block" "$out"
+      return 1
+    }
     if [ -s "$path" ]; then
-      printf '\n' >>"$out" || { rm -f "$block" "$out"; return 1; }
+      printf '\n' >> "$out" || {
+        rm -f "$block" "$out"
+        return 1
+      }
     fi
-    cat "$block" >>"$out" || { rm -f "$block" "$out"; return 1; }
+    cat "$block" >> "$out" || {
+      rm -f "$block" "$out"
+      return 1
+    }
   fi
 
   atomic_install_file "$out" "$path" "$mode"
@@ -518,7 +548,7 @@ git_repo() {
   }
 
   if [ -d "$dest/.git" ]; then
-    remote="$(git -C "$dest" config --get remote.origin.url 2>/dev/null || true)"
+    remote="$(git -C "$dest" config --get remote.origin.url 2> /dev/null || true)"
     normalized_url="$(normalize_git_url "$url")"
     normalized_remote="$(normalize_git_url "$remote")"
 
@@ -561,7 +591,10 @@ install_or_update_rustup() {
     case "$arch" in
       arm64) target="aarch64-apple-darwin" ;;
       x86_64) target="x86_64-apple-darwin" ;;
-      *) warn "unsupported macOS architecture for rustup: $arch"; return 1 ;;
+      *)
+        warn "unsupported macOS architecture for rustup: $arch"
+        return 1
+        ;;
     esac
 
     tmpdir="$(mktemp_dir)" || return 1
@@ -598,7 +631,7 @@ install_optional_frawk() {
 
 update_tldr_cache() {
   has tldr || return 0
-  tldr --update >/dev/null 2>&1 || tldr -u >/dev/null 2>&1 || true
+  tldr --update > /dev/null 2>&1 || tldr -u > /dev/null 2>&1 || true
   return 0
 }
 
@@ -608,11 +641,11 @@ check_dagger_container_runtime() {
     return 1
   }
 
-  if has docker && docker info >/dev/null 2>&1; then
+  if has docker && docker info > /dev/null 2>&1; then
     return 0
   fi
 
-  if has podman && podman info >/dev/null 2>&1; then
+  if has podman && podman info > /dev/null 2>&1; then
     return 0
   fi
 
@@ -627,7 +660,7 @@ write_zsh_config() {
   zsh_loader_begin="# >>> macbook-bootstrap managed zsh loader >>>"
   zsh_loader_end="# <<< macbook-bootstrap managed zsh loader <<<"
 
-  write_managed_file "$HOME/.config/macos-bootstrap/zshrc.zsh" "$zsh_config_marker" 0644 <<'ZSHCONFIG' || return 1
+  write_managed_file "$HOME/.config/macos-bootstrap/zshrc.zsh" "$zsh_config_marker" 0644 << 'ZSHCONFIG' || return 1
 # >>> macbook-bootstrap managed zsh config >>>
 
 # Homebrew first. Prefer native Apple Silicon Homebrew when both native and
@@ -819,7 +852,7 @@ fi
 # <<< macbook-bootstrap managed zsh config <<<
 ZSHCONFIG
 
-  put_managed_block "$HOME/.zshrc" "$zsh_loader_begin" "$zsh_loader_end" 0644 <<'ZSHLOADER'
+  put_managed_block "$HOME/.zshrc" "$zsh_loader_begin" "$zsh_loader_end" 0644 << 'ZSHLOADER'
 # >>> macbook-bootstrap managed zsh loader >>>
 [[ -r "$HOME/.config/macos-bootstrap/zshrc.zsh" ]] && source "$HOME/.config/macos-bootstrap/zshrc.zsh"
 # <<< macbook-bootstrap managed zsh loader <<<
@@ -834,7 +867,7 @@ write_tmux_config() {
 
   mkdir -p "$HOME/.config/tmux" || return 1
 
-  write_managed_file "$HOME/.config/tmux/tmux.conf" "$tmux_conf_marker" 0644 <<'TMUXCONF' || return 1
+  write_managed_file "$HOME/.config/tmux/tmux.conf" "$tmux_conf_marker" 0644 << 'TMUXCONF' || return 1
 # >>> macbook-bootstrap managed tmux.conf >>>
 
 # Plugin Manager (TPM)
@@ -923,7 +956,7 @@ run '~/.tmux/plugins/tpm/tpm'
 # <<< macbook-bootstrap managed tmux.conf <<<
 TMUXCONF
 
-  put_managed_block "$HOME/.tmux.conf" "$tmux_loader_begin" "$tmux_loader_end" 0644 <<'TMUXLOADER'
+  put_managed_block "$HOME/.tmux.conf" "$tmux_loader_begin" "$tmux_loader_end" 0644 << 'TMUXLOADER'
 # >>> macbook-bootstrap managed tmux loader >>>
 source-file ~/.config/tmux/tmux.conf
 # <<< macbook-bootstrap managed tmux loader <<<
@@ -937,7 +970,7 @@ write_tmux_helpers() {
 
   mkdir -p "$HOME/.local/bin" || return 1
 
-  write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$sessionizer_marker" 0755 <<'SESSIONIZER' || return 1
+  write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$sessionizer_marker" 0755 << 'SESSIONIZER' || return 1
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
@@ -997,7 +1030,7 @@ tmux switch-client -t "$name" 2>/dev/null || tmux attach -t "$name"
 # <<< macbook-bootstrap managed tmux-sessionizer <<<
 SESSIONIZER
 
-  write_managed_file "$HOME/.local/bin/tmux-cht" "$cht_marker" 0755 <<'CHT'
+  write_managed_file "$HOME/.local/bin/tmux-cht" "$cht_marker" 0755 << 'CHT'
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
@@ -1033,7 +1066,7 @@ install_tpm() {
   git_repo https://github.com/tmux-plugins/tpm "$tpm_dir" || return 1
 
   if [ -x "$tpm_dir/bin/install_plugins" ]; then
-    TMUX_PLUGIN_MANAGER_PATH="$tmux_plugin_dir" bash "$tpm_dir/bin/install_plugins" >/dev/null 2>&1
+    TMUX_PLUGIN_MANAGER_PATH="$tmux_plugin_dir" bash "$tpm_dir/bin/install_plugins" > /dev/null 2>&1
     plugin_rc=$?
     if [ "$plugin_rc" -ne 0 ]; then
       warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
@@ -1042,7 +1075,7 @@ install_tpm() {
   fi
 
   if [ "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" ] && [ -x "$tpm_dir/bin/update_plugins" ]; then
-    TMUX_PLUGIN_MANAGER_PATH="$tmux_plugin_dir" bash "$tpm_dir/bin/update_plugins" all >/dev/null 2>&1
+    TMUX_PLUGIN_MANAGER_PATH="$tmux_plugin_dir" bash "$tpm_dir/bin/update_plugins" all > /dev/null 2>&1
     update_rc=$?
     if [ "$update_rc" -ne 0 ]; then
       warn "TPM plugin update failed; open tmux and press Prefix + U after networking is available"
@@ -1073,7 +1106,7 @@ install_lazyvim_if_missing() {
 
     retry git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir" || return 1
     rm -rf "$clonedir/.git" || return 1
-    printf '%s\n' 'managed by macbook-setup.sh' >"$clonedir/.macbook-bootstrap-managed" || return 1
+    printf '%s\n' 'managed by macbook-setup.sh' > "$clonedir/.macbook-bootstrap-managed" || return 1
     mkdir -p "$(dirname "$nvim_dir")" || return 1
     mv "$clonedir" "$nvim_dir" || return 1
   fi
@@ -1092,7 +1125,7 @@ write_lazyvim_tmux_navigator() {
 
   mkdir -p "$nvim_dir/lua/plugins" || return 1
 
-  write_managed_file "$nvim_dir/lua/plugins/tmux-navigator.lua" "$marker" 0644 <<'NVIMTMUX'
+  write_managed_file "$nvim_dir/lua/plugins/tmux-navigator.lua" "$marker" 0644 << 'NVIMTMUX'
 -- >>> macbook-bootstrap managed nvim tmux-navigator >>>
 
 return {
@@ -1131,11 +1164,11 @@ validate_managed_files() {
   local rc
   rc=0
 
-  bash -n "$HOME/.local/bin/tmux-sessionizer" 2>/dev/null || rc=1
-  bash -n "$HOME/.local/bin/tmux-cht" 2>/dev/null || rc=1
+  bash -n "$HOME/.local/bin/tmux-sessionizer" 2> /dev/null || rc=1
+  bash -n "$HOME/.local/bin/tmux-cht" 2> /dev/null || rc=1
 
   if has zsh && [ -f "$HOME/.config/macos-bootstrap/zshrc.zsh" ]; then
-    zsh -n "$HOME/.config/macos-bootstrap/zshrc.zsh" >/dev/null 2>&1 || rc=1
+    zsh -n "$HOME/.config/macos-bootstrap/zshrc.zsh" > /dev/null 2>&1 || rc=1
   fi
 
   return "$rc"

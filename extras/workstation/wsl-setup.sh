@@ -40,8 +40,11 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_TMUX_PLUGIN_TIMEOUT:=180}"
 : "${BOOTSTRAP_TLDR_TIMEOUT:=120}"
 
-has() { command -v "$1" >/dev/null 2>&1; }
-die() { echo "error: $*" >&2; exit 1; }
+has() { command -v "$1" > /dev/null 2>&1; }
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
 msg() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
 
@@ -69,7 +72,7 @@ retry() {
   while true; do
     if "$@"; then return 0; fi
     status=$?
-    if (( attempt >= max_attempts )); then
+    if ((attempt >= max_attempts)); then
       warn "failed after $attempt attempt(s): $(command_string "$@")"
       return "$status"
     fi
@@ -90,13 +93,13 @@ retry_quiet() {
   tmp="$(mktemp)"
 
   while true; do
-    if "$@" >"$tmp" 2>&1; then
+    if "$@" > "$tmp" 2>&1; then
       rm -f "$tmp"
       return 0
     fi
     status=$?
 
-    if (( attempt >= max_attempts )); then
+    if ((attempt >= max_attempts)); then
       cat "$tmp" >&2
       rm -f "$tmp"
       warn "failed after $attempt attempt(s): $(command_string "$@")"
@@ -104,7 +107,7 @@ retry_quiet() {
     fi
 
     warn "attempt $attempt/$max_attempts failed; retrying in ${delay}s: $(command_string "$@")"
-    : >"$tmp"
+    : > "$tmp"
     sleep "$delay"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
@@ -124,7 +127,7 @@ ensure_sudo() {
   while true; do
     sudo -n true || exit 0
     sleep 60
-  done 2>/dev/null &
+  done 2> /dev/null &
   SUDO_KEEPALIVE_PID=$!
   trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 }
@@ -137,10 +140,10 @@ apt_lock_holders() {
   )
   local pids
 
-  pids="$({ sudo -n fuser "${lock_paths[@]}" 2>/dev/null || true; } | tr ' ' '\n' | awk '/^[0-9]+$/ && !seen[$0]++')"
+  pids="$({ sudo -n fuser "${lock_paths[@]}" 2> /dev/null || true; } | tr ' ' '\n' | awk '/^[0-9]+$/ && !seen[$0]++')"
   [[ -n "$pids" ]] || return 0
 
-  ps -o pid=,ppid=,stat=,comm=,args= -p "$(printf '%s\n' "$pids" | paste -sd, -)" 2>/dev/null || true
+  ps -o pid=,ppid=,stat=,comm=,args= -p "$(printf '%s\n' "$pids" | paste -sd, -)" 2> /dev/null || true
 }
 
 wait_for_apt_idle() {
@@ -152,7 +155,7 @@ wait_for_apt_idle() {
     holders="$(apt_lock_holders || true)"
     [[ -z "$holders" ]] && return 0
 
-    if (( SECONDS >= deadline )); then
+    if ((SECONDS >= deadline)); then
       warn "apt/dpkg is already running; refusing to wait forever"
       printf '%s\n' "$holders" >&2
       warn "if this is from a cancelled setup run, clear it with:"
@@ -161,7 +164,7 @@ wait_for_apt_idle() {
       return 1
     fi
 
-    if (( reported == 0 )); then
+    if ((reported == 0)); then
       warn "apt/dpkg is busy; waiting up to ${BOOTSTRAP_APT_BUSY_TIMEOUT}s"
       printf '%s\n' "$holders" >&2
       reported=1
@@ -179,7 +182,7 @@ apt_get() {
     -o APT::Color=0 \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
-    "$@" </dev/null
+    "$@" < /dev/null
 }
 
 atomic_install_file() {
@@ -203,7 +206,7 @@ atomic_install_file() {
   fi
 
   tmp="$(mktemp "$dir/.${base}.tmp.XXXXXX")"
-  cat "$src" >"$tmp" || {
+  cat "$src" > "$tmp" || {
     rm -f "$tmp"
     return 1
   }
@@ -224,11 +227,14 @@ write_managed_file() {
 
   local tmp
   tmp="$(mktemp)"
-  cat >"$tmp"
+  cat > "$tmp"
 
   # Markers may start with '-' (e.g., Lua comments "-- ...").
   # Always terminate grep options so the marker is treated as a pattern.
-  grep -qF -- "$marker" "$tmp" || { rm -f "$tmp"; die "managed content for $path missing marker"; }
+  grep -qF -- "$marker" "$tmp" || {
+    rm -f "$tmp"
+    die "managed content for $path missing marker"
+  }
 
   if [[ -L "$path" ]]; then
     rm -f "$tmp"
@@ -274,7 +280,7 @@ git_repo() {
   }
 
   if [[ -d "$dest/.git" ]]; then
-    remote="$(git -C "$dest" config --get remote.origin.url 2>/dev/null || true)"
+    remote="$(git -C "$dest" config --get remote.origin.url 2> /dev/null || true)"
     normalized_url="$(normalize_git_url "$url")"
     normalized_remote="$(normalize_git_url "$remote")"
 
@@ -321,7 +327,7 @@ install_or_update_mise() {
   curl_fetch https://mise.run -o "$installer"
   MISE_QUIET=1 sh "$installer"
   rm -rf "$tmpdir" || true
-  hash -r 2>/dev/null || true
+  hash -r 2> /dev/null || true
 
   has mise || die "mise installer completed, but mise is not on PATH"
   mise --version
@@ -337,7 +343,7 @@ install_or_update_dagger() {
   curl_fetch https://dl.dagger.io/dagger/install.sh -o "$installer"
   retry_quiet env BIN_DIR="$HOME/.local/bin" sh "$installer"
   rm -rf "$tmpdir" || true
-  hash -r 2>/dev/null || true
+  hash -r 2> /dev/null || true
 
   has dagger || die "Dagger installer completed, but dagger is not on PATH"
   dagger version
@@ -346,11 +352,11 @@ install_or_update_dagger() {
 check_dagger_container_runtime() {
   has dagger || die "dagger is not available"
 
-  if has docker && docker info >/dev/null 2>&1; then
+  if has docker && docker info > /dev/null 2>&1; then
     return 0
   fi
 
-  if has podman && podman info >/dev/null 2>&1; then
+  if has podman && podman info > /dev/null 2>&1; then
     return 0
   fi
 
@@ -416,7 +422,7 @@ install_latest_neovim() {
   version_ge "$min_version" "$latest_version" || die "latest Neovim $latest_version is older than required $min_version"
 
   if has nvim; then
-    current="$(nvim --version 2>/dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
+    current="$(nvim --version 2> /dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
     if [[ "$current" == "$latest_version" ]]; then
       return 0
     fi
@@ -436,7 +442,7 @@ install_latest_neovim() {
 
   # Remove Ubuntu's neovim runtime to avoid an older /usr/bin/nvim shadowing
   # the managed upstream install.
-  if dpkg -s neovim-runtime >/dev/null 2>&1 || dpkg -s neovim >/dev/null 2>&1; then
+  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
     apt_get remove neovim neovim-runtime || true
     apt_get autoremove || true
   fi
@@ -474,7 +480,7 @@ if ! has rustup; then
   arch="$(uname -m)"
   case "$arch" in
     x86_64) target="x86_64-unknown-linux-gnu" ;;
-    aarch64|arm64) target="aarch64-unknown-linux-gnu" ;;
+    aarch64 | arm64) target="aarch64-unknown-linux-gnu" ;;
     *) die "unsupported architecture: $arch" ;;
   esac
 
@@ -516,7 +522,7 @@ cargo_install_latest frawk frawk --no-default-features --features allow_avx2,use
 cargo_install_latest sd sd
 
 if has tldr; then
-  run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u >/dev/null 2>&1 || true
+  run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u > /dev/null 2>&1 || true
 fi
 
 # --- zsh (oh-my-zsh + plugins + zshrc) -------------------------------------
@@ -531,7 +537,7 @@ git_repo https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM_PLUGINS_D
 git_repo https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM_PLUGINS_DIR/zsh-syntax-highlighting"
 
 ZSHRC_MARKER="# >>> wsl-bootstrap managed zshrc >>>"
-write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 <<'ZSHRC'
+write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 << 'ZSHRC'
 # >>> wsl-bootstrap managed zshrc >>>
 
 export ZSH="$HOME/.oh-my-zsh"
@@ -661,10 +667,10 @@ ZSHRC
 
 ZSH_PATH="$(command -v zsh || true)"
 if [[ -n "$ZSH_PATH" ]]; then
-  grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
+  grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells > /dev/null
   current_shell="$(getent passwd "$USER" | cut -d: -f7 || true)"
   if [[ "$current_shell" != "$ZSH_PATH" ]]; then
-    sudo chsh -s "$ZSH_PATH" "$USER" >/dev/null 2>&1 || true
+    sudo chsh -s "$ZSH_PATH" "$USER" > /dev/null 2>&1 || true
   fi
 fi
 
@@ -677,7 +683,7 @@ git_repo https://github.com/tmux-plugins/tpm "$TPM_DIR"
 
 TMUX_CONF_MARKER="# >>> wsl-bootstrap managed tmux.conf >>>"
 mkdir -p "$HOME/.config/tmux"
-write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 <<'TMUXCONF'
+write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 << 'TMUXCONF'
 # >>> wsl-bootstrap managed tmux.conf >>>
 
 # ╔═══════════════════════════════════════════════════════════════╗
@@ -806,14 +812,14 @@ run '~/.tmux/plugins/tpm/tpm'
 TMUXCONF
 
 TMUX_SHIM_MARKER="# >>> wsl-bootstrap managed ~/.tmux.conf >>>"
-write_managed_file "$HOME/.tmux.conf" "$TMUX_SHIM_MARKER" 0644 <<'TMUXSHIM'
+write_managed_file "$HOME/.tmux.conf" "$TMUX_SHIM_MARKER" 0644 << 'TMUXSHIM'
 # >>> wsl-bootstrap managed ~/.tmux.conf >>>
 source-file ~/.config/tmux/tmux.conf
 # <<< wsl-bootstrap managed ~/.tmux.conf <<<
 TMUXSHIM
 
 SESSIONIZER_MARKER="# >>> wsl-bootstrap managed tmux-sessionizer >>>"
-write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 <<'SESSIONIZER'
+write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 << 'SESSIONIZER'
 #!/usr/bin/env bash
 set -euo pipefail
 # >>> wsl-bootstrap managed tmux-sessionizer >>>
@@ -840,7 +846,7 @@ tmux switch-client -t "$name" 2>/dev/null || tmux attach -t "$name"
 SESSIONIZER
 
 CHT_MARKER="# >>> wsl-bootstrap managed tmux-cht >>>"
-write_managed_file "$HOME/.local/bin/tmux-cht" "$CHT_MARKER" 0755 <<'CHT'
+write_managed_file "$HOME/.local/bin/tmux-cht" "$CHT_MARKER" 0755 << 'CHT'
 #!/usr/bin/env bash
 set -euo pipefail
 # >>> wsl-bootstrap managed tmux-cht >>>
@@ -864,12 +870,12 @@ bash -n "$HOME/.local/bin/tmux-sessionizer"
 bash -n "$HOME/.local/bin/tmux-cht"
 
 if [[ -x "$TPM_DIR/bin/install_plugins" ]]; then
-  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 ||
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" > /dev/null 2>&1 ||
     warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
 fi
 
 if [[ "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" && -x "$TPM_DIR/bin/update_plugins" ]]; then
-  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 ||
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all > /dev/null 2>&1 ||
     warn "TPM plugin update failed; open tmux and press Prefix + U after networking is available"
 fi
 
@@ -885,10 +891,9 @@ if [[ "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
   mkdir -p "$(dirname "$NVIM_DIR")"
   mv "$clonedir" "$NVIM_DIR"
   rm -rf "$NVIM_DIR/.git" || true
-  printf 'managed by wsl-setup.sh\n' >"$NVIM_MARKER_FILE"
+  printf 'managed by wsl-setup.sh\n' > "$NVIM_MARKER_FILE"
   rm -rf "$tmpdir" || true
 fi
-
 
 # --- neovim <-> tmux navigation (LazyVim only) ------------------------------
 # If we installed the LazyVim starter config (managed), add vim-tmux-navigator
@@ -896,7 +901,7 @@ fi
 if [[ -f "$NVIM_MARKER_FILE" ]]; then
   NVIM_TMUX_NAV_MARKER="-- >>> wsl-bootstrap managed nvim tmux-navigator >>>"
   mkdir -p "$NVIM_DIR/lua/plugins"
-  write_managed_file "$NVIM_DIR/lua/plugins/tmux-navigator.lua" "$NVIM_TMUX_NAV_MARKER" 0644 <<'NVIMTMUX'
+  write_managed_file "$NVIM_DIR/lua/plugins/tmux-navigator.lua" "$NVIM_TMUX_NAV_MARKER" 0644 << 'NVIMTMUX'
 -- >>> wsl-bootstrap managed nvim tmux-navigator >>>
 
 return {

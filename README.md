@@ -23,7 +23,8 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
-  `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `SPARK/`, `TS/`, `Zig/`:
+  `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`,
+  `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
   works through the documented mise layout. Each fixture commits its
@@ -104,6 +105,8 @@ Finally, copy the language template files that match the project:
   dependency, documentation, complexity, slots, and dead-code checks.
 - `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
   cargo package/cargo-deny dependency-policy defaults.
+- `Shell/`: Bash-first glue-code baseline with shfmt, ShellCheck, parser
+  checks, Bats tests, and strict-mode policy for project-owned scripts.
 - `SPARK/`: Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks as failures, and tiny executable tests.
@@ -180,7 +183,7 @@ mise run standards:check
 ```
 
 That runs every tester fixture for C, C#, C++, Elixir, Fortran, Go, Haskell,
-Kotlin, Lua, PHP, Python, Rust, SPARK/Ada, TypeScript, and Zig through
+Kotlin, Lua, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including shared secret scans, audits, proof, package, and
 slower quality gates. When changing a template, update the matching fixture and
 refresh affected lockfiles so future changes prove the copied layout still

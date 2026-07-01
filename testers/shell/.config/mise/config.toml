@@ -1,0 +1,11 @@
+[settings]
+lockfile = true
+
+[tasks.standards]
+description = "Run the Shell tester standards workflow"
+depends = ["shell:standards"]
+
+[tasks."standards:check"]
+description = "Run the Shell tester standards CI gate"
+depends = ["shell:standards:check"]
+
