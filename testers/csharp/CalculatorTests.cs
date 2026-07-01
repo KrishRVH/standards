@@ -4,7 +4,8 @@ namespace StandardsCsharpTester;
 /// Verifies the calculator fixture API.
 /// </summary>
 [TestClass]
-public sealed class CalculatorTests {
+public sealed class CalculatorTests
+{
     /// <summary>
     /// Verifies that <see cref="Calculator.Twice(int)" /> returns twice its input.
     /// </summary>

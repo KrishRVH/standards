@@ -3,7 +3,8 @@ namespace StandardsCsharpTester;
 /// <summary>
 /// Provides deterministic integer arithmetic for the C# standards fixture.
 /// </summary>
-public static class Calculator {
+public static class Calculator
+{
     /// <summary>
     /// Returns twice the supplied integer.
     /// </summary>

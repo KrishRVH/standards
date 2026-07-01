@@ -3,13 +3,7 @@ dotnet = "10.0.301"
 
 [tasks."csharp:restore"]
 description = "Restore .NET dependencies"
-run = """
-if find . -maxdepth 4 -name packages.lock.json -print -quit | grep -q .; then
-  dotnet restore --locked-mode
-else
-  dotnet restore --use-lock-file
-fi
-"""
+run = "dotnet restore"
 
 [tasks."csharp:fmt"]
 description = "Format C# code"
@@ -29,7 +23,7 @@ run = "dotnet build --no-restore --configuration Release -warnaserror -p:Continu
 [tasks."csharp:test"]
 description = "Run C# tests"
 depends = ["csharp:restore"]
-run = "dotnet test --no-restore --configuration Release"
+run = "dotnet test --no-restore --configuration Release --logger trx --results-directory TestResults"
 
 [tasks."csharp:standards"]
 description = "Run the C# standards workflow with autofixes"
