@@ -14,6 +14,10 @@ scripts/check-mdx.mjs
 typos.toml
 ```
 
+The included `docs/example.md` and `content/example.mdx` files are smoke
+examples for the template and fixture. Keep, replace, or delete them based on
+the target project's content layout.
+
 The default gate is intentionally deterministic:
 
 ```sh
