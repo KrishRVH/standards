@@ -23,8 +23,8 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
-  `Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`,
-  `Zig/`:
+  `Kotlin/`, `Lua/`, `Markdown/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
+  `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
   works through the documented mise layout. Each fixture commits its
@@ -97,6 +97,10 @@ Finally, copy the language template files that match the project:
   errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/`: Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
   tests.
+- `Markdown/`: Bun-backed Markdown/MDX baseline with Prettier formatting,
+  markdownlint structure checks, MDX compile checks through remark/rehype and
+  Shiki, offline local link checks with lychee, and low-noise typo checks with
+  typos.
 - `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan,
   PHPCS/Slevomat, PHPMD, Rector, ShipMonk dependency analysis, Composer audit,
   and Roave security advisories.
@@ -183,11 +187,11 @@ mise run standards:check
 ```
 
 That runs every tester fixture for C, C#, C++, Elixir, Fortran, Go, Haskell,
-Kotlin, Lua, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
-`standards:check`, including shared secret scans, audits, proof, package, and
-slower quality gates. When changing a template, update the matching fixture and
-refresh affected lockfiles so future changes prove the copied layout still
-works.
+Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and
+Zig through `standards:check`, including shared secret scans, audits, proof,
+package, and slower quality gates. When changing a template, update the matching
+fixture and refresh affected lockfiles so future changes prove the copied layout
+still works.
 
 The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
 shared task fragments, aggregate task dispatch, fixture configs, Dagger

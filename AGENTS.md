@@ -2,9 +2,9 @@
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
-`Kotlin/`, `Lua/`, `PHP/`, `Python/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`,
-`Zig/`. Root docs/config maintain this repo. `testers/` smoke-test copied
-standards for every language template.
+`Kotlin/`, `Lua/`, `Markdown/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
+`SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo. `testers/`
+smoke-test copied standards for every language template.
 
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
 changing architecture or domain language. Use this file for agent working rules.

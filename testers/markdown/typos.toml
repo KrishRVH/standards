@@ -1,0 +1,20 @@
+[default]
+check-filename = true
+check-file = true
+locale = "en-us"
+
+[files]
+extend-exclude = [
+  ".next",
+  ".nuxt",
+  ".svelte-kit",
+  ".turbo",
+  ".vite",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+  "out",
+  "sbom",
+  "bun.lock",
+]

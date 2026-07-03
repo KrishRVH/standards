@@ -74,6 +74,15 @@ task_fragment = "20-lua.toml"
 mirror = [".luacheckrc", ".luarc.json", "stylua.toml"]
 dagger = true
 
+[profiles.markdown]
+name = "Markdown/MDX"
+template = "Markdown"
+tester = "testers/markdown"
+task_prefix = "md"
+task_fragment = "20-markdown.toml"
+mirror = [".markdownlint-cli2.jsonc", "content/example.mdx", "docs/example.md", "lychee.toml", "package.json", "prettier.config.mjs", "scripts/check-mdx.mjs", "typos.toml"]
+required_tester_files = ["bun.lock"]
+
 [profiles.php]
 name = "PHP"
 template = "PHP"

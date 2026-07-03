@@ -60,6 +60,11 @@ if [ -f package.json ] && [ -f tsconfig.json ]; then
   ran=1
 fi
 
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:fmt
+  ran=1
+fi
+
 if [ -f Cargo.toml ]; then
   mise run rust:fmt
   ran=1
@@ -148,6 +153,11 @@ fi
 
 if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:fmt:check
+  ran=1
+fi
+
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:fmt:check
   ran=1
 fi
 
@@ -242,6 +252,11 @@ if [ -f package.json ] && [ -f tsconfig.json ]; then
   ran=1
 fi
 
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:lint
+  ran=1
+fi
+
 if [ -f Cargo.toml ]; then
   mise run rust:lint
   ran=1
@@ -330,6 +345,11 @@ fi
 
 if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:test
+  ran=1
+fi
+
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:test
   ran=1
 fi
 
@@ -424,6 +444,11 @@ if [ -f package.json ] && [ -f tsconfig.json ]; then
   ran=1
 fi
 
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:standards
+  ran=1
+fi
+
 if [ -f Cargo.toml ]; then
   mise run rust:standards
   ran=1
@@ -514,6 +539,11 @@ fi
 
 if [ -f package.json ] && [ -f tsconfig.json ]; then
   mise run ts:standards:check
+  ran=1
+fi
+
+if [ -f .markdownlint-cli2.jsonc ]; then
+  mise run md:standards:check
   ran=1
 fi
 

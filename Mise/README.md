@@ -44,14 +44,20 @@ Commit the lockfile generated for the chosen config layout. With this template's
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, Go, Haskell, Kotlin, Lua, PHP, Python, Rust, Shell, SPARK/Ada,
-Bun-backed TypeScript/JavaScript, and Zig when their project files are detected.
+Fortran, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell,
+SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their project files
+are detected. Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`;
 TypeScript dispatch requires both `package.json` and `tsconfig.json`.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one
 instead of keeping multiple unpinned package-manager branches in the shared
 standard.
+
+The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
+compiler dependencies. Local link and typo checks use pinned mise tools. The
+default gate runs lychee offline so CI does not depend on external websites;
+use `md:standards:check:deep` for external link checks and package audit.
 
 The C# template enables locked package restore in project MSBuild properties:
 package locks are created by default, and CI restore runs in locked mode. Lint

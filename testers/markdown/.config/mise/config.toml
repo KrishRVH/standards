@@ -1,0 +1,8 @@
+[settings]
+lockfile = true
+
+[tasks.standards]
+depends = ["md:standards"]
+
+[tasks."standards:check"]
+depends = ["md:standards:check"]
