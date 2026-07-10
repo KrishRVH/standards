@@ -20,7 +20,7 @@ description = "Run Kotlin/JVM tests"
 run = "gradle --no-daemon --warning-mode=fail test"
 
 [tasks."kotlin:locks"]
-description = "Refresh Gradle dependency locks"
+description = "Refresh Gradle dependency locks and verification metadata"
 run = "gradle --no-daemon --warning-mode=fail --write-locks --write-verification-metadata sha256 detektMain detektTest classes test"
 
 [tasks."kotlin:verification-metadata"]
@@ -35,7 +35,7 @@ set -eu
 missing=0
 for path in gradle.lockfile gradle/verification-metadata.xml; do
   if [ ! -f "$path" ]; then
-    echo "Missing $path. Run mise run kotlin:locks and mise run kotlin:verification-metadata, then commit the generated files." >&2
+    echo "Missing $path. Run mise run kotlin:locks, then commit the generated files." >&2
     missing=1
   fi
 done

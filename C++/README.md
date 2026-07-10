@@ -26,8 +26,11 @@ mise run cpp:portability
 mise run cpp:standards:check
 ```
 
-`cpp:lint` runs compiler warnings and `clangd --check --clang-tidy`. `cpp:test`
-runs pinned LLVM `clang++` Debug with ASan/UBSan and an optimized Release build.
-`cpp:portability` is an explicit opt-in for available GCC and MinGW compilers.
-The test script also installs the CMake package config and verifies that a tiny
-external CMake consumer can link `cpp_project::library`.
+`cpp:lint` runs compiler warnings and `clangd --check --clang-tidy`. The
+clang-tidy profile curates bugprone, CERT, C++ Core Guidelines, modernize,
+performance, portability, and readability checks, removes known noisy rules,
+and blocks on every remaining finding. `cpp:test` runs pinned LLVM `clang++`
+Debug with ASan/UBSan and an optimized Release build. `cpp:portability` is an
+explicit opt-in for available GCC and MinGW compilers. The test script also
+installs the CMake package config and verifies that a tiny external CMake
+consumer can link `cpp_project::library`.

@@ -11,8 +11,8 @@ Treat this as a strict, systems-level starting command surface. Keep the
 language tasks that fit the project, and relax or remove checks that do not
 match the project's risk, lifecycle, or team tolerance.
 
-These templates were written against mise `v2026.6.12`; the optional Dagger
-fragment pins Dagger `v0.21.7`.
+The optional Dagger fragment pins Dagger `v0.21.7`, and the corresponding
+Dagger module uses the digest-pinned mise `v2026.6.12` image.
 
 Recommended project entrypoints:
 

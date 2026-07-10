@@ -21,8 +21,10 @@ fails until they exist:
 
 ```sh
 mise run kotlin:locks
-mise run kotlin:verification-metadata
 ```
+
+`kotlin:locks` refreshes both files. Use `kotlin:verification-metadata` only
+when verification metadata needs to be regenerated without rewriting locks.
 
 Gradle's generated `gradle.lockfile` header may mention `./gradlew`; in this
 template, regenerate it through `mise run kotlin:locks`.

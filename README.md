@@ -124,14 +124,19 @@ Finally, copy the language template files that match the project:
 
 The files intentionally use neutral project names, conventional `src` and
 `tests` directories, and generic package namespaces. Replace those placeholders
-when a project uses a different layout or architectural boundary.
+when a project uses a different layout or architectural boundary. Replace
+package identity, author, maintainer, copyright, license, and publication
+metadata with the project's actual legal and release posture.
 
 ## Adoption Posture
 
 Treat each template as a strict seed, not a finished architecture. Keep the
-ecosystem-native formatter, compiler/type checker, test runner, lockfile policy,
-and dependency audit first. Tune style-only rules, coverage policy, release
-profiles, and heavier optional analyzers after the project shape is known.
+ecosystem-native formatter, compiler/type checker, test runner, and lockfile
+policy first. Keep a dependency advisory gate when the ecosystem offers a
+dependable, high-signal native option; otherwise retain its native integrity
+controls and select project-specific auditing after adoption. Tune style-only
+rules, coverage policy, release profiles, and heavier optional analyzers after
+the project shape is known.
 
 Applications and CLIs should usually keep committed lockfiles, exact toolchain
 pins, and CI-only audits. Libraries may need wider runtime version ranges,
@@ -161,7 +166,9 @@ mise run sbom
 
 `mise run standards` runs the mutating local workflow for detected languages.
 `mise run standards:check` runs the CI-grade aggregate gate and the shared
-secret scan through `.gitleaks.toml`.
+secret scan through `.gitleaks.toml`. This catalog intentionally omits a hosted
+workflow to avoid runner costs; downstream projects can wire the same command
+into their chosen provider when appropriate.
 `mise run sbom` emits a fresh optional CycloneDX JSON SBOM under `sbom/`; set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when release metadata should differ
 from the default directory name and `0.0.0` version. If the project copied the
