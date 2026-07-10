@@ -105,8 +105,8 @@ Finally, copy the language template files that match the project:
   Shiki, offline local link checks with lychee, and low-noise typo checks with
   typos.
 - `PHP/`: PHP 8.5 Composer and quality-tool config for PHPUnit, PHPStan,
-  PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis, Composer audit, and
-  Roave security advisories.
+  Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis, Composer audit,
+  and Roave security advisories.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
   Bandit, pytest/coverage, wheel/source builds, and optional deeper mypy,
   dependency, documentation, complexity, slots, and dead-code checks.

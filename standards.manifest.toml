@@ -88,7 +88,7 @@ template = "PHP"
 tester = "testers/php"
 task_prefix = "php"
 task_fragment = "20-php.toml"
-mirror = ["composer.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml"]
+mirror = ["composer.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "rector.php"]
 dagger = true
 
 [profiles.python]
