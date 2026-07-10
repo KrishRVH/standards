@@ -28,7 +28,6 @@ linters:
     - noctx
     - nolintlint
     - perfsprint
-    - prealloc
     - predeclared
     - recvcheck
     - revive

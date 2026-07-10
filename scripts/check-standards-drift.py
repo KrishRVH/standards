@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import filecmp
-import json
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 try:
@@ -19,17 +21,27 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "normalized_mirror", "required_tester_files"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
-NORMALIZED_MIRROR_KINDS = {"go_mod", "php_composer_behavior"}
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
-AGGREGATE_TASKS = {
-    "fmt": "fmt",
-    "fmt:check": "fmt:check",
-    "lint": "lint",
-    "test": "test",
-    "standards": "standards",
-    "standards:check": "standards:check",
+AGGREGATE_MARKER_CASES = {
+    "c": ("CMakeLists.txt", "src/main.c"),
+    "cpp": ("CMakeLists.txt", "src/library.hpp"),
+    "csharp": ("src/project.csproj",),
+    "elixir": ("mix.exs",),
+    "fortran": ("fpm.toml",),
+    "go": ("go.mod",),
+    "haskell": ("project.cabal",),
+    "kotlin": ("build.gradle.kts",),
+    "lua": (".luarc.json",),
+    "md": (".markdownlint-cli2.jsonc",),
+    "php": ("composer.json",),
+    "py": ("pyproject.toml",),
+    "rust": ("Cargo.toml",),
+    "shell": (".shellcheckrc",),
+    "spark": ("alire.toml", "src/project.ads"),
+    "ts": ("package.json", "tsconfig.json"),
+    "zig": ("build.zig",),
 }
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)
@@ -68,63 +80,6 @@ def compare_file(profile_id: str, label: str, left: Path, right: Path) -> list[s
     if not right.is_file():
         return [f"{profile_id}: missing fixture {label}: {rel(right)}"]
     if not filecmp.cmp(left, right, shallow=False):
-        return [f"{profile_id}: {label} drift: {rel(left)} != {rel(right)}"]
-    return []
-
-
-def normalize_json(path: Path, ignored_top_level: set[str]) -> object:
-    with path.open(encoding="utf-8") as file:
-        value = json.load(file)
-    if not isinstance(value, dict):
-        raise ValueError("top-level JSON value must be an object")
-    return {key: item for key, item in value.items() if key not in ignored_top_level}
-
-
-def normalize_go_mod(path: Path) -> list[str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    normalized: list[str] = []
-    saw_module = False
-    for line in lines:
-        if line.startswith("module "):
-            normalized.append("module <ignored>")
-            saw_module = True
-        else:
-            normalized.append(line)
-    if not saw_module:
-        raise ValueError("go.mod must contain a module line")
-    return normalized
-
-
-def normalize_mirror(kind: str, path: Path) -> object:
-    if kind == "go_mod":
-        return normalize_go_mod(path)
-    if kind == "php_composer_behavior":
-        return normalize_json(path, {"name", "description", "license", "authors"})
-    raise ValueError(f"unsupported normalized mirror kind: {kind}")
-
-
-def compare_normalized_file(
-    profile_id: str,
-    label: str,
-    kind: str,
-    left: Path,
-    right: Path,
-) -> list[str]:
-    if not left.is_file():
-        return [f"{profile_id}: missing canonical {label}: {rel(left)}"]
-    if not right.is_file():
-        return [f"{profile_id}: missing fixture {label}: {rel(right)}"]
-
-    try:
-        left_value = normalize_mirror(kind, left)
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        return [f"{profile_id}: invalid canonical {label} {rel(left)}: {error}"]
-    try:
-        right_value = normalize_mirror(kind, right)
-    except (OSError, json.JSONDecodeError, ValueError) as error:
-        return [f"{profile_id}: invalid fixture {label} {rel(right)}: {error}"]
-
-    if left_value != right_value:
         return [f"{profile_id}: {label} drift: {rel(left)} != {rel(right)}"]
     return []
 
@@ -180,18 +135,6 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             if not isinstance(item, str) or not is_relative_path(item):
                 errors.append(f"{profile_id}: mirror entries must be normalized relative paths: {item!r}")
 
-        normalized_mirror = profile.get("normalized_mirror", {})
-        if not isinstance(normalized_mirror, dict):
-            errors.append(f"{profile_id}: normalized_mirror must be a table")
-        else:
-            for item, kind in normalized_mirror.items():
-                if not isinstance(item, str) or not is_relative_path(item):
-                    errors.append(
-                        f"{profile_id}: normalized_mirror keys must be normalized relative paths: {item!r}"
-                    )
-                if kind not in NORMALIZED_MIRROR_KINDS:
-                    errors.append(f"{profile_id}: unsupported normalized_mirror kind for {item}: {kind!r}")
-
         required_tester_files = profile.get("required_tester_files", [])
         if not isinstance(required_tester_files, list):
             errors.append(f"{profile_id}: required_tester_files must be a list")
@@ -233,6 +176,18 @@ def check_tester_inventory(profiles: dict[str, dict[str, object]]) -> list[str]:
     return errors
 
 
+def check_mise_lockfiles(profiles: dict[str, dict[str, object]]) -> list[str]:
+    errors: list[str] = []
+    root_lock = ROOT / ".config" / "mise" / "mise.lock"
+    if not root_lock.is_file():
+        errors.append(f"root: missing mise lockfile {rel(root_lock)}")
+    for profile_id, profile in profiles.items():
+        lockfile = ROOT / str(profile["tester"]) / ".config" / "mise" / "mise.lock"
+        if not lockfile.is_file():
+            errors.append(f"{profile_id}: missing fixture mise lockfile {rel(lockfile)}")
+    return errors
+
+
 def check_task_surface(profile_id: str, task_fragment: Path, prefix: str) -> list[str]:
     errors: list[str] = []
     if not task_fragment.is_file():
@@ -266,17 +221,111 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
     if not isinstance(tasks, dict):
         return [f"{rel(config)} must contain a [tasks] table"]
 
-    for profile_id, profile in profiles.items():
-        prefix = str(profile["task_prefix"])
-        for suffix, aggregate_task in AGGREGATE_TASKS.items():
-            command = f"mise run {prefix}:{suffix}"
-            task = tasks.get(aggregate_task)
-            if not isinstance(task, dict):
-                errors.append(f"{profile_id}: {rel(config)} missing aggregate task {aggregate_task}")
-                continue
-            run = task.get("run")
-            if not isinstance(run, str) or command not in run:
-                errors.append(f"{profile_id}: {rel(config)} task {aggregate_task} does not dispatch {command}")
+    dispatcher = tasks.get("_dispatch")
+    if not isinstance(dispatcher, dict):
+        return [f"{rel(config)} missing aggregate dispatcher task _dispatch"]
+    script = dispatcher.get("run")
+    if not isinstance(script, str):
+        return [f"{rel(config)} aggregate dispatcher _dispatch must contain a run script"]
+    if dispatcher.get("hide") is not True:
+        errors.append(f"{rel(config)} aggregate dispatcher _dispatch must be hidden")
+    if dispatcher.get("usage") != 'arg "task"':
+        errors.append(f'{rel(config)} aggregate dispatcher _dispatch must declare usage \'arg "task"\'')
+
+    for task_name in REQUIRED_TASK_SUFFIXES:
+        task = tasks.get(task_name)
+        if not isinstance(task, dict):
+            errors.append(f"{rel(config)} missing aggregate task {task_name}")
+            continue
+        expected = f"mise run _dispatch -- {task_name}"
+        if task.get("run") != expected:
+            errors.append(f"{rel(config)} aggregate task {task_name} must run {expected!r}")
+
+    prefixes = {str(profile["task_prefix"]) for profile in profiles.values()}
+    marker_prefixes = set(AGGREGATE_MARKER_CASES)
+    if prefixes != marker_prefixes:
+        missing = prefixes - marker_prefixes
+        stale = marker_prefixes - prefixes
+        if missing:
+            errors.append(f"aggregate marker cases missing task prefixes: {', '.join(sorted(missing))}")
+        if stale:
+            errors.append(f"aggregate marker cases contain stale task prefixes: {', '.join(sorted(stale))}")
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="standards-dispatch-") as temporary:
+            temporary_root = Path(temporary)
+            bin_dir = temporary_root / "bin"
+            bin_dir.mkdir()
+            fake_mise = bin_dir / "mise"
+            fake_mise.write_text(
+                "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$MISE_DISPATCH_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_mise.chmod(0o755)
+
+            def execute(case: str, task_name: str, markers: tuple[str, ...]) -> tuple[list[str], str, int]:
+                workspace = temporary_root / case
+                workspace.mkdir()
+                for marker in markers:
+                    path = workspace / marker
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.touch()
+                log = workspace / "dispatch.log"
+                environment = {
+                    "LC_ALL": "C",
+                    "MISE_DISPATCH_LOG": str(log),
+                    "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', os.defpath)}",
+                    "usage_task": task_name,
+                }
+                result = subprocess.run(
+                    ["sh", "-c", script],
+                    cwd=workspace,
+                    env=environment,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=5,
+                )
+                commands = log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
+                return commands, result.stderr, result.returncode
+
+            for prefix, markers in AGGREGATE_MARKER_CASES.items():
+                commands, stderr, returncode = execute(prefix, "fmt", markers)
+                expected = [f"run {prefix}:fmt"]
+                if returncode != 0:
+                    errors.append(f"aggregate marker case {prefix} failed: {stderr.strip()}")
+                elif commands != expected:
+                    errors.append(
+                        f"aggregate marker case {prefix} dispatched {commands!r}; expected {expected!r}"
+                    )
+
+            for case, markers in {
+                "cmake-without-source": ("CMakeLists.txt",),
+                "spark-without-source": ("alire.toml",),
+                "typescript-without-config": ("package.json",),
+            }.items():
+                commands, stderr, returncode = execute(case, "fmt", markers)
+                if returncode != 0:
+                    errors.append(f"aggregate negative marker case {case} failed: {stderr.strip()}")
+                elif commands:
+                    errors.append(f"aggregate negative marker case {case} dispatched {commands!r}")
+
+            commands, stderr, returncode = execute(
+                "standards-check-secrets", "standards:check", ("composer.json",)
+            )
+            expected = ["run secrets", "run php:standards:check"]
+            if returncode != 0:
+                errors.append(f"aggregate standards:check case failed: {stderr.strip()}")
+            elif commands != expected:
+                errors.append(
+                    f"aggregate standards:check dispatched {commands!r}; expected {expected!r}"
+                )
+
+            commands, _, returncode = execute("invalid-task", "invalid", ())
+            if returncode != 2 or commands:
+                errors.append("aggregate dispatcher must reject unsupported task names without dispatching")
+    except (OSError, subprocess.SubprocessError) as error:
+        errors.append(f"could not exercise aggregate marker routing: {error}")
     return errors
 
 
@@ -334,6 +383,14 @@ def check_root_shared_files() -> list[str]:
     errors: list[str] = []
     for item in ROOT_SHARED_MIRROR:
         errors.extend(compare_file("root", "shared file", ROOT / "shared" / item, ROOT / item))
+    errors.extend(
+        compare_file(
+            "root",
+            "shell task fragment",
+            ROOT / "Mise" / "conf.d" / "20-shell.toml",
+            ROOT / ".config" / "mise" / "conf.d" / "20-shell.toml",
+        )
+    )
     return errors
 
 
@@ -355,6 +412,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         return errors
 
     errors.extend(check_tester_inventory(profiles))
+    errors.extend(check_mise_lockfiles(profiles))
     errors.extend(check_aggregate_dispatch(profiles))
     errors.extend(check_root_shared_files())
 
@@ -388,11 +446,6 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
                 left = template / str(item)
                 right = tester / str(item)
                 errors.extend(compare_file(profile_id, "mirror", left, right))
-            for item, kind in profile.get("normalized_mirror", {}).items():
-                left = template / str(item)
-                right = tester / str(item)
-                errors.extend(compare_normalized_file(profile_id, "normalized mirror", str(kind), left, right))
-
         if has_tester:
             for item in profile.get("required_tester_files", []):
                 required = tester / str(item)
@@ -406,7 +459,9 @@ def validate_for_listing(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors = validate_profiles(profiles)
     if errors:
         return errors
-    return check_tester_inventory(profiles)
+    errors.extend(check_tester_inventory(profiles))
+    errors.extend(check_mise_lockfiles(profiles))
+    return errors
 
 
 def main() -> int:

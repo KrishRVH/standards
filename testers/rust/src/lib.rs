@@ -5,7 +5,7 @@
 /// # Examples
 ///
 /// ```
-/// assert_eq!(standards_rust_tester::double(21), 42);
+/// assert_eq!(project_name::double(21), 42);
 /// ```
 #[must_use]
 pub fn double(value: u32) -> u32 {

@@ -3,7 +3,8 @@
 Copy the Cabal files into a Haskell project and replace `project-name` plus
 module names with the real package. The template uses Cabal, GHCup, Ormolu,
 HLint, GHC2024, warnings-as-errors in the project gate, and named tasks for
-Haddock and source distribution checks.
+Haddock and source distribution checks. `haskell:install` initializes a missing
+Cabal package index and leaves an existing index untouched.
 
 This is a strict, systems-level generic starting template. Keep the high-signal
 checks, but relax warnings, docs, or distribution tasks when the real package

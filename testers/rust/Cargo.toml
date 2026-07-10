@@ -1,7 +1,7 @@
 [package]
-name = "standards-rust-tester"
+name = "project-name"
 version = "0.1.0"
-description = "Smoke-test fixture for the Rust standards."
+description = "A strict Rust project."
 edition = "2024"
 rust-version = "1.96.0"
 license = "MIT OR Apache-2.0"
@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 
+# Practical strict-by-default linting baseline.
 [lints.rust]
 future_incompatible = { level = "deny", priority = -1 }
 unexpected_cfgs = "deny"
@@ -25,6 +26,7 @@ invalid_rust_codeblocks = "deny"
 private_intra_doc_links = "deny"
 
 [lints.clippy]
+# Set lint groups with lower priority
 all = { level = "warn", priority = -1 }
 complexity = { level = "warn", priority = -1 }
 correctness = { level = "deny", priority = -1 }
@@ -33,11 +35,16 @@ pedantic = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "deny", priority = -1 }
+
+# Numeric casts are common at system and boundary layers. Tighten per project
+# when conversions need stronger guarantees.
 cast_lossless = "allow"
 cast_possible_truncation = "allow"
 cast_possible_wrap = "allow"
 cast_precision_loss = "allow"
 cast_sign_loss = "allow"
+
+# Specific lints with higher priority
 allow_attributes_without_reason = "warn"
 dbg_macro = "deny"
 expect_used = "warn"
@@ -50,6 +57,8 @@ undocumented_unsafe_blocks = "warn"
 unused_result_ok = "warn"
 unwrap_used = "warn"
 wildcard_dependencies = "deny"
+
+# Commonly noisy pedantic lints. Tighten these per project when they add signal.
 cognitive_complexity = "allow"
 enum_variant_names = "allow"
 missing_const_for_fn = "allow"
@@ -61,15 +70,3 @@ too_many_lines = "allow"
 uninlined_format_args = "allow"
 use_self = "allow"
 wildcard_imports = "allow"
-
-[profile.dev]
-overflow-checks = true
-
-[profile.release]
-codegen-units = 1
-debug = false
-lto = "fat"
-opt-level = 3
-overflow-checks = true
-panic = "abort"
-strip = true

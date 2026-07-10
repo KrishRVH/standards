@@ -29,9 +29,10 @@ mise run py:deep
 mise run py:standards:check:deep
 ```
 
-The default baseline is intentionally strict: Ruff selects all rules,
-basedpyright runs in strict mode, Bandit checks source security, tests collect
-branch coverage, `py:audit` checks locked dependencies, and `py:build` verifies
+The default baseline is intentionally strict: Ruff uses a stable high-signal
+core of Pyflakes, pycodestyle errors, isort, Bugbear, and pyupgrade;
+basedpyright runs in strict mode; Bandit checks source security; tests collect
+branch coverage; `py:audit` checks locked dependencies; and `py:build` verifies
 wheel and source distributions. `py:deep` adds mypy, dependency hygiene, doc
 coverage reporting, complexity, dataclass slots, and high-confidence dead-code
 checks for projects that want the heavier analysis profile.

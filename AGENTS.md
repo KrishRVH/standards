@@ -9,6 +9,15 @@ smoke-test copied standards for every language template.
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
 changing architecture or domain language. Use this file for agent working rules.
 
+## Design Target
+
+These standards primarily pursue ecosystem-idiomatic, almost systems-like
+strictness and elegance. A major secondary goal is dependable agentic
+development: an agent should be able to discover the intended workflow,
+understand contracts from nearby code, config, and tests, make a narrow change,
+and prove it through deterministic commands without relying on tribal
+knowledge.
+
 ## Principles
 
 - Complexity is the enemy. Prefer obvious files, direct data flow, and boring,
@@ -18,6 +27,9 @@ changing architecture or domain language. Use this file for agent working rules.
   runners, and Dagger stay behind mise tasks.
 - Prefer executable config as source of truth; docs should point at it, not
   duplicate it.
+- Design for agent legibility: conventional layouts, precise names and types,
+  explicit inputs, outputs, and side effects, actionable failures, and stable
+  tests at real boundaries.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or
@@ -39,14 +51,17 @@ Everything a developer does goes through mise.
 
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
-- `mise run standards`: root autofix workflow across all fixtures.
+- `mise run secrets`: scan the standards repository for secrets.
+- `mise run standards`: root Shell and all-fixture autofix workflow.
 - `mise run standards:drift`: manifest/drift check for profile fixtures.
 - `mise run testers:standards`: run all tester mini projects through their
   standards autofixes.
 - `mise run testers:standards:check`: run all tester mini projects through
   their standards CI gates.
-- `mise run standards:check`: root gate, manifest/drift check plus all fixture
-  standards CI gates.
+- `mise run testers:standards:check:isolated`: run the representative Python
+  fixture gate in Dagger.
+- `mise run standards:check`: root secret scan, drift and Shell checks, plus
+  every fixture gate.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing the relevant mise task itself. If install needs network, run it through
@@ -89,7 +104,7 @@ Treat these as generated unless the task is specifically about them:
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
   `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
-- tool caches: `.phpunit.cache/`, `.phpstan.cache/`, `.rector-cache/`,
+- tool caches: `.phpunit.cache/`, `.phpstan.cache/`,
   `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 
 If generated output is stale, fix the source template/task and regenerate.

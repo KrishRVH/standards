@@ -2,6 +2,7 @@
 
 Copy `build.zig`, `build.zig.zon`, and `src/` into a Zig project, then replace
 `project_name` and `project-name` with the real package and executable names.
+Keep or add the project's own `README.md`, which the package manifest includes.
 Remove the executable target if the project is library-only.
 
 This is a strict, systems-level generic starting template. Keep the native Zig

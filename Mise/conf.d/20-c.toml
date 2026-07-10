@@ -63,8 +63,12 @@ cmake --build --preset clang
 """
 
 [tasks."c:test"]
-description = "Run C tests"
+description = "Run pinned C Debug and Release tests"
 run = "./c-build.sh"
+
+[tasks."c:portability"]
+description = "Run C checks with available alternate and cross compilers"
+run = "./c-build.sh portability"
 
 [tasks."c:standards"]
 description = "Run the C standards workflow with autofixes"

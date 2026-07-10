@@ -3,26 +3,39 @@
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
 changing architecture or domain language. Use this file for agent working rules.
 
+## Design Target
+
+These standards primarily pursue ecosystem-idiomatic, almost systems-like
+strictness and elegance. A major secondary goal is dependable agentic
+development: an agent should be able to discover the intended workflow,
+understand contracts from nearby code, config, and tests, make a narrow change,
+and prove it through deterministic commands without relying on tribal
+knowledge.
+
 ## Principles
 
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
   flow over clever abstractions. See: https://grugbrain.dev/.
+- Design for agent legibility: conventional layouts, precise names and types,
+  explicit inputs, outputs, and side effects, actionable failures, and stable
+  tests at real boundaries.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or
   replacing it.
-- By default, do not add backwards-compatibility fallback code/versioning unless the repo is Production-critical
-  or the user specifically requests it.
+- By default, do not add backwards-compatibility fallback code/versioning unless
+  the repo is Production-critical or the user specifically requests it.
 - Add structure after the shape is visible. Small duplication beats premature
   indirection.
-- Do not prematurely optimize; good-enough easy to reason about idiomatic code is best.
+- Do not prematurely optimize; good-enough easy to reason about idiomatic code
+  is best.
 
 ## Commands
 
 Everything a developer does goes through mise.
 
 - `mise run tasks`: list available tasks.
-- `mise run install`: install pinned tools/dependencies.
+- `mise run install`: install pinned tools.
 - `mise run fmt`: format.
 - `mise run fmt:check`: verify formatting.
 - `mise run lint`: lint/static analysis.
@@ -60,7 +73,7 @@ Treat these as generated unless the task is specifically about them:
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
   `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
-- tool caches: `.phpunit.cache/`, `.phpstan.cache/`, `.rector-cache/`,
+- tool caches: `.phpunit.cache/`, `.phpstan.cache/`,
   `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 
 If generated output is stale, fix the generator or mise task and regenerate.
@@ -86,4 +99,5 @@ If generated output is stale, fix the generator or mise task and regenerate.
 
 - Do not revert user changes unless explicitly asked.
 - Keep generated and local-only files out of commits.
-- Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification) for all git commit messages.
+- Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification)
+  for all git commit messages.

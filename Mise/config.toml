@@ -39,580 +39,132 @@ mkdir -p sbom
 syft scan dir:. --source-name "$source_name" --source-version "$source_version" --exclude ./sbom --exclude ./.git --output cyclonedx-json=sbom/sbom.cdx.json
 """
 
-[tasks.fmt]
-description = "Format the project using detected language tasks"
+[tasks._dispatch]
+description = "Dispatch an aggregate task using detected project markers"
+hide = true
+usage = 'arg "task"'
 run = """
 set -eu
+
+task="${usage_task:?usage: mise run _dispatch -- <fmt|fmt:check|lint|test|standards|standards:check>}"
+case "$task" in
+  fmt|fmt:check|lint|test|standards|standards:check) ;;
+  *)
+    echo "Unsupported aggregate task: $task" >&2
+    exit 2
+    ;;
+esac
+
 ran=0
+dispatch() {
+  mise run "$1:$task"
+  ran=1
+}
+
+if [ "$task" = standards:check ]; then
+  mise run secrets
+fi
 
 if [ -f composer.json ]; then
-  mise run php:fmt
-  ran=1
+  dispatch php
 fi
 
 if [ -f pyproject.toml ]; then
-  mise run py:fmt
-  ran=1
+  dispatch py
 fi
 
 if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:fmt
-  ran=1
+  dispatch ts
 fi
 
 if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:fmt
-  ran=1
+  dispatch md
 fi
 
 if [ -f Cargo.toml ]; then
-  mise run rust:fmt
-  ran=1
+  dispatch rust
 fi
 
 if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:fmt
-  ran=1
+  dispatch spark
 fi
 
 if [ -f go.mod ]; then
-  mise run go:fmt
-  ran=1
+  dispatch go
 fi
 
 if [ -f mix.exs ]; then
-  mise run elixir:fmt
-  ran=1
+  dispatch elixir
 fi
 
 if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:fmt
-  ran=1
+  dispatch haskell
 fi
 
 if [ -f fpm.toml ]; then
-  mise run fortran:fmt
-  ran=1
+  dispatch fortran
 fi
 
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:fmt
-  ran=1
+  dispatch kotlin
 fi
 
 if [ -f build.zig ]; then
-  mise run zig:fmt
-  ran=1
+  dispatch zig
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:fmt
-  ran=1
+  dispatch cpp
 fi
 
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:fmt
-  ran=1
+  dispatch c
 fi
 
 if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:fmt
-  ran=1
+  dispatch csharp
 fi
 
 if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:fmt
-  ran=1
+  dispatch lua
 fi
 
 if [ -f .shellcheckrc ]; then
-  mise run shell:fmt
-  ran=1
+  dispatch shell
 fi
 
 if [ "$ran" = 0 ]; then
-  echo "No formatter tasks detected."
+  case "$task" in
+    fmt) echo "No formatter tasks detected." ;;
+    fmt:check) echo "No formatting checks detected." ;;
+    lint) echo "No lint tasks detected." ;;
+    test) echo "No test tasks detected." ;;
+    standards) echo "No standards tasks detected." ;;
+    standards:check) echo "No standards checks detected." ;;
+  esac
 fi
 """
+
+[tasks.fmt]
+description = "Format the project using detected language tasks"
+run = "mise run _dispatch -- fmt"
 
 [tasks."fmt:check"]
 description = "Check formatting using detected language tasks"
-run = """
-set -eu
-ran=0
-
-if [ -f composer.json ]; then
-  mise run php:fmt:check
-  ran=1
-fi
-
-if [ -f pyproject.toml ]; then
-  mise run py:fmt:check
-  ran=1
-fi
-
-if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:fmt:check
-  ran=1
-fi
-
-if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:fmt:check
-  ran=1
-fi
-
-if [ -f Cargo.toml ]; then
-  mise run rust:fmt:check
-  ran=1
-fi
-
-if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:fmt:check
-  ran=1
-fi
-
-if [ -f go.mod ]; then
-  mise run go:fmt:check
-  ran=1
-fi
-
-if [ -f mix.exs ]; then
-  mise run elixir:fmt:check
-  ran=1
-fi
-
-if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:fmt:check
-  ran=1
-fi
-
-if [ -f fpm.toml ]; then
-  mise run fortran:fmt:check
-  ran=1
-fi
-
-if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:fmt:check
-  ran=1
-fi
-
-if [ -f build.zig ]; then
-  mise run zig:fmt:check
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:fmt:check
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:fmt:check
-  ran=1
-fi
-
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:fmt:check
-  ran=1
-fi
-
-if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:fmt:check
-  ran=1
-fi
-
-if [ -f .shellcheckrc ]; then
-  mise run shell:fmt:check
-  ran=1
-fi
-
-if [ "$ran" = 0 ]; then
-  echo "No formatting checks detected."
-fi
-"""
+run = "mise run _dispatch -- fmt:check"
 
 [tasks.lint]
 description = "Lint/analyze using detected language tasks"
-run = """
-set -eu
-ran=0
-
-if [ -f composer.json ]; then
-  mise run php:lint
-  ran=1
-fi
-
-if [ -f pyproject.toml ]; then
-  mise run py:lint
-  ran=1
-fi
-
-if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:lint
-  ran=1
-fi
-
-if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:lint
-  ran=1
-fi
-
-if [ -f Cargo.toml ]; then
-  mise run rust:lint
-  ran=1
-fi
-
-if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:lint
-  ran=1
-fi
-
-if [ -f go.mod ]; then
-  mise run go:lint
-  ran=1
-fi
-
-if [ -f mix.exs ]; then
-  mise run elixir:lint
-  ran=1
-fi
-
-if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:lint
-  ran=1
-fi
-
-if [ -f fpm.toml ]; then
-  mise run fortran:lint
-  ran=1
-fi
-
-if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:lint
-  ran=1
-fi
-
-if [ -f build.zig ]; then
-  mise run zig:lint
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:lint
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:lint
-  ran=1
-fi
-
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:lint
-  ran=1
-fi
-
-if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:lint
-  ran=1
-fi
-
-if [ -f .shellcheckrc ]; then
-  mise run shell:lint
-  ran=1
-fi
-
-if [ "$ran" = 0 ]; then
-  echo "No lint tasks detected."
-fi
-"""
+run = "mise run _dispatch -- lint"
 
 [tasks.test]
 description = "Run tests using detected language tasks"
-run = """
-set -eu
-ran=0
-
-if [ -f composer.json ]; then
-  mise run php:test
-  ran=1
-fi
-
-if [ -f pyproject.toml ]; then
-  mise run py:test
-  ran=1
-fi
-
-if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:test
-  ran=1
-fi
-
-if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:test
-  ran=1
-fi
-
-if [ -f Cargo.toml ]; then
-  mise run rust:test
-  ran=1
-fi
-
-if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:test
-  ran=1
-fi
-
-if [ -f go.mod ]; then
-  mise run go:test
-  ran=1
-fi
-
-if [ -f mix.exs ]; then
-  mise run elixir:test
-  ran=1
-fi
-
-if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:test
-  ran=1
-fi
-
-if [ -f fpm.toml ]; then
-  mise run fortran:test
-  ran=1
-fi
-
-if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:test
-  ran=1
-fi
-
-if [ -f build.zig ]; then
-  mise run zig:test
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:test
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:test
-  ran=1
-fi
-
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:test
-  ran=1
-fi
-
-if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:test
-  ran=1
-fi
-
-if [ -f .shellcheckrc ]; then
-  mise run shell:test
-  ran=1
-fi
-
-if [ "$ran" = 0 ]; then
-  echo "No test tasks detected."
-fi
-"""
+run = "mise run _dispatch -- test"
 
 [tasks.standards]
 description = "Run standards autofixes using detected language tasks"
-run = """
-set -eu
-ran=0
-
-if [ -f composer.json ]; then
-  mise run php:standards
-  ran=1
-fi
-
-if [ -f pyproject.toml ]; then
-  mise run py:standards
-  ran=1
-fi
-
-if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:standards
-  ran=1
-fi
-
-if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:standards
-  ran=1
-fi
-
-if [ -f Cargo.toml ]; then
-  mise run rust:standards
-  ran=1
-fi
-
-if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:standards
-  ran=1
-fi
-
-if [ -f go.mod ]; then
-  mise run go:standards
-  ran=1
-fi
-
-if [ -f mix.exs ]; then
-  mise run elixir:standards
-  ran=1
-fi
-
-if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:standards
-  ran=1
-fi
-
-if [ -f fpm.toml ]; then
-  mise run fortran:standards
-  ran=1
-fi
-
-if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:standards
-  ran=1
-fi
-
-if [ -f build.zig ]; then
-  mise run zig:standards
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:standards
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:standards
-  ran=1
-fi
-
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:standards
-  ran=1
-fi
-
-if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:standards
-  ran=1
-fi
-
-if [ -f .shellcheckrc ]; then
-  mise run shell:standards
-  ran=1
-fi
-
-if [ "$ran" = 0 ]; then
-  echo "No standards tasks detected."
-fi
-"""
+run = "mise run _dispatch -- standards"
 
 [tasks."standards:check"]
 description = "Run standards CI checks using detected language tasks"
-run = """
-set -eu
-ran=0
-
-mise run secrets
-
-if [ -f composer.json ]; then
-  mise run php:standards:check
-  ran=1
-fi
-
-if [ -f pyproject.toml ]; then
-  mise run py:standards:check
-  ran=1
-fi
-
-if [ -f package.json ] && [ -f tsconfig.json ]; then
-  mise run ts:standards:check
-  ran=1
-fi
-
-if [ -f .markdownlint-cli2.jsonc ]; then
-  mise run md:standards:check
-  ran=1
-fi
-
-if [ -f Cargo.toml ]; then
-  mise run rust:standards:check
-  ran=1
-fi
-
-if [ -f alire.toml ] && find . -maxdepth 4 \\( -name '*.ads' -o -name '*.adb' -o -name '*.gpr' \\) -print -quit | grep -q .; then
-  mise run spark:standards:check
-  ran=1
-fi
-
-if [ -f go.mod ]; then
-  mise run go:standards:check
-  ran=1
-fi
-
-if [ -f mix.exs ]; then
-  mise run elixir:standards:check
-  ran=1
-fi
-
-if [ -f cabal.project ] || find . -maxdepth 2 -name '*.cabal' -print -quit | grep -q .; then
-  mise run haskell:standards:check
-  ran=1
-fi
-
-if [ -f fpm.toml ]; then
-  mise run fortran:standards:check
-  ran=1
-fi
-
-if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
-  mise run kotlin:standards:check
-  ran=1
-fi
-
-if [ -f build.zig ]; then
-  mise run zig:standards:check
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
-  mise run cpp:standards:check
-  ran=1
-fi
-
-if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -q .; then
-  mise run c:standards:check
-  ran=1
-fi
-
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
-  mise run csharp:standards:check
-  ran=1
-fi
-
-if [ -f stylua.toml ] || [ -f .luarc.json ]; then
-  mise run lua:standards:check
-  ran=1
-fi
-
-if [ -f .shellcheckrc ]; then
-  mise run shell:standards:check
-  ran=1
-fi
-
-if [ "$ran" = 0 ]; then
-  echo "No standards checks detected."
-fi
-"""
+run = "mise run _dispatch -- standards:check"

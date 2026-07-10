@@ -99,14 +99,12 @@ mise.*.local.lock
 /.phpstan.cache/
 /.phpunit.cache/
 /.phpunit.result.cache
-/.rector-cache/
 /composer.phar
 /var/cache/
 /var/log/
 /testers/**/.phpstan.cache/
 /testers/**/.phpunit.cache/
 /testers/**/.phpunit.result.cache
-/testers/**/.rector-cache/
 /testers/**/var/cache/
 /testers/**/var/log/
 
@@ -188,11 +186,17 @@ luac.out
 
 # Ada / SPARK generated output
 /alire/build_hash_inputs
+/alire/flags/
 /alire/settings.toml
-/config/
+/config/*_config.ads
+/config/*_config.gpr
+/config/*_config.h
 /testers/**/alire/build_hash_inputs
+/testers/**/alire/flags/
 /testers/**/alire/settings.toml
-/testers/**/config/
+/testers/**/config/*_config.ads
+/testers/**/config/*_config.gpr
+/testers/**/config/*_config.h
 
 # JVM / Kotlin / Gradle generated output
 /.gradle/

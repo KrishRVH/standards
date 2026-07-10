@@ -36,7 +36,7 @@ library = true
 
 [dev-dependencies]
 test-drive.git = "https://github.com/fortran-lang/test-drive"
-test-drive.tag = "v0.6.1"
+test-drive.rev = "c506771aefd594e7e372240a8027b3fd06d61264"
 
 [extra.ford]
 author = "Project Maintainers"

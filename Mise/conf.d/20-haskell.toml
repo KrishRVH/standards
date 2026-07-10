@@ -8,8 +8,14 @@ hlint = "3.10"
 ormolu = "0.8.1.1"
 
 [tasks."haskell:install"]
-description = "Install the pinned Haskell compiler"
-run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- ghc --version"
+description = "Install the pinned Haskell compiler and initialize the Cabal package index"
+run = """
+ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- ghc --version
+repo_cache="$(ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal -v0 path --remote-repo-cache)"
+if [ ! -d "$repo_cache" ] || [ -z "$(find "$repo_cache" -name 01-index.tar -print -quit)" ]; then
+  mise run haskell:update
+fi
+"""
 
 [tasks."haskell:update"]
 description = "Refresh the Cabal package index"

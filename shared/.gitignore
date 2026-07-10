@@ -84,7 +84,6 @@ mise.*.local.lock
 /.phpstan.cache/
 /.phpunit.cache/
 /.phpunit.result.cache
-/.rector-cache/
 /composer.phar
 /var/cache/
 /var/log/
@@ -154,6 +153,14 @@ luac.out
 *.mod
 !go.mod
 *.smod
+
+# Ada / SPARK
+/alire/build_hash_inputs
+/alire/flags/
+/alire/settings.toml
+/config/*_config.ads
+/config/*_config.gpr
+/config/*_config.h
 
 # JVM / Kotlin / Gradle
 /.gradle/

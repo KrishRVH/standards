@@ -6,7 +6,6 @@ include(GNUInstallDirs)
 include(CTest)
 
 option(PROJECT_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang only)" OFF)
-option(PROJECT_ENABLE_THREAD_SANITIZER "Enable ThreadSanitizer (GCC/Clang only)" OFF)
 option(PROJECT_WERROR "Treat compiler warnings as errors when supported" OFF)
 option(PROJECT_MINGW_STATIC "Static link MinGW executables" ON)
 option(PROJECT_BUILD_CLI "Build the CLI executable" ON)
@@ -96,20 +95,6 @@ function(project_apply_common target)
       if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
          _target_type STREQUAL "MODULE_LIBRARY")
         target_link_options(${target} PRIVATE -fsanitize=address,undefined)
-      endif()
-    endif()
-  endif()
-
-  if(PROJECT_ENABLE_THREAD_SANITIZER AND NOT _is_interface)
-    if(NOT MSVC AND NOT MINGW)
-      target_compile_options(${target} PRIVATE
-        -fsanitize=thread
-        -fno-omit-frame-pointer
-      )
-      get_target_property(_target_type ${target} TYPE)
-      if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
-         _target_type STREQUAL "MODULE_LIBRARY")
-        target_link_options(${target} PRIVATE -fsanitize=thread)
       endif()
     endif()
   endif()

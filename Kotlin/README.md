@@ -13,10 +13,7 @@ Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
 `detektTest` before compilation.
 
 Detekt is pinned to `2.0.0-alpha.5` because that release is the Detekt line
-tested against JDK 25, Kotlin 2.4, and Gradle 9.5. The Kotlin lock guard allows
-that Detekt alpha plus the exact `org.jetbrains.intellij.deps.kotlinx`
-`1.10.2-intellij-1` coroutine fork pulled by Detekt, and rejects unrelated
-prerelease or qualified analyzer coordinates.
+tested against JDK 25, Kotlin 2.4, and Gradle 9.5.
 
 Generate and commit `gradle.lockfile` and
 `gradle/verification-metadata.xml` after copying; `kotlin:standards:check`

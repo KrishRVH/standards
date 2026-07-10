@@ -1,6 +1,6 @@
 module Main (main) where
 
-import StandardsHaskellTester (double)
+import ProjectName (double)
 
 main :: IO ()
 main = print (double 21)

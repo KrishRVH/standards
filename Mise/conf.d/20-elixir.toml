@@ -8,7 +8,11 @@ description = "Install Elixir project dependencies"
 run = """
 mix local.hex 2.4.2 --force
 mix local.rebar rebar3 "$(command -v rebar3)" --force
-mix deps.get
+if [ -f mix.lock ]; then
+  mix deps.get --check-locked
+else
+  mix deps.get
+fi
 """
 
 [tasks."elixir:fmt"]

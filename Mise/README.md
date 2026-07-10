@@ -35,7 +35,7 @@ through the project's `.gitleaks.toml`. `sbom` writes a fresh CycloneDX JSON
 SBOM under `sbom/` for release and audit workflows. Set `SYFT_SOURCE_NAME` and
 `SYFT_SOURCE_VERSION` to control SBOM source metadata. If `10-dagger.toml` and
 the Dagger module are copied, `dagger:standards:check` runs `standards:check`
-inside an isolated Ubuntu Linux reference container.
+inside an official, digest-pinned `mise` Linux reference container.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use

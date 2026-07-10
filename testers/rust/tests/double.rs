@@ -1,4 +1,4 @@
-use standards_rust_tester::double;
+use project_name::double;
 
 #[test]
 fn doubles_from_integration_test() {

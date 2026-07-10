@@ -26,14 +26,14 @@ run_install_check() {
 
   local install_prefix="$ROOT/build/install"
 
-  cmake --preset clang \
+  cmake --preset release \
     -DPROJECT_ENABLE_SANITIZERS=OFF \
     -DPROJECT_BUILD_SHARED=ON \
     -DPROJECT_INSTALL=ON \
     -DCMAKE_INSTALL_LIBDIR=lib
-  cmake --build --preset clang --parallel "$JOBS"
+  cmake --build --preset release --parallel "$JOBS"
   rm -rf "$install_prefix"
-  cmake --install "$ROOT/build/clang" --prefix "$install_prefix"
+  cmake --install "$ROOT/build/release" --prefix "$install_prefix"
 
   local consumer="$ROOT/build/install-consumer"
   rm -rf "$consumer"
@@ -71,30 +71,33 @@ EOF
   "$consumer/build/consumer_shared"
 }
 
-presets=(clang)
-
-if command -v ccomp > /dev/null 2>&1; then
-  presets+=(compcert)
-else
-  echo "[INFO] ccomp not found; skipping CompCert preset."
-fi
-
-if [[ "${PROJECT_RUN_AMBIENT_GCC:-0}" = "1" ]]; then
-  presets+=(gcc)
-else
-  echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
-fi
-
-if command -v x86_64-w64-mingw32-gcc > /dev/null 2>&1; then
-  presets+=(mingw)
-else
-  echo "[INFO] x86_64-w64-mingw32-gcc not found; skipping MinGW preset."
-fi
+mode="${1:-default}"
+case "$mode" in
+  default)
+    presets=(clang release)
+    ;;
+  portability)
+    presets=()
+    command -v ccomp > /dev/null 2>&1 && presets+=(compcert)
+    command -v gcc > /dev/null 2>&1 && presets+=(gcc)
+    command -v x86_64-w64-mingw32-gcc > /dev/null 2>&1 && presets+=(mingw)
+    if ((${#presets[@]} == 0)); then
+      echo "No CompCert, GCC, or MinGW C compiler found." >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Usage: $0 [default|portability]" >&2
+    exit 2
+    ;;
+esac
 
 for p in "${presets[@]}"; do
   run_preset "$p"
 done
 
-run_install_check
+if [[ "$mode" == "default" ]]; then
+  run_install_check
+fi
 
-echo "Build, test, and package consumer checks complete"
+echo "C $mode checks complete"

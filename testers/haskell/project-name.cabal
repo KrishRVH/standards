@@ -1,11 +1,11 @@
 cabal-version: 3.16
-name: standards-haskell-tester
+name: project-name
 version: 0.1.0
-synopsis: Smoke-test fixture for the Haskell standards
-description: Tiny package proving the copied Haskell standards run.
+synopsis: Reusable Haskell quality-tooling baseline
+description: Generic Haskell package template for strict local checks.
 license: MIT
 license-file: LICENSE
-maintainer: Standards contributors
+maintainer: Project Maintainers
 category: Development
 build-type: Simple
 tested-with: GHC == 9.14.1
@@ -27,37 +27,37 @@ common warnings
 library
   import: warnings
   exposed-modules:
-    StandardsHaskellTester
+    ProjectName
   hs-source-dirs: src
   build-depends:
     base >= 4.20 && < 5
 
-executable standards-haskell-tester
+executable project-name
   import: warnings
   main-is: Main.hs
   hs-source-dirs: app
   build-depends:
     base >= 4.20 && < 5,
-    standards-haskell-tester
+    project-name
 
-test-suite standards-haskell-tester-test
+test-suite project-name-test
   import: warnings
   type: exitcode-stdio-1.0
   main-is: Main.hs
   hs-source-dirs: test
   build-depends:
     base >= 4.20 && < 5,
-    standards-haskell-tester,
+    project-name,
     tasty >= 1.5 && < 1.6,
     tasty-hunit >= 0.10 && < 0.11,
     tasty-quickcheck >= 0.11 && < 0.12
 
-benchmark standards-haskell-tester-bench
+benchmark project-name-bench
   import: warnings
   type: exitcode-stdio-1.0
   main-is: Main.hs
   hs-source-dirs: bench
   build-depends:
     base >= 4.20 && < 5,
-    standards-haskell-tester,
+    project-name,
     tasty-bench >= 0.4 && < 0.5

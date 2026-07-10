@@ -70,15 +70,3 @@ too_many_lines = "allow"
 uninlined_format_args = "allow"
 use_self = "allow"
 wildcard_imports = "allow"
-
-[profile.dev]
-overflow-checks = true
-
-[profile.release]
-codegen-units = 1
-debug = false
-lto = "fat"
-opt-level = 3
-overflow-checks = true
-panic = "abort"
-strip = true

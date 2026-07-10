@@ -4,5 +4,5 @@ tests: True
 benchmarks: True
 write-ghc-environment-files: never
 
-package standards-haskell-tester
+package project-name
   ghc-options: -Werror

@@ -47,27 +47,10 @@ docstring-code-format = true
 line-ending = "lf"
 
 [tool.ruff.lint]
-explicit-preview-rules = true
-select = ["ALL"]
-ignore = [
-  "COM812",
-  "D203",
-  "D213",
-  "ISC001",
-]
-
-[tool.ruff.lint.flake8-type-checking]
-strict = true
+select = ["B", "E4", "E7", "E9", "F", "I", "UP"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["project_name"]
-
-[tool.ruff.lint.per-file-ignores]
-"src/**/cli.py" = ["T201"]
-"tests/**/*.py" = ["D", "PLR2004", "S101", "SLF001"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
 
 [tool.basedpyright]
 include = ["src", "tests"]
@@ -125,7 +108,7 @@ show_missing = true
 skip_covered = true
 
 [tool.deptry]
-extend_exclude = [".venv", ".git", ".gstack"]
+extend_exclude = [".git", ".gstack", ".venv"]
 known_first_party = ["project_name"]
 
 [tool.bandit]
@@ -134,7 +117,7 @@ recursive = true
 targets = ["src"]
 
 [tool.interrogate]
-exclude = ["tests", ".venv", ".git", ".gstack"]
+exclude = [".git", ".gstack", ".venv", "tests"]
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = true

@@ -7,9 +7,11 @@ This is a strict, systems-level generic starting template. Relax or remove
 checks once the real application shape, release cadence, and operational risk
 make a narrower gate more sensible.
 
-Commit `mix.lock` for applications and CLI tools. Add Phoenix/Ecto formatter
-imports and Sobelow tuning only when the project has that web surface. Add
-Boundary or other architecture checks after real module boundaries exist.
+Commit `mix.lock` for applications and CLI tools; `elixir:install` enforces an
+existing lock while still allowing reusable libraries to omit one. Add
+Phoenix/Ecto formatter imports and Sobelow tuning only when the project has
+that web surface. Add Boundary or other architecture checks after real module
+boundaries exist.
 
 The standards workflow is:
 

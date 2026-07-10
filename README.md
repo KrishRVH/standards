@@ -8,10 +8,13 @@ root files maintain this standards repo itself. Files intended for downstream
 projects live in `shared/`, `Mise/`, `Dagger/`, and the language-specific
 folders.
 
-These templates are explicitly systems-level, strict, generic starting points
-for each language. They are meant to provide a high-signal baseline, not a
+These templates prioritize ecosystem-idiomatic, almost systems-like strictness
+and elegance. They are meant to provide a high-signal generic baseline, not a
 universal final shape. Copy them, then relax, remove, or narrow checks and files
 based on the actual project's risk, lifecycle, team tolerance, and domain.
+Their major secondary target is dependable agentic development: conventional
+layouts, nearby contracts, explicit side effects, actionable failures, and
+deterministic commands should let an agent make and prove a narrow change.
 
 ## Repository Layout
 
@@ -31,8 +34,8 @@ based on the actual project's risk, lifecycle, team tolerance, and domain.
   `.config/mise/mise.lock` for deterministic Linux tool resolution.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
-  project. The root `.config/mise/mise.lock` pins the Python runtime used by
-  repository maintenance scripts.
+  project. The root `.config/mise/mise.lock` pins gitleaks and the Python
+  runtime used by repository maintenance scripts.
 - `standards.manifest.toml`: the profile map used by agents and the root gate
   to find canonical templates, tester fixtures, task fragments, and exact
   mirror files.
@@ -56,8 +59,8 @@ run the relevant script directly from the target machine.
 Then copy the mise baseline:
 
 ```text
-Mise/config.toml        -> .config/mise/config.toml
-Mise/conf.d/*.toml     -> .config/mise/conf.d/
+Mise/config.toml   -> .config/mise/config.toml
+Mise/conf.d/*.toml -> .config/mise/conf.d/
 ```
 
 Only keep the language `conf.d` files that apply to the project. For example, a
@@ -68,8 +71,8 @@ and module too:
 
 ```text
 Mise/conf.d/10-dagger.toml -> .config/mise/conf.d/10-dagger.toml
-Dagger/dagger.json     -> dagger.json
-Dagger/dagger/         -> dagger/
+Dagger/dagger.json          -> dagger.json
+Dagger/dagger/              -> dagger/
 ```
 
 Finally, copy the language template files that match the project:
@@ -79,8 +82,8 @@ Finally, copy the language template files that match the project:
 - `C#/`: strict .NET formatting, analyzer, central package, locked restore, and
   Release build/test defaults.
 - `C++/`: idiomatic C++20 CMake library/CLI/test template with Clang
-  format/tidy config, sanitizer presets, optional `cppcheck`, and MinGW
-  cross-toolchain support.
+  format/tidy config, sanitizer presets, and an opt-in GCC/MinGW portability
+  lane.
 - `Elixir/`: Mix project baseline with formatter, Credo, optional Dialyzer,
   xref cycle checks, docs, coverage, dependency audits, and project-specific
   Phoenix/Sobelow overlays.
@@ -101,22 +104,21 @@ Finally, copy the language template files that match the project:
   markdownlint structure checks, MDX compile checks through remark/rehype and
   Shiki, offline local link checks with lychee, and low-noise typo checks with
   typos.
-- `PHP/`: Composer and quality-tool config for PHPUnit, PHPStan,
-  PHPCS/Slevomat, PHPMD, Rector, ShipMonk dependency analysis, Composer audit,
-  and Roave security advisories.
+- `PHP/`: PHP 8.5 Composer and quality-tool config for PHPUnit, PHPStan,
+  PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis, Composer audit, and
+  Roave security advisories.
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
   Bandit, pytest/coverage, wheel/source builds, and optional deeper mypy,
   dependency, documentation, complexity, slots, and dead-code checks.
 - `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
   cargo package/cargo-deny dependency-policy defaults.
 - `Shell/`: Bash-first glue-code baseline with shfmt, ShellCheck, parser
-  checks, Bats tests, and strict-mode policy for project-owned scripts.
+  checks, Bats tests, and a shebang policy for project-owned scripts.
 - `SPARK/`: Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks as failures, and tiny executable tests.
-- `TS/`: Bun-backed TypeScript, ESLint, Prettier, package scripts, and a
-  one-file Biome alternative; the default gate uses ESLint, `tsc`, Prettier,
-  and tests.
+- `TS/`: Bun-backed TypeScript, ESLint, Prettier, package scripts, `tsc`, and
+  tests.
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
@@ -138,7 +140,7 @@ should adopt strict checks with reviewed suppressions or CI ratchets instead of
 trying to become green by broad disabling.
 
 The aggregate mise tasks use marker-file detection for copyable defaults. In
-monorepos or mixed-tooling repositories, replace those aggregate blocks with
+monorepos or mixed-tooling repositories, replace the generic dispatcher with
 explicit project-specific task dependencies or narrower markers.
 
 ## Command Model
@@ -164,8 +166,8 @@ secret scan through `.gitleaks.toml`.
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when release metadata should differ
 from the default directory name and `0.0.0` version. If the project copied the
 Dagger template, `mise run dagger:standards:check` runs `standards:check`
-inside an isolated Ubuntu Linux reference container while keeping task
-definitions in mise.
+inside an official, digest-pinned `mise` Linux reference container while
+keeping task definitions in mise.
 
 After copying templates into a project:
 
@@ -186,17 +188,24 @@ Use the repo-local maintenance gate for local fixture checks:
 mise run standards:check
 ```
 
-That runs every tester fixture for C, C#, C++, Elixir, Fortran, Go, Haskell,
-Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and
-Zig through `standards:check`, including shared secret scans, audits, proof,
-package, and slower quality gates. When changing a template, update the matching
-fixture and refresh affected lockfiles so future changes prove the copied layout
-still works.
+That runs a root-wide secret scan, drift and Shell checks, and every tester
+fixture for C, C#, C++, Elixir, Fortran, Go, Haskell, Kotlin, Lua,
+Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
+`standards:check`, including audits, proof, package, and slower quality gates.
+When changing a template, update the matching fixture and refresh affected
+lockfiles so future changes prove the copied layout still works.
 
-The root gate first runs `scripts/check-standards-drift.py`. That checker keeps
-shared task fragments, aggregate task dispatch, fixture configs, Dagger
-fragments, full-config shared files, and declared mirror files in sync while
-leaving undeclared fixture source and tests free to stay tiny.
+For an opt-in isolated proof without a hosted workflow, run the representative
+Python fixture through its existing Dagger entrypoint:
+
+```sh
+mise run testers:standards:check:isolated
+```
+
+The root gate's drift component runs `scripts/check-standards-drift.py`. That
+checker keeps shared task fragments, aggregate task dispatch, fixture configs,
+Dagger fragments, full-config shared files, and declared mirror files in sync
+while leaving undeclared fixture source and tests free to stay tiny.
 
 When adding or changing a standards profile:
 

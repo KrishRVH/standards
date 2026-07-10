@@ -68,27 +68,35 @@ compiler_major_version() {
   "$1" -dumpfullversion -dumpversion | sed -E 's/^([0-9]+).*/\1/'
 }
 
-presets=(clang)
-
-if [[ "${PROJECT_RUN_AMBIENT_GCC:-0}" = "1" ]]; then
-  presets+=(gcc)
-else
-  echo "[INFO] PROJECT_RUN_AMBIENT_GCC=1 not set; skipping ambient GCC preset."
-fi
-
-if command -v x86_64-w64-mingw32-g++ > /dev/null 2>&1 &&
-  (($(compiler_major_version x86_64-w64-mingw32-g++) >= 10)); then
-  presets+=(mingw)
-else
-  echo "[INFO] x86_64-w64-mingw32-g++ with C++20 support not found; skipping MinGW preset."
-fi
-
-presets+=(release)
+mode="${1:-default}"
+case "$mode" in
+  default)
+    presets=(clang release)
+    ;;
+  portability)
+    presets=()
+    command -v g++ > /dev/null 2>&1 && presets+=(gcc)
+    if command -v x86_64-w64-mingw32-g++ > /dev/null 2>&1 &&
+      (($(compiler_major_version x86_64-w64-mingw32-g++) >= 10)); then
+      presets+=(mingw)
+    fi
+    if ((${#presets[@]} == 0)); then
+      echo "No GCC or C++20-capable MinGW compiler found." >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Usage: $0 [default|portability]" >&2
+    exit 2
+    ;;
+esac
 
 for p in "${presets[@]}"; do
   run_preset "$p"
 done
 
-run_install_check
+if [[ "$mode" == "default" ]]; then
+  run_install_check
+fi
 
-echo "Build, test, and package consumer checks complete"
+echo "C++ $mode checks complete"

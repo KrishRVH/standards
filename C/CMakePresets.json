@@ -12,8 +12,8 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "PROJECT_WERROR": "ON"
       }
     },
@@ -24,6 +24,16 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "PROJECT_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Clang (Release)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "PROJECT_ENABLE_SANITIZERS": "OFF"
       }
     },
     {
@@ -57,6 +67,7 @@
   ],
   "buildPresets": [
     { "name": "clang", "configurePreset": "clang" },
+    { "name": "release", "configurePreset": "release" },
     { "name": "compcert", "configurePreset": "compcert" },
     { "name": "gcc", "configurePreset": "gcc" },
     { "name": "mingw", "configurePreset": "mingw" }
@@ -65,6 +76,11 @@
     {
       "name": "clang",
       "configurePreset": "clang",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
       "output": { "outputOnFailure": true }
     },
     {

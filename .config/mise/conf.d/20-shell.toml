@@ -27,7 +27,7 @@ project_files() {
       -o -path './.gradle' -o -path './.kotlin' -o -path './_build' -o -path './deps' \\
       -o -path './dist-newstyle' -o -path './.stack-work' -o -path './.zig-cache' \\
       -o -path './zig-cache' -o -path './zig-out' -o -path './zig-pkg' \\
-      -o -path './.phpunit.cache' -o -path './.phpstan.cache' -o -path './.rector-cache' \\
+      -o -path './.phpunit.cache' -o -path './.phpstan.cache' \\
       -o -path './.lua-language-server' -o -path './.elixir_ls' \\) -prune \\
       -o -type f -print | sed 's#^./##'
   fi
@@ -129,14 +129,6 @@ is_glue_script() {
   esac
 }
 
-has_strict_mode() {
-  sed -n '1,20p' "$1" | grep -Fxq 'set -Eeuo pipefail'
-}
-
-has_strict_ifs() {
-  sed -n '1,20p' "$1" | grep -Fxq "IFS=\\$'\\\\n\\\\t'"
-}
-
 run_shfmt() {
   local mode="$1"
   local status=0
@@ -221,26 +213,14 @@ run_syntax() {
 
 run_policy() {
   local status=0
-  local file dialect
+  local file
 
   while IFS= read -r file; do
     is_glue_script "${file}" || continue
-    dialect="$(dialect_for "${file}")"
 
     if ! has_recognized_shell_shebang "${file}"; then
       echo "${file}: project glue scripts need a recognized shell shebang." >&2
       status=1
-    fi
-
-    if [ "${dialect}" = "bash" ]; then
-      if ! has_strict_mode "${file}"; then
-        echo "${file}: Bash glue scripts need 'set -Eeuo pipefail' in the first 20 lines." >&2
-        status=1
-      fi
-      if ! has_strict_ifs "${file}"; then
-        echo "${file}: Bash glue scripts need \"IFS=\\$'\\\\n\\\\t'\" in the first 20 lines." >&2
-        status=1
-      fi
     fi
   done < <(shell_files)
 
@@ -309,7 +289,7 @@ description = "Check shell script formatting"
 run = "mise run shell:run -- fmt-check"
 
 [tasks."shell:lint"]
-description = "Run shell static analysis, syntax checks, and glue-script policy"
+description = "Run shell static analysis, syntax checks, and shebang policy"
 run = "mise run shell:run -- lint"
 
 [tasks."shell:syntax"]
@@ -317,7 +297,7 @@ description = "Run shell parser checks"
 run = "mise run shell:run -- syntax"
 
 [tasks."shell:policy"]
-description = "Check shell glue-script shebang and strict-mode policy"
+description = "Check shell glue-script shebang policy"
 run = "mise run shell:run -- policy"
 
 [tasks."shell:test"]

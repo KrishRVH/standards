@@ -45,8 +45,7 @@ template = "Go"
 tester = "testers/go"
 task_prefix = "go"
 task_fragment = "20-go.toml"
-mirror = [".golangci.yml"]
-normalized_mirror = { "go.mod" = "go_mod" }
+mirror = [".golangci.yml", "go.mod"]
 
 [profiles.haskell]
 name = "Haskell"
@@ -54,7 +53,7 @@ template = "Haskell"
 tester = "testers/haskell"
 task_prefix = "haskell"
 task_fragment = "20-haskell.toml"
-mirror = [".hlint.yaml"]
+mirror = [".hlint.yaml", "cabal.project", "project-name.cabal"]
 
 [profiles.kotlin]
 name = "Kotlin"
@@ -89,8 +88,7 @@ template = "PHP"
 tester = "testers/php"
 task_prefix = "php"
 task_fragment = "20-php.toml"
-mirror = ["phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "rector.php"]
-normalized_mirror = { "composer.json" = "php_composer_behavior" }
+mirror = ["composer.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml"]
 dagger = true
 
 [profiles.python]
@@ -108,7 +106,7 @@ template = "Rust"
 tester = "testers/rust"
 task_prefix = "rust"
 task_fragment = "20-rust.toml"
-mirror = ["clippy.toml", "deny.toml", "rustfmt.toml"]
+mirror = ["Cargo.toml", "clippy.toml", "deny.toml", "rustfmt.toml"]
 
 [profiles.shell]
 name = "Shell"
@@ -133,7 +131,7 @@ template = "TS"
 tester = "testers/ts"
 task_prefix = "ts"
 task_fragment = "20-ts.toml"
-mirror = ["biome.jsonc", "eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
+mirror = ["eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
 dagger = true
 
 [profiles.zig]

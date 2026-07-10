@@ -6,46 +6,11 @@ plugins {
     `java-library`
 }
 
-val allowedDetektAlpha = "2.0.0-alpha.5"
-val allowedIntellijCoroutineFork = "1.10.2-intellij-1"
-val allowedIntellijCoroutineForkArtifacts =
-    setOf(
-        "kotlinx-coroutines-bom",
-        "kotlinx-coroutines-core",
-        "kotlinx-coroutines-core-jvm",
-    )
-val blockedQualifierPattern = "alpha|beta|rc|m|milestone|eap|preview|intellij"
-val prereleaseVersionPattern =
-    Regex(
-        pattern = """.*[.-]($blockedQualifierPattern)[0-9.-]*.*|.*SNAPSHOT.*""",
-        option = RegexOption.IGNORE_CASE,
-    )
-
 group = "example.project"
 version = "0.1.0"
 
 dependencyLocking {
     lockAllConfigurations()
-}
-
-configurations.configureEach {
-    resolutionStrategy.componentSelection {
-        all {
-            val isAllowedDetektAlpha =
-                candidate.group == "dev.detekt" && candidate.version == allowedDetektAlpha
-            val isAllowedIntellijCoroutineFork =
-                candidate.group == "org.jetbrains.intellij.deps.kotlinx" &&
-                    candidate.module in allowedIntellijCoroutineForkArtifacts &&
-                    candidate.version == allowedIntellijCoroutineFork
-            if (
-                !isAllowedDetektAlpha &&
-                !isAllowedIntellijCoroutineFork &&
-                prereleaseVersionPattern.matches(candidate.version)
-            ) {
-                reject("Only pinned Kotlin analyzer qualifier versions are allowed")
-            }
-        }
-    }
 }
 
 kotlin {

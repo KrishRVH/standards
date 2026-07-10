@@ -40,13 +40,13 @@ trap 'rm -f "$tmp"' EXIT
 eval "$(luarocks --tree .lua_modules path)"
 luacheck --exclude-files '.lua_modules/**' --exclude-files '.lua-language-server/**' -- .
 
-if ! lua-language-server --check=. --check_format=pretty --checklevel=Warning --logpath=.lua-language-server/log >"$tmp" 2>&1; then
+if ! lua-language-server --check=. --check_format=json --check_out_path="$tmp" --checklevel=Warning --logpath=.lua-language-server/log; then
   cat "$tmp"
   exit 1
 fi
 
 cat "$tmp"
-if ! grep -Eq "Diagnosis complete(d)?, (0|no) problems found" "$tmp"; then
+if [ "$(tr -d '[:space:]' < "$tmp")" != "[]" ]; then
   exit 1
 fi
 """

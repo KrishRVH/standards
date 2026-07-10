@@ -12,11 +12,6 @@ Default checks:
 - `bash -n`, `sh -n`, and `zsh -n` validate declared script syntax.
 - Bats runs behavior tests.
 
-Project-owned Bash glue under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
-must declare Bash and use:
-
-```bash
-#!/usr/bin/env bash
-set -Eeuo pipefail
-IFS=$'\n\t'
-```
+Project-owned shell glue under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
+must declare its intended dialect with a recognized shebang. Error handling and
+strict-mode choices remain local design decisions.

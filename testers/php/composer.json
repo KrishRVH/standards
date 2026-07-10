@@ -9,7 +9,7 @@
     }
   ],
   "require": {
-    "php": ">=8.4"
+    "php": ">=8.5"
   },
   "require-dev": {
     "ergebnis/composer-normalize": "^2.52.0",
@@ -19,7 +19,6 @@
     "phpstan/phpstan-phpunit": "^2.0.16",
     "phpstan/phpstan-strict-rules": "^2.0.11",
     "phpunit/phpunit": "^12.5.30",
-    "rector/rector": "^2.5.2",
     "roave/security-advisories": "dev-latest",
     "shipmonk/composer-dependency-analyser": "^1.8.4",
     "slevomat/coding-standard": "^8.29.0",
@@ -60,12 +59,9 @@
     "phpcs": "phpcs",
     "phpmd": "php -d error_reporting='E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED' vendor/bin/phpmd src text phpmd.xml",
     "phpstan": "php -d disable_functions=proc_open vendor/bin/phpstan analyse --memory-limit=512M",
-    "rector": "rector process",
-    "rector:dry": "rector process --dry-run",
     "smell": "@phpmd",
     "standards": [
       "@composer:normalize",
-      "@rector",
       "@phpcbf",
       "@phpcs"
     ],
@@ -75,8 +71,7 @@
       "@lint",
       "@test",
       "@deps",
-      "@composer:audit",
-      "@rector:dry"
+      "@composer:audit"
     ],
     "style": "@phpcs",
     "test": "phpunit"
@@ -94,8 +89,6 @@
     "phpcs": "Check coding standards (PHPCS).",
     "phpmd": "Run maintainability smell checks (PHPMD).",
     "phpstan": "Run PHPStan analysis.",
-    "rector": "Apply Rector automated refactorings.",
-    "rector:dry": "Preview Rector refactorings without modifying files (dry-run).",
     "smell": "Run maintainability smell checks.",
     "standards": "Run the local standards workflow with autofixes.",
     "standards:check": "Run the standards CI gate.",
