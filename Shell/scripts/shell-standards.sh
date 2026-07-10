@@ -34,17 +34,39 @@ has_shebang() {
   [[ "$(first_line "$1")" == '#!'* ]]
 }
 
-has_recognized_shell_shebang() {
-  local line
-  line="$(first_line "$1")"
-  case "${line}" in
-    '#!'*bash* | '#!'*bats* | '#!'*zsh* | '#!'*'/sh' | '#!'*'/sh '* | '#!'*'env sh'* | '#!'*'env -S sh'*)
-      return 0
+shebang_dialect() {
+  local command
+  command="$(first_line "$1")"
+  [[ "${command}" == '#!'* ]] || return 1
+  command="${command#\#!}"
+
+  case "${command}" in
+    */env\ -S\ *) command="${command#*"/env -S "}" ;;
+    */env\ *) command="${command#*"/env "}" ;;
+    *) command="${command##*/}" ;;
+  esac
+
+  case "${command}" in
+    bats | bats\ *)
+      printf 'bats'
+      ;;
+    zsh | zsh\ *)
+      printf 'zsh'
+      ;;
+    bash | bash\ *)
+      printf 'bash'
+      ;;
+    sh | sh\ *)
+      printf 'posix'
       ;;
     *)
       return 1
       ;;
   esac
+}
+
+has_recognized_shell_shebang() {
+  shebang_dialect "$1" > /dev/null
 }
 
 is_shell_file() {
@@ -69,27 +91,9 @@ shell_files() {
 }
 
 dialect_for() {
-  local line
-  line="$(first_line "$1")"
-  case "${line}" in
-    '#!'*bats*)
-      printf 'bats'
-      return
-      ;;
-    '#!'*zsh*)
-      printf 'zsh'
-      return
-      ;;
-    '#!'*bash*)
-      printf 'bash'
-      return
-      ;;
-    '#!'*'/sh' | '#!'*'/sh '* | '#!'*'env sh'* | '#!'*'env -S sh'*)
-      printf 'posix'
-      return
-      ;;
-    *) ;;
-  esac
+  if shebang_dialect "$1"; then
+    return
+  fi
 
   case "$1" in
     *.bats)

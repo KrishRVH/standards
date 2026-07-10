@@ -29,15 +29,15 @@ max_cyclomatic_complexity = 10
 
 -- Exclude dependency, cache, build, coverage, and generated artifacts.
 exclude_files = {
-  ".lua_modules/**",
   ".lua-language-server/**",
+  ".lua_modules/**",
   "lua_modules/**",
   "luarocks_modules/**",
-  "vendor/**",
   "third_party/**",
+  "vendor/**",
   "build/**",
-  "dist/**",
   "coverage/**",
+  "dist/**",
   "*.min.lua",
 }
 

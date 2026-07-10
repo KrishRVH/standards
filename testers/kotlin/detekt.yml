@@ -11,18 +11,18 @@ complexity:
     allowedLines: 60
   LongParameterList:
     active: true
-    allowedFunctionParameters: 6
     allowedConstructorParameters: 8
+    allowedFunctionParameters: 6
   NestedBlockDepth:
     active: true
     allowedDepth: 3
   TooManyFunctions:
     active: true
-    allowedFunctionsPerFile: 20
     allowedFunctionsPerClass: 12
+    allowedFunctionsPerEnum: 12
+    allowedFunctionsPerFile: 20
     allowedFunctionsPerInterface: 12
     allowedFunctionsPerObject: 12
-    allowedFunctionsPerEnum: 12
 
 exceptions:
   TooGenericExceptionCaught:

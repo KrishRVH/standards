@@ -29,7 +29,7 @@ if [ ! -f fpm.toml ]; then
   exit 1
 fi
 
-if grep -nE '=[[:space:]]*"\\*"' fpm.toml; then
+if grep -nE "=[[:space:]]*['\\\"]\\*['\\\"]" fpm.toml; then
   echo "Wildcard fpm dependency versions are not allowed; pin a tag, rev, or exact registry version." >&2
   exit 1
 fi

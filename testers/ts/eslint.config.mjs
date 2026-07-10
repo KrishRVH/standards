@@ -19,7 +19,7 @@ export default defineConfig(
    * Intent: never lint generated output, vendor deps, coverage, or TS incremental cache files.
    */
   globalIgnores(
-    ['**/dist/**', '**/build/**', '**/out/**', '**/coverage/**', '**/node_modules/**', '**/*.tsbuildinfo'],
+    ['**/build/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/out/**', '**/*.tsbuildinfo'],
     'base/global-ignores',
   ),
 
@@ -145,9 +145,7 @@ export default defineConfig(
       eqeqeq: 'error',
       'no-debugger': 'error',
       'no-else-return': 'error',
-      'no-nested-ternary': 'off',
       'no-param-reassign': ['error', { props: false }],
-      'no-plusplus': 'off',
       'no-sequences': 'error',
       'no-unreachable': 'error',
       'no-useless-computed-key': 'error',

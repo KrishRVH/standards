@@ -193,9 +193,9 @@ conda_deps = [
     "clang-22-22.1.8-default_h9692865_3",
     "libzlib-1.3.2-h25fd6f3_2",
     "libclang-cpp22.1-22.1.8-default_h6c227bf_3",
+    "libllvm22-22.1.8-hf7376ad_1",
     "libstdcxx-15.2.0-h934c35e_19",
     "libgcc-15.2.0-he0feb66_19",
-    "libllvm22-22.1.8-hf7376ad_1",
     "libclang13-22.1.8-default_h9692865_3",
     "binutils-2.45.1-default_h4852527_102",
     "libgcc-devel_linux-64-15.2.0-hcc6f6b0_119",
@@ -220,12 +220,13 @@ conda_deps = [
 ]
 
 [[tools.cmake]]
-version = "4.3.4"
+version = "4.4.0"
 backend = "aqua:Kitware/CMake"
 
 [tools.cmake."platforms.linux-x64"]
-checksum = "sha256:ca6f08ccbd5e6b0a9068d33317d0d1aff7278d08cccaed4529b8fbead7942a68"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.4/cmake-4.3.4-linux-x86_64.tar.gz"
+checksum = "sha256:3864eb649b4466ae126a64bbde1657adad78efbbaa068bf38201de5cf1b5349f"
+url = "https://github.com/Kitware/CMake/releases/download/v4.4.0/cmake-4.4.0-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/471628839"
 
 [[tools.dagger]]
 version = "0.21.7"
@@ -234,6 +235,7 @@ backend = "aqua:dagger/dagger"
 [tools.dagger."platforms.linux-x64"]
 checksum = "sha256:44430afc6f9c390fc47c4f352b15de9309a5e97ebd1ae563839617d6df8e8cc5"
 url = "https://github.com/dagger/dagger/releases/download/v0.21.7/dagger_v0.21.7_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/dagger/dagger/releases/assets/450438338"
 
 [[tools.gitleaks]]
 version = "8.30.1"
@@ -242,6 +244,7 @@ backend = "aqua:gitleaks/gitleaks"
 [tools.gitleaks."platforms.linux-x64"]
 checksum = "sha256:551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
 url = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378332058"
 
 [[tools.ninja]]
 version = "1.13.2"
@@ -250,6 +253,7 @@ backend = "aqua:ninja-build/ninja"
 [tools.ninja."platforms.linux-x64"]
 checksum = "sha256:5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6"
 url = "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux.zip"
+url_api = "https://api.github.com/repos/ninja-build/ninja/releases/assets/318865358"
 
 [[tools."pkgx:llvm.org"]]
 version = "22.1.8"
@@ -290,3 +294,4 @@ backend = "aqua:anchore/syft"
 [tools.syft."platforms.linux-x64"]
 checksum = "sha256:20c84195e24927f50a3b2269946be51f4c4abc9d2f145fee7388b4199149f716"
 url = "https://github.com/anchore/syft/releases/download/v1.45.1/syft_1.45.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/439373963"

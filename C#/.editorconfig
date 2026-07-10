@@ -24,7 +24,7 @@ dotnet_diagnostic.IDE1006.severity = error
 dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
 
-# this, and Me, preferences
+# Member qualification preferences
 dotnet_style_qualification_for_event = false:suggestion
 dotnet_style_qualification_for_field = false
 dotnet_style_qualification_for_method = false:suggestion
@@ -165,21 +165,21 @@ csharp_preserve_single_line_statements = false
 
 # Naming rules
 
-dotnet_naming_rule.interface_should_be_begins_with_i.severity = error
-dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
-dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
-
 dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = error
 dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols = constant_fields
 dotnet_naming_rule.constant_fields_should_be_pascal_case.style = pascal_case
 
-dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.severity = error
-dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.symbols = private_internal_constant_fields
-dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.style = pascal_case
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = error
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
+dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
 
 dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = error
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.severity = error
+dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.symbols = private_internal_constant_fields
+dotnet_naming_rule.private_internal_constant_fields_should_be_pascal_case.style = pascal_case
 
 dotnet_naming_rule.private_internal_fields_should_be_camel_case_underscore.severity = error
 dotnet_naming_rule.private_internal_fields_should_be_camel_case_underscore.symbols = private_internal_fields
@@ -253,7 +253,7 @@ dotnet_naming_style.static_prefix.required_prefix = s_
 dotnet_naming_style.static_prefix.required_suffix =
 dotnet_naming_style.static_prefix.word_separator =
 
-# Null/nullable Errors
+# Nullability diagnostics
 dotnet_diagnostic.CS8597.severity = error
 dotnet_diagnostic.CS8600.severity = error
 dotnet_diagnostic.CS8601.severity = error

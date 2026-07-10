@@ -17,7 +17,8 @@ mod tests {
     use super::double;
 
     #[test]
-    fn doubles_values() {
+    fn doubles_and_saturates() {
         assert_eq!(double(21), 42);
+        assert_eq!(double(u32::MAX), u32::MAX);
     }
 }

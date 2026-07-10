@@ -24,6 +24,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_BREW_CLEANUP=0           skip brew cleanup
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos on reruns
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
+#   RETRY_MAX_ATTEMPTS=5               attempts for transient network operations
 #   TMUX_SESSIONIZER_ROOTS=a:b:c       colon-separated roots for tmux-sessionizer
 
 : "${BOOTSTRAP_REQUIRE_APPLE_SILICON:=1}"

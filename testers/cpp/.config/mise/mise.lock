@@ -4,21 +4,77 @@
 url = "https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda"
 checksum = "sha256:1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9"
 
-[conda-packages.linux-x64."clang-format-22-22.1.8-default_h99862b1_2"]
-url = "https://conda.anaconda.org/conda-forge/linux-64/clang-format-22-22.1.8-default_h99862b1_2.conda"
-checksum = "sha256:480a841b662e8cad193d0dae88686c6a24f9b53f9b54274a3918efc89d016daa"
+[conda-packages.linux-x64."binutils-2.45.1-default_h4852527_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/binutils-2.45.1-default_h4852527_102.conda"
+checksum = "sha256:3c7c5580c1720206f28b7fa3d60d17986b3f32465e63009c14c9ae1ea64f926c"
+
+[conda-packages.linux-x64."binutils_impl_linux-64-2.45.1-default_hfdba357_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/binutils_impl_linux-64-2.45.1-default_hfdba357_102.conda"
+checksum = "sha256:0a7d405064f53b9d91d92515f1460f7906ee5e8523f3cd8973430e81219f4917"
+
+[conda-packages.linux-x64."clang-22-22.1.8-default_h9692865_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/clang-22-22.1.8-default_h9692865_3.conda"
+checksum = "sha256:09c8ad191c20d536b992b8281a6f21a65dd0e3f25413950e69d1adc50940581c"
+
+[conda-packages.linux-x64."clang-22.1.8-default_cfg_h361ecea_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/clang-22.1.8-default_cfg_h361ecea_3.conda"
+checksum = "sha256:e7bb173247bf3c4a7cab03797607433ef2dfb47553b1471056b81491f7e8e50a"
+
+[conda-packages.linux-x64."clang-format-22-22.1.8-default_ha9a2879_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/clang-format-22-22.1.8-default_ha9a2879_3.conda"
+checksum = "sha256:4a3529c841888427c60997a752e93ca42e4081c29042ed64b72588af1095d026"
+
+[conda-packages.linux-x64."clang_impl_linux-64-22.1.8-default_h6d37801_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/clang_impl_linux-64-22.1.8-default_h6d37801_3.conda"
+checksum = "sha256:eb1c68356c7366343fed23d897e54678da7d3b25836de8f280ae1cd0aa5aa8b5"
+
+[conda-packages.linux-x64."compiler-rt-22.1.8-ha770c72_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/compiler-rt-22.1.8-ha770c72_1.conda"
+checksum = "sha256:7ea97a24a9847f7ec91b959c405a9bc5b9c28d4078175dce2d2f8a2014f74969"
+
+[conda-packages.linux-x64."compiler-rt22-22.1.8-hb700be7_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/compiler-rt22-22.1.8-hb700be7_1.conda"
+checksum = "sha256:34c62d3aa085945afa94930621793bccc18c47ce9657a5ef9423f76cf8e9373e"
+
+[conda-packages.linux-x64."compiler-rt22_linux-64-22.1.8-hffcefe0_1"]
+url = "https://conda.anaconda.org/conda-forge/noarch/compiler-rt22_linux-64-22.1.8-hffcefe0_1.conda"
+checksum = "sha256:c6cd0a10b9b161b0b075a8a78083b23a49d87f0e383d2c199ce11a586fc7d779"
+
+[conda-packages.linux-x64."compiler-rt_linux-64-22.1.8-ha770c72_1"]
+url = "https://conda.anaconda.org/conda-forge/noarch/compiler-rt_linux-64-22.1.8-ha770c72_1.conda"
+checksum = "sha256:81bb0835e05ef4c60022aa594e16a870bbf39ed4d4180ef87191f56b795cd86c"
 
 [conda-packages.linux-x64."icu-78.3-h33c6efd_0"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/icu-78.3-h33c6efd_0.conda"
 checksum = "sha256:fbf86c4a59c2ed05bbffb2ba25c7ed94f6185ec30ecb691615d42342baa1a16a"
 
-[conda-packages.linux-x64."libclang-cpp22.1-22.1.8-default_h99862b1_2"]
-url = "https://conda.anaconda.org/conda-forge/linux-64/libclang-cpp22.1-22.1.8-default_h99862b1_2.conda"
-checksum = "sha256:5babbfdcc84d445631c961fafe1484e2e09744145eb4fd20c84d750ceb3e9bf6"
+[conda-packages.linux-x64."kernel-headers_linux-64-6.12.0-he073ed8_6"]
+url = "https://conda.anaconda.org/conda-forge/noarch/kernel-headers_linux-64-6.12.0-he073ed8_6.conda"
+checksum = "sha256:73b11f31db6c9ebe63d900334fa4f46859aa1ddd8f37cfa5f25a043e0a59253c"
+
+[conda-packages.linux-x64."ld_impl_linux-64-2.45.1-default_hbd61a6d_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.45.1-default_hbd61a6d_102.conda"
+checksum = "sha256:3d584956604909ff5df353767f3a2a2f60e07d070b328d109f30ac40cd62df6c"
+
+[conda-packages.linux-x64."libclang-cpp22.1-22.1.8-default_h6c227bf_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libclang-cpp22.1-22.1.8-default_h6c227bf_3.conda"
+checksum = "sha256:ccb8bd0a8f2d57675b6a60dabb0cc8becb35c2748ac4ec920d7f7625b93c16d8"
+
+[conda-packages.linux-x64."libclang13-22.1.8-default_h9692865_3"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libclang13-22.1.8-default_h9692865_3.conda"
+checksum = "sha256:b90ed8467a692788477c06bc0359fac52ed5651d801ddef189ba4b7ecf3ce38c"
+
+[conda-packages.linux-x64."libcompiler-rt-22.1.8-hb700be7_1"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/libcompiler-rt-22.1.8-hb700be7_1.conda"
+checksum = "sha256:da7b61922007ff1cfe015ec5156084f2b12f68f554ea8d737689c1dc898f24c0"
 
 [conda-packages.linux-x64."libgcc-15.2.0-he0feb66_19"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/libgcc-15.2.0-he0feb66_19.conda"
 checksum = "sha256:8e0a3b5e41272e5678499b5dfc4cddb673f9e935de01eb0767ce857001229f46"
+
+[conda-packages.linux-x64."libgcc-devel_linux-64-15.2.0-hcc6f6b0_119"]
+url = "https://conda.anaconda.org/conda-forge/noarch/libgcc-devel_linux-64-15.2.0-hcc6f6b0_119.conda"
+checksum = "sha256:38a557eba305468ac1f90ac85e50d8defd76141cb0b8a43b2fc1aca71dd5d5f2"
 
 [conda-packages.linux-x64."libgomp-15.2.0-he0feb66_19"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/libgomp-15.2.0-he0feb66_19.conda"
@@ -51,6 +107,18 @@ checksum = "sha256:3bc5551720c58591f6ea1146f7d1539c734ed1c40e7b9f5cb8cb7e900c509
 [conda-packages.linux-x64."libzlib-1.3.2-h25fd6f3_2"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.2-h25fd6f3_2.conda"
 checksum = "sha256:55044c403570f0dc26e6364de4dc5368e5f3fc7ff103e867c487e2b5ab2bcda9"
+
+[conda-packages.linux-x64."llvm-openmp-22.1.8-h4922eb0_0"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/llvm-openmp-22.1.8-h4922eb0_0.conda"
+checksum = "sha256:a37aba21b85800af1e7c5b04ba76abab96b6e591eedf99dc6e4df83b0fefd7a5"
+
+[conda-packages.linux-x64."sysroot_linux-64-2.39-hc4b9eeb_6"]
+url = "https://conda.anaconda.org/conda-forge/noarch/sysroot_linux-64-2.39-hc4b9eeb_6.conda"
+checksum = "sha256:7d235e4337f122f3439d0196e1c1c6e715a5b88fcbf24f944510186c84168e45"
+
+[conda-packages.linux-x64.tzdata-2025c-hc9c84f9_1]
+url = "https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda"
+checksum = "sha256:1d30098909076af33a35017eed6f2953af1c769e273a0626a04722ac4acaba3c"
 
 [conda-packages.linux-x64."zstd-1.5.7-hb78ec9c_6"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda"
@@ -115,15 +183,24 @@ backend = "conda:clang-format"
 channel = "conda-forge"
 
 [tools.clang-format."platforms.linux-x64"]
-checksum = "sha256:5448e916a903ed304184ba2a4de695185caff66381c547df56194fa2845019ab"
-url = "https://conda.anaconda.org/conda-forge/linux-64/clang-format-22.1.8-default_h99862b1_2.conda"
+checksum = "sha256:1b3393ee596b93f86de9bc269f4c2c8087c4918ae1596d7dfab827cc1d701c29"
+url = "https://conda.anaconda.org/conda-forge/linux-64/clang-format-22.1.8-default_h9fcfc6d_3.conda"
 conda_deps = [
-    "clang-format-22-22.1.8-default_h99862b1_2",
-    "libclang-cpp22.1-22.1.8-default_h99862b1_2",
-    "libgcc-15.2.0-he0feb66_19",
-    "libstdcxx-15.2.0-h934c35e_19",
-    "libllvm22-22.1.8-hf7376ad_1",
+    "clang-format-22-22.1.8-default_ha9a2879_3",
+    "clang-22.1.8-default_cfg_h361ecea_3",
+    "clang_impl_linux-64-22.1.8-default_h6d37801_3",
+    "llvm-openmp-22.1.8-h4922eb0_0",
+    "clang-22-22.1.8-default_h9692865_3",
     "libzlib-1.3.2-h25fd6f3_2",
+    "libclang-cpp22.1-22.1.8-default_h6c227bf_3",
+    "libllvm22-22.1.8-hf7376ad_1",
+    "libstdcxx-15.2.0-h934c35e_19",
+    "libgcc-15.2.0-he0feb66_19",
+    "libclang13-22.1.8-default_h9692865_3",
+    "binutils-2.45.1-default_h4852527_102",
+    "libgcc-devel_linux-64-15.2.0-hcc6f6b0_119",
+    "sysroot_linux-64-2.39-hc4b9eeb_6",
+    "kernel-headers_linux-64-6.12.0-he073ed8_6",
     "_openmp_mutex-4.5-20_gnu",
     "libgomp-15.2.0-he0feb66_19",
     "libxml2-2.15.3-h49c6c72_0",
@@ -131,16 +208,25 @@ conda_deps = [
     "liblzma-5.8.3-hb03c661_0",
     "icu-78.3-h33c6efd_0",
     "zstd-1.5.7-hb78ec9c_6",
+    "compiler-rt22-22.1.8-hb700be7_1",
+    "compiler-rt-22.1.8-ha770c72_1",
+    "libcompiler-rt-22.1.8-hb700be7_1",
+    "compiler-rt_linux-64-22.1.8-ha770c72_1",
+    "compiler-rt22_linux-64-22.1.8-hffcefe0_1",
+    "binutils_impl_linux-64-2.45.1-default_hfdba357_102",
+    "ld_impl_linux-64-2.45.1-default_hbd61a6d_102",
+    "tzdata-2025c-hc9c84f9_1",
     "libiconv-1.18-h3b78370_2",
 ]
 
 [[tools.cmake]]
-version = "4.3.4"
+version = "4.4.0"
 backend = "aqua:Kitware/CMake"
 
 [tools.cmake."platforms.linux-x64"]
-checksum = "sha256:ca6f08ccbd5e6b0a9068d33317d0d1aff7278d08cccaed4529b8fbead7942a68"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.4/cmake-4.3.4-linux-x86_64.tar.gz"
+checksum = "sha256:3864eb649b4466ae126a64bbde1657adad78efbbaa068bf38201de5cf1b5349f"
+url = "https://github.com/Kitware/CMake/releases/download/v4.4.0/cmake-4.4.0-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/471628839"
 
 [[tools.ninja]]
 version = "1.13.2"
@@ -149,6 +235,7 @@ backend = "aqua:ninja-build/ninja"
 [tools.ninja."platforms.linux-x64"]
 checksum = "sha256:5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6"
 url = "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux.zip"
+url_api = "https://api.github.com/repos/ninja-build/ninja/releases/assets/318865358"
 
 [[tools."pkgx:llvm.org"]]
 version = "22.1.8"

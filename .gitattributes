@@ -173,8 +173,7 @@ cabal.project.freeze text linguist-generated=true
 *.xz binary
 *.zip binary
 
-# Bun's old lockfile format is binary. `bun.lock` is text and covered by
-# `*.lock`.
+# `bun.lockb` is binary. `bun.lock` is text and covered by `*.lock`.
 bun.lockb binary
 
 # GitHub Linguist

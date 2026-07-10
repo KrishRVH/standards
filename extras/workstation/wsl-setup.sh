@@ -17,8 +17,12 @@ IFS=$'\n\t'
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
 #   BOOTSTRAP_APT_BUSY_TIMEOUT=120     seconds to wait for existing apt/dpkg work
 #   BOOTSTRAP_APT_LOCK_TIMEOUT=120     seconds apt-get waits on dpkg locks
+#   BOOTSTRAP_CURL_CONNECT_TIMEOUT=10  seconds to establish curl connections
 #   BOOTSTRAP_CURL_MAX_TIME=180        seconds before curl requests time out
 #   BOOTSTRAP_GIT_TIMEOUT=300          seconds before git network operations time out
+#   BOOTSTRAP_TLDR_TIMEOUT=120         seconds before tldr cache updates time out
+#   BOOTSTRAP_TMUX_PLUGIN_TIMEOUT=180  seconds before TPM operations time out
+#   RETRY_MAX_ATTEMPTS=8               attempts for transient network operations
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
   echo "error: run as your normal user (not root)" >&2
@@ -37,8 +41,8 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_CURL_CONNECT_TIMEOUT:=10}"
 : "${BOOTSTRAP_CURL_MAX_TIME:=180}"
 : "${BOOTSTRAP_GIT_TIMEOUT:=300}"
-: "${BOOTSTRAP_TMUX_PLUGIN_TIMEOUT:=180}"
 : "${BOOTSTRAP_TLDR_TIMEOUT:=120}"
+: "${BOOTSTRAP_TMUX_PLUGIN_TIMEOUT:=180}"
 
 has() { command -v "$1" > /dev/null 2>&1; }
 die() {
@@ -70,8 +74,11 @@ retry() {
   local delay=2
   local status
   while true; do
-    if "$@"; then return 0; fi
-    status=$?
+    if "$@"; then
+      return 0
+    else
+      status=$?
+    fi
     if ((attempt >= max_attempts)); then
       warn "failed after $attempt attempt(s): $(command_string "$@")"
       return "$status"
@@ -96,8 +103,9 @@ retry_quiet() {
     if "$@" > "$tmp" 2>&1; then
       rm -f "$tmp"
       return 0
+    else
+      status=$?
     fi
-    status=$?
 
     if ((attempt >= max_attempts)); then
       cat "$tmp" >&2
@@ -514,7 +522,6 @@ cargo_install_latest du-dust dust
 cargo_install_latest tealdeer tldr
 cargo_install_latest starship starship
 
-# Added Rust tools
 cargo_install_latest jj-cli jj --bin jj
 cargo_install_latest broot broot
 # frawk defaults require nightly + LLVM; install a stable, no-LLVM build.

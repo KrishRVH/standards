@@ -118,12 +118,11 @@ dependencies and semantic diagnostics fail close to their declarations.
 
 - Start with standard containers and straightforward data layouts. Choose a
   specialized container, allocator, or representation when its semantics are
-  required.
-  Performance-driven deviations require representative optimized profiling or
-  benchmarks against the current implementation. Evaluate allocations, memory
-  footprint, invalidation guarantees, worst-case inputs, and relevant
-  architectures. Keep a benchmark only when the performance property is an
-  ongoing contract.
+  required. Performance-driven deviations require representative optimized
+  profiling or benchmarks against the current implementation. Evaluate
+  allocations, memory footprint, invalidation guarantees, worst-case inputs,
+  and relevant architectures. Keep a benchmark only when the performance
+  property is an ongoing contract.
 - Fuzz parsers, decoders, protocol handlers, and other untrusted-byte boundaries
   with appropriate sanitizers; retain minimized failures as regression tests or
   corpus inputs. Run TSan separately for code with shared mutable state, atomics,

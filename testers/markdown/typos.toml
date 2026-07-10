@@ -1,6 +1,6 @@
 [default]
-check-filename = true
 check-file = true
+check-filename = true
 locale = "en-us"
 
 [files]
@@ -11,10 +11,10 @@ extend-exclude = [
   ".turbo",
   ".vite",
   "build",
+  "bun.lock",
   "coverage",
   "dist",
   "node_modules",
   "out",
   "sbom",
-  "bun.lock",
 ]

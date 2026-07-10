@@ -20,12 +20,13 @@ mise run c:portability
 mise run c:standards:check
 ```
 
-`c:lint` runs the Clang preset, then `c-quality.sh` checks `clang-format`,
-`clangd --check` with bugprone, CERT, analyzer, portability, performance, and
-focused readability checks. Compiler warnings and clang-tidy's bugprone and
-analyzer findings block the gate; the broader CERT, portability, performance,
-and readability findings remain advisory. `c:test` runs pinned Clang Debug with
-ASan/UBSan and an optimized Release build. `c:portability` is an explicit
-opt-in for available GCC, CompCert, and MinGW compilers. The test gate also
-installs the package config and verifies that a tiny external CMake consumer can
-link both `c_project::library` and `c_project::library_shared`.
+`c:lint` runs the Clang preset, then `c-quality.sh` checks formatting with
+`clang-format` and runs `clangd --check` with bugprone, CERT, analyzer,
+portability, performance, and focused readability checks. Compiler warnings and
+clang-tidy's bugprone and analyzer findings block the gate; the broader CERT,
+portability, performance, and readability findings remain advisory. `c:test`
+runs pinned Clang Debug with ASan/UBSan and an optimized Release build.
+`c:portability` is an explicit opt-in for available GCC, CompCert, and MinGW
+compilers. The test gate also installs the package config and verifies that a
+tiny external CMake consumer can link both `c_project::library` and
+`c_project::library_shared`.

@@ -52,7 +52,7 @@ const compileMdxFile = async (file) => {
 };
 
 const main = async () => {
-  const files = (await findMdxFiles(process.cwd())).sort((left, right) => left.localeCompare(right));
+  const files = (await findMdxFiles(process.cwd())).sort();
 
   if (files.length === 0) {
     console.log('No MDX files found.');

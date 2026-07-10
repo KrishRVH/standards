@@ -9,8 +9,9 @@ This is a strict, systems-level generic starting template. Keep the native Zig
 format/build/test checks, and shave down targets or release variants when the
 real package shape does not need the full baseline.
 
-Run `mise run zig:lint` after copying so the project can get a project-specific
-package fingerprint when dependencies are added. Zig dependency hashes live in
+After renaming the package, delete the copied fingerprint and run
+`mise run zig:lint` so Zig generates a new package identity. Keep that
+fingerprint stable across releases. Zig dependency hashes live in
 `build.zig.zon`; there is no separate lockfile.
 
 The standards workflow is:

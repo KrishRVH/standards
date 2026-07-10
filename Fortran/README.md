@@ -25,10 +25,10 @@ free-form source, and pins the test framework to an immutable Git revision
 because fpm does not provide a project lockfile equivalent to Cargo or Composer.
 
 The standards check verifies Findent formatting for Git-tracked and non-ignored
-`.f90` and `.F90` sources,
-rejects fixed-form source extensions, rejects wildcard and branch dependencies,
-builds and tests with GNU Fortran warnings promoted to errors, parses source
-through fortls debug diagnostics, and generates API documentation with FORD.
+`.f90` and `.F90` sources, rejects fixed-form source extensions, rejects
+wildcard and branch dependencies, builds and tests with GNU Fortran warnings
+promoted to errors, parses source through fortls debug diagnostics, and
+generates API documentation with FORD.
 
 ## Policy
 

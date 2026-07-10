@@ -1,6 +1,7 @@
-no_progress = true
 include_fragments = "anchor-only"
 include_verbatim = false
+no_progress = true
+
 exclude_path = [
   "(^|/)\\.next/",
   "(^|/)\\.nuxt/",

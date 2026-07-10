@@ -30,3 +30,16 @@ setup() {
   [[ "${status}" -ne 0 ]]
   [[ "${output}" == *"scripts/deploy: project glue scripts need a recognized shell shebang."* ]]
 }
+
+@test "ignores non-shell shebangs containing a shell name" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/lookalike-shebang"
+  mkdir -p "${workspace}/scripts"
+  printf '#!/usr/bin/bashful\nif\n' > "${workspace}/scripts/deploy"
+  chmod +x "${workspace}/scripts/deploy"
+
+  run bash -c 'cd "$1" && "$2" lint' -- \
+    "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -eq 0 ]]
+}
