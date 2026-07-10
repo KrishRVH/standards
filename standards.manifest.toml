@@ -39,6 +39,14 @@ task_prefix = "fortran"
 task_fragment = "20-fortran.toml"
 mirror = [".fortls", "ford.md", "fpm.toml", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
 
+[profiles.gdscript]
+name = "GDScript"
+template = "GDScript"
+tester = "testers/gdscript"
+task_prefix = "godot"
+task_fragment = "20-godot.toml"
+mirror = [".config/python/gdtoolkit-requirements.in", ".config/python/pylock.gdtoolkit.toml", ".editorconfig", ".gdlintrc", "project.godot", "src/counter.gd", "src/counter.gd.uid", "tests/gdscript_load_check.gd", "tests/gdscript_load_check.gd.uid", "tests/run_tests.gd", "tests/run_tests.gd.uid"]
+
 [profiles.go]
 name = "Go"
 template = "Go"

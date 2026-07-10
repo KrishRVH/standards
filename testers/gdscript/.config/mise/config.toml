@@ -1,0 +1,12 @@
+min_version = "2026.3.11"
+
+[settings]
+lockfile = true
+
+[tasks.standards]
+description = "Run the GDScript tester standards workflow"
+depends = ["godot:standards"]
+
+[tasks."standards:check"]
+description = "Run the GDScript tester standards CI gate"
+depends = ["godot:standards:check"]

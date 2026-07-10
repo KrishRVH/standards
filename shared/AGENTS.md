@@ -70,6 +70,7 @@ Treat these as generated unless the task is specifically about them:
 - build/cache dirs: `build/`, `dist/`, `out/`, `coverage/`, `.cache/`
 - release output: `sbom/`
 - framework/tool dirs: `.next/`, `.nuxt/`, `.turbo/`, `.vite/`, `.svelte-kit/`
+- Godot output: `.godot/`, `*.translation`
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
   `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`

@@ -27,8 +27,7 @@ mise run //testers/python:standards:check
 The root aggregate keeps one small nested mise wrapper because mise `2026.7.x`
 executes monorepo path wildcards but its validator does not resolve those paths
 inside `depends` or structured `run` entries. The wrapper also preserves the
-required `GOROOT` and `GOTOOLDIR` sanitization. It replaces the former
-17-process serial loop with one bounded child scheduler.
+required `GOROOT` and `GOTOOLDIR` sanitization.
 
 Run one representative fixture in its Dagger reference container when isolated
 proof is useful; this task is intentionally outside the default root gate:
@@ -47,8 +46,8 @@ MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run standards:check
 Use `mise run standards:check` inside any fixture when you want the same
 host-local gate used by the repository aggregate task.
 
-The fixtures cover C, C#, C++, Elixir, Fortran, Go, Haskell, Kotlin, Lua,
-Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig.
+The fixtures cover C, C#, C++, Elixir, Fortran, GDScript, Go, Haskell, Kotlin,
+Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig.
 
 The fixture list comes from `standards.manifest.toml`, not a hand-maintained
 list. The root's `testers/*` discovery pattern contains no duplicate profile
@@ -57,9 +56,10 @@ and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and
 tests are intentionally fixture-owned.
 
-After changing a pinned tool version or fixture mise config, refresh the
-affected fixture lockfile from that fixture directory:
+Minimal fixture `config.toml` files intentionally define no `lock` task. After
+changing a pinned tool version or fixture mise config, refresh the affected
+fixture lockfile with mise's native lock command from that fixture directory:
 
 ```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run lock -- --platform linux-x64
+MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise lock --platform linux-x64
 ```

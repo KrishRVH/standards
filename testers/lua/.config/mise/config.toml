@@ -94,6 +94,10 @@ if [ -f go.mod ]; then
   dispatch go
 fi
 
+if [ -f project.godot ] && find src tests -type f -name '*.gd' -print -quit 2>/dev/null | grep -q .; then
+  dispatch godot
+fi
+
 if [ -f mix.exs ]; then
   dispatch elixir
 fi

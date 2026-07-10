@@ -31,6 +31,7 @@ AGGREGATE_MARKER_CASES = {
     "elixir": ("mix.exs",),
     "fortran": ("fpm.toml",),
     "go": ("go.mod",),
+    "godot": ("project.godot", "src/features/player/state/machine/main.gd"),
     "haskell": ("project.cabal",),
     "kotlin": ("build.gradle.kts",),
     "lua": (".luarc.json",),
@@ -309,6 +310,7 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
 
             for case, markers in {
                 "cmake-without-source": ("CMakeLists.txt",),
+                "godot-without-gdscript": ("project.godot",),
                 "spark-without-source": ("alire.toml",),
                 "typescript-without-config": ("package.json",),
             }.items():

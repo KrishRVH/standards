@@ -38,9 +38,12 @@
 *.fs text
 *.fsi text
 *.fsx text
-*.go text diff=go
 *.f90 text
 *.F90 text
+*.gd text
+*.gdshader text
+*.gdshaderinc text
+*.go text diff=go
 *.hs text
 *.lhs text
 *.hs-boot text
@@ -81,6 +84,8 @@ Makefile text
 *.env.template text
 *.gitignore text
 *.gitattributes text
+*.gdextension text
+*.godot text
 *.gradle text
 *.gradle.kts text
 *.ini text
@@ -102,6 +107,10 @@ Makefile text
 *.slnx text
 *.targets text
 *.toml text
+pylock.*.toml text linguist-generated=true
+*.tres text
+*.tscn text
+*.uid text
 *.vbproj text
 *.vcxproj text
 *.vcxproj.filters text
@@ -208,6 +217,7 @@ SPARK/*.toml linguist-language=Ada
 # The stack-specific mise task files are part of each language standard, not a
 # standalone TOML codebase.
 Mise/conf.d/20-fortran.toml linguist-language=Fortran
+Mise/conf.d/20-godot.toml linguist-language=GDScript
 Mise/conf.d/20-haskell.toml linguist-language=Haskell
 Mise/conf.d/20-spark.toml linguist-language=Ada
 
@@ -223,6 +233,7 @@ extras/workstation/wsl-setup.sh linguist-detectable=false
 **/.phpunit.cache/** linguist-generated=true
 **/__pycache__/** linguist-generated=true
 **/_build/** linguist-generated=true
+**/.godot/** linguist-generated=true
 **/.gradle/** linguist-generated=true
 **/.kotlin/** linguist-generated=true
 **/.stack-work/** linguist-generated=true

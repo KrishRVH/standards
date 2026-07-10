@@ -43,6 +43,10 @@ node_modules/
 /out/
 /sbom/
 
+# Godot
+/.godot/
+*.translation
+
 # JavaScript / TypeScript
 *.tsbuildinfo
 .eslintcache

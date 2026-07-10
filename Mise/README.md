@@ -53,10 +53,12 @@ constrain tools from a developer's global mise configuration.
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell,
-SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their project files
-are detected. Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`;
-TypeScript dispatch requires both `package.json` and `tsconfig.json`.
+Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust,
+Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their project
+files are detected. GDScript dispatch requires `project.godot` and an owned
+script under `src/` or `tests/`; Markdown/MDX dispatch requires
+`.markdownlint-cli2.jsonc`; TypeScript dispatch requires both `package.json`
+and `tsconfig.json`.
 
 Each language fragment expresses static workflow composition with native mise
 dependencies and structured task references. Shared install, restore,
@@ -93,3 +95,8 @@ dependency policy checks.
 The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
 rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It
 requires `luarocks` on PATH for lint/test tooling.
+
+The GDScript task file pins Godot 4.7 and a portable, hashed GDToolkit
+environment. It formats and lints owned scripts, then uses headless Godot
+import, per-script checks, and resource loading as the language-semantic gate
+before running the project test entrypoint.

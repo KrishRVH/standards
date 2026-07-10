@@ -10,6 +10,7 @@ paths = [
   '''(^|/)\.cargo-tools/''',
   '''(^|/)\.elixir_ls/''',
   '''(^|/)\.git/''',
+  '''(^|/)\.godot/''',
   '''(^|/)\.gradle/''',
   '''(^|/)\.kotlin/''',
   '''(^|/)\.lua-language-server/''',

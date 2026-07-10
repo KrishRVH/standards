@@ -48,6 +48,11 @@ node_modules/
 **/out/
 **/sbom/
 
+# Godot generated output
+/.godot/
+**/.godot/
+*.translation
+
 # JavaScript / TypeScript
 *.tsbuildinfo
 .eslintcache

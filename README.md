@@ -25,7 +25,7 @@ deterministic commands should let an agent make and prove a narrow change.
   surface.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:standards:check` mise task.
-- `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `Go/`, `Haskell/`,
+- `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`, `Haskell/`,
   `Kotlin/`, `Lua/`, `Markdown/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
   `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
@@ -93,6 +93,9 @@ Finally, copy the language template files that match the project:
   implicit external disabled, Findent formatting, strict GNU Fortran warning
   gates, fortls parser diagnostics, test-drive tests, FORD docs, and fpm
   dependency pin policy.
+- `GDScript/`: Godot 4.7 baseline with typed GDScript warnings, GDToolkit
+  formatting/linting, native headless import, parse/type and resource-load
+  checks, and a small dependency-free test entrypoint.
 - `Go/`: Go module baseline with gofumpt, module hygiene, `go vet`,
   golangci-lint, govulncheck, tests, race, coverage, and benchmark tasks.
 - `Haskell/`: Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
@@ -203,8 +206,8 @@ mise run standards:check
 ```
 
 That runs a root-wide secret scan, the pinned Biome alternative check, drift
-and Shell checks, and every tester fixture for C, C#, C++, Elixir, Fortran, Go,
-Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada,
+and Shell checks, and every tester fixture for C, C#, C++, Elixir, Fortran,
+GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada,
 TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected

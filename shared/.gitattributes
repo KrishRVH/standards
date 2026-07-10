@@ -38,9 +38,12 @@
 *.fs text
 *.fsi text
 *.fsx text
-*.go text diff=go
 *.f90 text
 *.F90 text
+*.gd text
+*.gdshader text
+*.gdshaderinc text
+*.go text diff=go
 *.hs text
 *.lhs text
 *.hs-boot text
@@ -81,6 +84,8 @@ Makefile text
 *.env.template text
 *.gitignore text
 *.gitattributes text
+*.gdextension text
+*.godot text
 *.gradle text
 *.gradle.kts text
 *.ini text
@@ -102,6 +107,10 @@ Makefile text
 *.slnx text
 *.targets text
 *.toml text
+pylock.*.toml text linguist-generated=true
+*.tres text
+*.tscn text
+*.uid text
 *.vbproj text
 *.vcxproj text
 *.vcxproj.filters text
