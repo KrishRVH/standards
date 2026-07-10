@@ -27,13 +27,15 @@ list_files() {
   fi
 }
 
-list_cpp_files() {
+list_semantic_files() {
   if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
-      '*.cc' '*.cpp' '*.cxx' ':(exclude)build/**' ':(exclude)build-*/**'
+      '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' \
+      ':(exclude)build/**' ':(exclude)build-*/**'
   else
     find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
-      -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0
+      -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' \
+      -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) -print0
   fi
 }
 
@@ -72,14 +74,14 @@ fi
 
 note "Running clangd semantic checks..."
 if cdb_dir="$(detect_cdb_dir)"; then
-  cpp_files=()
+  semantic_files=()
   while IFS= read -r -d '' f; do
-    cpp_files+=("$f")
-  done < <(list_cpp_files)
-  if ((${#cpp_files[@]} == 0)); then
-    note "No C++ sources found; skipping clangd."
+    semantic_files+=("$f")
+  done < <(list_semantic_files)
+  if ((${#semantic_files[@]} == 0)); then
+    note "No C++ sources or headers found; skipping clangd."
   else
-    for source in "${cpp_files[@]}"; do
+    for source in "${semantic_files[@]}"; do
       clangd --background-index=false --clang-tidy --enable-config --log=error \
         --compile-commands-dir="$cdb_dir" --check="$source"
     done

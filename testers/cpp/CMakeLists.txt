@@ -33,48 +33,32 @@ endfunction()
 
 function(project_apply_common target)
   get_target_property(_type ${target} TYPE)
-  set(_is_interface OFF)
-  if(_type STREQUAL "INTERFACE_LIBRARY")
-    set(_is_interface ON)
-  endif()
-
-  if(_is_interface)
-    target_include_directories(${target} INTERFACE
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
-    set(_opt_scope INTERFACE)
-    set(_feature_scope INTERFACE)
-  elseif(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
-         _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
+  if(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
+     _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
     target_include_directories(${target} PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
-    set(_opt_scope PRIVATE)
     set(_feature_scope PUBLIC)
   else()
     target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
-    set(_opt_scope PRIVATE)
     set(_feature_scope PRIVATE)
   endif()
 
   project_require_cxx_standard(${target} ${_feature_scope})
-  if(NOT _is_interface)
-    set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
-  endif()
+  set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 
   if(MSVC)
-    target_compile_options(${target} ${_opt_scope} /W4 /permissive- /EHsc /Zc:__cplusplus)
+    target_compile_options(${target} PRIVATE /W4 /permissive- /EHsc /Zc:__cplusplus)
     if(PROJECT_WERROR)
-      target_compile_options(${target} ${_opt_scope} /WX)
+      target_compile_options(${target} PRIVATE /WX)
     endif()
   else()
-    target_compile_options(${target} ${_opt_scope}
+    target_compile_options(${target} PRIVATE
       "$<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow;-Wold-style-cast;-Woverloaded-virtual;-Wnon-virtual-dtor;-Wformat=2>"
     )
     if(PROJECT_WERROR)
-      target_compile_options(${target} ${_opt_scope} -Werror)
+      target_compile_options(${target} PRIVATE -Werror)
     endif()
   endif()
 
@@ -85,7 +69,7 @@ function(project_apply_common target)
     )
   endif()
 
-  if(PROJECT_ENABLE_SANITIZERS AND NOT _is_interface)
+  if(PROJECT_ENABLE_SANITIZERS)
     if(NOT MSVC AND NOT MINGW)
       target_compile_options(${target} PRIVATE
         -fsanitize=address,undefined
