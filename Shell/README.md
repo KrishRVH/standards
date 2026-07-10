@@ -13,5 +13,7 @@ Default checks:
 - Bats runs behavior tests.
 
 Project-owned shell glue under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
-must declare its intended dialect with a recognized shebang. Error handling and
-strict-mode choices remain local design decisions.
+must declare its intended dialect with a recognized shebang. This includes
+executable extensionless glue. The copyable `scripts/shell-standards.sh` runner
+is itself covered by the same formatter, static-analysis, syntax, and policy
+checks. Error handling and strict-mode choices remain local design decisions.

@@ -114,7 +114,7 @@ template = "Shell"
 tester = "testers/shell"
 task_prefix = "shell"
 task_fragment = "20-shell.toml"
-mirror = [".editorconfig", ".shellcheckrc", "scripts/project-name.sh", "tests/project-name.bats"]
+mirror = [".editorconfig", ".shellcheckrc", "scripts/project-name.sh", "scripts/shell-standards.sh", "tests/project-name.bats"]
 
 [profiles.spark]
 name = "SPARK (Ada)"

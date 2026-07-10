@@ -391,6 +391,14 @@ def check_root_shared_files() -> list[str]:
             ROOT / ".config" / "mise" / "conf.d" / "20-shell.toml",
         )
     )
+    errors.extend(
+        compare_file(
+            "root",
+            "shell standards runner",
+            ROOT / "Shell" / "scripts" / "shell-standards.sh",
+            ROOT / "scripts" / "shell-standards.sh",
+        )
+    )
     return errors
 
 
