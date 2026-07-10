@@ -2,6 +2,7 @@
 lockfile = true
 
 [tools]
+biome = "2.5.3"
 gitleaks = "8.30.1"
 python = "3.14.6"
 
@@ -12,6 +13,11 @@ run = "mise tasks"
 [tasks.lock]
 description = "Refresh the root mise lockfile after tool-version changes"
 run = "mise lock"
+
+[tasks."standards:biome:check"]
+description = "Validate the optional Biome TypeScript template"
+dir = "TS"
+run = "biome ci --error-on-warnings --reporter=concise --vcs-root=.. biome.jsonc package.json src tests tsconfig.json"
 
 [tasks."standards:drift"]
 description = "Check standards profile manifest and fixture drift"
@@ -78,4 +84,4 @@ depends = ["shell:standards", "testers:standards"]
 
 [tasks."standards:check"]
 description = "Run the standards repository CI gate"
-depends = ["secrets", "standards:drift", "shell:standards:check", "testers:standards:check"]
+depends = ["secrets", "standards:biome:check", "standards:drift", "shell:standards:check", "testers:standards:check"]

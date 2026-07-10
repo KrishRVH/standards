@@ -131,7 +131,7 @@ template = "TS"
 tester = "testers/ts"
 task_prefix = "ts"
 task_fragment = "20-ts.toml"
-mirror = ["eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
+mirror = ["biome.jsonc", "eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
 dagger = true
 
 [profiles.zig]

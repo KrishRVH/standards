@@ -53,6 +53,8 @@ Everything a developer does goes through mise.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run secrets`: scan the standards repository for secrets.
 - `mise run standards`: root Shell and all-fixture autofix workflow.
+- `mise run standards:biome:check`: validate the optional Biome TypeScript
+  template with the pinned stable CLI.
 - `mise run standards:drift`: manifest/drift check for profile fixtures.
 - `mise run testers:standards`: run all tester mini projects through their
   standards autofixes.
@@ -60,8 +62,8 @@ Everything a developer does goes through mise.
   their standards CI gates.
 - `mise run testers:standards:check:isolated`: run the representative Python
   fixture gate in Dagger.
-- `mise run standards:check`: root secret scan, drift and Shell checks, plus
-  every fixture gate.
+- `mise run standards:check`: root secret scan, Biome template validation,
+  drift and Shell checks, plus every fixture gate.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing the relevant mise task itself. If install needs network, run it through

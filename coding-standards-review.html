@@ -806,9 +806,9 @@
         <article class="closure">
           <span class="closure-no">07</span>
           <div>
-            <h3>Surplus policy deleted</h3>
-            <p>The Kotlin prerelease parser, Biome alternative, exact Shell spellings, Ruff ALL, cppcheck, TSan, Go prealloc, and generic Rust release tuning are gone. Native high-signal controls remain.</p>
-            <p class="proof"><a href="Python/pyproject.toml">stable Ruff core</a> · <a href="Mise/conf.d/20-shell.toml">Shell policy</a></p>
+            <h3>Surplus policy separated</h3>
+            <p>The Kotlin prerelease parser, exact Shell spellings, Ruff ALL, cppcheck, TSan, Go prealloc, and generic Rust release tuning are gone. Biome remains a pinned, explicit replacement path outside the default TypeScript gate.</p>
+            <p class="proof"><a href="TS/biome.jsonc">Biome Option B</a> · <a href=".config/mise/config.toml">catalog check</a> · <a href="Python/pyproject.toml">stable Ruff core</a></p>
           </div>
         </article>
 
@@ -859,7 +859,7 @@
             <tr><td class="profile">Rust</td><td><span class="status">Verified</span></td><td>Cargo</td><td>Exact Cargo policy mirror, fmt/Clippy/tests/docs/package/deny, native release defaults.</td></tr>
             <tr><td class="profile">Shell</td><td><span class="status">Verified</span></td><td>shfmt + ShellCheck</td><td>Dialect-aware format, syntax, static analysis, shebang policy, and Bats behavior tests.</td></tr>
             <tr><td class="profile">SPARK (Ada)</td><td><span class="status">Verified</span></td><td>Alire + GNATprove</td><td>Exact dependencies, offline lock validation, strict build, proof, filename-independent test.</td></tr>
-            <tr><td class="profile">TypeScript</td><td><span class="status">Verified</span></td><td>Bun + TS/ESLint</td><td>One formatter/linter regime, strict typecheck, tests, lock, and audit.</td></tr>
+            <tr><td class="profile">TypeScript</td><td><span class="status">Verified</span></td><td>Bun + strict TypeScript</td><td>ESLint/Prettier default; pinned Biome 2.5.3 alternative; typecheck, tests, lock, and audit.</td></tr>
             <tr><td class="profile">Zig</td><td><span class="status">Verified</span></td><td>Zig build system</td><td>Native format, Debug/ReleaseSafe checks, tests, release variants, aligned copy paths.</td></tr>
           </tbody>
         </table>
@@ -882,9 +882,10 @@
           <span>Polish, OCD, and the post-pass aggregate are complete.</span>
         </div>
         <ol class="timeline">
+          <li><b><code>mise run standards:biome:check</code> · pass</b><span>Biome 2.5.3 validates the exact-mirrored Option B config, shared package/type metadata, formatter, stable-rule baseline, ecosystem exceptions, and assist actions without entering the default TypeScript project path.</span></li>
           <li><b><code>mise run standards:drift</code> · pass</b><span>All 17 profiles, required task surfaces, exact mirrors, locks, Dagger copies, root shell mirror, and behavioral aggregate cases.</span></li>
-          <li><b>Root gitleaks · pass</b><span>Approximately 1.28 MB scanned after generated-output cleanup, with no leaks.</span></li>
-          <li><b>Final integrated root gate · pass in 131.32s</b><span>Root secret, drift, and Shell checks plus all 17 fixture gates completed after Polish and OCD.</span></li>
+          <li><b>Root gitleaks · pass</b><span>Approximately 4.13 MB scanned with no leaks.</span></li>
+          <li><b>Final integrated root gate · pass in 129.21s</b><span>Root secret, Biome alternative, drift, and Shell checks plus all 17 fixture gates completed.</span></li>
           <li><b>Haskell clean cache · pass</b><span>A fresh Cabal home initialized the missing index; the immediate warm path skipped the update.</span></li>
           <li><b>SPARK · pass</b><span>Full gate in 21.73s; valid lock unchanged, stale manifest rejected without mutation, and a real incomplete lock rejected.</span></li>
           <li><b>Dagger isolated Python · final boundary pass in 8.6s</b><span>Official digest-pinned mise image; global moving selectors ignored; a secret under project-owned <code>bin/</code> reached and failed the gate, while a local <code>.env</code> probe was filtered before engine upload. Python 3.14.6, gitleaks, Ruff, basedpyright, Bandit, two tests at 100% coverage, build, and audit all passed.</span></li>
@@ -913,7 +914,7 @@
         </article>
         <article class="principle">
           <h3>Deletion before abstraction</h3>
-          <p>Redundant regimes and speculative policy are absent. The shared dispatcher replaces thousands of repeated lines and is behavior-tested.</p>
+          <p>Alternatives are explicit replacements, never concurrent defaults. The shared dispatcher replaces thousands of repeated lines and is behavior-tested.</p>
         </article>
         <article class="principle">
           <h3>Proof near the promise</h3>

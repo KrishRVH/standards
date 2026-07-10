@@ -1,0 +1,98 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+  },
+
+  "files": {
+    "ignoreUnknown": true,
+  },
+
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+  },
+
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+    },
+  },
+
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "preset": "recommended",
+    },
+  },
+
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "project": "recommended",
+      "test": "recommended",
+      "types": "recommended",
+    },
+    "rules": {
+      "preset": "all",
+      "correctness": {
+        "noNodejsModules": "off",
+        "noUnresolvedImports": "off",
+        "useImportExtensions": "off",
+      },
+      "performance": {
+        "useTopLevelRegex": "off",
+      },
+    },
+  },
+
+  "overrides": [
+    // Keep this alternative config compatible with Option A's Prettier gate.
+    {
+      "includes": ["biome.jsonc"],
+      "json": {
+        "formatter": {
+          "trailingCommas": "all",
+        },
+      },
+    },
+    {
+      "includes": ["**/*.d.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNamespace": "off",
+          },
+        },
+      },
+    },
+    {
+      "includes": ["**/*.config.{js,mjs,ts}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off",
+          },
+        },
+      },
+    },
+    {
+      "includes": ["**/*.{test,spec}.{js,jsx,ts,tsx}", "**/__tests__/**/*.{js,jsx,ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noMagicNumbers": "off",
+          },
+        },
+      },
+    },
+  ],
+}

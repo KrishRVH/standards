@@ -34,8 +34,8 @@ deterministic commands should let an agent make and prove a narrow change.
   `.config/mise/mise.lock` for deterministic Linux tool resolution.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
-  project. The root `.config/mise/mise.lock` pins gitleaks and the Python
-  runtime used by repository maintenance scripts.
+  project. The root `.config/mise/mise.lock` pins the Biome alternative
+  verifier, gitleaks, Python, and the root Shell tools.
 - `standards.manifest.toml`: the profile map used by agents and the root gate
   to find canonical templates, tester fixtures, task fragments, and exact
   mirror files.
@@ -117,8 +117,8 @@ Finally, copy the language template files that match the project:
 - `SPARK/`: Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks as failures, and tiny executable tests.
-- `TS/`: Bun-backed TypeScript, ESLint, Prettier, package scripts, `tsc`, and
-  tests.
+- `TS/`: Bun-backed TypeScript with strict `tsc`, tests, ESLint plus Prettier
+  as Option A, and a pinned one-file Biome configuration as Option B.
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
@@ -188,9 +188,10 @@ Use the repo-local maintenance gate for local fixture checks:
 mise run standards:check
 ```
 
-That runs a root-wide secret scan, drift and Shell checks, and every tester
-fixture for C, C#, C++, Elixir, Fortran, Go, Haskell, Kotlin, Lua,
-Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
+That runs a root-wide secret scan, the pinned Biome alternative check, drift
+and Shell checks, and every tester fixture for C, C#, C++, Elixir, Fortran, Go,
+Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada,
+TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.
