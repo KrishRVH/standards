@@ -178,7 +178,7 @@ depends = ["spark:lock:check"]
 wait_for = ["spark:lint"]
 run = """
 set -eu
-project="${SPARK_PROJECT_FILE:-project_name.gpr}"
+project="${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}"
 alr -n exec -- gnatprove -P "$project" -U --mode=all --level=4 --warnings=error --checks-as-errors=on --pedantic --report=fail --output=oneline -j0
 """
 
