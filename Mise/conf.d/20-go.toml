@@ -54,18 +54,18 @@ run = "go mod tidy"
 
 [tasks."go:mod:check"]
 description = "Check Go module tidiness"
+depends = ["go:install"]
 run = "go mod tidy -diff"
 
 [tasks."go:mod:verify"]
 description = "Verify downloaded Go modules"
+depends = ["go:install"]
 run = "go mod verify"
 
 [tasks."go:lint"]
 description = "Run Go static analysis and dependency checks"
-depends = ["go:install"]
+depends = ["go:mod:check", "go:mod:verify"]
 run = """
-mise run go:mod:check
-mise run go:mod:verify
 go vet ./...
 golangci-lint run ./...
 govulncheck -test ./...
@@ -79,11 +79,13 @@ run = "go test -trimpath -count=1 ./..."
 [tasks."go:test:race"]
 description = "Run Go tests with the race detector"
 depends = ["go:install"]
+wait_for = ["go:test"]
 run = "go test -trimpath -race -count=1 ./..."
 
 [tasks."go:cover"]
 description = "Run Go tests with coverage"
 depends = ["go:install"]
+wait_for = ["go:test:race"]
 run = """
 mkdir -p coverage
 go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
@@ -105,17 +107,11 @@ run = "go test -trimpath -run=^$ -bench=. -benchmem ./..."
 
 [tasks."go:standards"]
 description = "Run the Go standards workflow with autofixes"
-run = """
-mise run go:fmt
-mise run go:mod:tidy
-"""
+run = [
+  { task = "go:fmt" },
+  { task = "go:mod:tidy" },
+]
 
 [tasks."go:standards:check"]
 description = "Run the Go standards CI gate"
-run = """
-mise run go:fmt:check
-mise run go:lint
-mise run go:test
-mise run go:test:race
-mise run go:cover
-"""
+depends = ["go:fmt:check", "go:lint", "go:test", "go:test:race", "go:cover"]

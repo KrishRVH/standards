@@ -44,13 +44,12 @@ exit "$missing"
 
 [tasks."kotlin:standards"]
 description = "Run the Kotlin standards workflow with autofixes"
-run = "mise run kotlin:fmt"
+depends = ["kotlin:fmt"]
 
 [tasks."kotlin:standards:check"]
 description = "Run the Kotlin standards CI gate"
-run = """
-mise run kotlin:lock:check
-mise run kotlin:fmt:check
-mise run kotlin:lint
-mise run kotlin:test
-"""
+run = [
+  { tasks = ["kotlin:lock:check", "kotlin:fmt:check"] },
+  { task = "kotlin:lint" },
+  { task = "kotlin:test" },
+]

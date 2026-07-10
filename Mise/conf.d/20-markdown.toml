@@ -5,6 +5,7 @@ typos = "1.48.0"
 
 [tasks."md:install"]
 description = "Install Bun-managed Markdown/MDX dependencies"
+wait_for = ["md:lock:check"]
 run = """
 if [ -f bun.lock ]; then
   bun install --frozen-lockfile
@@ -34,27 +35,27 @@ run = "bun run \"$usage_script\""
 [tasks."md:fmt"]
 description = "Format Markdown and MDX"
 depends = ["md:install"]
-run = "mise run md:run -- format"
+run = "bun run format"
 
 [tasks."md:fmt:check"]
 description = "Check Markdown and MDX formatting"
 depends = ["md:install"]
-run = "mise run md:run -- format:check"
+run = "bun run format:check"
 
 [tasks."md:lint"]
 description = "Lint Markdown and MDX structure"
 depends = ["md:install"]
-run = "mise run md:run -- lint"
+run = "bun run lint"
 
 [tasks."md:lint:fix"]
 description = "Fix Markdown and MDX lint issues"
 depends = ["md:install"]
-run = "mise run md:run -- lint:fix"
+run = "bun run lint:fix"
 
 [tasks."md:mdx:check"]
 description = "Compile-check MDX with frontmatter, GFM, and Shiki plugins"
 depends = ["md:install"]
-run = "mise run md:run -- mdx:check"
+run = "bun run mdx:check"
 
 [tasks."md:links"]
 description = "Check local Markdown/MDX/HTML links without network access"
@@ -70,32 +71,23 @@ run = "typos --config typos.toml ."
 
 [tasks."md:test"]
 description = "Run Markdown/MDX smoke tests"
-run = "mise run md:mdx:check"
+depends = ["md:mdx:check"]
 
 [tasks."md:audit"]
 description = "Audit Markdown/MDX tooling dependencies"
 depends = ["md:install"]
-run = "mise run md:run -- audit"
+run = "bun run audit"
 
 [tasks."md:standards"]
 description = "Run the Markdown/MDX standards workflow with autofixes"
 depends = ["md:install"]
-run = "mise run md:run -- standards"
+run = "bun run standards"
 
 [tasks."md:standards:check"]
 description = "Run the Markdown/MDX standards CI gate"
-run = """
-mise run md:lock:check
-mise run md:install
-mise run md:run -- standards:check
-mise run md:links
-mise run md:typos
-"""
+depends = ["md:lock:check", "md:install", "md:links", "md:typos"]
+run = "bun run standards:check"
 
 [tasks."md:standards:check:deep"]
 description = "Run the Markdown/MDX CI gate plus external link and dependency checks"
-run = """
-mise run md:standards:check
-mise run md:links:deep
-mise run md:audit
-"""
+depends = ["md:standards:check", "md:links:deep", "md:audit"]

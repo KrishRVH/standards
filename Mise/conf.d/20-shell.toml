@@ -10,36 +10,34 @@ run = "scripts/shell-standards.sh \"$usage_command\""
 
 [tasks."shell:fmt"]
 description = "Format shell scripts"
-run = "mise run shell:run -- fmt"
+run = "scripts/shell-standards.sh fmt"
 
 [tasks."shell:fmt:check"]
 description = "Check shell script formatting"
-run = "mise run shell:run -- fmt-check"
+run = "scripts/shell-standards.sh fmt-check"
 
 [tasks."shell:lint"]
 description = "Run shell static analysis, syntax checks, and shebang policy"
-run = "mise run shell:run -- lint"
+wait_for = ["shell:fmt:check"]
+run = "scripts/shell-standards.sh lint"
 
 [tasks."shell:syntax"]
 description = "Run shell parser checks"
-run = "mise run shell:run -- syntax"
+run = "scripts/shell-standards.sh syntax"
 
 [tasks."shell:policy"]
 description = "Check shell glue-script shebang policy"
-run = "mise run shell:run -- policy"
+run = "scripts/shell-standards.sh policy"
 
 [tasks."shell:test"]
 description = "Run Bats shell tests"
-run = "mise run shell:run -- test"
+wait_for = ["shell:fmt:check"]
+run = "scripts/shell-standards.sh test"
 
 [tasks."shell:standards"]
 description = "Run the shell standards workflow with autofixes"
-run = "mise run shell:fmt"
+depends = ["shell:fmt"]
 
 [tasks."shell:standards:check"]
 description = "Run the shell standards CI gate"
-run = """
-mise run shell:fmt:check
-mise run shell:lint
-mise run shell:test
-"""
+depends = ["shell:fmt:check", "shell:lint", "shell:test"]

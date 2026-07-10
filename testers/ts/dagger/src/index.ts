@@ -95,6 +95,7 @@ export class ProjectStandards {
         .withoutEntrypoint()
         // Ignore the image's moving global Node/Python selectors; resolve only project pins.
         .withEnvVariable('MISE_IGNORED_CONFIG_PATHS', '/mise/config.toml')
+        .withEnvVariable('MISE_LOCKED', '1')
         .withMountedCache('/mise/installs', dag.cacheVolume('mise-tools'))
         .withMountedCache('/mise/cache', dag.cacheVolume('mise-cache'))
         .withMountedCache('/root/.cache/uv', dag.cacheVolume('uv-cache'))

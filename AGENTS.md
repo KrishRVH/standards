@@ -82,10 +82,11 @@ mise and report that.
 - Avoid global state, hidden I/O, and action at a distance.
 - Put code near the thing it affects when that improves readability.
 - `standards.manifest.toml` is the profile source of truth. Add or remove
-  tested profiles there, and let `scripts/check-standards-drift.py --list-testers`
-  drive aggregate tester loops. Keep declared mirror paths byte-for-byte
-  aligned, refresh affected fixture lockfiles, then run `mise run
-  standards:drift` before the root gate.
+  tested profiles there. The root monorepo discovers `testers/*`; keep the
+  drift checker proving that every discovered fixture is declared and every
+  declaration has a fixture. Keep declared mirror paths byte-for-byte aligned,
+  refresh affected fixture lockfiles, then run `mise run standards:drift`
+  before the root gate.
 - Fixtures prove install, format, lint/static analysis, and tests. Keep them
   tiny, not example apps.
 - Commit the root `.config/mise/mise.lock` and deterministic tester

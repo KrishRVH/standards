@@ -4,6 +4,7 @@ uv = "0.11.23"
 
 [tasks."py:install"]
 description = "Install Python dependencies"
+wait_for = ["py:lock:check"]
 run = """
 if [ ! -f pyproject.toml ]; then
   echo "No pyproject.toml found."
@@ -132,24 +133,11 @@ run = "uv run --no-sync vulture"
 
 [tasks."py:lint"]
 description = "Run default Python static analysis"
-depends = ["py:install"]
-run = """
-mise run py:ruff
-mise run py:type
-mise run py:security
-"""
+depends = ["py:ruff", "py:type", "py:security"]
 
 [tasks."py:deep"]
 description = "Run optional dependency-sensitive Python analysis"
-depends = ["py:install:deep"]
-run = """
-mise run py:type:mypy
-mise run py:deps
-mise run py:docs
-mise run py:complexity
-mise run py:slots
-mise run py:deadcode
-"""
+depends = ["py:type:mypy", "py:deps", "py:docs", "py:complexity", "py:slots", "py:deadcode"]
 
 [tasks."py:test"]
 description = "Run Python tests with branch coverage"
@@ -171,18 +159,11 @@ uv run ruff format .
 
 [tasks."py:standards:check"]
 description = "Run the Python standards CI gate"
-run = """
-mise run py:lock:check
-mise run py:fmt:check
-mise run py:lint
-mise run py:test
-mise run py:build
-mise run py:audit
-"""
+depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit"]
 
 [tasks."py:standards:check:deep"]
 description = "Run the Python standards CI gate plus optional deep analysis"
-run = """
-mise run py:standards:check
-mise run py:deep
-"""
+run = [
+  { task = "py:standards:check" },
+  { task = "py:deep" },
+]

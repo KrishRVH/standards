@@ -34,8 +34,10 @@ deterministic commands should let an agent make and prove a narrow change.
   `.config/mise/mise.lock` for deterministic Linux tool resolution.
 - Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/`: rules
   and tasks for maintaining this repository, not defaults to copy into a new
-  project. The root `.config/mise/mise.lock` pins the Biome alternative
-  verifier, gitleaks, Python, and the root Shell tools.
+  project. The root is an explicit mise monorepo over `testers/*`, retains
+  separate fixture lockfiles, and bounds the monorepo scheduler to two
+  top-level fixture jobs. The root `.config/mise/mise.lock` pins the Biome
+  alternative verifier, gitleaks, Python, and the root Shell tools.
 - `standards.manifest.toml`: the profile map used by agents and the root gate
   to find canonical templates, tester fixtures, task fragments, and exact
   mirror files.
@@ -148,6 +150,11 @@ The aggregate mise tasks use marker-file detection for copyable defaults. In
 monorepos or mixed-tooling repositories, replace the generic dispatcher with
 explicit project-specific task dependencies or narrower markers.
 
+The copyable configuration requires mise `2026.3.11` or newer for structured
+task references with arguments. This repository's root requires `2026.7.0` or
+newer for the explicit monorepo per-project lockfile policy. Both declarations
+are minimums; developers are not pinned to one mise executable.
+
 ## Command Model
 
 Developer and CI entrypoints go through mise:
@@ -202,6 +209,15 @@ TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.
+
+Fixture tasks are discovered through the root's explicit `testers/*` monorepo
+config roots and execute with two top-level fixture jobs per scheduler.
+`[monorepo] lockfile = false` keeps every committed fixture lockfile beside its
+standalone configuration.
+The root runner uses one child mise process for the path wildcard because the
+current stable validator does not yet resolve monorepo paths in native task
+relationships; the child itself uses mise's scheduler and project-attributed
+output.
 
 For an opt-in isolated proof without a hosted workflow, run the representative
 Python fixture through its existing Dagger entrypoint:

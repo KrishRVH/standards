@@ -18,21 +18,19 @@ run = "dotnet format --verify-no-changes --no-restore"
 [tasks."csharp:lint"]
 description = "Build C# with analyzers enabled"
 depends = ["csharp:restore"]
+wait_for = ["csharp:fmt:check"]
 run = "dotnet build --no-restore --configuration Release -warnaserror -p:ContinuousIntegrationBuild=true -p:TreatWarningsAsErrors=true"
 
 [tasks."csharp:test"]
 description = "Run C# tests"
 depends = ["csharp:restore"]
+wait_for = ["csharp:lint"]
 run = "dotnet test --no-restore --configuration Release --logger trx --results-directory TestResults"
 
 [tasks."csharp:standards"]
 description = "Run the C# standards workflow with autofixes"
-run = "mise run csharp:fmt"
+depends = ["csharp:fmt"]
 
 [tasks."csharp:standards:check"]
 description = "Run the C# standards CI gate"
-run = """
-mise run csharp:fmt:check
-mise run csharp:lint
-mise run csharp:test
-"""
+depends = ["csharp:fmt:check", "csharp:lint", "csharp:test"]

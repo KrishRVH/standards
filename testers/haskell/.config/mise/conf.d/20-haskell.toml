@@ -13,6 +13,7 @@ run = """
 ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- ghc --version
 repo_cache="$(ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal -v0 path --remote-repo-cache)"
 if [ ! -d "$repo_cache" ] || [ -z "$(find "$repo_cache" -name 01-index.tar -print -quit)" ]; then
+  # The update is conditional on Cabal's cache state, so it cannot be a static dependency.
   mise run haskell:update
 fi
 """
@@ -75,6 +76,7 @@ ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tes
 [tasks."haskell:test"]
 description = "Run Haskell tests"
 depends = ["haskell:install"]
+wait_for = ["haskell:lint"]
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal test all --test-show-details=direct"
 
 [tasks."haskell:bench"]
@@ -85,11 +87,13 @@ run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal bench all"
 [tasks."haskell:docs"]
 description = "Build Haskell API documentation"
 depends = ["haskell:install"]
+wait_for = ["haskell:test"]
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal haddock all --haddock-all"
 
 [tasks."haskell:package"]
 description = "Validate Haskell source distributions"
 depends = ["haskell:install"]
+wait_for = ["haskell:docs"]
 run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal sdist all"
 
 [tasks."haskell:freeze"]
@@ -99,14 +103,8 @@ run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal freeze"
 
 [tasks."haskell:standards"]
 description = "Run the Haskell standards workflow with autofixes"
-run = "mise run haskell:fmt"
+depends = ["haskell:fmt"]
 
 [tasks."haskell:standards:check"]
 description = "Run the Haskell standards CI gate"
-run = """
-mise run haskell:fmt:check
-mise run haskell:lint
-mise run haskell:test
-mise run haskell:docs
-mise run haskell:package
-"""
+depends = ["haskell:fmt:check", "haskell:lint", "haskell:test", "haskell:docs", "haskell:package"]

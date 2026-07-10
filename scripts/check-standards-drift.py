@@ -217,6 +217,9 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
     except tomllib.TOMLDecodeError as error:
         return [f"invalid TOML in {rel(config)}: {error}"]
 
+    if data.get("min_version") != "2026.3.11":
+        errors.append(f'{rel(config)} must set min_version = "2026.3.11"')
+
     tasks = data.get("tasks", {})
     if not isinstance(tasks, dict):
         return [f"{rel(config)} must contain a [tasks] table"]
@@ -237,9 +240,14 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
         if not isinstance(task, dict):
             errors.append(f"{rel(config)} missing aggregate task {task_name}")
             continue
-        expected = f"mise run _dispatch -- {task_name}"
+        expected = [{"task": "_dispatch", "args": [task_name]}]
         if task.get("run") != expected:
             errors.append(f"{rel(config)} aggregate task {task_name} must run {expected!r}")
+        expected_depends = ["secrets"] if task_name == "standards:check" else None
+        if task.get("depends") != expected_depends:
+            errors.append(
+                f"{rel(config)} aggregate task {task_name} must set depends to {expected_depends!r}"
+            )
 
     prefixes = {str(profile["task_prefix"]) for profile in profiles.values()}
     marker_prefixes = set(AGGREGATE_MARKER_CASES)
@@ -313,7 +321,7 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
             commands, stderr, returncode = execute(
                 "standards-check-secrets", "standards:check", ("composer.json",)
             )
-            expected = ["run secrets", "run php:standards:check"]
+            expected = ["run php:standards:check"]
             if returncode != 0:
                 errors.append(f"aggregate standards:check case failed: {stderr.strip()}")
             elif commands != expected:
@@ -355,6 +363,12 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         if not isinstance(settings, dict) or settings.get("lockfile") is not True:
             errors.append(f"{profile_id}: minimal fixture config must set [settings] lockfile = true")
 
+        expected_min_version = load_toml(canonical_config).get("min_version")
+        if data.get("min_version") != expected_min_version:
+            errors.append(
+                f"{profile_id}: minimal fixture config min_version must match {rel(canonical_config)}"
+            )
+
         if set(tasks) != {"standards", "standards:check"}:
             errors.append(
                 f"{profile_id}: minimal fixture config must contain only standards and standards:check tasks"
@@ -375,6 +389,64 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
     canonical_dagger = ROOT / "Mise" / "conf.d" / "10-dagger.toml"
     if dagger_fragment.exists():
         errors.extend(compare_file(profile_id, "Dagger fragment", canonical_dagger, dagger_fragment))
+
+    return errors
+
+
+def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
+    errors: list[str] = []
+    config = ROOT / ".config" / "mise" / "config.toml"
+    try:
+        data = load_toml(config)
+    except tomllib.TOMLDecodeError as error:
+        return [f"invalid TOML in {rel(config)}: {error}"]
+
+    if data.get("min_version") != "2026.7.0":
+        errors.append(f'{rel(config)} must set min_version = "2026.7.0"')
+    if data.get("monorepo_root") is not True:
+        errors.append(f"{rel(config)} must set monorepo_root = true")
+
+    settings = data.get("settings", {})
+    if not isinstance(settings, dict) or settings.get("jobs") != 2:
+        errors.append(f"{rel(config)} [settings] jobs must be 2")
+    if not isinstance(settings, dict) or settings.get("lockfile") is not True:
+        errors.append(f"{rel(config)} [settings] lockfile must be true")
+
+    monorepo = data.get("monorepo", {})
+    if not isinstance(monorepo, dict):
+        errors.append(f"{rel(config)} must contain a [monorepo] table")
+    else:
+        if monorepo.get("config_roots") != ["testers/*"]:
+            errors.append(f'{rel(config)} [monorepo] config_roots must be ["testers/*"]')
+        if monorepo.get("lockfile") is not False:
+            errors.append(f"{rel(config)} [monorepo] lockfile must be false")
+
+    tasks = data.get("tasks", {})
+    if not isinstance(tasks, dict):
+        errors.append(f"{rel(config)} must contain a [tasks] table")
+    else:
+        for task_name in ("testers:standards", "testers:standards:check"):
+            task = tasks.get(task_name)
+            run = task.get("run") if isinstance(task, dict) else None
+            if not isinstance(run, str) or "env -u GOROOT -u GOTOOLDIR " not in run:
+                errors.append(f"{rel(config)} task {task_name} must sanitize Go's toolchain environment")
+
+        standards = tasks.get("standards")
+        expected_standards_run = [
+            {"task": "shell:standards"},
+            {"task": "testers:standards"},
+        ]
+        if not isinstance(standards, dict) or standards.get("run") != expected_standards_run:
+            errors.append(
+                f"{rel(config)} task standards must run {expected_standards_run!r} in order"
+            )
+
+    for profile_id, profile in profiles.items():
+        tester = Path(str(profile["tester"]))
+        if len(tester.parts) != 2 or tester.parts[0] != "testers":
+            errors.append(
+                f'{profile_id}: tester {tester} is outside the root monorepo config_roots pattern "testers/*"'
+            )
 
     return errors
 
@@ -422,6 +494,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_tester_inventory(profiles))
     errors.extend(check_mise_lockfiles(profiles))
     errors.extend(check_aggregate_dispatch(profiles))
+    errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())
 
     for profile_id, profile in profiles.items():

@@ -1,5 +1,7 @@
 # Copy to .config/mise/config.toml.
 
+min_version = "2026.3.11"
+
 [settings]
 lockfile = true
 
@@ -57,13 +59,12 @@ esac
 
 ran=0
 dispatch() {
+  # Marker-selected fragments cannot be declared as static dependencies. Keep
+  # profiles sequential because mixed-language projects may share files and
+  # package-manager state; each child retains its own native task graph.
   mise run "$1:$task"
   ran=1
 }
-
-if [ "$task" = standards:check ]; then
-  mise run secrets
-fi
 
 if [ -f composer.json ]; then
   dispatch php
@@ -147,24 +148,25 @@ fi
 
 [tasks.fmt]
 description = "Format the project using detected language tasks"
-run = "mise run _dispatch -- fmt"
+run = [{ task = "_dispatch", args = ["fmt"] }]
 
 [tasks."fmt:check"]
 description = "Check formatting using detected language tasks"
-run = "mise run _dispatch -- fmt:check"
+run = [{ task = "_dispatch", args = ["fmt:check"] }]
 
 [tasks.lint]
 description = "Lint/analyze using detected language tasks"
-run = "mise run _dispatch -- lint"
+run = [{ task = "_dispatch", args = ["lint"] }]
 
 [tasks.test]
 description = "Run tests using detected language tasks"
-run = "mise run _dispatch -- test"
+run = [{ task = "_dispatch", args = ["test"] }]
 
 [tasks.standards]
 description = "Run standards autofixes using detected language tasks"
-run = "mise run _dispatch -- standards"
+run = [{ task = "_dispatch", args = ["standards"] }]
 
 [tasks."standards:check"]
 description = "Run standards CI checks using detected language tasks"
-run = "mise run _dispatch -- standards:check"
+depends = ["secrets"]
+run = [{ task = "_dispatch", args = ["standards:check"] }]

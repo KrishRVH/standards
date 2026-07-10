@@ -53,13 +53,13 @@ zig build -Doptimize=ReleaseSmall --summary all
 
 [tasks."zig:standards"]
 description = "Run the Zig standards workflow with autofixes"
-run = "mise run zig:fmt"
+depends = ["zig:fmt"]
 
 [tasks."zig:standards:check"]
 description = "Run the Zig standards CI gate"
-run = """
-mise run zig:fmt:check
-mise run zig:lint
-mise run zig:test
-mise run zig:release
-"""
+run = [
+  { task = "zig:fmt:check" },
+  { task = "zig:lint" },
+  { task = "zig:test" },
+  { task = "zig:release" },
+]

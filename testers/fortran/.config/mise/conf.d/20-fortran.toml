@@ -108,6 +108,7 @@ fi
 [tasks."fortran:lint"]
 description = "Run strict Fortran static checks"
 depends = ["fortran:manifest"]
+wait_for = ["fortran:fmt:check"]
 run = """
 set -eu
 
@@ -134,6 +135,7 @@ fi
 [tasks."fortran:test"]
 description = "Run Fortran tests"
 depends = ["fortran:manifest"]
+wait_for = ["fortran:lint"]
 run = """
 set -eu
 strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -Wno-error=unused-function -Wno-error=maybe-uninitialized -pedantic -fcheck=all -fbacktrace"
@@ -142,6 +144,8 @@ fpm test --compiler gfortran --profile debug --flag "$strict_flags"
 
 [tasks."fortran:doc"]
 description = "Generate Fortran API documentation"
+depends = ["fortran:manifest"]
+wait_for = ["fortran:test"]
 run = "ford ford.md"
 
 [tasks."fortran:clean"]
@@ -150,14 +154,14 @@ run = "fpm clean --all"
 
 [tasks."fortran:standards"]
 description = "Run the Fortran standards workflow with autofixes"
-run = "mise run fortran:fmt"
+depends = ["fortran:fmt"]
 
 [tasks."fortran:standards:check"]
 description = "Run the Fortran standards CI gate"
-run = """
-mise run fortran:fmt:check
-mise run fortran:manifest
-mise run fortran:lint
-mise run fortran:test
-mise run fortran:doc
-"""
+depends = [
+  "fortran:fmt:check",
+  "fortran:manifest",
+  "fortran:lint",
+  "fortran:test",
+  "fortran:doc",
+]

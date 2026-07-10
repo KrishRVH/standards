@@ -169,11 +169,13 @@ alr -n exec -- gnatformat --check -P "$test_project" -U --charset=utf-8 --width=
 [tasks."spark:lint"]
 description = "Compile SPARK/Ada with strict GNAT diagnostics"
 depends = ["spark:lock:check"]
+wait_for = ["spark:fmt:check"]
 run = "alr -n build --validation"
 
 [tasks."spark:prove"]
 description = "Prove SPARK contracts and absence of run-time errors"
 depends = ["spark:lock:check"]
+wait_for = ["spark:lint"]
 run = """
 set -eu
 project="${SPARK_PROJECT_FILE:-project_name.gpr}"
@@ -183,6 +185,7 @@ alr -n exec -- gnatprove -P "$project" -U --mode=all --level=4 --warnings=error 
 [tasks."spark:test"]
 description = "Build and run SPARK/Ada tests"
 depends = ["spark:lock:check"]
+wait_for = ["spark:prove"]
 run = """
 set -eu
 test_project="${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}"
@@ -192,15 +195,8 @@ alr -n exec -- gprbuild -P "$test_project" -p -o project-tests
 
 [tasks."spark:standards"]
 description = "Run the SPARK/Ada standards workflow with autofixes"
-run = "mise run spark:fmt"
+depends = ["spark:fmt"]
 
 [tasks."spark:standards:check"]
 description = "Run the SPARK/Ada standards CI gate"
-run = """
-mise run spark:fmt:check
-mise run spark:manifest
-mise run spark:lock:check
-mise run spark:lint
-mise run spark:prove
-mise run spark:test
-"""
+depends = ["spark:fmt:check", "spark:lint", "spark:prove", "spark:test"]
