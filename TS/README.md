@@ -38,13 +38,13 @@ config files. Remove `@eslint/js`, `eslint`, `eslint-config-prettier`, `globals`
 
 Remap the existing package scripts without changing the mise task names:
 
-| Script | Option B value |
-| --- | --- |
-| `format` | `biome format --write .` |
-| `format:check` | `biome format .` |
-| `lint` | `biome lint --error-on-warnings .` |
-| `lint:fix` | `biome lint --write --error-on-warnings .` |
-| `standards` | `biome check --write --error-on-warnings .` |
+| Script            | Option B value                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| `format`          | `biome format --write .`                                                               |
+| `format:check`    | `biome format .`                                                                       |
+| `lint`            | `biome lint --error-on-warnings .`                                                     |
+| `lint:fix`        | `biome lint --write --error-on-warnings .`                                             |
+| `standards`       | `biome check --write --error-on-warnings .`                                            |
 | `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run test && bun run audit` |
 
 Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.

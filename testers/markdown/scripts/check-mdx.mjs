@@ -6,18 +6,33 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 
 const SKIP_DIRECTORIES = new Set([
+  '.cache',
   '.git',
+  '.godot',
+  '.gradle',
+  '.kotlin',
+  '.lua_modules',
   '.next',
   '.nuxt',
+  '.stack-work',
   '.svelte-kit',
   '.turbo',
   '.vite',
+  '.zig-cache',
+  '_build',
   'build',
   'coverage',
+  'deps',
   'dist',
+  'dist-newstyle',
   'node_modules',
   'out',
   'sbom',
+  'target',
+  'vendor',
+  'zig-cache',
+  'zig-out',
+  'zig-pkg',
 ]);
 
 const findMdxFiles = async (directory) => {

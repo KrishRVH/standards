@@ -37,6 +37,6 @@ The defaults keep parallel execution enabled and cache outside the repository.
 PHPStan is the default static-analysis engine. PHPMD is limited to source
 maintainability smells such as complexity, oversized methods/classes, coupling,
 and high-signal clean-code hazards; PHPCS/Slevomat owns style and PHPStan owns
-type/correctness analysis. ShipMonk's dependency analyser is the single default
+type/correctness analysis. ShipMonk's dependency analyzer is the single default
 dependency hygiene tool because it covers unused dependencies, shadow/transitive
 dependencies, and `require`/`require-dev` placement in one pass.

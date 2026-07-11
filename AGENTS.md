@@ -21,8 +21,8 @@ knowledge.
 ## Principles
 
 - Complexity is the enemy. Prefer obvious files, direct data flow, and boring,
-  strict, portable defaults over clever local machinery. See:
-  https://grugbrain.dev/.
+  strict, portable defaults over clever local machinery. See
+  [grugbrain.dev](https://grugbrain.dev/).
 - `mise run ...` is the developer API; package managers, compilers, test
   runners, and Dagger stay behind mise tasks.
 - Prefer executable config as source of truth; docs should point at it, not
@@ -52,7 +52,10 @@ Everything a developer does goes through mise.
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run secrets`: scan the standards repository for secrets.
-- `mise run standards`: root Shell and all-fixture autofix workflow.
+- `mise run standards`: root Markdown and Shell plus all-fixture autofix
+  workflow.
+- `mise run md:standards`: format and lint the repository's Markdown and MDX.
+- `mise run md:standards:check`: check the repository's Markdown and MDX.
 - `mise run standards:biome:check`: validate the optional Biome TypeScript
   template with the pinned stable CLI.
 - `mise run standards:drift`: manifest/drift check for profile fixtures.
@@ -63,7 +66,7 @@ Everything a developer does goes through mise.
 - `mise run testers:standards:check:isolated`: run the representative Python
   fixture gate in Dagger.
 - `mise run standards:check`: root secret scan, Biome template validation,
-  drift and Shell checks, plus every fixture gate.
+  drift, Markdown, and Shell checks, plus every fixture gate.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing the relevant mise task itself. If install needs network, run it through

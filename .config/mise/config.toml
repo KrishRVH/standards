@@ -52,7 +52,11 @@ run = "mise run //testers/python:dagger:standards:check"
 
 [tasks.standards]
 description = "Run the standards repository autofix workflow"
-run = [{ task = "shell:standards" }, { task = "testers:standards" }]
+run = [
+  { task = "md:standards" },
+  { task = "shell:standards" },
+  { task = "testers:standards" },
+]
 
 [tasks."standards:check"]
 description = "Run the standards repository CI gate"
@@ -60,6 +64,7 @@ depends = [
   "secrets",
   "standards:biome:check",
   "standards:drift",
+  "md:standards:check",
   "shell:standards:check",
   "testers:standards:check",
 ]

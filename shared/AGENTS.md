@@ -15,7 +15,8 @@ knowledge.
 ## Principles
 
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
-  flow over clever abstractions. See: https://grugbrain.dev/.
+  flow over clever abstractions. See
+  [grugbrain.dev](https://grugbrain.dev/).
 - Design for agent legibility: conventional layouts, precise names and types,
   explicit inputs, outputs, and side effects, actionable failures, and stable
   tests at real boundaries.

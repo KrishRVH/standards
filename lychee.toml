@@ -1,0 +1,32 @@
+include_fragments = "anchor-only"
+include_verbatim = false
+no_progress = true
+
+exclude_path = [
+  "(^|/)\\.cache/",
+  "(^|/)\\.godot/",
+  "(^|/)\\.gradle/",
+  "(^|/)\\.kotlin/",
+  "(^|/)\\.lua_modules/",
+  "(^|/)\\.next/",
+  "(^|/)\\.nuxt/",
+  "(^|/)\\.stack-work/",
+  "(^|/)\\.svelte-kit/",
+  "(^|/)\\.turbo/",
+  "(^|/)\\.vite/",
+  "(^|/)\\.zig-cache/",
+  "(^|/)_build/",
+  "(^|/)build/",
+  "(^|/)coverage/",
+  "(^|/)deps/",
+  "(^|/)dist/",
+  "(^|/)dist-newstyle/",
+  "(^|/)node_modules/",
+  "(^|/)out/",
+  "(^|/)sbom/",
+  "(^|/)target/",
+  "(^|/)vendor/",
+  "(^|/)zig-cache/",
+  "(^|/)zig-out/",
+  "(^|/)zig-pkg/",
+]

@@ -37,7 +37,8 @@ deterministic commands should let an agent make and prove a narrow change.
   project. The root is an explicit mise monorepo over `testers/*`, retains
   separate fixture lockfiles, and bounds the monorepo scheduler to two
   top-level fixture jobs. The root `.config/mise/mise.lock` pins the Biome
-  alternative verifier, gitleaks, Python, and the root Shell tools.
+  alternative verifier, gitleaks, Python, and the root Markdown and Shell
+  tools. The root `bun.lock` pins the Markdown JavaScript dependencies.
 - `standards.manifest.toml`: the profile map used by agents and the root gate
   to find canonical templates, tester fixtures, task fragments, and exact
   mirror files.
@@ -206,10 +207,10 @@ Use the repo-local maintenance gate for local fixture checks:
 mise run standards:check
 ```
 
-That runs a root-wide secret scan, the pinned Biome alternative check, drift
-and Shell checks, and every tester fixture for C, C#, C++, Elixir, Fortran,
-GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust, Shell, SPARK/Ada,
-TypeScript, and Zig through
+That runs a root-wide secret scan, the pinned Biome alternative check, drift,
+Markdown, and Shell checks, and every tester fixture for C, C#, C++, Elixir,
+Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust,
+Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.

@@ -1,0 +1,41 @@
+[default]
+check-file = true
+check-filename = true
+locale = "en-us"
+
+[files]
+extend-exclude = [
+  ".cache",
+  ".godot",
+  ".gradle",
+  ".kotlin",
+  ".lua_modules",
+  ".next",
+  ".nuxt",
+  ".stack-work",
+  ".svelte-kit",
+  ".turbo",
+  ".vite",
+  ".zig-cache",
+  "_build",
+  "build",
+  "bun.lock",
+  "coverage",
+  "Dagger/dagger/src/index.ts",
+  "deps",
+  "dist",
+  "dist-newstyle",
+  "Mise/conf.d/20-spark.toml",
+  "node_modules",
+  "out",
+  "PHP/composer.json",
+  "sbom",
+  "target",
+  "testers/*/dagger/src/index.ts",
+  "testers/php/composer.json",
+  "testers/spark/.config/mise/conf.d/20-spark.toml",
+  "vendor",
+  "zig-cache",
+  "zig-out",
+  "zig-pkg",
+]

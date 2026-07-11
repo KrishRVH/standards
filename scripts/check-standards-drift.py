@@ -435,12 +435,31 @@ def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
 
         standards = tasks.get("standards")
         expected_standards_run = [
+            {"task": "md:standards"},
             {"task": "shell:standards"},
             {"task": "testers:standards"},
         ]
         if not isinstance(standards, dict) or standards.get("run") != expected_standards_run:
             errors.append(
                 f"{rel(config)} task standards must run {expected_standards_run!r} in order"
+            )
+
+        standards_check = tasks.get("standards:check")
+        expected_standards_check_depends = [
+            "secrets",
+            "standards:biome:check",
+            "standards:drift",
+            "md:standards:check",
+            "shell:standards:check",
+            "testers:standards:check",
+        ]
+        if (
+            not isinstance(standards_check, dict)
+            or standards_check.get("depends") != expected_standards_check_depends
+        ):
+            errors.append(
+                f"{rel(config)} task standards:check must depend on "
+                f"{expected_standards_check_depends!r} in order"
             )
 
     for profile_id, profile in profiles.items():
@@ -457,6 +476,22 @@ def check_root_shared_files() -> list[str]:
     errors: list[str] = []
     for item in ROOT_SHARED_MIRROR:
         errors.extend(compare_file("root", "shared file", ROOT / "shared" / item, ROOT / item))
+    errors.extend(
+        compare_file(
+            "root",
+            "Markdown task fragment",
+            ROOT / "Mise" / "conf.d" / "20-markdown.toml",
+            ROOT / ".config" / "mise" / "conf.d" / "20-markdown.toml",
+        )
+    )
+    errors.extend(
+        compare_file(
+            "root",
+            "Markdown MDX checker",
+            ROOT / "Markdown" / "scripts" / "check-mdx.mjs",
+            ROOT / "scripts" / "check-mdx.mjs",
+        )
+    )
     errors.extend(
         compare_file(
             "root",
