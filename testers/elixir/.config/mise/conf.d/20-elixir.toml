@@ -35,17 +35,17 @@ mix credo --strict
 mix xref graph --format cycles --label compile-connected --fail-above 0
 """
 
-[tasks."elixir:types"]
-description = "Run Elixir Dialyzer type analysis"
-depends = ["elixir:install"]
-wait_for = ["elixir:test"]
-run = "mix dialyzer"
-
 [tasks."elixir:test"]
 description = "Run Elixir tests"
 depends = ["elixir:install"]
 wait_for = ["elixir:lint"]
 run = "MIX_ENV=test mix test --warnings-as-errors"
+
+[tasks."elixir:types"]
+description = "Run Elixir Dialyzer type analysis"
+depends = ["elixir:install"]
+wait_for = ["elixir:test"]
+run = "mix dialyzer"
 
 [tasks."elixir:deps"]
 description = "Audit Elixir dependency hygiene"

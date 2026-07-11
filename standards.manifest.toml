@@ -37,7 +37,7 @@ template = "Fortran"
 tester = "testers/fortran"
 task_prefix = "fortran"
 task_fragment = "20-fortran.toml"
-mirror = [".fortls", "ford.md", "fpm.toml", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
+mirror = [".fortls", "ford.md", "fpm.toml", "scripts/check-fpm-manifest.py", "app/main.f90", "src/project_name.f90", "test/main.f90", "test/test_project_name.f90"]
 
 [profiles.gdscript]
 name = "GDScript"
@@ -53,7 +53,7 @@ template = "Go"
 tester = "testers/go"
 task_prefix = "go"
 task_fragment = "20-go.toml"
-mirror = [".golangci.yml", "boringlint/boringlint.go", "boringlint/boringlint_test.go", "boringlint/cmd/boringlint/main.go", "boringlint/go.mod", "boringlint/go.sum", "boringlint/testdata/src/rangefunc/rangefunc.go", "go.mod"]
+mirror = [".golangci.yml", "boringlint/boringlint.go", "boringlint/boringlint_test.go", "boringlint/cmd/boringlint/main.go", "boringlint/genericmethod_go127_test.go", "boringlint/go.mod", "boringlint/go.sum", "boringlint/testdata/src/iteratorsignature/iteratorsignature.go", "boringlint/testdata/src/rangefunc/rangefunc.go", "go.mod"]
 
 [profiles.haskell]
 name = "Haskell"
@@ -87,7 +87,7 @@ template = "Markdown"
 tester = "testers/markdown"
 task_prefix = "md"
 task_fragment = "20-markdown.toml"
-mirror = [".markdownlint-cli2.jsonc", "content/example.mdx", "docs/example.md", "lychee.toml", "package.json", "prettier.config.mjs", "scripts/check-mdx.mjs", "typos.toml"]
+mirror = [".markdownlint-cli2.jsonc", ".prettierignore", "content/example.mdx", "docs/example.md", "lychee.toml", "package.json", "prettier.config.mjs", "scripts/check-mdx.mjs", "typos.toml"]
 required_tester_files = ["bun.lock"]
 
 [profiles.php]

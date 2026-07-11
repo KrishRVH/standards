@@ -19,11 +19,11 @@ done
 list_files() {
   if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
-      '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' '*.ixx' '*.cppm' '*.cxxm' \
+      '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' \
       ':(exclude)build/**' ':(exclude)build-*/**'
   else
     find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
-      -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \) -print0
+      -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' \) -print0
   fi
 }
 

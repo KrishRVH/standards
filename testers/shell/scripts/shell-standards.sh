@@ -10,23 +10,23 @@ project_files() {
     git ls-files -co --exclude-standard
   else
     find . \
-      \( -path './.git' -o -path './node_modules' -o -path './vendor' \
-      -o -path './build' -o -path './dist' -o -path './out' -o -path './coverage' \
-      -o -path './.cache' -o -path './.next' -o -path './.nuxt' -o -path './.turbo' \
-      -o -path './.vite' -o -path './.svelte-kit' -o -path './target' \
-      -o -path './bin/Debug' -o -path './bin/Release' -o -path './obj' \
-      -o -path './.gradle' -o -path './.kotlin' -o -path './_build' -o -path './deps' \
-      -o -path './dist-newstyle' -o -path './.stack-work' -o -path './.zig-cache' \
-      -o -path './zig-cache' -o -path './zig-out' -o -path './zig-pkg' \
-      -o -path './.phpunit.cache' -o -path './.phpstan.cache' \
-      -o -path './.lua-language-server' -o -path './.elixir_ls' \) -prune \
+      -type d \( -name .git -o -name node_modules -o -name vendor \
+      -o -name build -o -name dist -o -name out -o -name coverage \
+      -o -name .cache -o -name .next -o -name .nuxt -o -name .turbo \
+      -o -name .vite -o -name .svelte-kit -o -name target \
+      -o -path '*/bin/Debug' -o -path '*/bin/Release' -o -name obj \
+      -o -name .gradle -o -name .kotlin -o -name _build -o -name deps \
+      -o -name dist-newstyle -o -name .stack-work -o -name .zig-cache \
+      -o -name zig-cache -o -name zig-out -o -name zig-pkg \
+      -o -name .phpunit.cache -o -name .phpstan.cache \
+      -o -name .lua-language-server -o -name .elixir_ls \) -prune \
       -o -type f -print | sed 's#^./##'
   fi
 }
 
 first_line() {
-  local line
-  IFS= read -r line < "$1" || line=""
+  local line=""
+  IFS= read -r line < "$1" || :
   printf '%s' "${line}"
 }
 

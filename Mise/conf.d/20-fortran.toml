@@ -7,6 +7,7 @@ FPM_FC = "gfortran"
 "conda:findent" = "4.3.7"
 "conda:fortls" = "3.2.2"
 "conda:ford" = "7.0.13"
+python = "3.14.6"
 
 [tasks."fortran:install"]
 description = "Install pinned Fortran project tooling"
@@ -17,6 +18,7 @@ gfortran --version | sed -n '1p'
 findent --version
 fortls --version
 ford --version
+python --version
 """
 
 [tasks."fortran:manifest"]
@@ -24,20 +26,7 @@ description = "Check Fortran manifest and source policy"
 run = """
 set -eu
 
-if [ ! -f fpm.toml ]; then
-  echo "fpm.toml is required for the Fortran standard." >&2
-  exit 1
-fi
-
-if grep -nE "=[[:space:]]*['\\\"]\\*['\\\"]" fpm.toml; then
-  echo "Wildcard fpm dependency versions are not allowed; pin a tag, rev, or exact registry version." >&2
-  exit 1
-fi
-
-if grep -nE 'branch[[:space:]]*=' fpm.toml; then
-  echo "Moving branch dependencies are not allowed; pin a tag or rev." >&2
-  exit 1
-fi
+python scripts/check-fpm-manifest.py fpm.toml
 
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fixed_form="$(git ls-files --cached --others --exclude-standard -- '*.f' '*.F' '*.for' '*.FOR' '*.ftn' '*.FTN')"
@@ -74,7 +63,7 @@ if [ -s "$list" ]; then
     tmp="$(mktemp)"
     trap "rm -f \"$tmp\"" EXIT
     findent -ifree -ofree -i3 -Rr < "$1" > "$tmp"
-    mv "$tmp" "$1"
+    cat "$tmp" > "$1"
   ' sh {} < "$list"
 fi
 """

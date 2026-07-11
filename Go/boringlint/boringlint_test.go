@@ -1,4 +1,4 @@
-package boringlint_test
+package boringlint
 
 import (
 	"go/ast"
@@ -7,14 +7,18 @@ import (
 	"testing"
 
 	"golang.org/x/tools/go/analysis/analysistest"
-
-	"example.com/project/boringlint"
 )
 
-func TestNoRangeFunc(t *testing.T) {
+func TestNoIterator(t *testing.T) {
 	t.Parallel()
 
-	analysistest.Run(t, analysistest.TestData(), boringlint.NoRangeFunc, "rangefunc")
+	analysistest.Run(
+		t,
+		analysistest.TestData(),
+		NoIterator,
+		"iteratorsignature",
+		"rangefunc",
+	)
 }
 
 func TestReportGenericMethods(t *testing.T) {
@@ -36,7 +40,7 @@ func TestReportGenericMethods(t *testing.T) {
 	}}
 
 	var got []string
-	boringlint.ReportGenericMethods(file, func(decl *ast.FuncDecl) {
+	reportGenericMethods(file, func(decl *ast.FuncDecl) {
 		got = append(got, decl.Name.Name)
 	})
 	if len(got) != 1 || got[0] != "Map" {
@@ -68,7 +72,7 @@ func Map[V, U any](value V, convert func(V) U) U { return convert(value) }
 	}
 
 	var got []string
-	boringlint.ReportGenericMethods(file, func(decl *ast.FuncDecl) {
+	reportGenericMethods(file, func(decl *ast.FuncDecl) {
 		got = append(got, decl.Name.Name)
 	})
 

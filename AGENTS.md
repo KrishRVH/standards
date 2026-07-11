@@ -47,7 +47,8 @@ knowledge.
 
 ## Commands
 
-Everything a developer does goes through mise.
+Repository development goes through mise. The standalone workstation bootstrap
+scripts are the explicit exception because they install mise itself.
 
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.

@@ -66,7 +66,7 @@ description = "Check local and external Markdown/MDX/HTML links"
 run = "lychee --config lychee.toml --root-dir \"$PWD\" --cache --extensions md,mdx,html ."
 
 [tasks."md:typos"]
-description = "Check Markdown/MDX prose and filenames for typos"
+description = "Check project files and filenames for typos"
 run = "typos --config typos.toml ."
 
 [tasks."md:test"]

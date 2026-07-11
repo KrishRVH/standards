@@ -56,8 +56,10 @@ cp shared/.gitignore /path/to/project/.gitignore
 ```
 
 `extras/workstation/macbook-setup.sh` and `extras/workstation/wsl-setup.sh` are
-optional bootstrap scripts for personal workstation setup. Read them first, then
-run the relevant script directly from the target machine.
+optional bootstrap scripts for personal workstation setup. They are the explicit
+exception to the mise-only project command surface because they install mise
+itself. Read them first, then run the relevant script directly from the target
+machine.
 
 Then copy the mise baseline:
 

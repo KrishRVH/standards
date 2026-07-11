@@ -59,8 +59,7 @@
       "filter": ["**/*.mdx"],
       "combine": "merge",
       "config": {
-        "MD033": false,
-        "MD041": false
+        "MD033": false
       }
     }
   ]

@@ -1,7 +1,10 @@
-import { compile } from '@mdx-js/mdx';
-import rehypeShiki from '@shikijs/rehype';
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { compile } from '@mdx-js/mdx';
+import rehypeShiki from '@shikijs/rehype';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 
@@ -57,6 +60,23 @@ const findMdxFiles = async (directory) => {
   return files;
 };
 
+const findGitMdxFiles = (directory) => {
+  const result = spawnSync(
+    'git',
+    ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', '*.mdx'],
+    { cwd: directory, encoding: 'utf8' },
+  );
+  if (result.status !== 0) {
+    return null;
+  }
+
+  return result.stdout
+    .split('\0')
+    .filter(Boolean)
+    .map((file) => path.resolve(directory, file))
+    .filter(existsSync);
+};
+
 const compileMdxFile = async (file) => {
   const source = await readFile(file, 'utf8');
 
@@ -67,7 +87,8 @@ const compileMdxFile = async (file) => {
 };
 
 const main = async () => {
-  const files = (await findMdxFiles(process.cwd())).sort();
+  const directory = process.cwd();
+  const files = (findGitMdxFiles(directory) ?? (await findMdxFiles(directory))).sort();
 
   if (files.length === 0) {
     console.log('No MDX files found.');

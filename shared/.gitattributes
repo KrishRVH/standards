@@ -129,6 +129,7 @@ cabal.project.freeze text linguist-generated=true
 # Docs/data
 *.csv text
 *.md text diff=markdown
+*.mdx text diff=markdown
 *.sql text
 *.txt text
 

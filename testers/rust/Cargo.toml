@@ -15,7 +15,6 @@ future_incompatible = { level = "deny", priority = -1 }
 unexpected_cfgs = "deny"
 unreachable_pub = "warn"
 unsafe_code = "forbid"
-unsafe_op_in_unsafe_fn = "deny"
 
 [lints.rustdoc]
 all = { level = "warn", priority = -1 }
@@ -28,12 +27,9 @@ private_intra_doc_links = "deny"
 [lints.clippy]
 # Set lint groups with lower priority
 all = { level = "warn", priority = -1 }
-complexity = { level = "warn", priority = -1 }
 correctness = { level = "deny", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-perf = { level = "warn", priority = -1 }
-style = { level = "warn", priority = -1 }
 suspicious = { level = "deny", priority = -1 }
 
 # Numeric casts are common at system and boundary layers. Tighten per project
@@ -53,7 +49,6 @@ map_err_ignore = "warn"
 panic = "warn"
 todo = "warn"
 unimplemented = "warn"
-undocumented_unsafe_blocks = "warn"
 unused_result_ok = "warn"
 unwrap_used = "warn"
 wildcard_dependencies = "deny"

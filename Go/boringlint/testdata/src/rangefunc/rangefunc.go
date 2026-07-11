@@ -2,14 +2,14 @@ package rangefunc
 
 import "iter"
 
-type localSeq func(func(string) bool)
+type localSeq func(func(string) bool) // want `iterator-shaped type`
 
-type firstIntSeq func(func(int) bool)
+type firstIntSeq func(func(int) bool) // want `iterator-shaped type`
 
-type secondIntSeq func(func(int) bool)
+type secondIntSeq func(func(int) bool) // want `iterator-shaped type`
 
 type seqLike[T any] interface {
-	~func(func(T) bool)
+	~func(func(T) bool) // want `iterator-shaped type`
 }
 
 type sliceLike[T any] interface {
@@ -17,16 +17,16 @@ type sliceLike[T any] interface {
 }
 
 type namedSeqLike interface {
-	firstIntSeq | secondIntSeq
+	firstIntSeq | secondIntSeq // want `iterator-shaped type` `iterator-shaped type`
 }
 
 type seqOrSlice interface {
-	~func(func(int) bool) | ~[]int
+	~func(func(int) bool) | ~[]int // want `iterator-shaped type`
 }
 
 type onlySeq interface {
 	seqOrSlice
-	~func(func(int) bool)
+	~func(func(int) bool) // want `iterator-shaped type`
 }
 
 type onlySlice interface {
@@ -34,7 +34,7 @@ type onlySlice interface {
 	~[]int
 }
 
-func yieldFunc(yield func(int) bool) {
+func yieldFunc(yield func(int) bool) { // want `iterator-shaped type`
 	for index := 0; index < 3; index++ {
 		if !yield(index) {
 			return
@@ -42,11 +42,11 @@ func yieldFunc(yield func(int) bool) {
 	}
 }
 
-func makeLocalSeq() localSeq {
+func makeLocalSeq() localSeq { // want `iterator-shaped type`
 	return nil
 }
 
-func makeIterSeq() iter.Seq[int] {
+func makeIterSeq() iter.Seq[int] { // want `iterator-shaped type`
 	return func(yield func(int) bool) {
 		yield(1)
 	}
@@ -64,19 +64,19 @@ func rangeFunctions() {
 	}
 }
 
-func rangeGenericFunction[S seqLike[int]](sequence S) {
+func rangeGenericFunction[S seqLike[int]](sequence S) { // want `iterator-shaped type`
 	for value := range sequence { // want `range over a function value`
 		_ = value
 	}
 }
 
-func rangeNamedUnion[S namedSeqLike](sequence S) {
+func rangeNamedUnion[S namedSeqLike](sequence S) { // want `iterator-shaped type`
 	for value := range sequence { // want `range over a function value`
 		_ = value
 	}
 }
 
-func rangeIntersection[S onlySeq](sequence S) {
+func rangeIntersection[S onlySeq](sequence S) { // want `iterator-shaped type`
 	for value := range sequence { // want `range over a function value`
 		_ = value
 	}

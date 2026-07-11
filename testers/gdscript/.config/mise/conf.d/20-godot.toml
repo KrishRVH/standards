@@ -111,14 +111,21 @@ check_metadata=0
 metadata_before=
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   check_metadata=1
-  metadata_before="$(git status --porcelain -- '*.uid' '*.import')"
+  metadata_snapshot() {
+    git status --porcelain -- '*.uid' '*.import'
+    git ls-files --cached --others --exclude-standard -z -- '*.uid' '*.import' |
+      xargs -0 -n 1 sh -c '
+        [ ! -f "$1" ] || git hash-object -- "$1"
+      ' sh
+  }
+  metadata_before="$(metadata_snapshot)"
 fi
 run_godot_checked --headless --path . --import
 if [ "$check_metadata" -eq 1 ]; then
-  metadata_after="$(git status --porcelain -- '*.uid' '*.import')"
+  metadata_after="$(metadata_snapshot)"
   if [ "$metadata_before" != "$metadata_after" ]; then
     echo "Godot import metadata changed; commit the generated files:" >&2
-    printf '%s\n' "$metadata_after" >&2
+    git status --porcelain -- '*.uid' '*.import' >&2
     exit 1
   fi
 fi

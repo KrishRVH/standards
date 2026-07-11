@@ -652,7 +652,7 @@ check_dagger_container_runtime() {
 
   warn "dagger is installed, but no running Docker- or Podman-compatible container runtime was found"
   warn "install/start Docker Desktop, Colima, Podman, or another supported runtime before using dagger"
-  return 0
+  return 1
 }
 
 write_zsh_config() {

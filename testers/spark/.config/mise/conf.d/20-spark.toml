@@ -52,7 +52,7 @@ else
 fi
 
 missing_spark_mode="$(
-  find . -type d \\( -name .git -o -name alire -o -name build -o -name config -o -name obj \\) -prune \
+  find . -type d \\( -path './.git' -o -path './alire' -o -path './build' -o -path './config' -o -path './obj' \\) -prune \
     -o -type f \\( -name '*.ads' -o -name '*.adb' \\) \
     ! -exec awk '
       {

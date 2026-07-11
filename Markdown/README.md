@@ -7,6 +7,7 @@ Copy these files into a project alongside `Mise/conf.d/20-markdown.toml`:
 
 ```text
 .markdownlint-cli2.jsonc
+.prettierignore
 lychee.toml
 package.json
 prettier.config.mjs

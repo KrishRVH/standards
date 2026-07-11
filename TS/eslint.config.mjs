@@ -103,20 +103,13 @@ export default defineConfig(
     name: 'typescript/strict-typechecked',
     files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
     ignores: ['**/*.d.ts'],
+    extends: [...tseslint.configs.strictTypeChecked],
     languageOptions: {
-      parser: tseslint.parser,
       parserOptions: {
-        ecmaFeatures: { jsx: true },
-        ecmaVersion: 2024,
-
-        /**
-         * Enable TS project service for type-aware rules (no-floating-promises, etc.).
-         */
         projectService: true,
         tsconfigRootDir: __dirname,
       },
     },
-    extends: [...tseslint.configs.strictTypeChecked],
     rules: {
       /**
        * Ban TS constructs that require special emit semantics or obscure module structure.
@@ -221,13 +214,6 @@ export default defineConfig(
   {
     name: 'typescript/dts-ambient-ok',
     files: ['**/*.d.ts'],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        ecmaVersion: 2024,
-        sourceType: 'module',
-      },
-    },
     rules: {
       'no-restricted-syntax': [
         'error',

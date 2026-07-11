@@ -9,7 +9,7 @@ import (
 
 func main() {
 	unitchecker.Main(
-		boringlint.NoRangeFunc,
+		boringlint.NoIterator,
 		boringlint.NoGenericMethod,
 	)
 }

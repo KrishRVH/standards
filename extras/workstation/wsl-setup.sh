@@ -421,7 +421,7 @@ version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
 
 install_latest_neovim() {
   local min_version="$1"
-  local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir
+  local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir downloaded_version
 
   latest_json="$(curl_fetch https://api.github.com/repos/neovim/neovim/releases/latest)"
   latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
@@ -448,17 +448,21 @@ install_latest_neovim() {
   asset_dir="nvim-linux-$asset_arch"
   url="https://github.com/neovim/neovim/releases/download/${latest_tag}/${asset_dir}.tar.gz"
 
-  # Remove Ubuntu's neovim runtime to avoid an older /usr/bin/nvim shadowing
-  # the managed upstream install.
-  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
-    apt_get remove neovim neovim-runtime || true
-    apt_get autoremove || true
-  fi
-
   tmpdir="$(mktemp -d)"
   curl_fetch "$url" -o "$tmpdir/nvim.tar.gz"
   tar -C "$tmpdir" -xzf "$tmpdir/nvim.tar.gz"
   [[ -x "$tmpdir/$asset_dir/bin/nvim" ]] || die "downloaded Neovim archive did not contain $asset_dir/bin/nvim"
+  downloaded_version="$(
+    "$tmpdir/$asset_dir/bin/nvim" --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
+  )"
+  [[ "$downloaded_version" == "$latest_version" ]] ||
+    die "downloaded Neovim reports version $downloaded_version, expected $latest_version"
+
+  # Remove Ubuntu's neovim runtime only after its replacement is ready.
+  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
+    apt_get remove neovim neovim-runtime || true
+    apt_get autoremove || true
+  fi
 
   sudo install -d -m 0755 /opt /usr/local/bin
   sudo rm -rf "/opt/${asset_dir}.new" "/opt/${asset_dir}.previous"
@@ -837,7 +841,9 @@ IFS=':' read -r -a roots <<< "$roots_raw"
 candidates=()
 for r in "${roots[@]}"; do
   [[ -d "$r" ]] || continue
-  while IFS= read -r d; do candidates+=("$d"); done < <(find "$r" -mindepth 1 -maxdepth 2 -type d 2>/dev/null)
+  while IFS= read -r d; do candidates+=("$d"); done < <(
+    find "$r" -mindepth 1 -maxdepth 2 -type d \( -name .git -prune -o -print \) 2>/dev/null
+  )
 done
 
 mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | awk '!seen[$0]++')
