@@ -27,6 +27,11 @@ threshold.
 
 ## Restricted Go dialect
 
+These guards preserve the Go this template values: obvious, self-documenting,
+easy to grok, self-contained, concise, and readily apparent. Elegance here
+means directness: local data and control flow stay visible, without unwarranted
+ceremony or extra language machinery.
+
 Project code rejects two language directions after Go 1.22:
 
 - Go 1.23 range-over-function iterators. `boringlint/norangefunc` rejects the
