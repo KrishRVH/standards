@@ -10,11 +10,13 @@ linters:
     - bidichk
     - bodyclose
     - copyloopvar
+    - depguard
     - dupl
     - durationcheck
     - errcheck
     - errchkjson
     - errorlint
+    - forbidigo
     - gocheckcompilerdirectives
     - gocognit
     - goconst
@@ -39,8 +41,32 @@ linters:
     - usetesting
     - wastedassign
   settings:
+    depguard:
+      rules:
+        no-lazy-iterators:
+          deny:
+            - pkg: "iter$"
+              desc: >-
+                iter.Seq, iter.Seq2, and iter.Pull are forbidden; materialize
+                dependency-returned iterators at the call boundary
     dupl:
       threshold: 120
+    forbidigo:
+      analyze-types: true
+      exclude-godoc-examples: false
+      forbid:
+        - pattern: '^maps\.(All|Keys|Values)$'
+          pkg: '^maps$'
+          msg: banned iterator producer; use a plain map loop
+        - pattern: '^slices\.(All|Backward|Chunk|Values)$'
+          pkg: '^slices$'
+          msg: banned iterator producer; use a plain indexed or range loop
+        - pattern: '^strings\.(FieldsFuncSeq|FieldsSeq|Lines|SplitAfterSeq|SplitSeq)$'
+          pkg: '^strings$'
+          msg: banned iterator producer; use eager strings helpers or bufio.Scanner
+        - pattern: '^bytes\.(FieldsFuncSeq|FieldsSeq|Lines|SplitAfterSeq|SplitSeq)$'
+          pkg: '^bytes$'
+          msg: banned iterator producer; use eager bytes helpers or bufio.Scanner
     gocognit:
       min-complexity: 15
     gocritic:
@@ -50,6 +76,9 @@ linters:
       disabled-checks:
         - commentedOutCode
         - hugeParam
+    nolintlint:
+      require-explanation: true
+      require-specific: true
     revive:
       severity: error
       rules:

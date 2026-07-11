@@ -96,8 +96,9 @@ Finally, copy the language template files that match the project:
 - `GDScript/`: Godot 4.7 baseline with typed GDScript warnings, GDToolkit
   formatting/linting, native headless import, parse/type and resource-load
   checks, and a small dependency-free test entrypoint.
-- `Go/`: Go module baseline with gofumpt, module hygiene, `go vet`,
-  golangci-lint, govulncheck, tests, race, coverage, and benchmark tasks.
+- `Go/`: Go module baseline with gofumpt, module hygiene, `go vet`, a custom
+  restricted-dialect analyzer, golangci-lint, govulncheck, tests, race,
+  coverage, and benchmark tasks.
 - `Haskell/`: Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
   errors in the local gate, named Haddock/source-distribution tasks, and
   optional freeze support.
