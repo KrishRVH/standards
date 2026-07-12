@@ -4,8 +4,8 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   cert-*,
   clang-analyzer-*,
-  portability-*,
   performance-*,
+  portability-*,
   readability-misleading-indentation
 WarningsAsErrors: 'bugprone-*,clang-analyzer-*'
 HeaderFilterRegex: '^(include|src|tests)/.*\.(c|h)$'

@@ -153,6 +153,17 @@ conda_deps = [
     "libiconv-1.18-h3b78370_2",
 ]
 
+[[tools."http:odinfmt"]]
+version = "nightly"
+backend = "http:odinfmt"
+
+[tools."http:odinfmt".options]
+rename_exe = "odinfmt"
+
+[tools."http:odinfmt"."platforms.linux-x64"]
+checksum = "sha256:c28838ffa636586d610faf5dd1ba6290fc9317e1045067c6709c6a43eb7d63b1"
+url = "https://github.com/DanielGavin/ols/releases/download/nightly/ols-x86_64-unknown-linux-gnu.zip"
+
 [[tools.odin]]
 version = "dev-2026-07a"
 backend = "github:odin-lang/Odin"

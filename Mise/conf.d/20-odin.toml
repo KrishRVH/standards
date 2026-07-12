@@ -2,13 +2,95 @@
 clang = { version = "22.1.8", os = ["linux"] }
 odin = "dev-2026-07a"
 
+[tools."http:odinfmt"]
+version = "nightly"
+url = 'https://github.com/DanielGavin/ols/releases/download/{{ version }}/ols-{{ arch(x64="x86_64") }}-{{ os(macos="darwin", linux="unknown-linux-gnu", windows="pc-windows-msvc") }}.zip'
+checksum_url = "https://api.github.com/repos/DanielGavin/ols/releases/tags/{{ version }}"
+checksum_expr = 'filter(fromJSON(body).assets, { #.name == filename })[0].digest'
+rename_exe = "odinfmt"
+
 [tasks."odin:fmt"]
-description = "Validate Odin style; Odin currently has no safe compatible formatter"
-run = [{ task = "odin:fmt:check" }]
+description = "Format project-owned Odin source with odinfmt"
+run = """
+set -eu
+list="$(mktemp)"
+trap 'rm -f "$list"' EXIT
+trap 'exit 1' HUP INT TERM
+
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- src/project_name tests > "$list"
+else
+  find src/project_name tests \\( -type f -o -type l \\) -name '*.odin' -print0 > "$list"
+fi
+
+if [ -s "$list" ]; then
+  xargs -0 -n 1 sh -c '
+    file="$1"
+    case "$file" in
+      *.odin) ;;
+      *) exit 0 ;;
+    esac
+
+    if [ -L "$file" ]; then
+      echo "Refusing to replace Odin symlink: $file" >&2
+      exit 1
+    fi
+    if [ ! -e "$file" ]; then
+      exit 0
+    fi
+    if [ ! -f "$file" ]; then
+      echo "Odin source is not a regular file: $file" >&2
+      exit 1
+    fi
+
+    candidate="$(mktemp "${file}.odinfmt.XXXXXX")"
+    cleanup() {
+      if [ -n "$candidate" ]; then
+        rm -f "$candidate"
+      fi
+    }
+    trap cleanup EXIT
+    trap "exit 1" HUP INT TERM
+
+    cp -p "$file" "$candidate"
+    if ! formatted="$(odinfmt -stdin -config:odinfmt.json < "$file")"; then
+      echo "odinfmt failed: $file" >&2
+      exit 1
+    fi
+    if ! printf "%s\n" "$formatted" > "$candidate"; then
+      echo "Could not write formatted candidate: $file" >&2
+      exit 1
+    fi
+
+    if cmp -s "$file" "$candidate"; then
+      rm -f "$candidate"
+    else
+      compare_status="$?"
+      if [ "$compare_status" -ne 1 ]; then
+        echo "Could not compare formatted candidate: $file" >&2
+        exit 1
+      fi
+      if ! mv -f "$candidate" "$file"; then
+        echo "Could not replace formatted source: $file" >&2
+        exit 1
+      fi
+    fi
+    candidate=""
+    trap - EXIT HUP INT TERM
+  ' sh < "$list"
+fi
+"""
 
 [tasks."odin:fmt:check"]
-description = "Validate Odin style with strict compiler checks"
+description = "Validate Odin style with strict compiler checks; odinfmt has no check mode"
 run = [{ task = "odin:lint" }]
+
+[tasks."odin:fmt:update"]
+description = "Refresh the odinfmt nightly lock and force-reinstall it"
+run = [
+  "mise lock http:odinfmt",
+  "mise install --force --locked http:odinfmt@nightly",
+]
 
 [tasks."odin:lint"]
 description = "Run strict Odin compiler and vet checks"
@@ -78,8 +160,8 @@ odin test tests \
 """
 
 [tasks."odin:standards"]
-description = "Run the Odin standards workflow"
-run = [{ task = "odin:fmt" }]
+description = "Format Odin source, then validate it with the compiler"
+run = [{ task = "odin:fmt" }, { task = "odin:lint" }]
 
 [tasks."odin:standards:check"]
 description = "Run the Odin standards CI gate"

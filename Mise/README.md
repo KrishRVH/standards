@@ -3,9 +3,9 @@
 Copy `config.toml` to `.config/mise/config.toml` and copy the selected
 `conf.d/*.toml` files to `.config/mise/conf.d/`.
 
-The copyable configuration requires mise `2026.3.11` or newer. That is the
-first release supporting the structured task references with arguments used by
-the aggregate entrypoints; it is a minimum, not an executable pin.
+The copyable configuration requires mise `2026.6.12` or newer. That is the
+first release supporting the checksum-backed HTTP lock metadata used by the
+Odin formatter; it is a minimum, not an executable pin.
 
 The defaults assume this rule: every developer command goes through `mise run`.
 Dagger is optional. If a project keeps `conf.d/10-dagger.toml`, Dagger is
@@ -98,15 +98,18 @@ The Rust task file runs Cargo in workspace and locked modes, generates a local
 denied, runs doctests, and installs pinned `cargo-deny` into `.cargo-tools` for
 dependency policy checks.
 
-The Odin task file uses the version-matched compiler as the style, vet, and
-test authority. Its `fmt` entrypoint is intentionally non-mutating because the
-compiler has no safely package-scoped formatter and the current external
-formatter trails the language. The required tests retain native parallelism and
-a fresh reported seed while enabling bad-memory failure tracking, debug
-AddressSanitizer, and a separate optimized lane. The fixture is verified on
-Linux x64 with pinned Clang. Official builds on macOS require the Xcode
-command-line tools, and Windows requires MSVC and the Windows SDK; this
-repository does not verify those hosts or FreeBSD.
+The Odin task file uses the OLS `odinfmt` nightly for project-scoped developer
+formatting and the version-matched compiler as the style, vet, and test
+authority. A fail-closed adapter avoids the formatter's unsafe in-place write
+path; the non-mutating `fmt:check` remains compiler-owned because `odinfmt` has
+no check mode. Its explicit update task relocks and force-reinstalls the mutable
+nightly so warm and cold machines converge. The required tests retain native
+parallelism and a fresh reported seed while enabling bad-memory failure
+tracking, debug AddressSanitizer, and a separate optimized lane. The fixture is
+verified on Linux x64 with pinned Clang. Official builds on macOS require the
+Xcode command-line tools, and Windows requires MSVC and the Windows SDK; this
+repository does not verify those hosts or FreeBSD. The formatter adapter
+requires a POSIX shell.
 
 The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
 rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It

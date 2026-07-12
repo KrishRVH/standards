@@ -27,7 +27,10 @@ done
 list_files() {
   if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
-      '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**'
+      '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
+      while IFS= read -r -d '' file; do
+        printf '%s/%s\0' "$SRC_ROOT" "$file"
+      done
   else
     find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
       -o -type f \( -name '*.c' -o -name '*.h' \) -print0
@@ -37,7 +40,10 @@ list_files() {
 list_c_files() {
   if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
-      '*.c' ':(exclude)build/**' ':(exclude)build-*/**'
+      '*.c' ':(exclude)build/**' ':(exclude)build-*/**' |
+      while IFS= read -r -d '' file; do
+        printf '%s/%s\0' "$SRC_ROOT" "$file"
+      done
   else
     find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
       -o -type f -name '*.c' -print0

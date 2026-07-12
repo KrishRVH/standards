@@ -4,28 +4,36 @@ Research date: 2026-07-12 (America/Chicago)
 
 This note records the durable decisions behind the Odin profile. Executable
 configuration in `Mise/conf.d/20-odin.toml` remains the source of truth.
-Primary sources are the official Odin documentation and creator-maintained
-repositories, plus mise documentation for installation and task behavior.
+Primary sources are the official Odin documentation, the relevant maintainers'
+repositories, and mise documentation for installation and task behavior.
 
 ## Decision
 
-Use the version-matched Odin compiler as the parser, style checker, vet tool,
-and test runner. Pin the latest reviewed official release and its mise lock
-data. Pin Clang only on Linux, where the official prebuilt compiler uses it for
-linking.
+Use the version-matched Odin compiler as the assurance authority: parser, style
+checker, vet tool, and test runner. Pin the latest reviewed official release and
+its mise lock data. Pin Clang only on Linux, where the official prebuilt
+compiler uses it for linking.
 
-Do not add a package manager, build framework, coverage shim, editor service, or
-third-party formatter to the generic baseline. None removes enough real
-complexity to justify another moving part.
+Use the reviewed OLS `odinfmt` nightly as a mutating developer formatter. Keep
+strict compiler checks as the non-mutating format-check and CI contract; the
+formatter does not replace them. Do not add a package manager, build framework,
+coverage shim, or editor service to the generic baseline.
 
 ## Toolchain
 
-The profile pins:
+The profile pins the compiler and declares the reviewed formatter channel:
 
 ```toml
 [tools]
 clang = { version = "22.1.8", os = ["linux"] }
 odin = "dev-2026-07a"
+
+[tools."http:odinfmt"]
+version = "nightly"
+url = 'https://github.com/DanielGavin/ols/releases/download/{{ version }}/ols-{{ arch(x64="x86_64") }}-{{ os(macos="darwin", linux="unknown-linux-gnu", windows="pc-windows-msvc") }}.zip'
+checksum_url = "https://api.github.com/repos/DanielGavin/ols/releases/tags/{{ version }}"
+checksum_expr = 'filter(fromJSON(body).assets, { #.name == filename })[0].digest'
+rename_exe = "odinfmt"
 ```
 
 `dev-2026-07a` was the latest official release on the research date. It
@@ -85,17 +93,114 @@ The compiler has no `fmt` command. Its native `strip-semicolon` command
 traverses every parsed package and can rewrite imported collection files, so it
 is unsafe as a generic project-scoped formatter.
 
-The released `odinfmt` considered during research lagged current compiler
-syntax, had no stable check-only contract, and made broader policy choices than
-this catalog could safely adopt. A floating nightly would weaken the exact
-toolchain pin.
+`odinfmt` is maintained in Daniel Gavin's OLS repository. It is not part of the
+Odin compiler repository or authored by the language creator, but the official
+Odin site showcases OLS under Daniel's authorship and OLS enables `odinfmt`
+formatting by default. This makes it first-class ecosystem tooling rather than
+an arbitrary formatter.
 
-Therefore `odin:fmt` and `odin:fmt:check` are non-mutating aliases of the
-strict compiler check. Formatting remains manual until a versioned formatter
-can reliably limit writes to project-owned files.
+The latest versioned OLS release was older than the pinned compiler during this
+review. OLS describes itself as early-development software that tracks Odin
+`master`, and its nightly workflow builds against `master`. Adopt the reviewed
+nightly for DevEx while retaining the released compiler as the sole assurance
+authority.
+
+### Reviewed nightly snapshot
+
+The 2026-07-12 nightly is release `352679484`, published from OLS commit
+`caa4450400cc0380e15a20732945f8462b0ccc31` by successful workflow run
+`29181151314`. Its uploaded assets and GitHub-provided SHA-256 digests were:
+
+| Asset                              | SHA-256                                                            |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| `ols-arm64-darwin.zip`             | `b6f454fc35be737eccd2d1116223a35acf9b5ea0fb84cb3e3f6bcaa7dd01354a` |
+| `ols-arm64-unknown-linux-gnu.zip`  | `92c07aec7bfcaac5d9b0b24b9ebe2522a6124b6407d2d05c969cedc2dd36bfdf` |
+| `ols-x86_64-darwin.zip`            | `1adc40829b41af29dd9083d4cc2d7c43da5d9f92b89ec642c447b4d61a49e324` |
+| `ols-x86_64-pc-windows-msvc.zip`   | `f660cd8423eaca4c0c54e64fbe11feee5deaf1a48784bc5784346c9fe5227627` |
+| `ols-x86_64-unknown-linux-gnu.zip` | `c28838ffa636586d610faf5dd1ba6290fc9317e1045067c6709c6a43eb7d63b1` |
+
+OLS publishes GNU Linux archives, not musl or FreeBSD archives. Do not infer
+support for those targets from mise asset autodetection.
+
+Each platform archive bundles both `ols` and `odinfmt` under target-qualified
+names. The semantic `http:odinfmt` backend keeps `odinfmt` as mise's executable
+selection hint, while `rename_exe = "odinfmt"` normalizes the selected binary.
+The release API expression imports GitHub's published asset digest into the
+lock. These HTTP lock features require mise 2026.6.12, which is therefore the
+copyable configuration's minimum.
+
+The more obvious GitHub-backend alias works before a lock is present. Once the
+lock records the explicit `github:DanielGavin/ols` backend, a cold locked
+install can lose the alias selection hint and rename the OLS server itself to
+`odinfmt`. That warm-versus-cold identity failure rejects the GitHub backend for
+this archive shape. The older `ubi` backend selects the right member but is
+deprecated for removal in mise 2027.1.0. The HTTP archive leaves the remaining
+target-qualified OLS executable on `PATH`; that low-risk extra surface is
+preferable to installing the wrong program under the formatter name.
+
+The `nightly` name is deliberately mutable. OLS runs the workflow weekly and on
+manual dispatch, deletes the previous release, force-moves the `nightly` tag,
+and uploads replacements at the same browser URLs. The committed mise lock
+captures the reviewed asset URL and SHA-256 digest. This fails closed against
+silent replacement, but it cannot keep a deleted asset available: after
+rotation, a cold install can fail with a missing asset or
+checksum mismatch until `mise run lock` reviews and records the new nightly.
+That availability cost is the explicit tradeoff for tracking current syntax.
+Because mise installs this HTTP channel under the literal `nightly` version,
+relocking does not replace a warm cached install. `odin:fmt:update` couples the
+reviewed relock with `mise install --force --locked http:odinfmt@nightly` so
+warm and cold machines converge on the newly locked bytes.
+
+OLS nightlies clone the moving Odin `master` separately in each platform job
+and do not record that Odin commit in the release metadata. They therefore do
+not provide the compiler/formatter source correspondence of matched immutable
+tags. Compiler-owned style checks and gates remain authoritative.
+
+### CLI contract and limits
+
+- `odinfmt -w PATH` rewrites one file or recursively rewrites every `.odin`
+  file under one directory. The profile does not use this write path.
+- Without `-w`, one file or `-stdin` prints formatted source plus one newline
+  beyond the printer output. Directory output also contains path, timing, and
+  memory messages, so it is not a check mode.
+- Missing paths, invalid path kinds, stdin parse failures, and directory
+  read/parse failures exit nonzero. A single-file read/parse failure without
+  `-w` currently falls through with exit zero, so output comparison is not a
+  dependable CI contract.
+- Writes rename the original to `<path>_bk`, write the replacement, and remove
+  the backup after success. Rename and write errors are not propagated into the
+  final status. The operation is not atomic, does not preserve Unix file modes,
+  and may leave a backup while returning success.
+
+The `odin:fmt` adapter therefore does not call `-w`. It enumerates only
+Git-tracked or unignored `.odin` files under `src/project_name/` and `tests/`,
+rejects symlinks, and feeds each file through `-stdin` so parser failures are
+observable. It removes the CLI-only extra newline, preserves ordinary modes in
+an adjacent candidate, leaves unchanged inodes alone, and atomically replaces
+changed files on the same filesystem. This is intentionally POSIX-only; native
+Windows remains unverified.
+
+Keep `odin:fmt:check`, `odin:lint`, and `odin:standards:check` compiler-owned and
+non-mutating because `odinfmt` has no convergence check. `odin:standards`
+formats first and then runs compiler lint; the CI gate owns the test lanes.
 
 Sources:
 
+- [Official OLS showcase](https://odin-lang.org/showcase/ols/)
+- [OLS authorship metadata](https://github.com/odin-lang/odin-lang.org/blob/master/content/showcase/ols.md#L1-L8)
+- [OLS status and Odin compatibility policy](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/README.md#L1-L5)
+- [`odinfmt` configuration](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/README.md#L139-L178)
+- [`odinfmt` CLI and write implementation](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/tools/odinfmt/main.odin#L14-L170)
+- [Current nightly release](https://github.com/DanielGavin/ols/releases/tag/nightly)
+- [Current nightly API metadata and digests](https://api.github.com/repos/DanielGavin/ols/releases/352679484)
+- [Successful nightly workflow run](https://github.com/DanielGavin/ols/actions/runs/29181151314)
+- [Nightly build and packaging workflow](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/.github/workflows/release.yml#L1-L264)
+- [Mutable release implementation](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/.github/actions/github-release/main.js#L32-L103)
+- [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
+- [mise GitHub backend](https://mise.jdx.dev/dev-tools/backends/github.html)
+- [mise lockfiles](https://mise.jdx.dev/dev-tools/mise-lock.html)
+- [mise 2026.6.12 release](https://github.com/jdx/mise/releases/tag/v2026.6.12)
+- [Deprecated mise `ubi` backend](https://mise.jdx.dev/dev-tools/backends/ubi.html)
 - [Compiler command list](https://github.com/odin-lang/Odin/blob/819fdc7a80667498b8b365999f1475a66c358640/src/main.cpp#L303-L316)
 - [`strip-semicolon` implementation](https://github.com/odin-lang/Odin/blob/819fdc7a80667498b8b365999f1475a66c358640/src/main.cpp#L3460-L3635)
 
@@ -161,7 +266,7 @@ Sources:
 | Candidate                           | Reason                                                                                                 |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Floating latest/nightly compiler    | Dated releases contain breaking changes; exact releases and lock data exist.                           |
-| Required `ols` or `odinfmt`         | Early or release-lagging tools add a second parser without a safe stable formatting contract.          |
+| `odinfmt` as a CI/style authority   | It has no check mode, can return success after some failures, and tracks a different parser snapshot.  |
 | `strip-semicolon` in `fmt`          | It can rewrite files outside the requested package.                                                    |
 | Fixed test thread count or seed     | It removes parallel and randomized coverage already made reproducible by the reported seed.            |
 | `ODIN_TEST_SHORT_LOGS=true`         | Optional house output policy; upstream CI does not need it.                                            |
@@ -169,7 +274,6 @@ Sources:
 | Coverage threshold                  | No native Odin coverage surface owns the result.                                                       |
 | Stack protector on test executables | It hardens a disposable runner, not a shipped artifact. Add it to real build tasks.                    |
 | Documentation smoke task            | `odin doc` cannot deny missing documentation, and the template has no documentation artifact consumer. |
-| 100-column editor hint              | Neither the compiler nor official editor configuration enforces it.                                    |
 | Multi-package test aggregator       | The template has only one test package.                                                                |
 
 ## Verification record
@@ -182,7 +286,22 @@ x64 with the pinned compiler and Clang:
 - Optimized tests passed.
 - Manifest drift proved task and source mirrors byte-for-byte equal.
 - Scratch research confirmed that `strip-semicolon` rewrites an imported
-  sibling package, which is the safety boundary behind the non-mutating format
-  task.
+  sibling package, which is why the formatting task does not invoke it.
+- Isolated mise 2026.6.12 and 2026.7.5 probes proved that the semantic HTTP
+  declaration locks GitHub's SHA-256 digests, installs without live resolution
+  under strict lock mode, and exposes the archive's actual formatter as
+  `odinfmt`. No provenance record is available, so the published checksum is the
+  committed integrity boundary.
+- A cold locked GitHub-alias probe exposed the OLS server under the `odinfmt`
+  name, which is the installer failure behind the HTTP declaration. Generic
+  cross-platform locking also mapped GNU archives onto musl entries; those
+  entries do not establish musl compatibility, so the fixture lock targets only
+  verified Linux x64.
+- Write-path probes confirmed that formatting changed a file mode from `0755`
+  to `0644`, and that failed rename and write operations on a read-only path
+  produced no diagnostic and exited zero.
+- Adapter fault injection proved real reformatting preserved mode `0755`, a
+  second run left the formatted inode unchanged, and malformed, read-only, and
+  symlink inputs failed without changing the original or leaving candidates.
 
 Re-run `mise run standards:check` after every toolchain or policy change.

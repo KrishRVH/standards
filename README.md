@@ -113,9 +113,10 @@ Finally, copy the language template files that match the project:
   markdownlint structure checks, MDX compile checks through remark/rehype and
   Shiki, offline local link checks with lychee, and low-noise typo checks with
   typos.
-- `Odin/`: compiler-native package baseline with strict style and vet checks,
-  an external consumer test package, native tests with reported reproduction
-  seeds, and debug AddressSanitizer plus optimized test lanes.
+- `Odin/`: OLS `odinfmt` nightly with fail-closed project-scoped writes, strict
+  compiler style and vet checks, an external consumer test package, native tests
+  with reported reproduction seeds, and debug AddressSanitizer plus optimized
+  test lanes.
 - `PHP/`: PHP 8.5 Composer and quality-tool config for PHPUnit, PHPStan,
   Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis, Composer audit,
   and Roave security advisories.
@@ -160,10 +161,11 @@ The aggregate mise tasks use marker-file detection for copyable defaults. In
 monorepos or mixed-tooling repositories, replace the generic dispatcher with
 explicit project-specific task dependencies or narrower markers.
 
-The copyable configuration requires mise `2026.3.11` or newer for structured
-task references with arguments. This repository's root requires `2026.7.0` or
-newer for the explicit monorepo per-project lockfile policy. Both declarations
-are minimums; developers are not pinned to one mise executable.
+The copyable configuration requires mise `2026.6.12` or newer for structured
+task references and checksum-backed HTTP tool locks. This repository's root
+requires `2026.7.0` or newer for the explicit monorepo per-project lockfile
+policy. Both declarations are minimums; developers are not pinned to one mise
+executable.
 
 ## Command Model
 
