@@ -6,6 +6,9 @@ Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo. `testers/`
 smoke-test copied standards for every language template.
 
+`fable/` contains personal review material and should be ignored for repository
+work unless explicitly requested.
+
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
 changing architecture or domain language. Use this file for agent working rules.
 
