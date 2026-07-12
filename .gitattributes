@@ -184,6 +184,9 @@ bun.lockb binary
 # the repository language graph on GitHub.
 testers/** linguist-detectable=false
 
+# Personal review material is not part of the standards catalog.
+fable/** linguist-detectable=false
+
 # Root maintenance scripts support this catalog, but the language graph should
 # describe the reusable standards templates.
 scripts/** linguist-detectable=false
