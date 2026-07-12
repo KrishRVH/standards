@@ -62,6 +62,7 @@
 *.cts text
 *.mts text
 *.lua text
+*.odin text
 *.php text diff=php
 *.rs text
 *.zig text

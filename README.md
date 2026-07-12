@@ -26,7 +26,7 @@ deterministic commands should let an agent make and prove a narrow change.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`, `Haskell/`,
-  `Kotlin/`, `Lua/`, `Markdown/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
+  `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
   `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
@@ -113,6 +113,9 @@ Finally, copy the language template files that match the project:
   markdownlint structure checks, MDX compile checks through remark/rehype and
   Shiki, offline local link checks with lychee, and low-noise typo checks with
   typos.
+- `Odin/`: compiler-native package baseline with strict style and vet checks,
+  an external consumer test package, native tests with reported reproduction
+  seeds, and debug AddressSanitizer plus optimized test lanes.
 - `PHP/`: PHP 8.5 Composer and quality-tool config for PHPUnit, PHPStan,
   Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis, Composer audit,
   and Roave security advisories.
@@ -178,7 +181,8 @@ mise run secrets
 mise run sbom
 ```
 
-`mise run standards` runs the mutating local workflow for detected languages.
+`mise run standards` runs each detected language's local workflow and applies
+available safe autofixes.
 `mise run standards:check` runs the CI-grade aggregate gate and the shared
 secret scan through `.gitleaks.toml`. This catalog intentionally omits a hosted
 workflow to avoid runner costs; downstream projects can wire the same command
@@ -211,8 +215,8 @@ mise run standards:check
 
 That runs a root-wide secret scan, the pinned Biome alternative check, drift,
 Markdown, and Shell checks, and every tester fixture for C, C#, C++, Elixir,
-Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust,
-Shell, SPARK/Ada, TypeScript, and Zig through
+Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
+Rust, Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.

@@ -82,6 +82,10 @@ if [ -f .markdownlint-cli2.jsonc ]; then
   dispatch md
 fi
 
+if find src tests -type f -name '*.odin' -print -quit 2>/dev/null | grep -q .; then
+  dispatch odin
+fi
+
 if [ -f Cargo.toml ]; then
   dispatch rust
 fi
@@ -167,7 +171,7 @@ description = "Run tests using detected language tasks"
 run = [{ task = "_dispatch", args = ["test"] }]
 
 [tasks.standards]
-description = "Run standards autofixes using detected language tasks"
+description = "Run standards workflows and available autofixes using detected language tasks"
 run = [{ task = "_dispatch", args = ["standards"] }]
 
 [tasks."standards:check"]

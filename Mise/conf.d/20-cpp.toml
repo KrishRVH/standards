@@ -10,6 +10,7 @@ ninja = "1.13.2"
 [tasks."cpp:fmt"]
 description = "Format C++ sources"
 run = """
+set -eu
 if command -v clang-format >/dev/null 2>&1; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
@@ -33,6 +34,7 @@ fi
 [tasks."cpp:fmt:check"]
 description = "Check C++ source formatting"
 run = """
+set -eu
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -58,11 +60,7 @@ xargs -0 -n 1 sh -c '
 
 [tasks."cpp:lint"]
 description = "Run C++ static checks"
-run = """
-cmake --preset clang
-cmake --build --preset clang
-./cpp-quality.sh . build/clang
-"""
+run = ["cmake --preset clang", "cmake --build --preset clang", "./cpp-quality.sh . build/clang"]
 
 [tasks."cpp:test"]
 description = "Run pinned C++ Debug and Release tests"

@@ -61,8 +61,19 @@ setup() {
 @test "ignores shell files in nested generated directories outside Git" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/nested-generated"
-  mkdir -p "${workspace}/project/packages/app/node_modules/package"
-  printf '#!/usr/bin/env bash\nif\n' > "${workspace}/project/packages/app/node_modules/package/broken.sh"
+  local directory
+  local -a generated_directories=(
+    "${workspace}/project/.godot/generated"
+    "${workspace}/project/.lua_modules/share"
+    "${workspace}/project/.venv/bin"
+    "${workspace}/project/packages/app/node_modules/package"
+    "${workspace}/project/pkg/__pycache__"
+    "${workspace}/project/sbom/generated"
+  )
+  for directory in "${generated_directories[@]}"; do
+    mkdir -p "${directory}"
+    printf '#!/usr/bin/env bash\nif\n' > "${directory}/broken.sh"
+  done
   export GIT_CEILING_DIRECTORIES="${workspace}"
 
   run bash -c 'cd "$1" && "$2" syntax' -- \

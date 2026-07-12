@@ -62,6 +62,7 @@
 *.cts text
 *.mts text
 *.lua text
+*.odin text
 *.php text diff=php
 *.rs text
 *.zig text
@@ -219,6 +220,7 @@ SPARK/*.toml linguist-language=Ada
 Mise/conf.d/20-fortran.toml linguist-language=Fortran
 Mise/conf.d/20-godot.toml linguist-language=GDScript
 Mise/conf.d/20-haskell.toml linguist-language=Haskell
+Mise/conf.d/20-odin.toml linguist-language=Odin
 Mise/conf.d/20-spark.toml linguist-language=Ada
 
 # Workstation setup scripts are bootstrap templates, not the primary language

@@ -41,7 +41,8 @@ Everything a developer does goes through mise.
 - `mise run fmt:check`: verify formatting.
 - `mise run lint`: lint/static analysis.
 - `mise run test`: tests.
-- `mise run standards`: local autofix workflow before `standards:check`.
+- `mise run standards`: local standards workflow and available autofixes before
+  `standards:check`.
 - `mise run standards:check`: full CI gate.
 - `mise run secrets`: scan the working tree for secrets.
 - `mise run sbom`: generate a CycloneDX JSON SBOM under `sbom/`.

@@ -2,8 +2,8 @@
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`,
-`Haskell/`, `Kotlin/`, `Lua/`, `Markdown/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
-`SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo. `testers/`
+`Haskell/`, `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Rust/`,
+`Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo. `testers/`
 smoke-test copied standards for every language template.
 
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
@@ -53,15 +53,15 @@ scripts are the explicit exception because they install mise itself.
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run secrets`: scan the standards repository for secrets.
-- `mise run standards`: root Markdown and Shell plus all-fixture autofix
-  workflow.
+- `mise run standards`: root Markdown and Shell plus all-fixture standards
+  workflow and available autofixes.
 - `mise run md:standards`: format and lint the repository's Markdown and MDX.
 - `mise run md:standards:check`: check the repository's Markdown and MDX.
 - `mise run standards:biome:check`: validate the optional Biome TypeScript
   template with the pinned stable CLI.
 - `mise run standards:drift`: manifest/drift check for profile fixtures.
 - `mise run testers:standards`: run all tester mini projects through their
-  standards autofixes.
+  standards workflows and available autofixes.
 - `mise run testers:standards:check`: run all tester mini projects through
   their standards CI gates.
 - `mise run testers:standards:check:isolated`: run the representative Python

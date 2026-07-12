@@ -14,6 +14,7 @@ run = "go mod download"
 [tasks."go:fmt"]
 description = "Format Go source"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -30,6 +31,7 @@ fi
 [tasks."go:fmt:check"]
 description = "Check Go formatting"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -71,31 +73,28 @@ sources = [
   "boringlint/go.sum",
 ]
 outputs = [".cache/boringlint"]
-run = """
-mkdir -p .cache
-go -C boringlint build -trimpath -o ../.cache/boringlint ./cmd/boringlint
-"""
+run = ["mkdir -p .cache", "go -C boringlint build -trimpath -o ../.cache/boringlint ./cmd/boringlint"]
 
 [tasks."go:boringlint:check"]
 description = "Check the restricted-dialect analyzer module"
-run = """
-go -C boringlint mod download
-go -C boringlint mod tidy -diff
-go -C boringlint mod verify
-go -C boringlint vet ./...
-(cd boringlint && golangci-lint run --config ../.golangci.yml ./...)
-go -C boringlint test -trimpath -count=1 ./...
-"""
+run = [
+  "go -C boringlint mod download",
+  "go -C boringlint mod tidy -diff",
+  "go -C boringlint mod verify",
+  "go -C boringlint vet ./...",
+  "(cd boringlint && golangci-lint run --config ../.golangci.yml ./...)",
+  "go -C boringlint test -trimpath -count=1 ./...",
+]
 
 [tasks."go:lint"]
 description = "Run Go static analysis and dependency checks"
 depends = ["go:boringlint:build", "go:mod:check", "go:mod:verify"]
-run = """
-go vet ./...
-go vet -vettool="$PWD/.cache/boringlint" ./...
-golangci-lint run ./...
-govulncheck -test ./...
-"""
+run = [
+  "go vet ./...",
+  'go vet -vettool="$PWD/.cache/boringlint" ./...',
+  "golangci-lint run ./...",
+  "govulncheck -test ./...",
+]
 
 [tasks."go:test"]
 description = "Run Go tests"
@@ -113,6 +112,7 @@ description = "Run Go tests with coverage"
 depends = ["go:install"]
 wait_for = ["go:test:race"]
 run = """
+set -eu
 mkdir -p coverage
 go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
 go tool cover -func=coverage/go.out

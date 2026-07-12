@@ -5,15 +5,17 @@ rebar = "3.27.0"
 
 [tasks."elixir:install"]
 description = "Install Elixir project dependencies"
-run = """
-mix local.hex 2.4.2 --force
-mix local.rebar rebar3 "$(command -v rebar3)" --force
-if [ -f mix.lock ]; then
-  mix deps.get --check-locked
-else
-  mix deps.get
-fi
-"""
+run = [
+  "mix local.hex 2.4.2 --force",
+  '''mix local.rebar rebar3 "$(command -v rebar3)" --force''',
+  """
+  if [ -f mix.lock ]; then
+    mix deps.get --check-locked
+  else
+    mix deps.get
+  fi
+  """,
+]
 
 [tasks."elixir:fmt"]
 description = "Format Elixir source"
@@ -29,11 +31,11 @@ run = "mix format --check-formatted"
 description = "Run Elixir static analysis"
 depends = ["elixir:install"]
 wait_for = ["elixir:fmt:check"]
-run = """
-MIX_ENV=test mix compile --warnings-as-errors
-mix credo --strict
-mix xref graph --format cycles --label compile-connected --fail-above 0
-"""
+run = [
+  "MIX_ENV=test mix compile --warnings-as-errors",
+  "mix credo --strict",
+  "mix xref graph --format cycles --label compile-connected --fail-above 0",
+]
 
 [tasks."elixir:test"]
 description = "Run Elixir tests"
@@ -51,11 +53,7 @@ run = "mix dialyzer"
 description = "Audit Elixir dependency hygiene"
 depends = ["elixir:install"]
 wait_for = ["elixir:types"]
-run = """
-mix deps.unlock --check-unused
-mix hex.audit
-mix deps.audit
-"""
+run = ["mix deps.unlock --check-unused", "mix hex.audit", "mix deps.audit"]
 
 [tasks."elixir:docs"]
 description = "Build Elixir docs with warnings denied"

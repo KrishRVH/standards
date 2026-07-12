@@ -90,6 +90,14 @@ task_fragment = "20-markdown.toml"
 mirror = [".markdownlint-cli2.jsonc", ".prettierignore", "content/example.mdx", "docs/example.md", "lychee.toml", "package.json", "prettier.config.mjs", "scripts/check-mdx.mjs", "typos.toml"]
 required_tester_files = ["bun.lock"]
 
+[profiles.odin]
+name = "Odin"
+template = "Odin"
+tester = "testers/odin"
+task_prefix = "odin"
+task_fragment = "20-odin.toml"
+mirror = [".editorconfig", "src/project_name/project_name.odin", "tests/project_name_test.odin"]
+
 [profiles.php]
 name = "PHP"
 template = "PHP"

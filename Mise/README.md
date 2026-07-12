@@ -34,7 +34,9 @@ mise run sbom
 mise run dagger:standards:check
 ```
 
-`standards` runs mutating formatter/fixer workflows for detected languages.
+`standards` runs each detected language's local workflow and applies available
+safe autofixes. Some ecosystems expose validation only because they have no
+safe formatter.
 `standards:check` runs the CI-grade aggregate task and the shared secret scan
 through the project's `.gitleaks.toml`. `sbom` writes a fresh CycloneDX JSON
 SBOM under `sbom/` for release and audit workflows. Set `SYFT_SOURCE_NAME` and
@@ -53,9 +55,10 @@ constrain tools from a developer's global mise configuration.
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, PHP, Python, Rust,
-Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their project
-files are detected. GDScript dispatch requires `project.godot` and an owned
+Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
+Rust, Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their
+project files are detected. Odin dispatch requires an owned source file under
+`src/` or `tests/`; GDScript dispatch requires `project.godot` and an owned
 script under `src/` or `tests/`; Markdown/MDX dispatch requires
 `.markdownlint-cli2.jsonc`; TypeScript dispatch requires both `package.json`
 and `tsconfig.json`.
@@ -72,6 +75,9 @@ time so mixed-language projects cannot race over shared package files or build
 state. Its remaining nested `mise run` is the boundary that selects a task
 whose name is only known after marker detection. In a project with a fixed
 stack, replace the generic aggregate tasks with explicit native dependencies.
+The dispatcher is a POSIX shell template verified on Linux; Windows consumers
+must replace it with explicit task relationships or a reviewed `run_windows`
+implementation.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one
@@ -91,6 +97,16 @@ The Rust task file runs Cargo in workspace and locked modes, generates a local
 `Cargo.lock` only when missing outside CI, builds docs with rustdoc warnings
 denied, runs doctests, and installs pinned `cargo-deny` into `.cargo-tools` for
 dependency policy checks.
+
+The Odin task file uses the version-matched compiler as the style, vet, and
+test authority. Its `fmt` entrypoint is intentionally non-mutating because the
+compiler has no safely package-scoped formatter and the current external
+formatter trails the language. The required tests retain native parallelism and
+a fresh reported seed while enabling bad-memory failure tracking, debug
+AddressSanitizer, and a separate optimized lane. The fixture is verified on
+Linux x64 with pinned Clang. Official builds on macOS require the Xcode
+command-line tools, and Windows requires MSVC and the Windows SDK; this
+repository does not verify those hosts or FreeBSD.
 
 The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
 rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It

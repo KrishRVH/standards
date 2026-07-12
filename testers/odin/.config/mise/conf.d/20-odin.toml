@@ -1,0 +1,90 @@
+[tools]
+clang = { version = "22.1.8", os = ["linux"] }
+odin = "dev-2026-07a"
+
+[tasks."odin:fmt"]
+description = "Validate Odin style; Odin currently has no safe compatible formatter"
+run = [{ task = "odin:fmt:check" }]
+
+[tasks."odin:fmt:check"]
+description = "Validate Odin style with strict compiler checks"
+run = [{ task = "odin:lint" }]
+
+[tasks."odin:lint"]
+description = "Run strict Odin compiler and vet checks"
+run = [
+  """
+  odin check src/project_name \
+    -no-entry-point \
+    -vet \
+    -vet-style \
+    -vet-tabs \
+    -vet-using-param \
+    -strict-style \
+    -disallow-do \
+    -warnings-as-errors \
+    -error-pos-style:unix
+  """,
+  """
+  odin check tests \
+    -collection:project=src \
+    -no-entry-point \
+    -vet \
+    -vet-style \
+    -vet-tabs \
+    -vet-using-param \
+    -strict-style \
+    -disallow-do \
+    -warnings-as-errors \
+    -error-pos-style:unix
+  """,
+]
+
+[tasks."odin:test"]
+description = "Run Odin tests with debug checks and AddressSanitizer"
+run = """
+odin test tests \
+  -collection:project=src \
+  -debug \
+  -sanitize:address \
+  -vet \
+  -vet-style \
+  -vet-tabs \
+  -vet-using-param \
+  -strict-style \
+  -disallow-do \
+  -warnings-as-errors \
+  -error-pos-style:unix \
+  -define:ODIN_TEST_FANCY=false \
+  -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
+"""
+
+[tasks."odin:test:optimized"]
+description = "Run Odin tests with optimized code generation"
+run = """
+odin test tests \
+  -collection:project=src \
+  -o:speed \
+  -vet \
+  -vet-style \
+  -vet-tabs \
+  -vet-using-param \
+  -strict-style \
+  -disallow-do \
+  -warnings-as-errors \
+  -error-pos-style:unix \
+  -define:ODIN_TEST_FANCY=false \
+  -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
+"""
+
+[tasks."odin:standards"]
+description = "Run the Odin standards workflow"
+run = [{ task = "odin:fmt" }]
+
+[tasks."odin:standards:check"]
+description = "Run the Odin standards CI gate"
+run = [
+  { task = "odin:lint" },
+  { task = "odin:test" },
+  { task = "odin:test:optimized" },
+]

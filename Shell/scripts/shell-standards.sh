@@ -10,16 +10,18 @@ project_files() {
     git ls-files -co --exclude-standard
   else
     find . \
-      -type d \( -name .git -o -name node_modules -o -name vendor \
-      -o -name build -o -name dist -o -name out -o -name coverage \
-      -o -name .cache -o -name .next -o -name .nuxt -o -name .turbo \
-      -o -name .vite -o -name .svelte-kit -o -name target \
-      -o -path '*/bin/Debug' -o -path '*/bin/Release' -o -name obj \
-      -o -name .gradle -o -name .kotlin -o -name _build -o -name deps \
-      -o -name dist-newstyle -o -name .stack-work -o -name .zig-cache \
-      -o -name zig-cache -o -name zig-out -o -name zig-pkg \
-      -o -name .phpunit.cache -o -name .phpstan.cache \
-      -o -name .lua-language-server -o -name .elixir_ls \) -prune \
+      -type d \( -name .cache -o -name .elixir_ls -o -name .git \
+      -o -name .godot -o -name .gradle -o -name .kotlin \
+      -o -name .lua-language-server -o -name .lua_modules \
+      -o -name .next -o -name .nuxt -o -name .phpstan.cache \
+      -o -name .phpunit.cache -o -name .stack-work -o -name .svelte-kit \
+      -o -name .turbo -o -name .venv -o -name .vite -o -name .zig-cache \
+      -o -name __pycache__ -o -name _build -o -name build \
+      -o -name coverage -o -name deps -o -name dist -o -name dist-newstyle \
+      -o -name node_modules -o -name obj -o -name out -o -name sbom \
+      -o -name target -o -name vendor -o -name zig-cache \
+      -o -name zig-out -o -name zig-pkg \
+      -o -path '*/bin/Debug' -o -path '*/bin/Release' \) -prune \
       -o -type f -print | sed 's#^./##'
   fi
 }

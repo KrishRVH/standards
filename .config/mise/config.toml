@@ -39,7 +39,7 @@ run = "gitleaks dir . --redact --no-banner"
 # not resolve them in depends/structured run entries. Keep one bounded child
 # scheduler until validation supports those references.
 [tasks."testers:standards"]
-description = "Run all tester mini projects through their standards autofixes"
+description = "Run all tester mini projects through their standards workflows and available autofixes"
 run = "env -u GOROOT -u GOTOOLDIR mise run //testers/...:standards"
 
 [tasks."testers:standards:check"]
@@ -51,7 +51,7 @@ description = "Run the Python fixture standards gate in Dagger"
 run = "mise run //testers/python:dagger:standards:check"
 
 [tasks.standards]
-description = "Run the standards repository autofix workflow"
+description = "Run repository standards workflows and available autofixes"
 run = [
   { task = "md:standards" },
   { task = "shell:standards" },

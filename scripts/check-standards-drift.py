@@ -36,6 +36,7 @@ AGGREGATE_MARKER_CASES = {
     "kotlin": ("build.gradle.kts",),
     "lua": (".luarc.json",),
     "md": (".markdownlint-cli2.jsonc",),
+    "odin": ("src/project_name/project_name.odin",),
     "php": ("composer.json",),
     "py": ("pyproject.toml",),
     "rust": ("Cargo.toml",),

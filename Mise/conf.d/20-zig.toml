@@ -4,6 +4,7 @@ zig = "0.16.0"
 [tasks."zig:fmt"]
 description = "Format Zig source"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -20,6 +21,7 @@ fi
 [tasks."zig:fmt:check"]
 description = "Check Zig formatting"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -35,10 +37,7 @@ fi
 
 [tasks."zig:lint"]
 description = "Compile Zig in strict native modes"
-run = """
-zig build -Doptimize=Debug --summary all
-zig build -Doptimize=ReleaseSafe --summary all
-"""
+run = ["zig build -Doptimize=Debug --summary all", "zig build -Doptimize=ReleaseSafe --summary all"]
 
 [tasks."zig:test"]
 description = "Run Zig tests"
@@ -46,10 +45,7 @@ run = "zig build test -Doptimize=Debug --summary all"
 
 [tasks."zig:release"]
 description = "Compile Zig release variants"
-run = """
-zig build -Doptimize=ReleaseFast --summary all
-zig build -Doptimize=ReleaseSmall --summary all
-"""
+run = ["zig build -Doptimize=ReleaseFast --summary all", "zig build -Doptimize=ReleaseSmall --summary all"]
 
 [tasks."zig:standards"]
 description = "Run the Zig standards workflow with autofixes"

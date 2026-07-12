@@ -10,6 +10,7 @@ ormolu = "0.8.1.1"
 [tasks."haskell:install"]
 description = "Install the pinned Haskell compiler and initialize the Cabal package index"
 run = """
+set -eu
 ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- ghc --version
 repo_cache="$(ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal -v0 path --remote-repo-cache)"
 if [ ! -d "$repo_cache" ] || [ -z "$(find "$repo_cache" -name 01-index.tar -print -quit)" ]; then
@@ -25,6 +26,7 @@ run = "ghcup run --install --ghc \"$HASKELL_GHC_VERSION\" -- cabal update"
 [tasks."haskell:fmt"]
 description = "Format Haskell source"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -41,6 +43,7 @@ fi
 [tasks."haskell:fmt:check"]
 description = "Check Haskell formatting"
 run = """
+set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -57,21 +60,23 @@ fi
 [tasks."haskell:lint"]
 description = "Run Haskell static checks"
 depends = ["haskell:install"]
-run = """
-paths=""
-for path in src app test bench; do
-  if [ -e "$path" ]; then
-    paths="$paths $path"
+run = [
+  """
+  paths=""
+  for path in src app test bench; do
+    if [ -e "$path" ]; then
+      paths="$paths $path"
+    fi
+  done
+  if [ -n "$paths" ]; then
+    hlint $paths
+  else
+    hlint .
   fi
-done
-if [ -n "$paths" ]; then
-  hlint $paths
-else
-  hlint .
-fi
-cabal check
-ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tests --enable-benchmarks
-"""
+  """,
+  "cabal check",
+  '''ghcup run --install --ghc "$HASKELL_GHC_VERSION" -- cabal build all --enable-tests --enable-benchmarks''',
+]
 
 [tasks."haskell:test"]
 description = "Run Haskell tests"
