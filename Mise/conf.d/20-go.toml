@@ -5,7 +5,8 @@ GOTOOLCHAIN = "local"
 go = "1.26.5"
 gofumpt = "0.10.0"
 golangci-lint = "2.12.2"
-"go:golang.org/x/vuln/cmd/govulncheck" = "1.4.0"
+"go:github.com/KrishRVH/boringlint/cmd/boringlint" = { version = "v0.0.0-20260713062543-da045f76fbea", depends = "go" }
+"go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.4.0", depends = "go" }
 
 [tasks."go:install"]
 description = "Download Go module dependencies"
@@ -18,7 +19,8 @@ set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.go' |
+    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
   find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
     -o -type f -name '*.go' -print0 > "$tmp"
@@ -35,7 +37,8 @@ set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.go' > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.go' |
+    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
   find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
     -o -type f -name '*.go' -print0 > "$tmp"
@@ -64,34 +67,12 @@ description = "Verify downloaded Go modules"
 depends = ["go:install"]
 run = "go mod verify"
 
-[tasks."go:boringlint:build"]
-description = "Build the restricted-dialect vet tool"
-sources = [
-  ".config/mise/conf.d/20-go.toml",
-  "boringlint/**/*.go",
-  "boringlint/go.mod",
-  "boringlint/go.sum",
-]
-outputs = [".cache/boringlint"]
-run = ["mkdir -p .cache", "go -C boringlint build -trimpath -o ../.cache/boringlint ./cmd/boringlint"]
-
-[tasks."go:boringlint:check"]
-description = "Check the restricted-dialect analyzer module"
-run = [
-  "go -C boringlint mod download",
-  "go -C boringlint mod tidy -diff",
-  "go -C boringlint mod verify",
-  "go -C boringlint vet ./...",
-  "(cd boringlint && golangci-lint run --config ../.golangci.yml ./...)",
-  "go -C boringlint test -trimpath -count=1 ./...",
-]
-
 [tasks."go:lint"]
 description = "Run Go static analysis and dependency checks"
-depends = ["go:boringlint:build", "go:mod:check", "go:mod:verify"]
+depends = ["go:mod:check", "go:mod:verify"]
 run = [
   "go vet ./...",
-  'go vet -vettool="$PWD/.cache/boringlint" ./...',
+  "boringlint ./...",
   "golangci-lint run ./...",
   "govulncheck -test ./...",
 ]
@@ -140,4 +121,4 @@ run = [
 
 [tasks."go:standards:check"]
 description = "Run the Go standards CI gate"
-depends = ["go:boringlint:check", "go:fmt:check", "go:lint", "go:test", "go:test:race", "go:cover"]
+depends = ["go:fmt:check", "go:lint", "go:test", "go:test:race", "go:cover"]

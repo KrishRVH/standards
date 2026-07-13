@@ -53,7 +53,7 @@ template = "Go"
 tester = "testers/go"
 task_prefix = "go"
 task_fragment = "20-go.toml"
-mirror = [".golangci.yml", "boringlint/boringlint.go", "boringlint/boringlint_test.go", "boringlint/cmd/boringlint/main.go", "boringlint/genericmethod_go127_test.go", "boringlint/go.mod", "boringlint/go.sum", "boringlint/testdata/src/iteratorsignature/iteratorsignature.go", "boringlint/testdata/src/rangefunc/rangefunc.go", "go.mod"]
+mirror = [".golangci.yml", "go.mod"]
 
 [profiles.haskell]
 name = "Haskell"

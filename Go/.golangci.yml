@@ -10,7 +10,6 @@ linters:
     - bidichk
     - bodyclose
     - copyloopvar
-    - depguard
     - dupl
     - durationcheck
     - errcheck
@@ -40,14 +39,6 @@ linters:
     - usetesting
     - wastedassign
   settings:
-    depguard:
-      rules:
-        no-lazy-iterators:
-          deny:
-            - pkg: "iter$"
-              desc: >-
-                iter.Seq, iter.Seq2, and iter.Pull are forbidden; materialize
-                dependency-returned iterators at the call boundary
     dupl:
       threshold: 120
     gocognit:
