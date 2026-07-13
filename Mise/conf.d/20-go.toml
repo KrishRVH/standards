@@ -5,7 +5,7 @@ GOTOOLCHAIN = "local"
 go = "1.26.5"
 gofumpt = "0.10.0"
 golangci-lint = "2.12.2"
-"go:github.com/KrishRVH/boringlint/cmd/boringlint" = { version = "v0.0.0-20260713062543-da045f76fbea", depends = "go" }
+"go:github.com/KrishRVH/boringlint/cmd/boringlint" = { version = "v0.1.0", depends = "go" }
 "go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.4.0", depends = "go" }
 
 [tasks."go:install"]
