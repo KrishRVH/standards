@@ -8,7 +8,8 @@ set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' |
+    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
   find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
     -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print0 > "$tmp"
@@ -25,7 +26,8 @@ set -eu
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' |
+    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
   find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
     -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print0 > "$tmp"

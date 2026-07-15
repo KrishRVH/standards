@@ -29,6 +29,7 @@ list_files() {
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
       '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
       while IFS= read -r -d '' file; do
+        [[ -f "$SRC_ROOT/$file" ]] || continue
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
@@ -42,6 +43,7 @@ list_c_files() {
     git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
       '*.c' ':(exclude)build/**' ':(exclude)build-*/**' |
       while IFS= read -r -d '' file; do
+        [[ -f "$SRC_ROOT/$file" ]] || continue
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else

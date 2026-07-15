@@ -22,6 +22,7 @@ list_files() {
       '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.ipp' '*.tpp' '*.inl' \
       ':(exclude)build/**' ':(exclude)build-*/**' |
       while IFS= read -r -d '' file; do
+        [[ -f "$SRC_ROOT/$file" ]] || continue
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
@@ -36,6 +37,7 @@ list_semantic_files() {
       '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' \
       ':(exclude)build/**' ':(exclude)build-*/**' |
       while IFS= read -r -d '' file; do
+        [[ -f "$SRC_ROOT/$file" ]] || continue
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else

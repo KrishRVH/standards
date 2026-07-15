@@ -21,6 +21,8 @@ IndentWrappedFunctionNames: false
 
 # --- Braces and control flow ---
 BreakBeforeBraces: Linux
+InsertBraces: false
+RemoveBracesLLVM: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
@@ -78,11 +80,8 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 SeparateDefinitionBlocks: Leave
 
 # --- Miscellaneous ---
-Cpp11BracedListStyle: false
 BreakStringLiterals: true
+Cpp11BracedListStyle: false
 
 # Preserve hand-formatted DESIGN blocks / tables / ASCII layouts.
 ReflowComments: false
-
-InsertBraces: false
-RemoveBracesLLVM: false

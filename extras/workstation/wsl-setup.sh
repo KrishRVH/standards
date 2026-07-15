@@ -498,7 +498,8 @@ if ! has rustup; then
 
   url="https://static.rust-lang.org/rustup/dist/${target}/rustup-init"
   tmpdir="$(mktemp -d)"
-  installer="$tmpdir/rustup-init" # IMPORTANT: rustup-init behavior depends on argv0
+  # rustup-init selects its behavior from argv[0].
+  installer="$tmpdir/rustup-init"
   curl_fetch "$url" -o "$installer"
   chmod +x "$installer"
   "$installer" -y --profile minimal --default-toolchain stable
@@ -509,7 +510,6 @@ else
   retry_quiet rustup default stable
 fi
 
-# Make cargo available in this shell too.
 if [[ -f "$CARGO_HOME/env" ]]; then
   # shellcheck disable=SC1090,SC1091
   source "$CARGO_HOME/env"
@@ -587,33 +587,54 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
-gcob() { [[ $# -eq 1 ]] || { echo "usage: gcob <name>"; return 2; }; git checkout -b -- "$1"; }
+gcob() {
+  [[ $# -eq 1 ]] || { echo "usage: gcob <name>"; return 2; }
+  git checkout -b -- "$1"
+}
+
 unalias gco 2>/dev/null || true
-gco()  { [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }; git checkout -- "$1"; }
+gco() {
+  [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }
+  git checkout -- "$1"
+}
+
 alias amend="git commit --amend"
+
 unalias gcm 2>/dev/null || true
 gcm() {
-  local branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
-  [ -z "$branch" ] && echo "Not in a git repository" && return 1
+  [[ $# -gt 0 ]] || { echo "usage: gcm <message>"; return 2; }
 
-  local ticket=$(echo "$branch" | grep -o -E '[a-zA-Z0-9]+-[0-9]+' | head -1)
+  local branch ticket
+  branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
 
-  if [ -n "$ticket" ]; then
-      git commit -m "${ticket} : $*"
+  ticket="$(printf '%s\n' "$branch" | grep -o -E '[a-zA-Z0-9]+-[0-9]+' | head -n1 || true)"
+
+  if [[ -n "$ticket" ]]; then
+    git commit -m "${ticket} : $*"
   else
-      git commit -m "$*"
+    git commit -m "$*"
   fi
 }
+
 alias gp="git push"
+
 gpus() {
-   local branch=$(git symbolic-ref --short HEAD)
-   git push --set-upstream origin "$branch"
+  local branch
+  branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
+  git push --set-upstream origin "$branch"
 }
+
 pullor() {
-   local branch=$(git symbolic-ref --short HEAD)
-   git pull origin "$branch"
+  local branch
+  branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
+  git pull origin "$branch"
 }
+
 alias gpom="git pull origin main"
+
 alias dcb="docker compose build"
 alias dcu="docker compose up"
 alias dcd="docker compose down"
@@ -622,7 +643,6 @@ alias dsp="docker system prune -a -f --volumes"
 alias dre="dcd && dcb && dcu"
 alias dres="dcd && dsp && dcb --no-cache && dcu"
 alias dex="docker compose exec web sh"
-# --- tmux shortcuts -------------------------------------------------------
 
 alias ta='tmux attach -t'
 alias tad='tmux attach -d -t'
@@ -649,29 +669,31 @@ tm() {
 }
 
 tmux_help() {
-    echo "TMUX + NEOVIM QUICK REFERENCE"
-    echo "================================="
-    echo ""
-    echo "Navigation (tmux <-> neovim):"
-    echo "  Ctrl+h/j/k/l     Navigate left/down/up/right"
-    echo ""
-    echo "Tmux Prefix: Ctrl+Space (then release, then command)"
-    echo ""
-    echo "Essential:"
-    echo "  tm [NAME]        Attach/create session"
-    echo "  tn [NAME]        New session"
-    echo "  Prefix + d       Detach"
-    echo "  Prefix + |       Split vertical"
-    echo "  Prefix + -       Split horizontal"
-    echo "  Prefix + z       Zoom pane"
-    echo "  Prefix + c       New window"
-    echo "  Prefix + r       Reload tmux config"
-    echo "  Prefix + f       Sessionizer (fzf)"
-    echo "  Prefix + C       cht.sh helper (fzf)"
-    echo "  Prefix + I       Install/refresh plugins (TPM)"
-    echo "  Shift+Alt + H/L  Prev/next window"
-    echo ""
-    echo "Type 'man tmux' for full docs"
+  cat <<'HELP'
+TMUX + NEOVIM QUICK REFERENCE
+=================================
+
+Navigation (tmux <-> neovim):
+  Ctrl+h/j/k/l     Navigate left/down/up/right
+
+Tmux Prefix: Ctrl+Space (then release, then command)
+
+Essential:
+  tm [NAME]        Attach/create session
+  tn [NAME]        New session
+  Prefix + d       Detach
+  Prefix + |       Split vertical
+  Prefix + -       Split horizontal
+  Prefix + z       Zoom pane
+  Prefix + c       New window
+  Prefix + r       Reload tmux config
+  Prefix + f       Sessionizer popup
+  Prefix + C       cht.sh helper popup
+  Prefix + I       Install/refresh plugins (TPM)
+  Shift+Alt + H/L  Prev/next window
+
+Type 'man tmux' for full docs
+HELP
 }
 # <<< wsl-bootstrap managed zshrc <<<
 ZSHRC
@@ -697,125 +719,80 @@ mkdir -p "$HOME/.config/tmux"
 write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 << 'TMUXCONF'
 # >>> wsl-bootstrap managed tmux.conf >>>
 
-# ╔═══════════════════════════════════════════════════════════════╗
-# ║                         TMUX CONFIG                           ║
-# ║           Managed by wsl-setup.sh                              ║
-# ╚═══════════════════════════════════════════════════════════════╝
-
-# ───────────────────────────────────────────────────────────────
 # Plugin Manager (TPM)
-# ───────────────────────────────────────────────────────────────
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'christoomey/vim-tmux-navigator'
 set -g @plugin 'janoamaral/tokyo-night-tmux'
 set -g @plugin 'tmux-plugins/tmux-yank'
 
-# ───────────────────────────────────────────────────────────────
-# General Settings
-# ───────────────────────────────────────────────────────────────
-# Change prefix from Ctrl-b to Ctrl-Space
+# Prefix.
 unbind C-b
 set -g prefix C-Space
 bind C-Space send-prefix
 
-# Truecolor / RGB support (tell tmux the *outer* terminal supports RGB)
-# terminal-features is the modern way to enable this (preferred over older terminal-overrides).
+# Advertise RGB support for the outer terminal and prefer tmux-256color when
+# its terminfo entry is available.
 set -as terminal-features ",xterm*:RGB"
-
-# Prefer tmux-256color when available (falls back to screen-256color).
 if-shell 'infocmp -x tmux-256color >/dev/null 2>&1' 'set -g default-terminal "tmux-256color"' 'set -g default-terminal "screen-256color"'
 
-# Enable mouse support
+# General.
 set -g mouse on
-
-# Start windows and panes at 1, not 0
 set -g base-index 1
 set -g pane-base-index 1
-set-window-option -g pane-base-index 1
 set-option -g renumber-windows on
-
-# Set vi mode for copy mode
 set-window-option -g mode-keys vi
-
-# Increase history limit
 set -g history-limit 50000
-
-# Faster key repetition
 set -s escape-time 0
-
-# Focus events enabled for terminals that support them
 set -g focus-events on
 
-# ───────────────────────────────────────────────────────────────
-# Key Bindings
-# ───────────────────────────────────────────────────────────────
-# Window navigation with Shift+Alt+H/L
+# Window navigation with Shift+Alt+H/L.
 bind -n M-H previous-window
 bind -n M-L next-window
 
-# Split panes with | and - (and open in current directory)
+# Split panes in the current directory.
 unbind %
 bind | split-window -h -c "#{pane_current_path}"
 unbind '"'
 bind - split-window -v -c "#{pane_current_path}"
 
-# Also keep the default % and " but with current directory
 bind % split-window -h -c "#{pane_current_path}"
 bind '"' split-window -v -c "#{pane_current_path}"
 
-# Reload config with prefix + r
+# Reload config.
 bind r source-file ~/.config/tmux/tmux.conf \; display-message "Config reloaded!"
 
-# Easier pane resizing
+# Pane resizing.
 bind -r H resize-pane -L 5
 bind -r J resize-pane -D 5
 bind -r K resize-pane -U 5
 bind -r L resize-pane -R 5
 
-# Helpers
-bind-key f run-shell "tmux-sessionizer"
-bind-key C run-shell "tmux-cht"
+# Helpers.
+bind-key f display-popup -E -w 80% -h 70% "~/.local/bin/tmux-sessionizer"
+bind-key C display-popup -E -w 80% -h 70% "~/.local/bin/tmux-cht"
 
-# ───────────────────────────────────────────────────────────────
-# Copy Mode Settings
-# ───────────────────────────────────────────────────────────────
-# Setup 'v' to begin selection as in Vim
+# Copy mode.
 bind-key -T copy-mode-vi v send-keys -X begin-selection
 bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+# tmux-yank owns the y binding.
 
-# 'y' to yank is handled by tmux-yank, which copies to the system clipboard.
-
-# ───────────────────────────────────────────────────────────────
-# Tokyo Night Theme Configuration
-# ───────────────────────────────────────────────────────────────
-# Theme variants: night | storm | moon | day
+# Tokyo Night theme.
 set -g @tokyo-night-tmux_theme 'storm'
-
-# Widgets (toggle as you like)
 set -g @tokyo-night-tmux_show_datetime 1
 set -g @tokyo-night-tmux_date_format 'YMD'   # YMD, MDY, DMY
 set -g @tokyo-night-tmux_time_format '24H'   # 24H, 12H
-
-# Disable heavier widgets by default (enable if you install extra deps like gh/glab, playerctl, etc.)
 set -g @tokyo-night-tmux_show_netspeed 0
 set -g @tokyo-night-tmux_show_git 0
-
-# ID styles (optional)
 set -g @tokyo-night-tmux_window_id_style 'digital'
 set -g @tokyo-night-tmux_pane_id_style 'hsquare'
 set -g @tokyo-night-tmux_zoom_id_style 'dsquare'
 
-# ───────────────────────────────────────────────────────────────
-# Plugin Settings
-# ───────────────────────────────────────────────────────────────
-# Tmux-yank settings
+# tmux-yank settings.
 set -g @yank_selection_mouse 'clipboard' # or 'primary' or 'secondary'
 set -g @yank_action 'copy-pipe'
 
-# ───────────────────────────────────────────────────────────────
-# Initialize TMUX plugin manager (keep this line at the very bottom)
-# ───────────────────────────────────────────────────────────────
+# Initialize TPM. Keep at the bottom.
 run '~/.tmux/plugins/tpm/tpm'
 
 # <<< wsl-bootstrap managed tmux.conf <<<
@@ -922,7 +899,7 @@ return {
     "christoomey/vim-tmux-navigator",
     lazy = false,
     init = function()
-      -- We'll manage the mappings ourselves so they can override LazyVim defaults.
+      -- Manage mappings here so they can override LazyVim defaults.
       vim.g.tmux_navigator_no_mappings = 1
     end,
     config = function()

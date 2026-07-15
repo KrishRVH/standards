@@ -22,7 +22,7 @@ cargo_deny_version="0.19.9"
 cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
 cargo_deny="$cargo_tools_dir/bin/cargo-deny"
 
-if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -q "cargo-deny $cargo_deny_version"; then
+if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -qxF "cargo-deny $cargo_deny_version"; then
   cargo install cargo-deny --version "$cargo_deny_version" --locked --root "$cargo_tools_dir"
 fi
 """

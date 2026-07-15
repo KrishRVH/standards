@@ -754,7 +754,7 @@ gcm() {
 
   local branch ticket
   branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
-  [[ -n "$branch" ]] || { echo "Not in a git repository"; return 1; }
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
 
   ticket="$(printf '%s\n' "$branch" | grep -o -E '[[:alnum:]]+-[0-9]+' | head -n1 || true)"
 
@@ -770,14 +770,14 @@ alias gp="git push"
 gpus() {
   local branch
   branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
-  [[ -n "$branch" ]] || { echo "Not in a git repository"; return 1; }
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
   git push --set-upstream origin "$branch"
 }
 
 pullor() {
   local branch
   branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
-  [[ -n "$branch" ]] || { echo "Not in a git repository"; return 1; }
+  [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
   git pull origin "$branch"
 }
 
@@ -899,7 +899,6 @@ set -g set-clipboard on
 set -g mouse on
 set -g base-index 1
 set -g pane-base-index 1
-set-window-option -g pane-base-index 1
 set-option -g renumber-windows on
 set-window-option -g mode-keys vi
 set -g history-limit 50000

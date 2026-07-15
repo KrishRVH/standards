@@ -4,7 +4,7 @@ Copy `.luacheckrc`, `.luarc.json`, `stylua.toml`, and
 `Mise/conf.d/20-lua.toml` into a Lua project.
 
 This is a strict, systems-level generic starting template. It targets Lua 5.4
-because Luacheck 1.2.0 does not currently run under Lua 5.5 in this toolchain.
+because Luacheck 1.2.0 does not run under Lua 5.5 in this toolchain.
 Relax globals, complexity, or test-runner settings when the copied baseline does
 not fit the real host environment.
 
