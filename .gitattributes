@@ -189,6 +189,10 @@ testers/** linguist-detectable=false
 # describe the reusable standards templates.
 scripts/** linguist-detectable=false
 
+# Shell is the catalog's glue-code profile; do not let its implementation
+# volume crowd an application language out of the summary graph.
+Shell/** linguist-detectable=false
+
 # Shell helpers are copyable build/check glue, not the primary language surface
 # of the C standard.
 C/c-build.sh linguist-detectable=false
@@ -222,6 +226,10 @@ Mise/conf.d/20-godot.toml linguist-language=GDScript
 Mise/conf.d/20-haskell.toml linguist-language=Haskell
 Mise/conf.d/20-odin.toml linguist-language=Odin
 Mise/conf.d/20-spark.toml linguist-language=Ada
+
+# Count the small Odin profile's reusable guidance as part of that standard so
+# it remains visible in the catalog summary.
+Odin/README.md linguist-language=Odin linguist-documentation=false
 
 # Workstation setup scripts are bootstrap templates, not the primary language
 # surface of this standards catalog.
