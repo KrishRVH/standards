@@ -149,11 +149,3 @@ task_prefix = "ts"
 task_fragment = "20-ts.toml"
 mirror = ["biome.jsonc", "eslint.config.mjs", "package.json", "prettier.config.mjs", "src/math.ts", "tests/math.test.ts", "tsconfig.json"]
 dagger = true
-
-[profiles.zig]
-name = "Zig"
-template = "Zig"
-tester = "testers/zig"
-task_prefix = "zig"
-task_fragment = "20-zig.toml"
-mirror = ["build.zig", "build.zig.zon", "src/main.zig", "src/root.zig"]

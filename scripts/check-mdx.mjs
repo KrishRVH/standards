@@ -21,7 +21,6 @@ const SKIP_DIRECTORIES = new Set([
   '.svelte-kit',
   '.turbo',
   '.vite',
-  '.zig-cache',
   '_build',
   'build',
   'coverage',
@@ -33,9 +32,6 @@ const SKIP_DIRECTORIES = new Set([
   'sbom',
   'target',
   'vendor',
-  'zig-cache',
-  'zig-out',
-  'zig-pkg',
 ]);
 
 const findMdxFiles = async (directory) => {

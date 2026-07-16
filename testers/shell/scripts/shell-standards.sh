@@ -15,12 +15,11 @@ project_files() {
       -o -name .lua-language-server -o -name .lua_modules \
       -o -name .next -o -name .nuxt -o -name .phpstan.cache \
       -o -name .phpunit.cache -o -name .stack-work -o -name .svelte-kit \
-      -o -name .turbo -o -name .venv -o -name .vite -o -name .zig-cache \
+      -o -name .turbo -o -name .venv -o -name .vite \
       -o -name __pycache__ -o -name _build -o -name build \
       -o -name coverage -o -name deps -o -name dist -o -name dist-newstyle \
       -o -name node_modules -o -name obj -o -name out -o -name sbom \
-      -o -name target -o -name vendor -o -name zig-cache \
-      -o -name zig-out -o -name zig-pkg \
+      -o -name target -o -name vendor \
       -o -path '*/bin/Debug' -o -path '*/bin/Release' \) -prune \
       -o -type f -print | sed 's#^./##'
   fi

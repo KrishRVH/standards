@@ -204,9 +204,3 @@ cabal.project.local~
 *.prof
 *.tix
 *.eventlog
-
-# Zig
-/.zig-cache/
-/zig-cache/
-/zig-out/
-/zig-pkg/

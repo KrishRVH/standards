@@ -118,10 +118,6 @@ if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
   dispatch kotlin
 fi
 
-if [ -f build.zig ]; then
-  dispatch zig
-fi
-
 if [ -f CMakeLists.txt ] && find . -maxdepth 4 \\( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ixx' -o -name '*.cppm' -o -name '*.cxxm' \\) -print -quit | grep -q .; then
   dispatch cpp
 fi

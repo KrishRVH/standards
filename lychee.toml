@@ -14,7 +14,6 @@ exclude_path = [
   "(^|/)\\.svelte-kit/",
   "(^|/)\\.turbo/",
   "(^|/)\\.vite/",
-  "(^|/)\\.zig-cache/",
   "(^|/)_build/",
   "(^|/)build/",
   "(^|/)coverage/",
@@ -26,7 +25,4 @@ exclude_path = [
   "(^|/)sbom/",
   "(^|/)target/",
   "(^|/)vendor/",
-  "(^|/)zig-cache/",
-  "(^|/)zig-out/",
-  "(^|/)zig-pkg/",
 ]

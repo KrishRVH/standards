@@ -3,7 +3,7 @@
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`,
 `Haskell/`, `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Rust/`,
-`Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo. `testers/`
+`Shell/`, `SPARK/`, `TS/`. Root docs/config maintain this repo. `testers/`
 smoke-test copied standards for every language template.
 
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
@@ -111,7 +111,7 @@ Treat these as generated unless the task is specifically about them:
 - Godot output: `.godot/`, `*.translation`
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
-  `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
+  `.stack-work/`
 - tool caches: `.phpunit.cache/`, `.phpstan.cache/`,
   `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 

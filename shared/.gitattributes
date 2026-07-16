@@ -65,8 +65,6 @@
 *.odin text
 *.php text diff=php
 *.rs text
-*.zig text
-*.zon text
 
 # Build/config
 *.cmake text

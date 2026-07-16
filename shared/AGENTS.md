@@ -75,7 +75,7 @@ Treat these as generated unless the task is specifically about them:
 - Godot output: `.godot/`, `*.translation`
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
-  `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
+  `.stack-work/`
 - tool caches: `.phpunit.cache/`, `.phpstan.cache/`,
   `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 

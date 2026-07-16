@@ -31,7 +31,6 @@ const SOURCE_IGNORES = [
   '.venv',
   '.vite',
   '.vs',
-  '.zig-cache',
   '*.tsbuildinfo',
   '__pycache__',
   '_build',
@@ -57,9 +56,6 @@ const SOURCE_IGNORES = [
   'var/cache',
   'var/log',
   'vendor',
-  'zig-cache',
-  'zig-out',
-  'zig-pkg',
 
   '.env',
   '.env.*',
