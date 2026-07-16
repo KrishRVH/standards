@@ -47,7 +47,8 @@ Use `mise run standards:check` inside any fixture when you want the same
 host-local gate used by the repository aggregate task.
 
 The fixtures cover C, C#, C++, Elixir, Fortran, GDScript, Go, Haskell, Kotlin,
-Lua, Markdown/MDX, Odin, PHP, Python, Rust, Shell, SPARK/Ada, and TypeScript.
+Lua, Markdown/MDX, Odin, PHP, Python, Rust, Shell, SPARK/Ada, TypeScript, and
+Zig.
 
 The fixture list comes from `standards.manifest.toml`, not a hand-maintained
 list. The root's `testers/*` discovery pattern contains no duplicate profile

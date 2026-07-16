@@ -27,7 +27,7 @@ deterministic commands should let an agent make and prove a narrow change.
   `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`, `Haskell/`,
   `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
-  `SPARK/`, `TS/`:
+  `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
   works through the documented mise layout. Each fixture commits its
@@ -132,6 +132,8 @@ Finally, copy the language template files that match the project:
   warnings and unproved checks as failures, and tiny executable tests.
 - `TS/`: Bun-backed TypeScript with strict `tsc`, tests, ESLint plus Prettier
   as Option A, and a pinned one-file Biome configuration as Option B.
+- `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
+  Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
 The files intentionally use neutral project names, conventional `src` and
 `tests` directories, and generic package namespaces. Replace those placeholders
@@ -216,7 +218,7 @@ mise run standards:check
 That runs a root-wide secret scan, the pinned Biome alternative check, drift,
 Markdown, and Shell checks, and every tester fixture for C, C#, C++, Elixir,
 Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
-Rust, Shell, SPARK/Ada, and TypeScript through
+Rust, Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.

@@ -43,6 +43,7 @@ AGGREGATE_MARKER_CASES = {
     "shell": (".shellcheckrc",),
     "spark": ("alire.toml", "src/project.ads"),
     "ts": ("package.json", "tsconfig.json"),
+    "zig": ("build.zig",),
 }
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)

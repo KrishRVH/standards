@@ -56,7 +56,7 @@ Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
 Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
-Rust, Shell, SPARK/Ada, and Bun-backed TypeScript/JavaScript when their
+Rust, Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their
 project files are detected. Odin dispatch requires an owned source file under
 `src/` or `tests/`; GDScript dispatch requires `project.godot` and an owned
 script under `src/` or `tests/`; Markdown/MDX dispatch requires

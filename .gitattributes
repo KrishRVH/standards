@@ -65,6 +65,8 @@
 *.odin text
 *.php text diff=php
 *.rs text
+*.zig text
+*.zon text
 
 # Build/config
 *.cmake text
@@ -245,7 +247,11 @@ extras/workstation/wsl-setup.sh linguist-detectable=false
 **/.gradle/** linguist-generated=true
 **/.kotlin/** linguist-generated=true
 **/.stack-work/** linguist-generated=true
+**/.zig-cache/** linguist-generated=true
 **/cover/** linguist-generated=true
 **/deps/** linguist-vendored=true linguist-detectable=false
 **/dist-newstyle/** linguist-generated=true
 **/vendor/** linguist-vendored=true linguist-detectable=false
+**/zig-cache/** linguist-generated=true
+**/zig-out/** linguist-generated=true
+**/zig-pkg/** linguist-vendored=true linguist-detectable=false

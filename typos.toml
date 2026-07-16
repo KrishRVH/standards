@@ -16,6 +16,7 @@ extend-exclude = [
   ".svelte-kit",
   ".turbo",
   ".vite",
+  ".zig-cache",
   "_build",
   "build",
   "bun.lock",
@@ -34,4 +35,7 @@ extend-exclude = [
   "testers/php/composer.json",
   "testers/spark/.config/mise/conf.d/20-spark.toml",
   "vendor",
+  "zig-cache",
+  "zig-out",
+  "zig-pkg",
 ]
