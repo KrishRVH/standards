@@ -33,7 +33,7 @@ list_files() {
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
-    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
+    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' -o -name vendor \) -prune \
       -o -type f \( -name '*.c' -o -name '*.h' \) -print0
   fi
 }
@@ -47,7 +47,7 @@ list_c_files() {
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
-    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
+    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' -o -name vendor \) -prune \
       -o -type f -name '*.c' -print0
   fi
 }

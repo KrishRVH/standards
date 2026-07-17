@@ -56,12 +56,12 @@ Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
 Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
-Rust, Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when their
-project files are detected. Odin dispatch requires an owned source file under
-`src/` or `tests/`; GDScript dispatch requires `project.godot` and an owned
-script under `src/` or `tests/`; Markdown/MDX dispatch requires
-`.markdownlint-cli2.jsonc`; TypeScript dispatch requires both `package.json`
-and `tsconfig.json`.
+Roc, Rust, Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when
+their project files are detected. Roc dispatch requires `main.roc`; Odin
+dispatch requires an owned source file under `src/` or `tests/`; GDScript
+dispatch requires `project.godot` and an owned script under `src/` or `tests/`;
+Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`; TypeScript dispatch
+requires both `package.json` and `tsconfig.json`.
 
 Each language fragment expresses static workflow composition with native mise
 dependencies and structured task references. Shared install, restore,
@@ -110,6 +110,13 @@ verified on Linux x64 with pinned Clang. Official builds on macOS require the
 Xcode command-line tools, and Windows requires MSVC and the Windows SDK; this
 repository does not verify those hosts or FreeBSD. The formatter adapter
 requires a POSIX shell.
+
+The Roc task file pins the immutable new-compiler release selected by Roc's
+official installers and resolves its official release digests into the mise
+lock. Native `roc fmt`, warning-failing `roc check`, and top-level `expect`
+tests form the generic gate. The fixture is verified on Linux x64; the declared
+tool also maps the official Linux ARM64, macOS x64/Apple Silicon, and Windows
+x64 assets. Project-scoped format discovery requires a POSIX shell.
 
 The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
 rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It

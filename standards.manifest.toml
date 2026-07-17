@@ -116,6 +116,14 @@ task_fragment = "20-python.toml"
 mirror = ["pyproject.toml"]
 dagger = true
 
+[profiles.roc]
+name = "Roc"
+template = "Roc"
+tester = "testers/roc"
+task_prefix = "roc"
+task_fragment = "20-roc.toml"
+mirror = ["Project.roc", "main.roc"]
+
 [profiles.rust]
 name = "Rust"
 template = "Rust"

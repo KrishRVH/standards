@@ -22,7 +22,7 @@ mise run go:standards:check
 `golangci-lint` and `govulncheck`. `go:standards:check` adds race tests and
 coverage. Benchmarks stay a named task because they are not part of the CI gate.
 `go:cover` emits a coverage report by default; set `GO_COVER_MIN` when a project
-wants a hard local threshold.
+wants a hard local threshold expressed as a decimal from 0 to 100.
 
 ## Restricted Go dialect
 

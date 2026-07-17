@@ -1,0 +1,12 @@
+min_version = "2026.6.12"
+
+[settings]
+lockfile = true
+
+[tasks.standards]
+description = "Run the Roc tester standards workflow"
+depends = ["roc:standards"]
+
+[tasks."standards:check"]
+description = "Run the Roc tester standards CI gate"
+depends = ["roc:standards:check"]

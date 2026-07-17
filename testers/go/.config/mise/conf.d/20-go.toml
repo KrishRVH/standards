@@ -99,6 +99,10 @@ go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=cover
 go tool cover -func=coverage/go.out
 min="${GO_COVER_MIN:-}"
 if [ -n "$min" ]; then
+  if ! awk -v min="$min" 'BEGIN { exit(min ~ /^[0-9]+([.][0-9]+)?$/ && min + 0 <= 100 ? 0 : 1) }'; then
+    echo "GO_COVER_MIN must be a decimal from 0 to 100: $min" >&2
+    exit 2
+  fi
   actual="$(go tool cover -func=coverage/go.out | awk '/^total:/ { sub(/%/, "", $3); print $3 }')"
   awk -v actual="$actual" -v min="$min" 'BEGIN { exit(actual + 0 >= min + 0 ? 0 : 1) }' || {
     echo "coverage ${actual}% is below required ${min}%"

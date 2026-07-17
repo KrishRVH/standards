@@ -39,6 +39,7 @@ AGGREGATE_MARKER_CASES = {
     "odin": ("src/project_name/project_name.odin",),
     "php": ("composer.json",),
     "py": ("pyproject.toml",),
+    "roc": ("main.roc",),
     "rust": ("Cargo.toml",),
     "shell": (".shellcheckrc",),
     "spark": ("alire.toml", "src/project.ads"),
@@ -88,7 +89,13 @@ def compare_file(profile_id: str, label: str, left: Path, right: Path) -> list[s
 
 def is_relative_path(value: str) -> bool:
     path = Path(value)
-    return bool(value) and not path.is_absolute() and ".." not in path.parts and "." not in path.parts
+    return (
+        bool(path.parts)
+        and value == path.as_posix()
+        and not path.is_absolute()
+        and ".." not in path.parts
+        and "." not in path.parts
+    )
 
 
 def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:

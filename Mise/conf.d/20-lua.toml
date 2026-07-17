@@ -16,7 +16,7 @@ if ! luarocks --tree .lua_modules list luacheck | grep -q '1.2.0-1'; then
   luarocks --tree .lua_modules install luacheck 1.2.0-1
 fi
 
-if [ -f busted.lua ] || [ -d spec ] || [ -d specs ] || [ -d test ] || [ -d tests ]; then
+if [ -f .busted ] || [ -d spec ] || [ -d specs ] || [ -d test ] || [ -d tests ]; then
   if ! luarocks --tree .lua_modules list busted | grep -q '2.3.0-1'; then
     luarocks --tree .lua_modules install busted 2.3.0-1
   fi
@@ -58,7 +58,7 @@ description = "Run Lua tests when a test runner is configured"
 depends = ["lua:install"]
 run = """
 set -eu
-if [ -f busted.lua ] || [ -d spec ] || [ -d specs ] || [ -d test ] || [ -d tests ]; then
+if [ -f .busted ] || [ -d spec ] || [ -d specs ] || [ -d test ] || [ -d tests ]; then
   eval "$(luarocks --tree .lua_modules path)"
   export LUA_PATH="src/?.lua;src/?/init.lua;${LUA_PATH:-}"
   paths=""

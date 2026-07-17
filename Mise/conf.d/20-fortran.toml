@@ -36,7 +36,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
 else
   fixed_form="$(
     find . \
-      -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+      -type d \\( -name .git -o -name build -o -name .fpm -o -name vendor \\) -prune \
       -o -type f \\( -name '*.f' -o -name '*.F' -o -name '*.for' -o -name '*.FOR' -o -name '*.ftn' -o -name '*.FTN' \\) -print
   )"
 fi
@@ -58,7 +58,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   git ls-files --cached --others --exclude-standard -z -- '*.f90' '*.F90' |
     xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$list"
 else
-  find . -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+  find . -type d \\( -name .git -o -name build -o -name .fpm -o -name vendor \\) -prune \
     -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
 fi
 
@@ -84,7 +84,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   git ls-files --cached --others --exclude-standard -z -- '*.f90' '*.F90' |
     xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$list"
 else
-  find . -type d \\( -name .git -o -name build -o -name .fpm \\) -prune \
+  find . -type d \\( -name .git -o -name build -o -name .fpm -o -name vendor \\) -prune \
     -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
 fi
 

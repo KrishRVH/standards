@@ -26,7 +26,7 @@ list_files() {
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
-    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
+    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' -o -name vendor \) -prune \
       -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.ipp' -o -name '*.tpp' -o -name '*.inl' \) -print0
   fi
 }
@@ -41,7 +41,7 @@ list_semantic_files() {
         printf '%s/%s\0' "$SRC_ROOT" "$file"
       done
   else
-    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' \) -prune \
+    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' -o -name vendor \) -prune \
       -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' \
       -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' \) -print0
   fi

@@ -33,7 +33,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' |
     xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
-  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
+  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work -o -name vendor \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print0 > "$tmp"
 fi
 if [ -s "$tmp" ]; then
@@ -51,7 +51,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' |
     xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
 else
-  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work \\) -prune \
+  find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work -o -name vendor \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print0 > "$tmp"
 fi
 if [ -s "$tmp" ]; then

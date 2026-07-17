@@ -7,6 +7,7 @@ backend = "aqua:dagger/dagger"
 [tools.dagger."platforms.linux-x64"]
 checksum = "sha256:44430afc6f9c390fc47c4f352b15de9309a5e97ebd1ae563839617d6df8e8cc5"
 url = "https://github.com/dagger/dagger/releases/download/v0.21.7/dagger_v0.21.7_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/dagger/dagger/releases/assets/450438338"
 
 [[tools.gitleaks]]
 version = "8.30.1"
@@ -15,6 +16,7 @@ backend = "aqua:gitleaks/gitleaks"
 [tools.gitleaks."platforms.linux-x64"]
 checksum = "sha256:551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
 url = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378332058"
 
 [[tools.php]]
 version = "8.5.7"
@@ -27,3 +29,4 @@ backend = "aqua:anchore/syft"
 [tools.syft."platforms.linux-x64"]
 checksum = "sha256:20c84195e24927f50a3b2269946be51f4c4abc9d2f145fee7388b4199149f716"
 url = "https://github.com/anchore/syft/releases/download/v1.45.1/syft_1.45.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/439373963"

@@ -74,6 +74,10 @@ if [ -f pyproject.toml ]; then
   dispatch py
 fi
 
+if [ -f main.roc ]; then
+  dispatch roc
+fi
+
 if [ -f package.json ] && [ -f tsconfig.json ]; then
   dispatch ts
 fi

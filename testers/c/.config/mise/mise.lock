@@ -4,13 +4,13 @@
 url = "https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda"
 checksum = "sha256:1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9"
 
-[conda-packages.linux-x64."binutils-2.45.1-default_h4852527_102"]
-url = "https://conda.anaconda.org/conda-forge/linux-64/binutils-2.45.1-default_h4852527_102.conda"
-checksum = "sha256:3c7c5580c1720206f28b7fa3d60d17986b3f32465e63009c14c9ae1ea64f926c"
+[conda-packages.linux-x64."binutils-2.46.1-default_h4852527_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/binutils-2.46.1-default_h4852527_102.conda"
+checksum = "sha256:659c367ef49df7741749a2ad240b007d7df51b4f210505a78543deafb001e44c"
 
-[conda-packages.linux-x64."binutils_impl_linux-64-2.45.1-default_hfdba357_102"]
-url = "https://conda.anaconda.org/conda-forge/linux-64/binutils_impl_linux-64-2.45.1-default_hfdba357_102.conda"
-checksum = "sha256:0a7d405064f53b9d91d92515f1460f7906ee5e8523f3cd8973430e81219f4917"
+[conda-packages.linux-x64."binutils_impl_linux-64-2.46.1-default_hfdba357_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/binutils_impl_linux-64-2.46.1-default_hfdba357_102.conda"
+checksum = "sha256:fb7bf36984a37ce7e4714d1d1da0bd0e3bfc679520f5cdc184afc676fd4b5da2"
 
 [conda-packages.linux-x64."clang-22-22.1.8-default_h9692865_3"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/clang-22-22.1.8-default_h9692865_3.conda"
@@ -52,9 +52,9 @@ checksum = "sha256:fbf86c4a59c2ed05bbffb2ba25c7ed94f6185ec30ecb691615d42342baa1a
 url = "https://conda.anaconda.org/conda-forge/noarch/kernel-headers_linux-64-6.12.0-he073ed8_6.conda"
 checksum = "sha256:73b11f31db6c9ebe63d900334fa4f46859aa1ddd8f37cfa5f25a043e0a59253c"
 
-[conda-packages.linux-x64."ld_impl_linux-64-2.45.1-default_hbd61a6d_102"]
-url = "https://conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.45.1-default_hbd61a6d_102.conda"
-checksum = "sha256:3d584956604909ff5df353767f3a2a2f60e07d070b328d109f30ac40cd62df6c"
+[conda-packages.linux-x64."ld_impl_linux-64-2.46.1-default_hbd61a6d_102"]
+url = "https://conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.46.1-default_hbd61a6d_102.conda"
+checksum = "sha256:27d83f1188cd19bcb7754a078b3fa7f4cfb8527f8eb2fde54dd01fc529d1adec"
 
 [conda-packages.linux-x64."libclang-cpp22.1-22.1.8-default_h6c227bf_3"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/libclang-cpp22.1-22.1.8-default_h6c227bf_3.conda"
@@ -116,9 +116,9 @@ checksum = "sha256:a37aba21b85800af1e7c5b04ba76abab96b6e591eedf99dc6e4df83b0fefd
 url = "https://conda.anaconda.org/conda-forge/noarch/sysroot_linux-64-2.39-hc4b9eeb_6.conda"
 checksum = "sha256:7d235e4337f122f3439d0196e1c1c6e715a5b88fcbf24f944510186c84168e45"
 
-[conda-packages.linux-x64.tzdata-2025c-hc9c84f9_1]
-url = "https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda"
-checksum = "sha256:1d30098909076af33a35017eed6f2953af1c769e273a0626a04722ac4acaba3c"
+[conda-packages.linux-x64.tzdata-2026c-h151e31d_0]
+url = "https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda"
+checksum = "sha256:b928c30ddcb0e3f544c6eade8352737e6e610e263276b90232db6a578ef899d8"
 
 [conda-packages.linux-x64."zstd-1.5.7-hb78ec9c_6"]
 url = "https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda"
@@ -197,7 +197,7 @@ conda_deps = [
     "libstdcxx-15.2.0-h934c35e_19",
     "libgcc-15.2.0-he0feb66_19",
     "libclang13-22.1.8-default_h9692865_3",
-    "binutils-2.45.1-default_h4852527_102",
+    "binutils-2.46.1-default_h4852527_102",
     "libgcc-devel_linux-64-15.2.0-hcc6f6b0_119",
     "sysroot_linux-64-2.39-hc4b9eeb_6",
     "kernel-headers_linux-64-6.12.0-he073ed8_6",
@@ -213,9 +213,9 @@ conda_deps = [
     "libcompiler-rt-22.1.8-hb700be7_1",
     "compiler-rt_linux-64-22.1.8-ha770c72_1",
     "compiler-rt22_linux-64-22.1.8-hffcefe0_1",
-    "binutils_impl_linux-64-2.45.1-default_hfdba357_102",
-    "ld_impl_linux-64-2.45.1-default_hbd61a6d_102",
-    "tzdata-2025c-hc9c84f9_1",
+    "binutils_impl_linux-64-2.46.1-default_hfdba357_102",
+    "ld_impl_linux-64-2.46.1-default_hbd61a6d_102",
+    "tzdata-2026c-h151e31d_0",
     "libiconv-1.18-h3b78370_2",
 ]
 

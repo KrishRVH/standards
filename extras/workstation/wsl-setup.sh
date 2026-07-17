@@ -52,6 +52,17 @@ die() {
 msg() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
 
+check_wsl_ubuntu() {
+  local distro_id
+
+  grep -qi microsoft /proc/sys/kernel/osrelease 2> /dev/null ||
+    die "this bootstrap must run inside WSL"
+  [[ -r /etc/os-release ]] || die "cannot identify the WSL distribution"
+  distro_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+  [[ "$distro_id" == ubuntu ]] ||
+    die "this bootstrap requires Ubuntu under WSL; found ${distro_id:-unknown}"
+}
+
 command_string() {
   printf '%q ' "$@"
 }
@@ -372,6 +383,7 @@ check_dagger_container_runtime() {
   warn "install/start Docker Desktop with WSL integration, Podman, or another supported runtime before using dagger"
 }
 
+check_wsl_ubuntu
 ensure_sudo
 
 # --- apt base ---------------------------------------------------------------
@@ -421,7 +433,7 @@ version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
 
 install_latest_neovim() {
   local min_version="$1"
-  local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir downloaded_version
+  local latest_json latest_tag latest_version current arch asset_arch asset_dir url tmpdir downloaded_version installed_version
 
   latest_json="$(curl_fetch https://api.github.com/repos/neovim/neovim/releases/latest)"
   latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
@@ -458,12 +470,6 @@ install_latest_neovim() {
   [[ "$downloaded_version" == "$latest_version" ]] ||
     die "downloaded Neovim reports version $downloaded_version, expected $latest_version"
 
-  # Remove Ubuntu's neovim runtime only after its replacement is ready.
-  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
-    apt_get remove neovim neovim-runtime || true
-    apt_get autoremove || true
-  fi
-
   sudo install -d -m 0755 /opt /usr/local/bin
   sudo rm -rf "/opt/${asset_dir}.new" "/opt/${asset_dir}.previous"
   sudo mv "$tmpdir/$asset_dir" "/opt/${asset_dir}.new"
@@ -472,10 +478,23 @@ install_latest_neovim() {
   fi
   sudo mv -T "/opt/${asset_dir}.new" "/opt/$asset_dir"
   sudo ln -sfn "/opt/$asset_dir/bin/nvim" /usr/local/bin/nvim
+  hash -r 2> /dev/null || true
+  installed_version="$(
+    /usr/local/bin/nvim --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
+  )"
+  [[ "$installed_version" == "$latest_version" ]] ||
+    die "installed Neovim reports version $installed_version, expected $latest_version"
+
+  # Remove Ubuntu's package only after its replacement is active and verified.
+  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
+    apt_get remove neovim neovim-runtime || true
+    apt_get autoremove || true
+    hash -r 2> /dev/null || true
+  fi
+
+  /usr/local/bin/nvim --version | head -n 2
   sudo rm -rf "/opt/${asset_dir}.previous"
   rm -rf "$tmpdir" || true
-
-  nvim --version | head -n 2
 }
 
 install_latest_neovim "0.11.0"
@@ -502,7 +521,7 @@ if ! has rustup; then
   installer="$tmpdir/rustup-init"
   curl_fetch "$url" -o "$installer"
   chmod +x "$installer"
-  "$installer" -y --profile minimal --default-toolchain stable
+  "$installer" -y --profile minimal --default-toolchain stable --no-modify-path
   rm -rf "$tmpdir" || true
 else
   msg "rust: updating stable toolchain"
@@ -589,13 +608,14 @@ alias .....='cd ../../../..'
 
 gcob() {
   [[ $# -eq 1 ]] || { echo "usage: gcob <name>"; return 2; }
-  git checkout -b -- "$1"
+  git checkout -b "$1"
 }
 
 unalias gco 2>/dev/null || true
 gco() {
   [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }
-  git checkout -- "$1"
+  [[ "$1" != -* ]] || { echo "gco: ref must not start with '-'"; return 2; }
+  git checkout "$1"
 }
 
 alias amend="git commit --amend"

@@ -64,6 +64,7 @@
 *.lua text
 *.odin text
 *.php text diff=php
+*.roc text
 *.rs text
 *.zig text
 *.zon text

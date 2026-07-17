@@ -26,8 +26,8 @@ deterministic commands should let an agent make and prove a narrow change.
 - `Dagger/`: optional Dagger module template used by the explicit
   `dagger:standards:check` mise task.
 - `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`, `Haskell/`,
-  `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Rust/`, `Shell/`,
-  `SPARK/`, `TS/`, `Zig/`:
+  `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Roc/`, `Rust/`,
+  `Shell/`, `SPARK/`, `TS/`, `Zig/`:
   language/tooling templates.
 - `testers/`: small standalone fixtures that prove every language template
   works through the documented mise layout. Each fixture commits its
@@ -123,6 +123,9 @@ Finally, copy the language template files that match the project:
 - `Python/`: pyproject and uv-based quality-tool config for Ruff, basedpyright,
   Bandit, pytest/coverage, wheel/source builds, and optional deeper mypy,
   dependency, documentation, complexity, slots, and dead-code checks.
+- `Roc/`: immutable new-compiler nightly with official checksum-backed host
+  assets, native formatting, warning-failing checks, and top-level `expect`
+  tests through the development backend.
 - `Rust/`: Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
   cargo package/cargo-deny dependency-policy defaults.
 - `Shell/`: Bash-first glue-code baseline with shfmt, ShellCheck, parser
@@ -218,7 +221,7 @@ mise run standards:check
 That runs a root-wide secret scan, the pinned Biome alternative check, drift,
 Markdown, and Shell checks, and every tester fixture for C, C#, C++, Elixir,
 Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
-Rust, Shell, SPARK/Ada, TypeScript, and Zig through
+Roc, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
 When changing a template, update the matching fixture and refresh affected
 lockfiles so future changes prove the copied layout still works.

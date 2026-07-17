@@ -737,13 +737,14 @@ command -v eza >/dev/null 2>&1 && alias llt='eza -la --git --tree --level=2 --gr
 
 gcob() {
   [[ $# -eq 1 ]] || { echo "usage: gcob <name>"; return 2; }
-  git checkout -b -- "$1"
+  git checkout -b "$1"
 }
 
 unalias gco 2>/dev/null || true
 gco() {
   [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }
-  git checkout -- "$1"
+  [[ "$1" != -* ]] || { echo "gco: ref must not start with '-'"; return 2; }
+  git checkout "$1"
 }
 
 alias amend="git commit --amend"

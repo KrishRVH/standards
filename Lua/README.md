@@ -20,6 +20,6 @@ mise run lua:standards:check
 
 `lua:lint` installs pinned Luacheck into `.lua_modules`, then runs Luacheck and
 gates LuaLS's JSON diagnostics. `lua:test` installs pinned Busted only when
-`busted.lua`, `spec/`, `specs/`, `test/`, or `tests/` is present. Test runs add
+`.busted`, `spec/`, `specs/`, `test/`, or `tests/` is present. Test runs add
 `src/` to `LUA_PATH` so fixtures and copied projects can require modules by
 their package name. `luarocks` must be available on `PATH` for lint/test tooling.

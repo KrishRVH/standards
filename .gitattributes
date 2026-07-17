@@ -64,6 +64,7 @@
 *.lua text
 *.odin text
 *.php text diff=php
+*.roc text
 *.rs text
 *.zig text
 *.zon text
@@ -225,6 +226,7 @@ Mise/conf.d/20-fortran.toml linguist-language=Fortran
 Mise/conf.d/20-godot.toml linguist-language=GDScript
 Mise/conf.d/20-haskell.toml linguist-language=Haskell
 Mise/conf.d/20-odin.toml linguist-language=Odin
+Mise/conf.d/20-roc.toml linguist-language=Roc
 Mise/conf.d/20-spark.toml linguist-language=Ada
 
 # Count the small Odin profile's reusable guidance as part of that standard so

@@ -19,7 +19,7 @@ if command -v clang-format >/dev/null 2>&1; then
       '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
       xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp/files"
   else
-    find . -type d \\( -name .git -o -name build -o -name 'build-*' \\) -prune \
+    find . -type d \\( -name .git -o -name build -o -name 'build-*' -o -name vendor \\) -prune \
       -o -type f \\( -name '*.c' -o -name '*.h' \\) -print0 > "$tmp/files"
   fi
   if [ -s "$tmp/files" ]; then
@@ -42,7 +42,7 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
     '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
     xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp/files"
 else
-  find . -type d \\( -name .git -o -name build -o -name 'build-*' \\) -prune \
+  find . -type d \\( -name .git -o -name build -o -name 'build-*' -o -name vendor \\) -prune \
     -o -type f \\( -name '*.c' -o -name '*.h' \\) -print0 > "$tmp/files"
 fi
 if [ ! -s "$tmp/files" ]; then

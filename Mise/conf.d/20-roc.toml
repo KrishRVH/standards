@@ -1,0 +1,117 @@
+[tools."http:roc"]
+version = "nightly-2026-July-15-c2d30e8"
+checksum_url = "https://api.github.com/repos/roc-lang/nightlies/releases/tags/{{ version }}"
+checksum_expr = 'filter(fromJSON(body).assets, { #.name == filename })[0].digest'
+
+[tools."http:roc".platforms]
+linux-arm64 = { url = "https://github.com/roc-lang/nightlies/releases/download/nightly-2026-July-15-c2d30e8/roc_nightly-linux_arm64-2026-07-15-c2d30e8.tar.gz" }
+linux-x64 = { url = "https://github.com/roc-lang/nightlies/releases/download/nightly-2026-July-15-c2d30e8/roc_nightly-linux_x86_64-2026-07-15-c2d30e8.tar.gz" }
+macos-arm64 = { url = "https://github.com/roc-lang/nightlies/releases/download/nightly-2026-July-15-c2d30e8/roc_nightly-macos_apple_silicon-2026-07-15-c2d30e8.tar.gz" }
+macos-x64 = { url = "https://github.com/roc-lang/nightlies/releases/download/nightly-2026-July-15-c2d30e8/roc_nightly-macos_x86_64-2026-07-15-c2d30e8.tar.gz" }
+windows-x64 = { url = "https://github.com/roc-lang/nightlies/releases/download/nightly-2026-July-15-c2d30e8/roc_nightly-windows_x86_64-2026-07-15-c2d30e8.zip" }
+
+[tasks."roc:fmt"]
+description = "Format project-owned Roc source"
+run = """
+set -eu
+list="$(mktemp)"
+trap 'rm -f "$list"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.roc' > "$list"
+else
+  find . -type d -name .git -prune -o \\( -type f -o -type l \\) -name '*.roc' -print0 > "$list"
+fi
+if [ -s "$list" ]; then
+  xargs -0 -n 1 sh -c '
+    set -eu
+    path=$1
+    case "$path" in
+      /* | ./*) ;;
+      *) path="./$path" ;;
+    esac
+    if [ -L "$path" ]; then
+      printf "roc:fmt refuses non-regular source: %s\n" "$1" >&2
+      exit 1
+    fi
+    if [ ! -e "$path" ]; then
+      exit 0
+    fi
+    if [ ! -f "$path" ]; then
+      printf "roc:fmt refuses non-regular source: %s\n" "$1" >&2
+      exit 1
+    fi
+    tmp="$(mktemp "${path}.roc-fmt.XXXXXX")"
+    cleanup() { rm -f "$tmp"; }
+    abort() { exit 1; }
+    trap cleanup 0
+    trap abort 1 2 15
+    cp -p "$path" "$tmp"
+    roc fmt --stdin < "$path" > "$tmp"
+    if cmp -s "$path" "$tmp"; then
+      rm -f "$tmp"
+    else
+      compare_status=$?
+      if [ "$compare_status" -ne 1 ]; then
+        printf "roc:fmt could not compare staged source: %s\n" "$1" >&2
+        exit 1
+      fi
+      if ! mv -f "$tmp" "$path"; then
+        printf "roc:fmt could not replace source: %s\n" "$1" >&2
+        exit 1
+      fi
+    fi
+    trap - 0 1 2 15
+  ' sh < "$list"
+fi
+"""
+
+[tasks."roc:fmt:check"]
+description = "Check Roc formatting"
+run = """
+set -eu
+list="$(mktemp)"
+trap 'rm -f "$list"' EXIT
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git ls-files --cached --others --exclude-standard -z -- '*.roc' > "$list"
+else
+  find . -type d -name .git -prune -o \\( -type f -o -type l \\) -name '*.roc' -print0 > "$list"
+fi
+if [ -s "$list" ]; then
+  xargs -0 -n 1 sh -c '
+    set -eu
+    path=$1
+    case "$path" in
+      /* | ./*) ;;
+      *) path="./$path" ;;
+    esac
+    if [ -L "$path" ]; then
+      printf "roc:fmt:check refuses non-regular source: %s\n" "$1" >&2
+      exit 1
+    fi
+    if [ ! -e "$path" ]; then
+      exit 0
+    fi
+    if [ ! -f "$path" ]; then
+      printf "roc:fmt:check refuses non-regular source: %s\n" "$1" >&2
+      exit 1
+    fi
+    roc fmt --check "$path"
+  ' sh < "$list"
+fi
+"""
+
+[tasks."roc:lint"]
+description = "Check Roc source and fail on diagnostics"
+run = "roc check main.roc --no-cache"
+
+[tasks."roc:test"]
+description = "Run Roc top-level expects"
+run = "roc test main.roc --no-cache --verbose"
+
+[tasks."roc:standards"]
+description = "Run the Roc standards workflow with autofixes"
+depends = ["roc:fmt"]
+
+[tasks."roc:standards:check"]
+description = "Run the Roc standards CI gate"
+depends = ["roc:fmt:check", "roc:lint", "roc:test"]
