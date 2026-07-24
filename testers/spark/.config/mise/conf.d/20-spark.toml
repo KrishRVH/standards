@@ -6,10 +6,16 @@ description = "Install pinned SPARK/Ada project tooling"
 depends = ["spark:lock:check"]
 run = """
 set -eu
+
+first_line() {
+  output="$("$@")"
+  printf '%s\n' "$output" | sed -n '1p'
+}
+
 alr --version
-alr -n exec -- gprbuild --version | sed -n '1p'
-alr -n exec -- gnat --version | sed -n '1p'
-alr -n exec -- gnatprove --version | sed -n '1p'
+first_line alr -n exec -- gprbuild --version
+first_line alr -n exec -- gnat --version
+first_line alr -n exec -- gnatprove --version
 alr -n exec -- gnatformat --version
 """
 
