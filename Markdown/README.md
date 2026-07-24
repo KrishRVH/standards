@@ -12,6 +12,7 @@ lychee.toml
 package.json
 prettier.config.mjs
 scripts/check-mdx.mjs
+scripts/check-mdx.test.mjs
 typos.toml
 ```
 
@@ -27,10 +28,11 @@ mise run md:standards:check
 ```
 
 `md:standards` runs Prettier and markdownlint autofixes. `md:standards:check`
-runs markdownlint, the MDX compiler check, Prettier check, offline local link
-checking, and typos. Generate and commit `bun.lock` with `mise run md:lock`
-before relying on `md:standards:check`; the gate fails when the lockfile is
-missing. External links and package audit are available through:
+runs markdownlint, frontmatter and MDX checks, checker tests, Prettier, offline
+local link checking, and typos. Generate and commit `bun.lock` with
+`mise run md:lock` before relying on `md:standards:check`; the gate fails when
+the lockfile is missing. External links and package audit are available
+through:
 
 ```sh
 mise run md:standards:check:deep
@@ -39,8 +41,10 @@ mise run md:standards:check:deep
 ## Posture
 
 - Markdown and MDX are not the same language. markdownlint handles mechanical
-  Markdown structure; `scripts/check-mdx.mjs` handles MDX syntax with JSX,
-  frontmatter, GFM, and Shiki-compatible code fences.
+  Markdown structure; `scripts/check-mdx.mjs` validates YAML frontmatter in
+  Markdown and MDX, then checks MDX syntax with JSX, GFM, and Shiki-compatible
+  code fences. Frontmatter must be a valid YAML mapping; field schemas remain
+  project-specific.
 - Prettier preserves prose wrapping to avoid churn in hand-wrapped posts and
   docs.
 - Code fences should always use a language identifier. Keep Shiki/rehype

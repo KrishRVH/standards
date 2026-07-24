@@ -12,15 +12,20 @@
     "lint:fix": "markdownlint-cli2 --fix",
     "mdx:check": "bun scripts/check-mdx.mjs",
     "standards": "bun run format && bun run lint:fix",
-    "standards:check": "bun run lint && bun run mdx:check && bun run format:check"
+    "standards:check": "bun run lint && bun run mdx:check && bun run test && bun run format:check",
+    "test": "bun test --cwd scripts check-mdx.test.mjs"
   },
   "dependencies": {},
   "devDependencies": {
     "@mdx-js/mdx": "^3.1.1",
     "@shikijs/rehype": "^4.2.0",
+    "js-yaml": "^5.2.1",
     "markdownlint-cli2": "^0.23.0",
     "prettier": "^3.9.4",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1"
+  },
+  "overrides": {
+    "js-yaml": "^5.2.2"
   }
 }

@@ -492,14 +492,15 @@ def check_root_shared_files() -> list[str]:
             ROOT / ".config" / "mise" / "conf.d" / "20-markdown.toml",
         )
     )
-    errors.extend(
-        compare_file(
-            "root",
-            "Markdown MDX checker",
-            ROOT / "Markdown" / "scripts" / "check-mdx.mjs",
-            ROOT / "scripts" / "check-mdx.mjs",
+    for file in ("check-mdx.mjs", "check-mdx.test.mjs"):
+        errors.extend(
+            compare_file(
+                "root",
+                "Markdown checker",
+                ROOT / "Markdown" / "scripts" / file,
+                ROOT / "scripts" / file,
+            )
         )
-    )
     errors.extend(
         compare_file(
             "root",

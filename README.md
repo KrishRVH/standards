@@ -110,9 +110,9 @@ Finally, copy the language template files that match the project:
 - `Lua/`: Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
   tests.
 - `Markdown/`: Bun-backed Markdown/MDX baseline with Prettier formatting,
-  markdownlint structure checks, MDX compile checks through remark/rehype and
-  Shiki, offline local link checks with lychee, and low-noise typo checks with
-  typos.
+  markdownlint structure checks, semantic YAML frontmatter validation, MDX
+  compile checks through remark/rehype and Shiki, offline local link checks
+  with lychee, and low-noise typo checks with typos.
 - `Odin/`: OLS `odinfmt` nightly with fail-closed project-scoped writes, strict
   compiler style and vet checks, an external consumer test package, native tests
   with reported reproduction seeds, and debug AddressSanitizer plus optimized

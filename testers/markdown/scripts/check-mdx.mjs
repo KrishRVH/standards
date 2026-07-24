@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { compile } from '@mdx-js/mdx';
 import rehypeShiki from '@shikijs/rehype';
+import { load as parseYaml } from 'js-yaml';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 
@@ -38,7 +39,9 @@ const SKIP_DIRECTORIES = new Set([
   'zig-pkg',
 ]);
 
-const findMdxFiles = async (directory) => {
+const isMarkdownFile = (file) => file.endsWith('.md') || file.endsWith('.mdx');
+
+const findMarkdownFiles = async (directory) => {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
@@ -47,12 +50,12 @@ const findMdxFiles = async (directory) => {
 
     if (entry.isDirectory()) {
       if (!SKIP_DIRECTORIES.has(entry.name)) {
-        files.push(...(await findMdxFiles(entryPath)));
+        files.push(...(await findMarkdownFiles(entryPath)));
       }
       continue;
     }
 
-    if (entry.isFile() && entry.name.endsWith('.mdx')) {
+    if (entry.isFile() && isMarkdownFile(entry.name)) {
       files.push(entryPath);
     }
   }
@@ -60,10 +63,10 @@ const findMdxFiles = async (directory) => {
   return files;
 };
 
-const findGitMdxFiles = (directory) => {
+const findGitMarkdownFiles = (directory) => {
   const result = spawnSync(
     'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', '*.mdx'],
+    ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', '*.md', '*.mdx'],
     { cwd: directory, encoding: 'utf8' },
   );
   if (result.status !== 0) {
@@ -73,25 +76,46 @@ const findGitMdxFiles = (directory) => {
   return result.stdout
     .split('\0')
     .filter(Boolean)
+    .filter((file) => !file.split(/[\\/]/).some((part) => SKIP_DIRECTORIES.has(part)))
     .map((file) => path.resolve(directory, file))
     .filter(existsSync);
 };
 
-const compileMdxFile = async (file) => {
-  const source = await readFile(file, 'utf8');
+const validateFrontmatter = (source) => {
+  const lines = source.split(/\r\n|\r|\n/);
+  if (lines[0]?.trim() !== '---') {
+    return;
+  }
 
-  await compile(source, {
-    remarkPlugins: [remarkFrontmatter, remarkGfm],
-    rehypePlugins: [[rehypeShiki, { theme: 'github-dark' }]],
-  });
+  const closingFence = lines.findIndex((line, index) => index > 0 && line.trim() === '---');
+  if (closingFence === -1) {
+    throw new Error('YAML frontmatter is not closed.');
+  }
+
+  const metadata = parseYaml(lines.slice(1, closingFence).join('\n'));
+  if (metadata === null || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw new Error('YAML frontmatter must be a mapping.');
+  }
+};
+
+const checkMarkdownFile = async (file) => {
+  const source = await readFile(file, 'utf8');
+  validateFrontmatter(source);
+
+  if (file.endsWith('.mdx')) {
+    await compile(source, {
+      remarkPlugins: [remarkFrontmatter, remarkGfm],
+      rehypePlugins: [[rehypeShiki, { theme: 'github-dark' }]],
+    });
+  }
 };
 
 const main = async () => {
   const directory = process.cwd();
-  const files = (findGitMdxFiles(directory) ?? (await findMdxFiles(directory))).sort();
+  const files = (findGitMarkdownFiles(directory) ?? (await findMarkdownFiles(directory))).sort();
 
   if (files.length === 0) {
-    console.log('No MDX files found.');
+    console.log('No Markdown or MDX files found.');
     return;
   }
 
@@ -99,7 +123,7 @@ const main = async () => {
 
   for (const file of files) {
     try {
-      await compileMdxFile(file);
+      await checkMarkdownFile(file);
     } catch (error) {
       failures.push({ error, file });
     }
@@ -115,7 +139,7 @@ const main = async () => {
     return;
   }
 
-  console.log(`Checked ${files.length} MDX file${files.length === 1 ? '' : 's'}.`);
+  console.log(`Checked ${files.length} Markdown/MDX file${files.length === 1 ? '' : 's'}.`);
 };
 
 await main();

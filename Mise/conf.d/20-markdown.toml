@@ -53,7 +53,7 @@ depends = ["md:install"]
 run = "bun run lint:fix"
 
 [tasks."md:mdx:check"]
-description = "Compile-check MDX with frontmatter, GFM, and Shiki plugins"
+description = "Validate frontmatter and compile-check MDX with GFM and Shiki plugins"
 depends = ["md:install"]
 run = "bun run mdx:check"
 
@@ -70,8 +70,9 @@ description = "Check project files and filenames for typos"
 run = "typos --config typos.toml ."
 
 [tasks."md:test"]
-description = "Run Markdown/MDX smoke tests"
-depends = ["md:mdx:check"]
+description = "Run Markdown/MDX checker tests"
+depends = ["md:install"]
+run = "bun run test"
 
 [tasks."md:audit"]
 description = "Audit Markdown/MDX tooling dependencies"
