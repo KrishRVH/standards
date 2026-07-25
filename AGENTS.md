@@ -78,6 +78,8 @@ mise and report that.
 - Make the smallest coherent change that solves the task.
 - Root files and `.config/mise/`: repo maintenance.
 - `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
+- Put language-specific agent guidance in that language's `AGENTS.md`; reserve
+  `shared/AGENTS.md` for guidance that applies across languages.
 - Changing `Mise/`, `Dagger/`, or a tested stack means updating the matching
   fixture when applicable.
 - Follow existing language/tool config instead of restating it here.
