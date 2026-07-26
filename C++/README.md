@@ -4,21 +4,21 @@ Copy these files into a C++ project that uses CMake 3.30+ as its build authority
 Replace the neutral project names and source lists in `CMakeLists.txt` with the
 project's real library, executable, and test targets.
 
-This is a strict, systems-level generic starting template. Keep the checks that
-match the project and shave down presets, warnings, or optional tools when they
-do not fit the actual target platform or team tolerance.
+The template starts strict. Keep the checks that fit the project, and pare back
+presets, warnings, or optional tools that do not match its target platforms or
+team tolerance.
 
-The baseline is intentionally dependency-manager agnostic. Use Conan, vcpkg,
+The baseline does not choose a dependency manager. Adopt Conan, vcpkg,
 FetchContent, or system packages only after the project has a concrete
 dependency policy.
 
-The standard is intentionally C++20: targets require `cxx_std_20`, compiler
-extensions are disabled, and the presets do not provide newer-language opt-ins.
+The standard targets C++20: targets require `cxx_std_20`, compiler extensions
+are disabled, and the presets provide no newer-language opt-ins.
 
 ## Source conventions
 
-`.clang-format` is the formatting authority. Its layout is a deliberate
-readability choice, not a claim that one C++ house style is universal.
+`.clang-format` is the formatting authority. Its layout favors readability; it
+does not claim that one C++ house style is universal.
 
 `.clang-tidy` enforces this hybrid convention for language identifiers:
 
@@ -149,6 +149,6 @@ explicit opt-in for available GCC and MinGW compilers. The test script also
 installs the CMake package config and verifies that a tiny external CMake
 consumer can link `cpp_project::library`.
 
-The provided checks exercise Clang, GCC, and MinGW. The MSVC configuration is
-not exercised; a project claiming native MSVC support must add a native Windows
+The provided checks exercise Clang, GCC, and MinGW, but not the MSVC
+configuration. A project claiming native MSVC support must add a native Windows
 build, test, install, and consumer gate.

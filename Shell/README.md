@@ -1,7 +1,8 @@
 # Shell Standards
 
-Bash-first standards for project glue code. zsh and POSIX `sh` are supported
-when scripts declare those dialects with a shebang.
+This baseline treats Bash as the default language for project glue. zsh and
+POSIX `sh` are also supported when a script declares its dialect with a
+shebang.
 
 Default checks:
 
@@ -12,8 +13,8 @@ Default checks:
 - `bash -n`, `sh -n`, and `zsh -n` validate declared script syntax.
 - Bats runs behavior tests.
 
-Project-owned shell glue under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
-must declare its intended dialect with a recognized shebang. This includes
-executable extensionless glue. The copyable `scripts/shell-standards.sh` runner
-is itself covered by the same formatter, static-analysis, syntax, and policy
-checks. Error handling and strict-mode choices remain local design decisions.
+Project-owned shell files under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
+must use a recognized shebang to declare their dialect, including executable
+files without an extension. The same formatter, static-analysis, syntax, and
+policy checks cover the copyable `scripts/shell-standards.sh` runner. Error
+handling and strict mode remain local design decisions.

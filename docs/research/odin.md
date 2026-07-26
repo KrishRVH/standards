@@ -2,22 +2,23 @@
 
 Research date: 2026-07-12 (America/Chicago)
 
-This note records the durable decisions behind the Odin profile. Executable
-configuration in `Mise/conf.d/20-odin.toml` remains the source of truth.
-Primary sources are the official Odin documentation, the relevant maintainers'
-repositories, and mise documentation for installation and task behavior.
+This record explains the durable decisions behind the Odin profile. The
+authoritative executable configuration remains
+`Mise/conf.d/20-odin.toml`. Evidence comes from official Odin documentation,
+the relevant maintainers' repositories, and mise documentation for installation
+and task behavior.
 
 ## Decision
 
-Use the version-matched Odin compiler as the assurance authority: parser, style
-checker, vet tool, and test runner. Pin the latest reviewed official release and
-its mise lock data. Pin Clang only on Linux, where the official prebuilt
+The version-matched Odin compiler owns assurance: parsing, style checks,
+vetting, and tests. The profile pins the latest reviewed official release and
+its mise lock data. It pins Clang only on Linux, where the official prebuilt
 compiler uses it for linking.
 
-Use the reviewed OLS `odinfmt` nightly as a mutating developer formatter. Keep
-strict compiler checks as the non-mutating format-check and CI contract; the
-formatter does not replace them. Do not add a package manager, build framework,
-coverage shim, or editor service to the generic baseline.
+For mutating developer formatting, the profile uses the reviewed OLS `odinfmt`
+nightly. Strict compiler checks still define the non-mutating format and CI
+contract. The formatter does not replace them, and the baseline adds no package
+manager, build framework, coverage shim, or editor service.
 
 ## Toolchain
 
@@ -36,10 +37,10 @@ checksum_expr = 'filter(fromJSON(body).assets, { #.name == filename })[0].digest
 rename_exe = "odinfmt"
 ```
 
-`dev-2026-07a` was the latest official release on the research date. It
+On the research date, `dev-2026-07a` was the latest official release. It
 resolves to commit `819fdc7a80667498b8b365999f1475a66c358640`. The committed
-fixture lock records the exact Linux x64 release URL and SHA-256 digest; it does
-not claim independent provenance beyond the lock data.
+fixture lock records the exact Linux x64 release URL and SHA-256 digest, without
+claiming provenance beyond that lock data.
 
 The official installation contract is host-specific:
 
@@ -99,11 +100,11 @@ Odin site showcases OLS under Daniel's authorship and OLS enables `odinfmt`
 formatting by default. This makes it first-class ecosystem tooling rather than
 an arbitrary formatter.
 
-The latest versioned OLS release was older than the pinned compiler during this
-review. OLS describes itself as early-development software that tracks Odin
-`master`, and its nightly workflow builds against `master`. Adopt the reviewed
-nightly for DevEx while retaining the released compiler as the sole assurance
-authority.
+At review time, the latest versioned OLS release was older than the pinned
+compiler. OLS describes itself as early-development software that tracks Odin
+`master`, and its nightly workflow builds against `master`. The reviewed
+nightly improves the developer experience, but the released compiler remains
+the sole assurance authority.
 
 ### Reviewed nightly snapshot
 
@@ -129,14 +130,14 @@ The release API expression imports GitHub's published asset digest into the
 lock. These HTTP lock features require mise 2026.6.12, which is therefore the
 copyable configuration's minimum.
 
-The more obvious GitHub-backend alias works before a lock is present. Once the
-lock records the explicit `github:DanielGavin/ols` backend, a cold locked
+The obvious GitHub-backend alias works before a lock exists. Once the lock
+records the explicit `github:DanielGavin/ols` backend, however, a cold locked
 install can lose the alias selection hint and rename the OLS server itself to
-`odinfmt`. That warm-versus-cold identity failure rejects the GitHub backend for
-this archive shape. The older `ubi` backend selects the right member but is
+`odinfmt`. That warm-versus-cold identity failure rules out the GitHub backend
+for this archive shape. The older `ubi` backend selects the right member but is
 deprecated for removal in mise 2027.1.0. The HTTP archive leaves the remaining
-target-qualified OLS executable on `PATH`; that low-risk extra surface is
-preferable to installing the wrong program under the formatter name.
+target-qualified OLS executable on `PATH`; this small extra surface is safer
+than installing the wrong program under the formatter name.
 
 The `nightly` name is deliberately mutable. OLS runs the workflow weekly and on
 manual dispatch, deletes the previous release, force-moves the `nightly` tag,
@@ -172,13 +173,13 @@ tags. Compiler-owned style checks and gates remain authoritative.
   final status. The operation is not atomic, does not preserve Unix file modes,
   and may leave a backup while returning success.
 
-The `odin:fmt` adapter therefore does not call `-w`. It enumerates only
-Git-tracked or unignored `.odin` files under `src/project_name/` and `tests/`,
-rejects symlinks, and feeds each file through `-stdin` so parser failures are
+The `odin:fmt` adapter therefore avoids `-w`. It enumerates only Git-tracked or
+unignored `.odin` files under `src/project_name/` and `tests/`, rejects
+symlinks, and sends each file through `-stdin` so parser failures are
 observable. It removes the CLI-only extra newline, preserves ordinary modes in
 an adjacent candidate, leaves unchanged inodes alone, and atomically replaces
-changed files on the same filesystem. This is intentionally POSIX-only; native
-Windows remains unverified.
+changed files on the same filesystem. This path is POSIX-only; native Windows
+remains unverified.
 
 Keep `odin:fmt:check`, `odin:lint`, and `odin:standards:check` compiler-owned and
 non-mutating because `odinfmt` has no convergence check. `odin:standards`
@@ -220,9 +221,9 @@ Both test lanes use `ODIN_TEST_FANCY=false` for CI-safe output and
 `ODIN_TEST_FAIL_ON_BAD_MEMORY=true` so the runner's tracked leaks and invalid
 frees fail the test. This matches Odin's own CI.
 
-The profile deliberately retains the runner's default parallelism and fresh
-per-run random seed. Odin reports the seed, so a failure remains reproducible
-without giving up concurrency and randomized coverage in every normal run.
+The runner keeps its default parallelism and generates a fresh random seed for
+each run. Because Odin reports that seed, failures remain reproducible without
+sacrificing concurrency or randomized coverage during normal runs.
 
 AddressSanitizer is the only generic sanitizer lane. MemorySanitizer and
 ThreadSanitizer have narrower platform and instrumentation requirements.
@@ -245,10 +246,10 @@ src/project_name/
 tests/
 ```
 
-One flat external test package is enough for the current graph. When a project
-gains multiple test packages, use Odin's documented root `@require import`
-aggregator and `-all-packages`; adding it before that boundary exists would be
-speculative structure.
+One flat external test package covers the current graph. If the project gains
+multiple test packages, use Odin's documented root `@require import` aggregator
+and `-all-packages`. Adding that structure before the boundary exists would be
+speculative.
 
 Odin intentionally has no official package manager. Projects should prefer
 `core:` and `vendor:`, then vendor reviewed third-party source at a fixed

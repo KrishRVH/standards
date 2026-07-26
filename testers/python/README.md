@@ -1,8 +1,8 @@
 # Python Standards Tester
 
-This small fixture exercises the Python standards profile with one typed
-package, two tests, copied mise wiring, and a drift-checked Dagger wrapper. It
-covers strict default static analysis, branch coverage, and wheel/source
+One typed package and two tests exercise the Python standards profile, including
+its copied mise wiring and drift-checked Dagger wrapper. The fixture covers the
+default strict static analysis, branch coverage, and wheel and source
 distribution builds.
 
 Real Python projects can run `mise run py:deep` when they want the heavier

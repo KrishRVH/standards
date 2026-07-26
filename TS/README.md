@@ -3,10 +3,10 @@
 Copy these files into a Bun-backed TypeScript project and replace
 `project-name`, source paths, and test commands with the real project shape.
 
-This is a strict, systems-level generic starting template. `package.json` is the
-executable source of truth for scripts and dependencies. It uses TypeScript
-strict mode, type-aware ESLint flat config, and Prettier. Relax rules or package
-scripts when the copied baseline is broader than the real project needs.
+`package.json` is the executable source of truth for scripts and dependencies.
+The baseline combines TypeScript strict mode, a type-aware ESLint flat config,
+and Prettier. Relax rules or package scripts when that set is broader than the
+project needs.
 
 The committed default is Option A: ESLint plus Prettier. `biome.jsonc` is
 Option B for projects that intentionally replace both tools with Biome 2.5.3.
@@ -27,10 +27,10 @@ mise run ts:audit
 mise run ts:standards:check
 ```
 
-The default `standards` package script runs Prettier and ESLint autofix. The
-default `standards:check` package script runs ESLint, `tsc`, Prettier, Bun
-tests, and `bun audit --audit-level=low`. This profile is intentionally
-Bun-only. Do not add pnpm/yarn/npm fallback branches to the shared task file.
+The default `standards` package script runs Prettier and ESLint autofix;
+`standards:check` runs ESLint, `tsc`, Prettier, Bun tests, and
+`bun audit --audit-level=low`. This profile is Bun-only. Do not add
+pnpm/yarn/npm fallback branches to the shared task file.
 If a project chooses Option B, remove the ESLint and Prettier dependencies and
 config files. Remove `@eslint/js`, `eslint`, `eslint-config-prettier`, `globals`,
 `prettier`, and `typescript-eslint`; add the exact dev dependency

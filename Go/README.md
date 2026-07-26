@@ -3,9 +3,9 @@
 Copy `go.mod`, `.golangci.yml`, and `Mise/conf.d/20-go.toml` into a Go module.
 Replace `example.com/project` with the real module path.
 
-This is a strict, systems-level generic starting template. Keep the native Go
-checks as the default, but relax or split slower/static/security gates when the
-project's lifecycle calls for a smaller local loop.
+The baseline starts with Go's native checks. Keep those as the default, but
+split out or relax slower static and security gates when the project's
+lifecycle calls for a smaller local loop.
 
 The standards workflow keeps Go's native toolchain as the source of truth:
 
@@ -26,10 +26,9 @@ wants a hard local threshold expressed as a decimal from 0 to 100.
 
 ## Restricted Go dialect
 
-These guards preserve the style of Go this template values: obvious,
-self-documenting, easy to grok, self-contained, concise, and readily apparent.
-Here, elegance means directness: local data and control flow stay visible
-without unwarranted ceremony or extra language machinery.
+These guards keep the template's Go dialect direct and self-contained. Local
+data and control flow should remain visible without extra ceremony or language
+machinery.
 
 Project code rejects two language directions after Go 1.22:
 

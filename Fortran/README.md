@@ -3,9 +3,9 @@
 Copy these files into a modern Fortran project and run the tasks through
 `mise`.
 
-This is a strict, systems-level generic starting template. It assumes new
-free-form Fortran, not fixed-form legacy maintenance. Relax checks only when a
-project has a clear compiler, platform, or dependency reason.
+This strict baseline is for new free-form Fortran, not fixed-form legacy
+maintenance. Relax a check only for a clear compiler, platform, or dependency
+reason.
 
 ## Tooling
 
@@ -52,7 +52,7 @@ generates API documentation with FORD.
 
 ## Copy Notes
 
-Rename `project_name` in `fpm.toml`, module names, test names, and docs before
-using this as a real project. Add project-specific compiler flags, preprocessors,
-OpenMP/MPI metapackages, BLAS/LAPACK, or additional compilers deliberately in
-the project copy rather than in this generic standard.
+Before using the template, replace `project_name` in `fpm.toml`, module names,
+test names, and docs. Add project-specific compiler flags, preprocessors,
+OpenMP/MPI metapackages, BLAS/LAPACK, or additional compilers to the copied
+project rather than this shared baseline.

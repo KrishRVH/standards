@@ -2,9 +2,9 @@
 
 Copy these files into a Rust project and run the tasks through `mise`.
 
-This is a strict, systems-level generic starting template. It is intentionally
-stricter than many application defaults so the first copied baseline has useful
-guardrails; relax or remove checks that do not fit the project.
+The copied baseline is deliberately stricter than many application defaults so
+it begins with useful guardrails. Relax or remove checks that do not fit the
+project.
 
 ## Tooling
 
@@ -35,8 +35,8 @@ validates publishable package contents with `cargo package --workspace`.
 `rust:deny` checks advisories, licenses, duplicate-version warnings, wildcard
 dependency requirements, and dependency sources.
 
-The template keeps noisy systems-code lints relaxed by default: numeric casts,
-entire `clippy::restriction` or `clippy::cargo` groups, dependency unsafe
-scanning, unused dependency scanning, and aggressive rustfmt/nightly formatting
-policy are project-specific choices. Selected cargo/dependency policies are
-still enforced.
+Noisy systems-code lints stay relaxed by default. Numeric casts, the complete
+`clippy::restriction` and `clippy::cargo` groups, dependency unsafe scanning,
+unused dependency scanning, and aggressive rustfmt or nightly formatting rules
+remain project-specific choices. The selected Cargo and dependency policies
+are still enforced.

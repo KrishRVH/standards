@@ -4,12 +4,11 @@ Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, and
 `Mise/conf.d/20-csharp.toml` into a .NET project. Replace package versions and
 target framework details when the project has a different runtime policy.
 
-This is a strict, systems-level generic starting template. It enables nullable
-reference types, treats warnings and analyzer diagnostics as build failures,
-generates XML documentation, uses central package management, and adds
-Meziantou and Roslynator analyzers alongside the SDK's built-in .NET analyzers.
-Relax analyzer packages or diagnostic severities when the copied baseline is
-broader than the real project needs.
+The baseline enables nullable reference types, promotes warnings and analyzer
+diagnostics to build failures, generates XML documentation, and uses central
+package management. Meziantou and Roslynator run alongside the SDK's built-in
+.NET analyzers. Remove analyzer packages or lower diagnostic severities when
+that set is broader than the project needs.
 
 The standards workflow is:
 
@@ -25,8 +24,8 @@ mise run csharp:standards:check
 lock files and switch CI restores to locked mode. NuGet audit is enabled for all
 transitive dependencies at `low` severity; audit warnings fail under the
 template's warnings-as-errors policy. Commit `Directory.Packages.props` and the
-generated project lockfiles. The lint and test tasks run Release builds so
-analyzer and build behavior match CI more closely.
-Implicit usings are disabled, project/global usings stay explicit, explicit
-local variable types are an advisory style preference, and analyzer plus
-nullable warnings remain build failures.
+generated project lockfiles. The lint and test tasks use Release builds so
+analyzer and build behavior stay close to CI. Implicit usings are disabled,
+project and global usings remain explicit, explicit local variable types are an
+advisory style preference, and analyzer and nullable warnings remain build
+failures.

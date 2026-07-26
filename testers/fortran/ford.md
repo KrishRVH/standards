@@ -1,7 +1,7 @@
 # project_name
 
-Strict modern Fortran project template.
+Baseline for a strict modern Fortran project.
 
-The template documents public modules, derived types, and procedures through
-FORD comments in `src/`. Keep the front page short and push API details to the
-source declarations they describe.
+FORD comments in `src/` document public modules, derived types, and procedures.
+Keep this front page short; put API details beside the source declarations they
+describe.

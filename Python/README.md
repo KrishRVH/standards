@@ -29,19 +29,19 @@ mise run py:deep
 mise run py:standards:check:deep
 ```
 
-The default baseline is intentionally strict: Ruff uses a stable high-signal
-core of Pyflakes, pycodestyle errors, isort, Bugbear, and pyupgrade;
-basedpyright runs in strict mode; Bandit checks source security; tests collect
-branch coverage; `py:audit` checks locked dependencies; and `py:build` verifies
-wheel and source distributions. `py:deep` adds mypy, dependency hygiene, doc
-coverage reporting, complexity, dataclass slots, and high-confidence dead-code
-checks for projects that want the heavier analysis profile.
+The default gate is strict. Ruff uses a stable, high-signal core of Pyflakes,
+pycodestyle errors, isort, Bugbear, and pyupgrade. Basedpyright runs in strict
+mode, Bandit checks source security, tests collect branch coverage, `py:audit`
+checks locked dependencies, and `py:build` verifies wheel and source
+distributions. Projects that want a heavier analysis profile can use `py:deep`
+for mypy, dependency hygiene, documentation coverage reporting, complexity,
+dataclass slots, and high-confidence dead-code checks.
 `py:standards:check:deep` runs the standard CI gate, including the dependency
 audit, before the optional deep analyzers. Generate and commit `uv.lock` before
 relying on `py:standards:check`; the CI gate fails when the lockfile is missing
 or stale.
 
-That strictness is a starting point, not an obligation. Relax or remove checks
+Strictness is the starting point, not an obligation. Relax or remove checks
 that do not fit the project's risk, lifecycle, typing surface, or migration
 state.
 

@@ -3,11 +3,10 @@
 Copy these files into a Composer project and replace `vendor/project`, package
 metadata, namespaces, and source/test paths with the real project values.
 
-This is a strict, systems-level generic starting template. It targets PHP 8.5
-and includes PHPUnit, PHPStan, Rector, PHPCS/Slevomat, PHPMD maintainability
-smell checks, ShipMonk dependency usage analysis, Composer audit, and Roave
-security advisories. Relax or split slower tools when the copied baseline is
-broader than the project's risk or lifecycle.
+This PHP 8.5 baseline combines PHPUnit, PHPStan, Rector, PHPCS/Slevomat, PHPMD
+maintainability checks, ShipMonk dependency analysis, Composer audit, and Roave
+security advisories. Split out or remove slower tools when that set is broader
+than the project's risk or lifecycle warrants.
 
 The standards workflow is:
 
@@ -34,9 +33,9 @@ applies the code-quality, dead-code, early-return, type-declaration, and
 privatization prepared sets. It also imports names and removes unused imports.
 The defaults keep parallel execution enabled and cache outside the repository.
 
-PHPStan is the default static-analysis engine. PHPMD is limited to source
-maintainability smells such as complexity, oversized methods/classes, coupling,
-and high-signal clean-code hazards; PHPCS/Slevomat owns style and PHPStan owns
-type/correctness analysis. ShipMonk's dependency analyzer is the single default
-dependency hygiene tool because it covers unused dependencies, shadow/transitive
-dependencies, and `require`/`require-dev` placement in one pass.
+PHPStan owns static type and correctness analysis; PHPCS/Slevomat owns style.
+PHPMD is limited to source maintainability concerns such as complexity,
+oversized methods and classes, coupling, and high-signal clean-code hazards.
+ShipMonk is the sole default dependency-hygiene tool because one pass covers
+unused dependencies, shadow or transitive dependencies, and
+`require`/`require-dev` placement.

@@ -1,3 +1,3 @@
 # Zig Tester
 
-Tiny fixture for the copyable Zig standards profile.
+This small fixture exercises the copyable Zig standards profile.

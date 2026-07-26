@@ -1,20 +1,17 @@
 # Standards
 
-Reusable project standards for formatting, linting, static analysis, tests,
-dependency hygiene, and repeatable CI gates.
+This is a copy-from catalog for project formatting, linting, static analysis,
+tests, dependency hygiene, and repeatable CI gates. It is not an installable
+package: root files maintain the catalog, while `shared/`, `Mise/`, `Dagger/`,
+and the language folders contain the files intended for downstream projects.
 
-This repository is meant to be copied from, not installed as a package. The
-root files maintain this standards repo itself. Files intended for downstream
-projects live in `shared/`, `Mise/`, `Dagger/`, and the language-specific
-folders.
-
-These templates prioritize ecosystem-idiomatic, almost systems-like strictness
-and elegance. They are meant to provide a high-signal generic baseline, not a
-universal final shape. Copy them, then relax, remove, or narrow checks and files
-based on the actual project's risk, lifecycle, team tolerance, and domain.
-Their major secondary target is dependable agentic development: conventional
-layouts, nearby contracts, explicit side effects, actionable failures, and
-deterministic commands should let an agent make and prove a narrow change.
+Each template starts strict and stays close to its ecosystem. It is a
+high-signal baseline, not a universal finished configuration. After copying
+one, narrow or remove whatever does not fit the project's risk, lifecycle,
+domain, or team tolerance. Conventional layouts, nearby contracts, explicit
+side effects, actionable failures, and deterministic commands also make the
+result easier for an agent to change and verify without relying on unwritten
+knowledge.
 
 ## Repository Layout
 
@@ -138,21 +135,21 @@ Finally, copy the language template files that match the project:
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
-The files intentionally use neutral project names, conventional `src` and
-`tests` directories, and generic package namespaces. Replace those placeholders
-when a project uses a different layout or architectural boundary. Replace
-package identity, author, maintainer, copyright, license, and publication
-metadata with the project's actual legal and release posture.
+The copied files use neutral project names, conventional `src` and `tests`
+directories, and generic package namespaces. Replace those placeholders when
+the project uses a different layout or architectural boundary. Package
+identity, author, maintainer, copyright, license, and publication metadata must
+also reflect the project's actual legal and release posture.
 
 ## Adoption Posture
 
-Treat each template as a strict seed, not a finished architecture. Keep the
-ecosystem-native formatter, compiler/type checker, test runner, and lockfile
-policy first. Keep a dependency advisory gate when the ecosystem offers a
-dependable, high-signal native option; otherwise retain its native integrity
-controls and select project-specific auditing after adoption. Tune style-only
-rules, coverage policy, release profiles, and heavier optional analyzers after
-the project shape is known.
+Treat each template as a strict seed rather than a finished architecture. Start
+with the ecosystem-native formatter, compiler or type checker, test runner, and
+lockfile policy. Keep a dependency advisory gate when the ecosystem provides a
+dependable, high-signal native option. Otherwise, retain the native integrity
+controls and choose project-specific auditing after adoption. Style-only rules,
+coverage policy, release profiles, and heavier optional analyzers can wait
+until the project has a visible shape.
 
 Applications and CLIs should usually keep committed lockfiles, exact toolchain
 pins, and CI-only audits. Libraries may need wider runtime version ranges,
@@ -160,9 +157,9 @@ different release profiles, and narrower public API gates. Existing projects
 should adopt strict checks with reviewed suppressions or CI ratchets instead of
 trying to become green by broad disabling.
 
-The aggregate mise tasks use marker-file detection for copyable defaults. In
-monorepos or mixed-tooling repositories, replace the generic dispatcher with
-explicit project-specific task dependencies or narrower markers.
+The aggregate mise tasks detect marker files so the defaults remain copyable.
+Monorepos and mixed-tooling repositories should replace that generic dispatcher
+with explicit project-specific task dependencies or narrower markers.
 
 The copyable configuration requires mise `2026.6.12` or newer for structured
 task references and checksum-backed HTTP tool locks. This repository's root
@@ -186,18 +183,18 @@ mise run secrets
 mise run sbom
 ```
 
-`mise run standards` runs each detected language's local workflow and applies
-available safe autofixes.
-`mise run standards:check` runs the CI-grade aggregate gate and the shared
-secret scan through `.gitleaks.toml`. This catalog intentionally omits a hosted
-workflow to avoid runner costs; downstream projects can wire the same command
-into their chosen provider when appropriate.
-`mise run sbom` emits a fresh optional CycloneDX JSON SBOM under `sbom/`; set
-`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when release metadata should differ
-from the default directory name and `0.0.0` version. If the project copied the
-Dagger template, `mise run dagger:standards:check` runs `standards:check`
-inside an official, digest-pinned `mise` Linux reference container while
-keeping task definitions in mise.
+`mise run standards` applies the available safe autofixes and runs each detected
+language's local workflow. `mise run standards:check` runs the CI-grade
+aggregate gate and the shared `.gitleaks.toml` secret scan. The catalog omits a
+hosted workflow to avoid imposing runner costs; downstream projects can attach
+the same command to their chosen provider.
+
+`mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
+`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
+differ from the directory name and default `0.0.0` version. With the Dagger
+template installed, `mise run dagger:standards:check` runs `standards:check` in
+an official, digest-pinned `mise` Linux reference container while leaving task
+definitions in mise.
 
 After copying templates into a project:
 
@@ -218,8 +215,8 @@ Use the repo-local maintenance gate for local fixture checks:
 mise run standards:check
 ```
 
-That runs a root-wide secret scan, the pinned Biome alternative check, drift,
-Markdown, and Shell checks, and every tester fixture for C, C#, C++, Elixir,
+This runs a root-wide secret scan, the pinned Biome alternative check, drift,
+Markdown and Shell checks, and every tester fixture for C, C#, C++, Elixir,
 Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
 Roc, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
 `standards:check`, including audits, proof, package, and slower quality gates.
@@ -231,8 +228,8 @@ config roots and execute with two top-level fixture jobs per scheduler.
 `[monorepo] lockfile = false` keeps every committed fixture lockfile beside its
 standalone configuration.
 The root runner uses one child mise process for the path wildcard because the
-current stable validator does not yet resolve monorepo paths in native task
-relationships; the child itself uses mise's scheduler and project-attributed
+current stable validator does not resolve monorepo paths in native task
+relationships. That child still uses mise's scheduler and project-attributed
 output.
 
 For an opt-in isolated proof without a hosted workflow, run the representative

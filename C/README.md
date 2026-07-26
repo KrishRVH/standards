@@ -4,10 +4,9 @@ Copy these files into a C project that uses CMake as its build authority.
 Replace the neutral target names and source lists in `CMakeLists.txt` with the
 project's real library, executable, and test targets.
 
-This is a strict, systems-level generic starting template. Keep the compiler,
-formatting, static-analysis, sanitizer, and cross-build checks that match the
-project; relax presets or optional tools when they do not fit the real target
-platform.
+The template starts with strict compiler, formatting, static-analysis,
+sanitizer, and cross-build checks. Keep the checks that serve the project;
+relax presets or optional tools that do not fit its actual target platform.
 
 The standards workflow is:
 

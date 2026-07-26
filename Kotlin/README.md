@@ -4,9 +4,8 @@ Copy these files into a Kotlin/JVM library project that uses Gradle Kotlin DSL.
 Replace `project-name`, package names, and source layout details with the
 project's real names.
 
-This is a strict, systems-level generic starting template. Relax Detekt rules,
-warning policy, or dependency-verification expectations when the copied baseline
-is broader than the real project needs.
+The template starts strict. Relax Detekt rules, warning policy, or dependency
+verification when the copied baseline is broader than the project needs.
 
 This template pins Java 25 LTS, Gradle, and ktlint through mise; Gradle pins
 Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and

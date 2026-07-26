@@ -2,24 +2,25 @@
 
 Research date: 2026-07-17 (America/Chicago)
 
-This note records the durable decisions behind the Roc profile. Executable
-configuration in `Mise/conf.d/20-roc.toml` remains the source of truth. Sources
-are limited to the official Roc website and repositories and the release
-metadata published by the `roc-lang` GitHub organization.
+This record explains the durable decisions behind the Roc profile. The
+authoritative executable configuration remains `Mise/conf.d/20-roc.toml`.
+Evidence is limited to the official Roc website and repositories and release
+metadata from the `roc-lang` GitHub organization.
 
 ## Decision
 
-Pin the new Roc compiler release `nightly-2026-July-15-c2d30e8`, built from
-source commit `c2d30e8a076ca44fd2d98be93f63f43d7898415d`. It was the latest
-packaged compiler on the research date, both official installers selected it,
-and GitHub marks its release immutable. Pin each host archive through its exact
-release URL and GitHub-published SHA-256 digest.
+The profile pins the new Roc compiler release
+`nightly-2026-July-15-c2d30e8`, built from source commit
+`c2d30e8a076ca44fd2d98be93f63f43d7898415d`. On the research date, it was the
+latest packaged compiler, both official installers selected it, and GitHub
+marked the release immutable. Each host archive is pinned by its exact release
+URL and GitHub-published SHA-256 digest.
 
-This is not a stable-version claim. Roc says it is not ready for a 0.1 release.
-The nightly release notes still recommend the old compiler for compatibility,
-while the current installation flow and new-compiler tutorial use the nightly
-compiler. This profile deliberately serves the latter: current syntax, current
-CLI behavior, and an immutable reviewed artifact.
+This does not make the compiler stable: Roc says it is not ready for a 0.1
+release. The nightly release notes still recommend the old compiler for
+compatibility, while the current installation flow and new-compiler tutorial
+use the nightly compiler. This profile follows the latter path—current syntax,
+current CLI behavior, and an immutable reviewed artifact.
 
 - [Roc project status](https://github.com/roc-lang/roc/blob/c2d30e8a076ca44fd2d98be93f63f43d7898415d/README.md#L1-L11)
 - [Immutable nightly release](https://github.com/roc-lang/nightlies/releases/tag/nightly-2026-July-15-c2d30e8)
@@ -62,9 +63,10 @@ Sources:
 ## Release-channel transition
 
 `alpha4-rolling` is the latest release in the old Rust-compiler repository. Its
-own notes say that most of the community uses the new-compiler nightlies, but
-each new nightly still recommends the old compiler for now. This reflects a
-real ecosystem transition: many published platforms still target alpha4.
+notes say that most of the community uses the new-compiler nightlies, even
+though each new nightly still recommends the old compiler for now. The
+ecosystem is genuinely in transition, and many published platforms still
+target alpha4.
 
 The old release is a poor standards pin for this profile because it is mutable,
 has different language syntax, uses `roc format` rather than `roc fmt`, and
@@ -116,7 +118,7 @@ tests to run again. No external formatter, linter, or test framework is needed.
 
 ## Package shape
 
-The template is a package root plus one exposed type module:
+The template contains a package root and one exposed type module:
 
 ```text
 main.roc
@@ -130,13 +132,13 @@ type, and public operations are associated items on that type. Top-level
 package fixture uses this exact package-root, type-module, and inline-test
 shape.
 
-A headerless file is not the generic package baseline. The compiler turns it
-into an application backed by its embedded Echo platform. That platform only
-exposes `Echo.line!` and requires a `main!` accepting `List(Str)`; it is useful
-for tutorials and compiler smoke tests, not a neutral reusable-library or
-production-application contract. A real executable should add an application
-header and an explicitly reviewed, content-addressed platform when its I/O
-requirements are known.
+A headerless file would not provide a neutral package baseline. The compiler
+turns it into an application backed by its embedded Echo platform, which exposes
+only `Echo.line!` and requires a `main!` accepting `List(Str)`. That is useful
+for tutorials and compiler smoke tests, but not as a reusable-library or
+production-application contract. Once an executable's I/O requirements are
+known, it should add an application header and an explicitly reviewed,
+content-addressed platform.
 
 Sources:
 
@@ -161,7 +163,7 @@ Sources:
 
 ## Verification record
 
-Research on 2026-07-17 established the following from primary sources:
+Primary-source research on 2026-07-17 established that:
 
 - The official nightlies `latest` release and both installation scripts selected
   `nightly-2026-July-15-c2d30e8`.

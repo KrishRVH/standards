@@ -7,13 +7,13 @@ The copyable configuration requires mise `2026.6.12` or newer. That is the
 first release supporting the checksum-backed HTTP lock metadata used by the
 Odin formatter; it is a minimum, not an executable pin.
 
-The defaults assume this rule: every developer command goes through `mise run`.
-Dagger is optional. If a project keeps `conf.d/10-dagger.toml`, Dagger is
-pinned and invoked by mise; developers should not call `dagger` directly.
+Every developer command goes through `mise run`. Dagger is optional; when a
+project keeps `conf.d/10-dagger.toml`, mise pins and invokes it, so developers
+should not call `dagger` directly.
 
-Treat this as a strict, systems-level starting command surface. Keep the
-language tasks that fit the project, and relax or remove checks that do not
-match the project's risk, lifecycle, or team tolerance.
+The command surface starts strict. Keep the language tasks that fit the project
+and relax or remove checks that do not match its risk, lifecycle, or team
+tolerance.
 
 The optional Dagger fragment pins Dagger `v0.21.7`, and the corresponding
 Dagger module uses the digest-pinned mise `v2026.6.12` image in strict lockfile
@@ -34,15 +34,15 @@ mise run sbom
 mise run dagger:standards:check
 ```
 
-`standards` runs each detected language's local workflow and applies available
-safe autofixes. Some ecosystems expose validation only because they have no
-safe formatter.
-`standards:check` runs the CI-grade aggregate task and the shared secret scan
-through the project's `.gitleaks.toml`. `sbom` writes a fresh CycloneDX JSON
-SBOM under `sbom/` for release and audit workflows. Set `SYFT_SOURCE_NAME` and
-`SYFT_SOURCE_VERSION` to control SBOM source metadata. If `10-dagger.toml` and
-the Dagger module are copied, `dagger:standards:check` runs `standards:check`
-inside an official, digest-pinned `mise` Linux reference container.
+`standards` applies available safe autofixes and runs each detected language's
+local workflow. Some ecosystems expose validation only because they have no
+safe formatter. `standards:check` runs the CI-grade aggregate task and the
+project's shared `.gitleaks.toml` secret scan. `sbom` writes a fresh CycloneDX
+JSON SBOM under `sbom/` for release and audit workflows; `SYFT_SOURCE_NAME` and
+`SYFT_SOURCE_VERSION` control its source metadata. If the project includes
+`10-dagger.toml` and the Dagger module, `dagger:standards:check` runs
+`standards:check` inside an official, digest-pinned `mise` Linux reference
+container.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use
@@ -69,15 +69,14 @@ manifest, component, and lock prerequisites therefore execute once per
 top-level language graph. Read-only independent checks may run concurrently;
 formatters and tools that share mutable build state remain sequenced.
 
-The generic aggregate dispatcher is intentionally dynamic because selected
-language fragments are optional. It runs detected language graphs one at a
-time so mixed-language projects cannot race over shared package files or build
-state. Its remaining nested `mise run` is the boundary that selects a task
-whose name is only known after marker detection. In a project with a fixed
-stack, replace the generic aggregate tasks with explicit native dependencies.
-The dispatcher is a POSIX shell template verified on Linux; Windows consumers
-must replace it with explicit task relationships or a reviewed `run_windows`
-implementation.
+Because language fragments are optional, the generic aggregate dispatcher
+discovers them at runtime. It runs detected language graphs one at a time,
+preventing mixed-language projects from racing over shared package files or
+build state. The remaining nested `mise run` selects a task whose name is known
+only after marker detection. Projects with a fixed stack should replace the
+generic aggregate tasks with explicit native dependencies. The dispatcher is a
+POSIX shell template verified on Linux; Windows consumers need explicit task
+relationships or a reviewed `run_windows` implementation.
 
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one

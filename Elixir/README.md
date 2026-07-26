@@ -3,15 +3,14 @@
 Copy these files into a Mix project and replace `ProjectName`, `:project_name`,
 and package metadata with the real application names.
 
-This is a strict, systems-level generic starting template. Relax or remove
-checks once the real application shape, release cadence, and operational risk
-make a narrower gate more sensible.
+The template starts strict. Narrow its checks once the application's shape,
+release cadence, and operational risk justify a smaller gate.
 
-Commit `mix.lock` for applications and CLI tools; `elixir:install` enforces an
-existing lock while still allowing reusable libraries to omit one. Add
-Phoenix/Ecto formatter imports and Sobelow tuning only when the project has
-that web surface. Add Boundary or other architecture checks after real module
-boundaries exist.
+Applications and CLI tools should commit `mix.lock`; `elixir:install` enforces
+an existing lock while allowing reusable libraries to omit one. Add
+Phoenix/Ecto formatter imports and Sobelow tuning only for projects with that
+web surface. Boundary and other architecture checks should wait until real
+module boundaries exist.
 
 The standards workflow is:
 

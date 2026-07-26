@@ -1,3 +1,3 @@
 # SPARK Tester
 
-Tiny SPARK/Ada fixture for the copied standards profile.
+This small SPARK/Ada fixture exercises the copied standards profile.

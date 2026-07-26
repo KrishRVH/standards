@@ -1,7 +1,7 @@
 # Markdown/MDX Standards
 
-Bun-backed Markdown and MDX standards for documentation and content-heavy
-projects.
+This Bun-backed baseline covers Markdown and MDX in documentation and
+content-heavy projects.
 
 Copy these files into a project alongside `Mise/conf.d/20-markdown.toml`:
 
@@ -16,23 +16,23 @@ scripts/check-mdx.test.mjs
 typos.toml
 ```
 
-The included `docs/example.md` and `content/example.mdx` files are smoke
-examples for the template and fixture. Keep, replace, or delete them based on
-the target project's content layout.
+The included `docs/example.md` and `content/example.mdx` files smoke-test the
+template and fixture. Keep, replace, or delete them to match the target
+project's content layout.
 
-The default gate is intentionally deterministic:
+The default gate is deterministic:
 
 ```sh
 mise run md:standards
 mise run md:standards:check
 ```
 
-`md:standards` runs Prettier and markdownlint autofixes. `md:standards:check`
-runs markdownlint, frontmatter and MDX checks, checker tests, Prettier, offline
-local link checking, and typos. Generate and commit `bun.lock` with
-`mise run md:lock` before relying on `md:standards:check`; the gate fails when
-the lockfile is missing. External links and package audit are available
-through:
+`md:standards` runs Prettier and markdownlint autofixes.
+`md:standards:check` runs markdownlint, frontmatter and MDX checks, checker
+tests, Prettier, offline local link checking, and typos. Before relying on
+`md:standards:check`, generate and commit `bun.lock` with `mise run md:lock`; a
+missing lockfile is a failure. Use the deeper task for external links and
+package auditing:
 
 ```sh
 mise run md:standards:check:deep

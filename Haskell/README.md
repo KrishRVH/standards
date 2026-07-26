@@ -6,9 +6,9 @@ HLint, GHC2024, warnings-as-errors in the project gate, and named tasks for
 Haddock and source distribution checks. `haskell:install` initializes a missing
 Cabal package index and leaves an existing index untouched.
 
-This is a strict, systems-level generic starting template. Keep the high-signal
-checks, but relax warnings, docs, or distribution tasks when the real package
-type and maturity make a narrower gate more appropriate.
+The template starts with a strict, high-signal gate. Relax warnings,
+documentation, or distribution tasks when the package type and maturity call
+for a narrower one.
 
 Use `cabal.project.freeze` deliberately: commit it for applications and CLIs
 that want locked CI, and usually omit it for reusable libraries.

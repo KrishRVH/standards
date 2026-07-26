@@ -5,9 +5,8 @@ Copy `build.zig`, `build.zig.zon`, and `src/` into a Zig project, then replace
 Keep or add the project's own `README.md`, which the package manifest includes.
 Remove the executable target if the project is library-only.
 
-This is a strict, systems-level generic starting template. Keep the native Zig
-format/build/test checks, and shave down targets or release variants when the
-real package shape does not need the full baseline.
+The baseline starts with Zig's native format, build, and test checks. Remove
+targets or release variants when the package does not need the full set.
 
 After renaming the package, delete the copied fingerprint and run
 `mise run zig:lint` so Zig generates a new package identity. Keep that

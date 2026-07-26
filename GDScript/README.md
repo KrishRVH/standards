@@ -9,11 +9,11 @@ Use the shared `.gitignore` and `.gitattributes` alongside these files so the
 tool cache and Godot-generated state stay untracked while project resources
 remain normalized text.
 
-This is a strict, typed Godot 4.7 starting template. It pins Godot and
-GDToolkit, treats untyped declarations and unsafe dynamic operations as
-compile errors, preserves idiomatic `:=` inference, and keeps generated
-`.godot/` state out of version control. Let Godot create `.uid` sidecars and
-commit them with their source files.
+This typed Godot 4.7 baseline pins Godot and GDToolkit. Untyped declarations
+and unsafe dynamic operations are compile errors, while idiomatic `:=`
+inference remains available. Generated `.godot/` state stays out of version
+control; let Godot create `.uid` sidecars and commit them with their source
+files.
 
 Refresh the GDToolkit lock only when intentionally upgrading its dependency
 set:

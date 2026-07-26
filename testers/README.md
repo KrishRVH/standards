@@ -1,12 +1,10 @@
 # Tester Mini Projects
 
-These fixtures are intentionally small standalone projects that exercise the
-copyable standards through the documented `.config/mise` layout. Each fixture
-commits `.config/mise/mise.lock` for the Linux tool assets used by the repo
-verification gate.
-
-They prove the strict generic starting templates run after copying; they do not
-mean every downstream project should keep every check unchanged.
+These small standalone projects exercise the copyable standards through the
+documented `.config/mise` layout. Each fixture commits
+`.config/mise/mise.lock` for the Linux tool assets used by the repository gate.
+Their job is to prove that a strict template runs after copying, not to require
+every downstream project to keep every check.
 
 Run all tester projects from the repository root:
 
@@ -29,8 +27,8 @@ executes monorepo path wildcards but its validator does not resolve those paths
 inside `depends` or structured `run` entries. The wrapper also preserves the
 required `GOROOT` and `GOTOOLDIR` sanitization.
 
-Run one representative fixture in its Dagger reference container when isolated
-proof is useful; this task is intentionally outside the default root gate:
+For an isolated check, run one representative fixture in its Dagger reference
+container. This task intentionally sits outside the default root gate:
 
 ```sh
 MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:standards:check:isolated
@@ -57,9 +55,9 @@ and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and
 tests are intentionally fixture-owned.
 
-Minimal fixture `config.toml` files intentionally define no `lock` task. After
-changing a pinned tool version or fixture mise config, refresh the affected
-fixture lockfile with mise's native lock command from that fixture directory:
+Minimal fixture `config.toml` files define no `lock` task. After changing a
+pinned tool version or fixture mise config, refresh the affected lockfile from
+that fixture directory with mise's native command:
 
 ```sh
 MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise lock --platform linux-x64

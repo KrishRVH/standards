@@ -2,10 +2,9 @@
 
 Copy these files into a SPARK/Ada project and run the tasks through `mise`.
 
-This is a strict, systems-level generic starting template. It assumes new
-SPARK-first code, not unconstrained Ada maintenance. Relax proof, runtime, or
-toolchain checks only when a project has a clear target, compiler, or solver
-reason.
+This strict baseline assumes new SPARK-first code, not unconstrained Ada
+maintenance. Relax proof, runtime, or toolchain checks only for a clear target,
+compiler, or solver reason.
 
 ## Tooling
 
@@ -49,7 +48,7 @@ project.
 
 ## Copy Notes
 
-Rename `project_name` in `alire.toml`, project files, package names, and test
-names before using this as a real project. If a project keeps different project
+Before using the template, replace `project_name` in `alire.toml`, project
+files, package names, and test names. If the project uses different project
 file names, set `SPARK_PROJECT_FILE` and `SPARK_TEST_PROJECT_FILE` in its mise
 environment.

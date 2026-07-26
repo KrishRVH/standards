@@ -5,11 +5,11 @@ Copy `.editorconfig`, `odinfmt.json`, `src/`, `tests/`, and
 directory names, package declarations, imports, and task paths with the real
 package name.
 
-The template uses the OLS `odinfmt` nightly for developer formatting and treats
-the version-matched Odin compiler as the parser, style, static-analysis, and
-test authority. It uses Odin's own strict checker flags and adds
-`-vet-using-param` as a house rule because `using` parameters obscure data flow
-outside short-lived refactoring.
+The OLS `odinfmt` nightly handles developer formatting. The version-matched
+Odin compiler remains authoritative for parsing, style, static analysis, and
+tests. Alongside Odin's strict checker flags, the template adds
+`-vet-using-param` as a house rule: outside short-lived refactoring, `using`
+parameters obscure data flow.
 
 The standards workflow is:
 
@@ -30,12 +30,12 @@ changed files instead of using `odinfmt -w`'s fallible backup path. The explicit
 configuration keeps LF output on every host. `odin:fmt:check` remains strict
 compiler style validation because `odinfmt` has no check-only mode.
 
-The formatter channel is intentionally mutable. The committed fixture lock
-records the reviewed nightly asset and GitHub-published checksum, so replacement
-fails closed; it cannot preserve an asset after OLS rotates the nightly release.
-After reviewing the replacement, run `mise run odin:fmt:update` to update its
-checksum and force-reinstall it; relocking alone can leave a warm machine on the
-old cached binary. The formatting adapter requires a POSIX shell, and native
+The formatter channel is mutable by design. The committed fixture lock records
+the reviewed nightly asset and GitHub-published checksum, so replacement fails
+closed, but it cannot preserve an asset after OLS rotates the nightly release.
+After reviewing a replacement, run `mise run odin:fmt:update` to update its
+checksum and force-reinstall it. Relocking alone can leave a warm machine on
+the old cached binary. The formatting adapter requires a POSIX shell; native
 Windows remains unverified.
 
 Tests keep Odin's default parallel execution and per-run random seed, which the
