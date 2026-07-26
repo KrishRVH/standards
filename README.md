@@ -130,8 +130,9 @@ Finally, copy the language template files that match the project:
 - `SPARK/`: Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks as failures, and tiny executable tests.
-- `TS/`: Bun-backed TypeScript with strict `tsc`, tests, ESLint plus Prettier
-  as Option A, and a pinned one-file Biome configuration as Option B.
+- `TS/`: Effect-first, Bun-backed TypeScript with strict `tsc`, Effect Schema
+  boundaries and diagnostics, tests, ESLint plus Prettier as Option A, and a
+  pinned one-file Biome configuration as Option B.
 - `Zig/`: `build.zig` and `build.zig.zon` baseline with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 

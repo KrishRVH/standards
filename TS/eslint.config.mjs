@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
+import regexp from 'eslint-plugin-regexp';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -29,7 +30,13 @@ export default defineConfig(
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
 
   /**
-   * 3) Global language assumptions.
+   * 3) RegExp correctness and complexity checks.
+   * The recommended preset is intentionally used instead of the semver-unstable all preset.
+   */
+  { ...regexp.configs['flat/recommended'], name: 'regexp/recommended' },
+
+  /**
+   * 4) Global language assumptions.
    * Add browser, node, test-runner, or framework globals in project-specific overlays.
    */
   {
@@ -44,7 +51,7 @@ export default defineConfig(
   },
 
   /**
-   * 4) Parse all TS/TSX files, including config files outside src/tests.
+   * 5) Parse all TS/TSX files, including config files outside src/tests.
    * Type-aware rules are scoped below so config files do not need to be in tsconfig.json.
    */
   {
@@ -61,7 +68,7 @@ export default defineConfig(
   },
 
   /**
-   * 5) Import/export baseline using ESLint core rules only.
+   * 6) Import/export baseline using ESLint core rules only.
    * This avoids eslint-plugin-import compatibility churn while preserving the key policies:
    * - no duplicate imports
    * - sorted import specifiers
@@ -97,13 +104,13 @@ export default defineConfig(
   },
 
   /**
-   * 6) TS/TSX: type-aware linting (the main bug-catching layer).
+   * 7) TS/TSX: type-aware correctness and modern TypeScript idioms.
    */
   {
     name: 'typescript/strict-typechecked',
     files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
     ignores: ['**/*.d.ts'],
-    extends: [...tseslint.configs.strictTypeChecked],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -209,7 +216,7 @@ export default defineConfig(
   },
 
   /**
-   * 7) d.ts: allow declare global/module while keeping erasable-syntax bans.
+   * 8) d.ts: allow declare global/module while keeping erasable-syntax bans.
    */
   {
     name: 'typescript/dts-ambient-ok',
@@ -226,7 +233,7 @@ export default defineConfig(
   },
 
   /**
-   * 8) JS files: disable type-aware TS rules for performance + correctness.
+   * 9) JS files: disable type-aware TS rules for performance + correctness.
    * Still enforce ESM-only without eslint-plugin-import.
    */
   {
@@ -247,18 +254,18 @@ export default defineConfig(
   },
 
   /**
-   * 9) Prettier must come last to turn off conflicting formatting rules.
+   * 10) Prettier must come last to turn off conflicting formatting rules.
    */
   { ...prettier, name: 'prettier/config' },
 
   /**
-   * 10) Re-enable specific rules you want even if Prettier disables them.
+   * 11) Re-enable specific rules you want even if Prettier disables them.
    * Here: always require braces for blocks.
    */
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 11) Hygiene: fail if eslint-disable comments are unused.
+   * 12) Hygiene: fail if eslint-disable comments are unused.
    */
   { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
 );

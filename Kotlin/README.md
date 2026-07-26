@@ -9,7 +9,7 @@ verification when the copied baseline is broader than the project needs.
 
 This template pins Java 25 LTS, Gradle, and ktlint through mise; Gradle pins
 Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
-`detektTest` before compilation.
+`detektTest` alongside main-source compilation.
 
 Detekt is pinned to `2.0.0-alpha.5` because that release is the Detekt line
 tested against JDK 25, Kotlin 2.4, and Gradle 9.5.

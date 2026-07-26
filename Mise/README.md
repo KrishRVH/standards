@@ -81,7 +81,8 @@ relationships or a reviewed `run_windows` implementation.
 The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
 yarn, or npm, replace the TypeScript task file with a project-specific one
 instead of keeping multiple unpinned package-manager branches in the shared
-standard.
+standard. Its Effect-first workflow exposes separate diagnostics and
+agent-oriented overview tasks.
 
 The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
 compiler dependencies. Local link and typo checks use pinned mise tools. The

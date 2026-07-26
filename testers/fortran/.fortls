@@ -1,6 +1,6 @@
 {
   "disable_diagnostics": false,
-  "excl_paths": ["build/**", ".git/**"],
+  "excl_paths": [".git/**", "build/**"],
   "hover_language": "fortran90",
   "hover_signature": true,
   "lowercase_intrinsics": true,
