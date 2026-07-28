@@ -59,6 +59,23 @@ die() {
 msg() { printf '==> %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
 
+# Every download and unpack happens under one scratch root, so `die` and `set -e`
+# cannot leak half-downloaded archives. One EXIT handler owns all teardown: a
+# second `trap ... EXIT` would silently replace the first.
+BOOTSTRAP_SCRATCH="$(mktemp -d)"
+SUDO_KEEPALIVE_PID=""
+
+cleanup() {
+  [[ -z "$SUDO_KEEPALIVE_PID" ]] || kill "$SUDO_KEEPALIVE_PID" 2> /dev/null || true
+  rm -rf -- "$BOOTSTRAP_SCRATCH" || true
+}
+trap cleanup EXIT
+
+# Safe to call in a command substitution: the parent already owns the root, so
+# nothing has to be recorded back in the caller's shell.
+make_tmpdir() { mktemp -d -p "$BOOTSTRAP_SCRATCH"; }
+make_tmpfile() { mktemp -p "$BOOTSTRAP_SCRATCH"; }
+
 check_wsl_ubuntu() {
   local distro_id
 
@@ -155,7 +172,6 @@ ensure_sudo() {
     sleep 60
   done 2> /dev/null &
   SUDO_KEEPALIVE_PID=$!
-  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 }
 
 apt_lock_holders() {
@@ -401,7 +417,7 @@ install_github_release_binary() {
   local state_file="$state_dir/${repo//\//_}-$bin.state"
   local release_json release_tag match_count asset_name asset_url asset_digest
   local tmpdir archive extract_dir candidate current_hash installed_hash tmp_state
-  local saved_tag="" saved_hash=""
+  local saved_tag="" saved_asset="" saved_digest="" saved_hash=""
   local -a candidates=()
 
   if has "$bin" && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
@@ -418,19 +434,25 @@ install_github_release_binary() {
 
   asset_name="$(printf '%s\n' "$release_json" | jq -r --arg re "$asset_regex" '.assets[] | select(.name | test($re; "i")) | .name')"
   asset_url="$(printf '%s\n' "$release_json" | jq -r --arg re "$asset_regex" '.assets[] | select(.name | test($re; "i")) | .browser_download_url')"
-  asset_digest="$(printf '%s\n' "$release_json" | jq -r --arg re "$asset_regex" '.assets[] | select(.name | test($re; "i")) | (.digest // "")')"
+  # Tab is an IFS whitespace character, so empty state fields would collapse and
+  # shift the columns on read. Keep every field non-empty.
+  asset_digest="$(printf '%s\n' "$release_json" | jq -r --arg re "$asset_regex" '.assets[] | select(.name | test($re; "i")) | (.digest // "none")')"
   [[ "$asset_url" == https://github.com/* ]] || die "$repo returned an unexpected asset URL"
 
+  # The asset name pins the architecture and the digest pins the bytes, so a
+  # re-uploaded asset or a home directory copied between architectures still
+  # reinstalls instead of being accepted on the release tag alone.
   if [[ -f "$state_file" && -x "$target" ]]; then
-    IFS=$'\t' read -r saved_tag saved_hash < "$state_file" || true
+    IFS=$'\t' read -r saved_tag saved_asset saved_digest saved_hash < "$state_file" || true
     current_hash="$(sha256sum "$target" | awk '{print $1}')"
-    if [[ "$saved_tag" == "$release_tag" && "$saved_hash" == "$current_hash" ]]; then
+    if [[ "$saved_tag" == "$release_tag" && "$saved_asset" == "$asset_name" &&
+      "$saved_digest" == "$asset_digest" && "$saved_hash" == "$current_hash" ]]; then
       return 0
     fi
   fi
 
   msg "github: install/update $bin ($repo $release_tag)"
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   archive="$tmpdir/$asset_name"
   extract_dir="$tmpdir/extracted"
 
@@ -454,8 +476,8 @@ install_github_release_binary() {
 
   mkdir -p "$state_dir"
   installed_hash="$(sha256sum "$target" | awk '{print $1}')"
-  tmp_state="$(mktemp)"
-  printf '%s\t%s\n' "$release_tag" "$installed_hash" > "$tmp_state"
+  tmp_state="$(make_tmpfile)"
+  printf '%s\t%s\t%s\t%s\n' "$release_tag" "$asset_name" "$asset_digest" "$installed_hash" > "$tmp_state"
   atomic_install_file "$tmp_state" "$state_file" 0600
   rm -f "$tmp_state"
   rm -rf "$tmpdir" || true
@@ -464,22 +486,18 @@ install_github_release_binary() {
 cargo_install_latest() {
   local crate="$1"
   local bin="$2"
-  local -a binstall_args=(--no-confirm)
   shift 2
 
   if has "$bin" && [[ "$BOOTSTRAP_CARGO_UPGRADE" != "1" ]]; then
     return 0
   fi
 
-  # cargo-binstall reports an already-installed crate as success without replacing
-  # it unless --force is supplied. Only request replacement when upgrades are on.
-  if [[ "$BOOTSTRAP_CARGO_UPGRADE" == "1" ]]; then
-    binstall_args+=(--force)
-  fi
-
   msg "cargo: install/update $bin ($crate)"
+  # We never pass a version requirement, so cargo-binstall installs a newer
+  # release when one exists and no-ops otherwise. Passing --force here would
+  # redownload and replace every crate on every run.
   if has cargo-binstall; then
-    if retry_quiet env BINSTALL_DISABLE_TELEMETRY=true cargo binstall "${binstall_args[@]}" "$@" "$crate"; then
+    if retry_quiet env BINSTALL_DISABLE_TELEMETRY=true cargo binstall --no-confirm "$@" "$crate"; then
       has "$bin" || die "cargo-binstall installed $crate but '$bin' was not found in PATH"
       return 0
     fi
@@ -497,7 +515,7 @@ install_or_update_mise() {
   local tmpdir installer
 
   mkdir -p "$HOME/.local/bin"
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   installer="$tmpdir/mise-install.sh"
 
   curl_fetch https://mise.run -o "$installer"
@@ -513,7 +531,7 @@ install_or_update_dagger() {
   local tmpdir installer
 
   mkdir -p "$HOME/.local/bin"
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   installer="$tmpdir/dagger-install.sh"
 
   curl_fetch https://dl.dagger.io/dagger/install.sh -o "$installer"
@@ -650,7 +668,7 @@ install_latest_neovim() {
   asset_url="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url')"
   asset_digest="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | (.digest // "")')"
 
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   curl_fetch "$asset_url" -o "$tmpdir/$asset_name"
   verify_sha256_digest "$tmpdir/$asset_name" "$asset_digest"
   extract_release_asset "$tmpdir/$asset_name" "$asset_name" "$tmpdir"
@@ -707,7 +725,7 @@ if ! has rustup; then
   esac
 
   url="https://static.rust-lang.org/rustup/dist/${target}/rustup-init"
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   # rustup-init selects its behavior from argv[0].
   installer="$tmpdir/rustup-init"
   curl_fetch "$url" -o "$installer"
@@ -2438,7 +2456,7 @@ NVIM_DIR="$HOME/.config/nvim"
 NVIM_MARKER_FILE="$NVIM_DIR/.wsl-bootstrap-managed"
 
 if [[ "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
-  tmpdir="$(mktemp -d)"
+  tmpdir="$(make_tmpdir)"
   clonedir="$tmpdir/nvim"
   retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir"
   mkdir -p "$(dirname "$NVIM_DIR")"
