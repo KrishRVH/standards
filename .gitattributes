@@ -207,6 +207,7 @@ Fortran/scripts/** linguist-detectable=false
 
 # Profile configuration
 C/CMakeLists.txt linguist-language=C
+C/CMakePresets.json linguist-language=C
 C/*.cmake linguist-language=C
 C/**/*.cmake linguist-language=C
 C/**/*.cmake.in linguist-language=C
