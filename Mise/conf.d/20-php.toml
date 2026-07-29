@@ -2,7 +2,7 @@
 PHP_CONFIGURE_OPTIONS = "--with-openssl --with-readline --with-gettext"
 
 [tools]
-php = "8.5.7"
+php = "8.5.9"
 
 [tasks."php:install"]
 description = "Install PHP dependencies"

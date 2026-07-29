@@ -12,7 +12,7 @@ Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
 `detektTest` alongside main-source compilation.
 
 Detekt is pinned to `2.0.0-alpha.5` because that release is the Detekt line
-tested against JDK 25, Kotlin 2.4, and Gradle 9.5.
+tested against JDK 25, Kotlin 2.4, and Gradle 9.6.
 
 Generate and commit `gradle.lockfile` and
 `gradle/verification-metadata.xml` after copying; `kotlin:standards:check`

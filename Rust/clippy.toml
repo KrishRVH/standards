@@ -1,5 +1,5 @@
 # Keep Clippy suggestions aligned with the pinned template toolchain.
-msrv = "1.96.0"
+msrv = "1.97.1"
 
 # Accepted identifiers for documentation prose checked by doc_markdown.
 doc-valid-idents = [

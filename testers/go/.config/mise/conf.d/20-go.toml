@@ -3,10 +3,10 @@ GOTOOLCHAIN = "local"
 
 [tools]
 go = "1.26.5"
-gofumpt = "0.10.0"
+gofumpt = "0.11.0"
 golangci-lint = "2.12.2"
 "go:github.com/KrishRVH/boringlint/cmd/boringlint" = { version = "v0.9.5", depends = "go" }
-"go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.4.0", depends = "go" }
+"go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.6.0", depends = "go" }
 
 [tasks."go:install"]
 description = "Download Go module dependencies"

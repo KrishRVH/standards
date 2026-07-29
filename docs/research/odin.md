@@ -193,7 +193,7 @@ Sources:
 - [`odinfmt` configuration](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/README.md#L139-L178)
 - [`odinfmt` CLI and write implementation](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/tools/odinfmt/main.odin#L14-L170)
 - [Current nightly release](https://github.com/DanielGavin/ols/releases/tag/nightly)
-- [Current nightly API metadata and digests](https://api.github.com/repos/DanielGavin/ols/releases/352679484)
+- [Current nightly API metadata and digests](https://api.github.com/repos/DanielGavin/ols/releases/tags/nightly)
 - [Successful nightly workflow run](https://github.com/DanielGavin/ols/actions/runs/29181151314)
 - [Nightly build and packaging workflow](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/.github/workflows/release.yml#L1-L264)
 - [Mutable release implementation](https://github.com/DanielGavin/ols/blob/caa4450400cc0380e15a20732945f8462b0ccc31/.github/actions/github-release/main.js#L32-L103)

@@ -3,7 +3,7 @@ FPM_FC = "gfortran"
 
 [tools]
 "conda:fpm" = "0.13.0"
-"conda:gfortran" = "15.2.0"
+"conda:gfortran" = "16.1.0"
 "conda:findent" = "4.3.7"
 "conda:fortls" = "3.2.2"
 "conda:ford" = "7.0.13"
