@@ -53,7 +53,11 @@ The default `standards` package script runs Prettier and ESLint autofix;
 `standards:check` runs ESLint, `tsc`, strict Effect diagnostics, Prettier, Bun
 tests, and `bun audit --audit-level=low`. `effect:overview` gives agents a
 compact map of exported Effect services, layers, and errors. This profile is
-Bun-only. Do not add pnpm/yarn/npm fallback branches to the shared task file.
+Bun-only. The committed `bunfig.toml` makes Bun the default runtime for package
+scripts and executables, equivalent to `bun --bun <script>`: calls to `node`,
+including `#!/usr/bin/env node` shebangs, resolve to Bun recursively. Override
+that default only for a dependency that demonstrably requires Node. Do not add
+pnpm/yarn/npm fallback branches to the shared task file.
 If a project chooses Option B, remove the ESLint and Prettier dependencies and
 config files. Remove `@eslint/js`, `eslint`, `eslint-config-prettier`, `globals`,
 `eslint-plugin-regexp`, `prettier`, and `typescript-eslint`; add the exact dev
