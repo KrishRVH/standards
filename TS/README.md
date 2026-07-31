@@ -55,9 +55,15 @@ tests, and `bun audit --audit-level=low`. `effect:overview` gives agents a
 compact map of exported Effect services, layers, and errors. This profile is
 Bun-only. The committed `bunfig.toml` makes Bun the default runtime for package
 scripts and executables, equivalent to `bun --bun <script>`: calls to `node`,
-including `#!/usr/bin/env node` shebangs, resolve to Bun recursively. Override
-that default only for a dependency that demonstrably requires Node. Do not add
-pnpm/yarn/npm fallback branches to the shared task file.
+including `#!/usr/bin/env node` shebangs, resolve to Bun recursively. Bun
+implements this with a shim directory on `PATH`, so a tool that needs real Node
+breaks under it; Playwright is the known case. Override that default only for a
+dependency that demonstrably requires Node, in that one runner, not for the
+whole project. `AGENTS.md` gives the escape. Do not add pnpm/yarn/npm fallback
+branches to the shared task file.
+
+`AGENTS.md` is a merge fragment, not a standalone file. Copy
+`shared/AGENTS.md` to the project first, then merge these sections into it.
 If a project chooses Option B, remove the ESLint and Prettier dependencies and
 config files. Remove `@eslint/js`, `eslint`, `eslint-config-prettier`, `globals`,
 `eslint-plugin-regexp`, `prettier`, and `typescript-eslint`; add the exact dev

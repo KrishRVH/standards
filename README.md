@@ -136,6 +136,10 @@ Finally, copy the matching language templates:
 - `Zig/`: `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
+A language folder may also hold an `AGENTS.md`. Those files are merge
+fragments, not standalone guides: copy `shared/AGENTS.md` first, then merge the
+language sections into it.
+
 The copyable files use neutral project names, conventional `src` and `tests`
 directories, and generic package namespaces. Replace those placeholders when a
 project uses a different layout or architectural boundary. Package identity,
