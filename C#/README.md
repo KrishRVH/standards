@@ -1,14 +1,32 @@
 # C# Standards
 
-Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, and
-`Mise/conf.d/20-csharp.toml` into a .NET project. Replace package versions and
-target framework details when the project has a different runtime policy.
+Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`,
+`global.json`, and `Mise/conf.d/20-csharp.toml` into a .NET repository. Merge
+`AGENTS.md` into the repository's agent guide. Applications should also copy
+`APPLICATION.md`; libraries and specialized workloads should skip that profile
+or adopt only the rules that fit their public contract.
 
-The baseline enables nullable reference types, promotes warnings and analyzer
-diagnostics to build failures, generates XML documentation, and uses central
-package management. Meziantou and Roslynator run alongside the SDK's built-in
-.NET analyzers. Remove analyzer packages or lower diagnostic severities when
-that set is broader than the project needs.
+The baseline pins .NET 10, C# 14, `MSTest.Sdk`, and Microsoft Testing Platform.
+It enables nullable analysis and checked arithmetic, disables unsafe code,
+implicit usings, and preview features, and promotes compiler, code-style, and
+analyzer warnings to build failures. The SDK analyzer baseline is
+`10.0-recommended`, with every security, reliability, usage, and performance
+rule enabled. Meziantou and Roslynator use their package defaults instead of
+forcing every diagnostic on.
+
+Test projects use the centrally pinned SDK without a test package reference:
+
+```xml
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+</Project>
+```
+
+The profile requires at least one discovered test per test application. Keep
+all test projects on Microsoft Testing Platform; .NET 10 does not support
+mixing MTP and VSTest projects in one `dotnet test` invocation.
 
 The standards workflow is:
 
@@ -20,12 +38,9 @@ mise run csharp:test
 mise run csharp:standards:check
 ```
 
-`csharp:restore` uses `dotnet restore`; the MSBuild properties opt into package
-lock files and switch CI restores to locked mode. NuGet audit is enabled for all
-transitive dependencies at `low` severity; audit warnings fail under the
-template's warnings-as-errors policy. Commit `Directory.Packages.props` and the
-generated project lockfiles. The lint and test tasks use Release builds so
-analyzer and build behavior stay close to CI. Implicit usings are disabled,
-project and global usings remain explicit, explicit local variable types are an
-advisory style preference, and analyzer and nullable warnings remain build
-failures.
+`csharp:restore` generates project lock files and CI restores them in locked
+mode. NuGet audit covers direct and transitive dependencies at `low` severity;
+audit warnings fail under warnings-as-errors. Commit `global.json`,
+`Directory.Packages.props`, and every project lock file. Change SDK, language,
+test SDK, target framework, and package versions together in a deliberate
+platform update.

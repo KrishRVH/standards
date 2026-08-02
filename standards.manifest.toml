@@ -13,7 +13,7 @@ template = "C#"
 tester = "testers/csharp"
 task_prefix = "csharp"
 task_fragment = "20-csharp.toml"
-mirror = [".editorconfig", "Directory.Build.props", "Directory.Packages.props"]
+mirror = [".editorconfig", "Directory.Build.props", "Directory.Packages.props", "global.json"]
 
 [profiles.cpp]
 name = "C++"

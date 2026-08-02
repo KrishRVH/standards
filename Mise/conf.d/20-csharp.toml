@@ -25,7 +25,7 @@ run = "dotnet build --no-restore --configuration Release -warnaserror -p:Continu
 description = "Run C# tests"
 depends = ["csharp:restore"]
 wait_for = ["csharp:lint"]
-run = "dotnet test --no-restore --configuration Release --logger trx --results-directory TestResults"
+run = "dotnet test --no-restore --configuration Release --results-directory TestResults -- --report-trx"
 
 [tasks."csharp:standards"]
 description = "Run the C# standards workflow with autofixes"

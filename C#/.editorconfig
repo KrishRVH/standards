@@ -14,9 +14,9 @@ tab_width = 2
 indent_size = 4
 tab_width = 4
 
-# Treat analyzer output as part of the build contract. Directory.Build.props
-# promotes warnings to errors, so these warnings fail the standard gate.
-dotnet_analyzer_diagnostic.severity = warning
+# Directory.Build.props selects the SDK rule sets and promotes their warnings to
+# errors. Keep third-party analyzers at package defaults instead of forcing
+# every diagnostic on.
 dotnet_code_quality.api_surface = public, internal
 dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.IDE1006.severity = error
