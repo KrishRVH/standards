@@ -1,94 +1,167 @@
-# TypeScript Standards
+# TypeScript and Effect v3 standards
 
-Copy these files into a Bun-backed TypeScript project and replace
-`project-name`, source paths, and test commands with the real project shape.
+Copy this profile into a private Bun TypeScript application, replace
+`project-name`, and keep the generated `bun.lock`. Merge `TS/AGENTS.md` into
+`shared/AGENTS.md`; it is an Effect v3 standards fragment, not a standalone
+project guide.
 
-`package.json` is the executable source of truth for scripts and dependencies.
-The baseline combines TypeScript strict mode, a type-aware ESLint flat config,
-Effect, Effect Schema, Effect-aware diagnostics, and Prettier. Pure functions
-stay plain TypeScript; introduce Effect at validation, failure, async, resource,
-concurrency, and service boundaries. Use Effect Schema as the default boundary
-schema authority instead of adding a second schema system.
+The tested dependency set is exact:
 
-The committed default is Option A: ESLint plus Prettier. `biome.jsonc` is
-Option B for projects that intentionally replace both tools with Biome 2.5.5.
-The catalog validates that alternative separately; it is not installed or run
-by the default project workflow.
+| Package/runtime            | Version |
+| -------------------------- | ------- |
+| `effect`                   | 3.22.1  |
+| `@effect/language-service` | 0.87.1  |
+| TypeScript                 | 6.0.3   |
+| Bun / `@types/bun`         | 1.3.14  |
+| `@effect/platform`         | 0.97.1  |
+| `@effect/platform-bun`     | 0.91.0  |
 
-Effect includes its own TypeScript declarations, so there is no
-`@types/effect` dependency. `@effect/language-service` supplies the
-Effect-specific editor feedback, CI diagnostics, and project overview. Configure
-editors to use the workspace TypeScript version. The CI task uses the standalone
-diagnostics command; do not patch the installed TypeScript compiler.
+Application dependencies and development tools are exact and the lockfile is
+mirrored because a copied private app must not install an untested version. Bun
+records the platform package's broad cluster/RPC/SQL peer graph in the lock;
+`bunfig.toml` disables automatic installation of those unused peers. Install a
+peer explicitly when importing the corresponding platform adapter. The
+published-library overlay in `AGENTS.md` defines the deliberate peer/range
+alternative.
 
-The language-service configuration expands its official `effect-native` preset
-at warning severity; the CI command's `--strict` flag makes every emitted
-warning blocking while preserving useful editor severity. The
-`anyUnknownInErrorContext` and `unsafeEffectTypeAssertion` correctness checks
-are promoted to errors.
+## Profile boundary
 
-`package.json` records the latest mutually compatible stable set. TypeScript is
-constrained by stable `typescript-eslint`'s peer range. Projects moving to
-TypeScript 7 must re-evaluate the lint stack and use the separate
-`@effect/tsgo` integration instead of assuming this language-service setup
-carries forward unchanged.
+This is a Bun application baseline, not one universal tsconfig for Bun servers,
+browser bundles, React Native, and published libraries. Universal Effect rules
+stay in the core; Bun CLI/server, browser/framework UI, published-library, and
+optional observability guidance are explicit overlays.
 
-The standards workflow is:
+Pure synchronous calculations stay plain TypeScript. Use Effect where typed
+operational failure, service requirements, interruption, concurrency, or
+resource lifetime is useful. Use Effect Schema at untrusted/runtime contract
+boundaries; internal trusted types do not require schemas.
+
+The canonical endpoint checker is intentionally small:
+
+- `src/endpoint-checker.ts` shows bounded unknown decoding, exact-origin and
+  redirect authorization, wire encoding, a public error algebra, explicit
+  service/tag/live layer, signal-aware promise adapter, per-attempt timeout,
+  narrowly classified duplicate-safe retry with jitter, overall deadline,
+  bounded concurrency, and safe error projection.
+- `src/main.ts` uses the narrow
+  `@effect/platform-bun/BunRuntime` import and `BunRuntime.runMain`.
+- `tests/endpoint-checker.test.ts` asserts exact ParseError, limits,
+  destination rejection, cancellation, attempts, non-retry, encoding, and
+  projection behavior.
+- The copyable profile includes the expected-diagnostic harness because it
+  guards the configured language-service contract. The tester alone adds the
+  larger fixture-owned semantic probes so the downstream seed remains readable.
+
+Use the BunRuntime subpath rather than the `@effect/platform-bun` barrel.
+With `skipLibCheck: false`, the barrel pulls unrelated HTTP/RPC/socket
+declarations whose optional Bun/DOM/`ws` types are not part of this profile.
+The narrow entrypoint declaration checks cleanly.
+
+## Effect diagnostics
+
+Effect includes its own declarations; there is no `@types/effect`.
+`@effect/language-service` supplies editor diagnostics, standalone CI
+diagnostics, and the architecture overview. Configure editors to use the
+workspace TypeScript version; do not patch the installed compiler.
+
+The config does not enable the blanket `effect-native` preset. Exact
+correctness and ownership diagnostics are errors. Shape/style opportunities
+are editor suggestions. Outside-Effect native APIs and native boundary
+adapters remain allowed when their contract is explicit.
+
+The standalone command omits `--strict`: in language service 0.87.1, strict
+only makes warnings affect the exit code; it does not promote messages or
+suggestions. The expected-diagnostic harness proves configured blockers fail
+and catches silently ignored diagnostic-name drift.
+
+Do not bulk-apply Effect quick fixes. Some exact-version fixes turn typed
+failure into a defect, change layer dependency topology/lifetime, or change a
+runtime/schema identifier.
+
+## Developer API
+
+All project development goes through mise:
 
 ```sh
-mise run ts:standards
+mise run ts:fmt
 mise run ts:fmt:check
 mise run ts:lint
 mise run ts:type
 mise run ts:effect:check
+mise run ts:effect:diagnostics:check
 mise run ts:effect:overview
 mise run ts:test
+mise run ts:audit
 mise run ts:lock
 mise run ts:lock:check
-mise run ts:audit
+mise run ts:standards
 mise run ts:standards:check
 ```
 
-The default `standards` package script runs Prettier and ESLint autofix;
-`standards:check` runs ESLint, `tsc`, strict Effect diagnostics, Prettier, Bun
-tests, and `bun audit --audit-level=low`. `effect:overview` gives agents a
-compact map of exported Effect services, layers, and errors. This profile is
-Bun-only. The committed `bunfig.toml` makes Bun the default runtime for package
-scripts and executables, equivalent to `bun --bun <script>`: calls to `node`,
-including `#!/usr/bin/env node` shebangs, resolve to Bun recursively. Bun
-implements this with a shim directory on `PATH`, so a tool that needs real Node
-breaks under it; Playwright is the known case. Override that default only for a
-dependency that demonstrably requires Node, in that one runner, not for the
-whole project. `AGENTS.md` gives the escape. Do not add pnpm/yarn/npm fallback
-branches to the shared task file.
+`ts:effect:overview` is an orientation command; it should show the exported
+service, live layer, and errors from the canonical fixture. Its output is
+generated and is not committed.
 
-`AGENTS.md` is a merge fragment, not a standalone file. Copy
-`shared/AGENTS.md` to the project first, then merge these sections into it.
-If a project chooses Option B, remove the ESLint and Prettier dependencies and
-config files. Remove `@eslint/js`, `eslint`, `eslint-config-prettier`, `globals`,
-`eslint-plugin-regexp`, `prettier`, and `typescript-eslint`; add the exact dev
-dependency `"@biomejs/biome": "2.5.5"`. Keep Effect, its language service,
-TypeScript, and the Bun types.
+`ts:standards` runs ESLint autofix before the final Prettier pass so a lint fix
+cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
+Effect diagnostics, expected diagnostics, formatting, deterministic tests, and
+`bun audit --audit-level=low`.
 
-Remap the existing package scripts without changing the mise task names:
+The recommended fast repair loop is format check, lint, TypeScript, Effect
+diagnostics, semantic tests, audit, then the aggregate gate. `AGENTS.md`
+contains the full verification and upgrade protocols.
 
-| Script            | Option B value                                                                                                 |
-| ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| `format`          | `biome format --write .`                                                                                       |
-| `format:check`    | `biome format .`                                                                                               |
-| `lint`            | `biome lint --error-on-warnings .`                                                                             |
-| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                     |
-| `standards`       | `biome check --write --error-on-warnings .`                                                                    |
-| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run test && bun run audit` |
+## Tooling choices
+
+The committed default is Option A: type-aware ESLint plus Prettier. The config
+sets `@typescript-eslint/no-floating-promises` with `ignoreVoid: false`; writing
+`void runtime.runPromise(...)` is not accepted as background-task ownership.
+
+`skipLibCheck` is false. This costs some feedback time but catches incompatible
+dependency declarations, as the platform-bun barrel probe demonstrated.
+Re-enable it only after measuring a material project-specific cost and record
+which declaration mismatch becomes invisible.
+
+`moduleResolution: "bundler"`, Bun types, and the Bun package manager are
+application-profile choices. Browser, React Native, and published-library
+projects need their own runtime/module/declaration overlay rather than
+weakening this one.
+
+`biome.jsonc` is Option B for projects that deliberately replace both ESLint
+and Prettier with Biome 2.5.5. The catalog validates that alternative
+separately; it is not installed or run by the default project.
+
+If a project chooses Option B, remove `@eslint/js`, `eslint`,
+`eslint-config-prettier`, `globals`, `eslint-plugin-regexp`, `prettier`, and
+`typescript-eslint`; add exact dev dependency
+`"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
+service, TypeScript, Bun types, and the lock policy.
+
+Remap package scripts without changing mise task names:
+
+| Script            | Option B value                                                                                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`          | `biome format --write .`                                                                                                                           |
+| `format:check`    | `biome format .`                                                                                                                                   |
+| `lint`            | `biome lint --error-on-warnings .`                                                                                                                 |
+| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                         |
+| `standards`       | `biome check --write --error-on-warnings .`                                                                                                        |
+| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit` |
 
 Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
+The Biome baseline enables stable rules, excludes the semver-unstable nursery
+group, and leaves TypeScript responsible for module resolution and Effect
+channel correctness.
 
-The Biome baseline enables every stable rule, excludes the semver-unstable
-nursery group, and keeps only ecosystem-shaped exceptions. TypeScript remains
-the authority for module resolution, `.js` specifiers remain valid for emitted
-ES modules, Node built-ins remain valid under Bun, declaration files may use
-namespaces, config loaders may require default exports, and test data may use
-literal numbers.
+## Runtime note
 
-Generate and commit `bun.lock` before relying on `ts:standards:check`; the CI
-gate fails when the lockfile is missing.
+`bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
+subprocesses resolve through Bun's PATH shim. A pinned tool that demonstrably
+requires real Node gets one narrow, tested runner override; do not add
+pnpm/yarn/npm/runtime fallback branches to the shared task fragment.
+
+Long-running Bun programs use `BunRuntime.runMain`. Framework applications
+instead build one application-owned `ManagedRuntime`, dispose it at application
+teardown, and supervise background work separately: disposing a ManagedRuntime
+closes its layer but does not automatically own fibers launched by
+`runFork`.

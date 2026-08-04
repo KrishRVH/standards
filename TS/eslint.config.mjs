@@ -20,7 +20,15 @@ export default defineConfig(
    * Intent: never lint generated output, vendor deps, coverage, or TS incremental cache files.
    */
   globalIgnores(
-    ['**/build/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/out/**', '**/*.tsbuildinfo'],
+    [
+      '**/build/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/effect-diagnostics/fixtures/**',
+      '**/node_modules/**',
+      '**/out/**',
+      '**/*.tsbuildinfo',
+    ],
     'base/global-ignores',
   ),
 
@@ -165,7 +173,7 @@ export default defineConfig(
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       '@typescript-eslint/no-empty-object-type': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
+      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],
       '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'error',

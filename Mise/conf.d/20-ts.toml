@@ -55,6 +55,11 @@ description = "Run Effect-specific diagnostics"
 depends = ["ts:install"]
 run = "bun run effect:check"
 
+[tasks."ts:effect:diagnostics:check"]
+description = "Verify blocking Effect diagnostics with negative fixtures"
+depends = ["ts:install"]
+run = "bun run effect:diagnostics:check"
+
 [tasks."ts:effect:overview"]
 description = "Summarize Effect services, layers, and errors for agents"
 depends = ["ts:install"]

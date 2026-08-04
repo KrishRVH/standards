@@ -31,6 +31,16 @@
     "enabled": true,
     "actions": {
       "preset": "recommended",
+      "source": {
+        // Match the primary ESLint sort-imports rule so the two supported
+        // profiles never propose opposite repairs.
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "identifierOrder": "lexicographic",
+          },
+        },
+      },
     },
   },
 
@@ -50,6 +60,13 @@
       },
       "performance": {
         "useTopLevelRegex": "off",
+      },
+      "style": {
+        // A compact tagged-error algebra is clearer together than split across
+        // one file per class, and public TypeScript modules export in place.
+        "noExcessiveClassesPerFile": "off",
+        "noExcessiveLinesPerFile": "off",
+        "useExportsLast": "off",
       },
     },
   },
