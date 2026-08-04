@@ -4,13 +4,7 @@ bun = "1.3.14"
 [tasks."ts:install"]
 description = "Install Bun-managed TypeScript/JavaScript dependencies"
 wait_for = ["ts:lock:check"]
-run = """
-if [ -f bun.lock ]; then
-  bun install --frozen-lockfile
-else
-  bun install
-fi
-"""
+run = "bun install --frozen-lockfile"
 
 [tasks."ts:lock"]
 description = "Refresh the Bun lockfile"

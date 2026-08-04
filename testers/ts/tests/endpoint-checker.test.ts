@@ -206,7 +206,7 @@ test('rejects duplicate allowed origins after URL normalization', async () => {
   }
 });
 
-test('rejects invalid policy before decoding work or invoking the adapter', async () => {
+test('rejects invalid policy before invoking the adapter', async () => {
   let attempts = 0;
   const probe = Layer.succeed(EndpointProbe, {
     head: () => {
@@ -705,16 +705,26 @@ test('public and telemetry projections are separate, allowlisted, and actionable
   expect('retryable' in publicFailure).toBe(false);
 });
 
-test('safe telemetry never derives classification from provider details', () => {
+test('safe telemetry classifies disallowed endpoints without losing their stable identity', () => {
+  expect(projectCheckDiagnostic(new EndpointNotAllowed({ targetId: 'primary-api' }))).toEqual({
+    failureKind: 'endpoint-not-allowed',
+    operation: 'endpoint-check',
+    resource: 'primary-api',
+  });
+});
+
+test('safe telemetry drops unsafe internal detail instead of using it for classification', () => {
   const query = ['query', 'sentinel'].join('-');
   const header = ['header', 'sentinel'].join('-');
   const sql = ['sql', 'sentinel'].join('-');
   const body = ['body', 'sentinel'].join('-');
-  const failure = new EndpointNotAllowed({ targetId: 'primary-api' });
+  const failure = new InvalidCheckPolicy({
+    reason: `url=?${query} header=${header} sql=${sql} body=${body}`,
+  });
   const telemetry = projectCheckDiagnostic(failure);
   const serialized = JSON.stringify(telemetry);
 
-  expect(telemetry.failureKind).toBe('endpoint-not-allowed');
+  expect(telemetry.failureKind).toBe('configuration-failure');
   expect(serialized).not.toContain(query);
   expect(serialized).not.toContain(header);
   expect(serialized).not.toContain(sql);

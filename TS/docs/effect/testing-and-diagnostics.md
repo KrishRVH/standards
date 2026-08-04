@@ -7,8 +7,8 @@ the executable evidence expected from Effect 3.22.1 code.
 
 For a semantic correction, identify or add the exact regression test, observe
 it fail under the faulty behavior, apply the fix, and observe it pass. Remove
-temporary mutation scaffolding. A report records the injected/retained fault
-and the red and green commands.
+temporary mutation scaffolding. Record the injected or retained fault and the
+red and green commands in the change handoff.
 
 Assert the property, not merely `Exit.isFailure`: expected tag and safe fields,
 absence or presence of defects/interruption, forwarded signal, attempt count,

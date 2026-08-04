@@ -6,13 +6,7 @@ typos = "1.48.0"
 [tasks."md:install"]
 description = "Install Bun-managed Markdown/MDX dependencies"
 wait_for = ["md:lock:check"]
-run = """
-if [ -f bun.lock ]; then
-  bun install --frozen-lockfile
-else
-  bun install
-fi
-"""
+run = "bun install --frozen-lockfile"
 
 [tasks."md:lock"]
 description = "Refresh the Bun lockfile for Markdown/MDX tooling"

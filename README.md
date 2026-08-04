@@ -117,7 +117,9 @@ Finally, copy the matching language or tooling folders:
 - `Odin/` — OLS `odinfmt` nightly with fail-closed, project-scoped writes,
   strict compiler style and vet checks, an external consumer test package,
   native tests with reported reproduction seeds, and debug AddressSanitizer
-  plus optimized test lanes.
+  plus optimized test lanes. Its [decision record](docs/research/odin.md)
+  explains the checksum-locked mutable formatter channel and compiler-owned CI
+  contract.
 - `PHP/` — PHP 8.5 Composer and quality-tool configuration for PHPUnit,
   PHPStan, Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis,
   Composer audit, and Roave security advisories.
@@ -126,7 +128,9 @@ Finally, copy the matching language or tooling folders:
   dependency, documentation, complexity, slots, and dead-code checks.
 - `Roc/` — an immutable new-compiler nightly with official checksum-backed
   host assets, native formatting, warning-failing checks, and top-level
-  `expect` tests through the development backend.
+  `expect` tests through the development backend. Its
+  [decision record](docs/research/roc.md) explains the reviewed nightly and
+  package-shape choices.
 - `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
   `cargo package` and `cargo-deny` dependency-policy defaults.
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
@@ -137,9 +141,7 @@ Finally, copy the matching language or tooling folders:
 - `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
   Effect Schema boundaries and diagnostics, semantic and negative tests,
   automatic CI, ESLint plus Prettier as Option A, and a separately tested
-  pinned Biome configuration as Option B. The catalog's
-  [hardening report](docs/research/typescript-effect-bun-hardening-report.md)
-  records the exact evidence and downstream validation for this revision.
+  pinned Biome configuration as Option B.
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 

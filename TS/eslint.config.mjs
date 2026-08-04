@@ -242,7 +242,7 @@ export default defineConfig(
   },
 
   /**
-   * UI overlay: component files delegate fiber ownership to a tested framework
+   * 9) UI overlay: component files delegate fiber ownership to a tested framework
    * controller. Runtime adapters should live in ordinary .ts modules.
    */
   {

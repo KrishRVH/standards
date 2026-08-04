@@ -79,8 +79,8 @@ or repository-host branch protection.
 - **Exception:** A Promise intentionally treated as inert data, narrowly
   suppressed and tested.
 - **Enforcement:** TS partial; LS blocking; ESLint floating-Promise check;
-  Biome partial; Neg diagnostic fixture; Unit laziness test; Sem adapter test;
-  Int —; CI yes; Manual residual.
+  Biome partial; Neg diagnostic fixture; Unit —; Sem adapter test; Int —; CI
+  yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.1.
 
 ## EFF-005 — Expected failure, defect, and interruption
@@ -112,8 +112,8 @@ or repository-host branch protection.
 - **Exception:** Restricted technical detail may remain `unknown` outside the
   public protocol and is redacted before observation.
 - **Enforcement:** TS exhaustive matches; LS —; ESLint partial; Biome partial;
-  Neg partial; Unit projection/redaction; Sem captured logs; Int boundary test;
-  CI yes; Manual vocabulary review.
+  Neg partial; Unit projection/redaction; Sem observation/redaction; Int —; CI
+  yes; Manual vocabulary review.
 - **Version:** Project contract; tagged forms use Effect 3.22.1.
 
 ## EFF-007 — Runtime and protocol identifier stability
@@ -130,8 +130,8 @@ or repository-host branch protection.
 - **Exception:** None for two distinct service identities in one process;
   internal identifiers may change when no external consumer observes them.
 - **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg —; Unit
-  duplicate-key and wire tests; Sem context probe; Int consumer test; CI yes;
-  Manual scope review.
+  duplicate-key and wire tests; Sem context probe; Int —; CI yes; Manual scope
+  review.
 - **Version:** Effect 3.22.1 Context behavior; compatibility is project-specific.
 
 ## EFF-008 — Non-generic runtime service identity
@@ -219,8 +219,8 @@ or repository-host branch protection.
 - **Exception:** Long-lived streams use connection, idle, heartbeat, and shutdown
   policies instead of a request deadline.
 - **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit policy decode;
-  Sem `TestClock` ordering/sleep tests; Int provider boundary; CI yes; Manual
-  budget ownership.
+  Sem `TestClock` ordering/sleep tests; Int —; CI yes; Manual provider budget
+  ownership.
 - **Version:** Effect 3.22.1 timeout waits for loser termination/finalizers.
 
 ## EFF-014 — One retry owner
@@ -234,8 +234,8 @@ or repository-host branch protection.
 - **Exception:** None without changing the operation contract; hedging is a
   separate concurrent-duplication policy.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit classifier;
-  Sem exact attempts/non-retry/reconcile tests; Int provider test; CI yes; Manual
-  cross-layer audit.
+  Sem exact attempts/non-retry/reconcile tests; Int —; CI yes; Manual cross-layer
+  and provider audit.
 - **Version:** Effect 3.22.1: `{ times: n }` permits at most `n + 1` attempts.
 
 ## EFF-015 — Stable mutation idempotency identity
@@ -249,8 +249,7 @@ or repository-host branch protection.
 - **Exception:** A proven naturally idempotent or commutative operation with no
   deduplication key requirement.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit adapter test;
-  Sem mutation attempts; Int provider contract required; CI project-specific;
-  Manual yes.
+  Sem mutation attempts; Int —; CI project-specific; Manual provider contract.
 - **Version:** Project/provider contract, not Effect-version-specific.
 
 ## EFF-016 — Fiber and task ownership
@@ -266,8 +265,8 @@ or repository-host branch protection.
   observer.
 - **Enforcement:** TS partial; LS —; ESLint blocks `runFork` in component
   JSX/TSX; Biome partial; Neg —; Unit linter/controller; Sem task
-  shutdown/failure/publication; Int framework lifecycle; CI yes; Manual owner
-  review.
+  shutdown/failure/publication; Int —; CI yes; Manual framework lifecycle and
+  owner review.
 - **Version:** Effect 3.22.1 ManagedRuntime and FiberSet behavior.
 
 ## EFF-017 — Bounded concurrency and capacity
@@ -337,7 +336,7 @@ or repository-host branch protection.
   their throw/error contract is explicit and tested.
 - **Enforcement:** TS blocking; LS blocking in workflows; ESLint partial; Biome
   partial; Neg diagnostic fixture; Unit ParseError/policy/encoding; Sem boundary
-  tests; Int protocol test; CI yes; Manual schema-domain review.
+  tests; Int —; CI yes; Manual schema-domain review.
 - **Version:** Effect Schema 3.22.1, LS 0.87.1.
 
 ## EFF-021 — Secret containment
@@ -352,7 +351,7 @@ or repository-host branch protection.
   secret copy.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
   ESLint partial; Biome partial; Neg diagnostic fixture; Unit redaction; Sem
-  captured diagnostics; Int provider adapter; CI secret scan; Manual residual.
+  captured diagnostics; Int —; CI secret scan; Manual provider adapter review.
 - **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.1.
 
 ## EFF-022 — Exhaustive handling and one observer
@@ -373,8 +372,8 @@ or repository-host branch protection.
   may omit the raw error and receive only an allowlisted diagnostic.
 - **Enforcement:** TS exhaustive switch; LS partial; ESLint switch check; Biome
   partial; Neg HTTP fixture; Unit status/projector; Sem
-  log-count/interruption/cleanup observation; Int server boundary; CI yes;
-  Manual severity/vocabulary.
+  log-count/interruption/cleanup observation; Int —; CI yes; Manual server
+  boundary severity/vocabulary.
 - **Version:** Effect 3.22.1, TS 6.0.3; HTTP vocabulary is application-specific.
 
 ## EFF-023 — Exact boundary assertions
@@ -421,8 +420,8 @@ or repository-host branch protection.
 - **Exception:** Explicit trusted finite source with its bound recorded; DNS/IP
   checks may live in a production network adapter.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit Schema/limits;
-  Sem redirect/body/concurrency; Int resolver/connect policy; CI core tests;
-  Manual production SSRF review.
+  Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
+  production resolver/connect-time SSRF review.
 - **Version:** Bun 1.3.14 Web APIs and Effect 3.22.1 adapters.
 
 ## EFF-026 — Bun process runtime

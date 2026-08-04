@@ -127,9 +127,8 @@ locked `mise run standards:check` gate for every pull request, every push to
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
-The workflow pins mise 2026.7.15, the version used for this hardening gate.
-The configuration's 2026.6.12 minimum remains the documented compatibility
-floor rather than an instruction for CI to float.
+The workflow pins mise 2026.7.15. The configuration's 2026.6.12 minimum is the
+documented compatibility floor, not an instruction for CI to float.
 
 Repository host settings must require the `quality` job before merge. Committed
 workflow YAML cannot configure branch protection. Project-specific database,
@@ -188,11 +187,11 @@ Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
 The Biome baseline enables recommended stable rules, explicitly excludes the
 semver-unstable nursery group, and leaves TypeScript and Effect diagnostics
 responsible for module resolution and Effect channel correctness. The broader
-`all` preset was rejected after the representative profile produced
-framework-specific false positives, assertion/style churn, and no additional
-actionable correctness finding. Generated files are excluded from Biome's
-formatter, linter, and project analysis in this optional profile; the
-conformance gate verifies that exclusion explicitly.
+`all` preset is not part of this profile because it produces framework-specific
+false positives and assertion/style churn without an additional actionable
+correctness finding on the representative fixture. Generated files are excluded
+from Biome's formatter, linter, and project analysis in this optional profile;
+the conformance gate verifies that exclusion explicitly.
 
 ## Runtime note
 

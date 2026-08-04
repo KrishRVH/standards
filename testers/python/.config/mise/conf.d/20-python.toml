@@ -11,11 +11,7 @@ if [ ! -f pyproject.toml ]; then
   exit 0
 fi
 
-if [ -f uv.lock ]; then
-  uv sync --locked
-else
-  uv sync
-fi
+uv sync --locked
 """
 
 [tasks."py:install:deep"]
