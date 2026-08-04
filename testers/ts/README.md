@@ -24,6 +24,32 @@ peer explicitly when importing the corresponding platform adapter. The
 published-library overlay in `AGENTS.md` defines the deliberate peer/range
 alternative.
 
+## Pinned baseline, not a freeze
+
+The exact versions above are an evidence anchor, not a commitment to stay on
+them. Pinning exists so every claim in this profile — diagnostic names,
+retry/timeout ordering, redirect behavior, runtime ownership — is proven
+against one reproducible dependency set, which is what gives an agent a
+trustworthy repair loop. Most rules in the enforcement map are architectural
+and survive version changes unchanged; each row records its version scope.
+
+Upgrading is a supported, ordinary workflow, not an exception. For a routine
+bump: change the declared version, run `mise run ts:lock`, run the full
+`mise run ts:standards:check` gate, and re-audit the
+[diagnostic inventory](docs/effect/diagnostic-inventory.md) whenever
+`@effect/language-service` changes, because diagnostic names and severities
+drift between releases. The executable contracts are the migration test: a
+green gate on the new lock is the evidence the new versions are safe, and a
+red gate points at exactly what changed. Downstream projects upgrade the same
+way and do not need this catalog's permission to move.
+
+A future Effect major (v4) is an intended path, not a foreclosed one. It is
+handled as one separately scoped migration per EFF-028: update the inventory,
+canonical examples, diagnostics configuration, semantic suites, and locks
+together, so the profile lands on the new major with the same closed feedback
+loop it has today. Until then, do not mix majors: v4 APIs and documentation
+are not evidence for this v3 baseline.
+
 ## Profile boundary
 
 This is a Bun application baseline, not one universal tsconfig for Bun servers,

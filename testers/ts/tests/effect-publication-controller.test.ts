@@ -46,6 +46,22 @@ test('interrupt revokes publication even when underlying work ignores cancellati
   expect(failures).toEqual([]);
 });
 
+test('interrupt revokes publication synchronously when the operation already succeeded', async () => {
+  // The fiber completes before interrupt is called, so fiber interruption cannot
+  // suppress this result. Only the synchronous publication revocation can.
+  const published: string[] = [];
+  const { controller, failures } = makeController();
+
+  controller.start(Effect.succeed('completed-before-interrupt'), (value) => {
+    published.push(value);
+  });
+  controller.interrupt();
+  await controller.interruptAndWait();
+
+  expect(published).toEqual([]);
+  expect(failures).toEqual([]);
+});
+
 test('replaceWith waits for the previous finalizer before starting replacement work', async () => {
   const acquired = Promise.withResolvers<undefined>();
   const finalizerStarted = Promise.withResolvers<undefined>();

@@ -12,6 +12,12 @@ test, and **Int** an integration test. `Partial` is not presented as complete
 enforcement. `Manual` names the remaining prose-only review obligation; each
 row flags it explicitly and it is never claimed as mechanical enforcement.
 
+`(catalog)` marks an executable contract that lives in this catalog's tester
+fixture, not in the copyable profile. A fresh copy of the profile does not
+inherit that test: its gate enforces the static stack, the diagnostics
+harness, and the endpoint-checker suite. When a project adds the corresponding
+boundary, port the matching tester suite shape before relying on that cell.
+
 ## Coverage summary
 
 This profile defines 29 mandatory rules. Twenty-five have at least one static
@@ -19,10 +25,12 @@ compiler, language-service, linter, or negative-fixture check; 28 have an
 executable unit, semantic, integration, or diagnostic contract. EFF-001 remains
 the only wholly non-blocking rule: the language service can advise against some
 ceremonial Effect use, but selective adoption is ultimately an architecture
-review. Every row also names its narrower manual remainder; most mechanical
-checks prove a local shape and cannot establish cross-service ownership,
-provider guarantees, production DNS/connect-time policy, diagnostic vocabulary,
-or repository-host branch protection.
+review. Executable cells marked `(catalog)` run in the catalog's tester, not
+in a fresh downstream copy; a project adds those suites together with the
+boundary they protect. Every row also names its narrower manual remainder;
+most mechanical checks prove a local shape and cannot establish cross-service
+ownership, provider guarantees, production DNS/connect-time policy, diagnostic
+vocabulary, or repository-host branch protection.
 
 ## EFF-001 — Selective Effect adoption
 
@@ -95,8 +103,8 @@ or repository-host branch protection.
 - **Exception:** The outer sole observer may inspect full Cause when it
   preserves or rethrows unhandled defects and interruption.
 - **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg diagnostic
-  fixture; Unit exact Cause tests; Sem finalizer/interruption tests; Int partial;
-  CI yes; Manual residual.
+  fixture; Unit exact Cause tests; Sem finalizer/interruption tests (catalog);
+  Int partial; CI yes; Manual residual.
 - **Version:** Effect 3.22.1.
 
 ## EFF-006 — Separate error representations
@@ -129,9 +137,9 @@ or repository-host branch protection.
   tags.
 - **Exception:** None for two distinct service identities in one process;
   internal identifiers may change when no external consumer observes them.
-- **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg —; Unit
-  duplicate-key and wire tests; Sem context probe; Int —; CI yes; Manual scope
-  review.
+- **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg —;
+  Unit duplicate-key and wire tests (catalog); Sem context probe (catalog);
+  Int —; CI yes; Manual scope review.
 - **Version:** Effect 3.22.1 Context behavior; compatibility is project-specific.
 
 ## EFF-008 — Non-generic runtime service identity
@@ -157,7 +165,8 @@ or repository-host branch protection.
 - **Exception:** An externally owned Scope with one owner, a lifetime test, and
   a narrow diagnostic suppression.
 - **Enforcement:** TS partial; LS blocking; ESLint —; Biome —; Neg diagnostic
-  fixture; Unit finalization; Sem lifecycle test; Int —; CI yes; Manual residual.
+  fixture; Unit finalization (catalog); Sem lifecycle test (catalog); Int —;
+  CI yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.1.
 
 ## EFF-010 — Deliberate layer and runtime roots
@@ -172,8 +181,8 @@ or repository-host branch protection.
 - **Exception:** A request/iteration that intentionally owns the complete
   acquire-use-release lifetime, with counts tested.
 - **Enforcement:** TS partial; LS blocking for graph shapes; ESLint —; Biome —;
-  Neg diagnostic fixture; Unit acquisition counts; Sem layer topology; Int —;
-  CI yes; Manual hot-path review.
+  Neg diagnostic fixture; Unit acquisition counts (catalog); Sem layer
+  topology (catalog); Int —; CI yes; Manual hot-path review.
 - **Version:** Effect 3.22.1, LS 0.87.1.
 
 ## EFF-011 — Named runtime edges
@@ -204,8 +213,8 @@ or repository-host branch protection.
 - **Exception:** Signal-ignorant work with an explicit continuing owner and
   independent publication guard.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit adapter
-  tests; Sem interruption/continuation tests; Int native API test; CI yes; Manual
-  remote-commit analysis.
+  tests; Sem interruption/continuation tests; Int native API test (catalog);
+  CI yes; Manual remote-commit analysis.
 - **Version:** Effect 3.22.1 and the pinned host API.
 
 ## EFF-013 — Attempt and workflow budgets
@@ -234,8 +243,8 @@ or repository-host branch protection.
 - **Exception:** None without changing the operation contract; hedging is a
   separate concurrent-duplication policy.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit classifier;
-  Sem exact attempts/non-retry/reconcile tests; Int —; CI yes; Manual cross-layer
-  and provider audit.
+  Sem exact attempts/non-retry tests plus reconcile tests (catalog); Int —;
+  CI yes; Manual cross-layer and provider audit.
 - **Version:** Effect 3.22.1: `{ times: n }` permits at most `n + 1` attempts.
 
 ## EFF-015 — Stable mutation idempotency identity
@@ -248,8 +257,9 @@ or repository-host branch protection.
   a key inside the attempted mutation.
 - **Exception:** A proven naturally idempotent or commutative operation with no
   deduplication key requirement.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit adapter test;
-  Sem mutation attempts; Int —; CI project-specific; Manual provider contract.
+- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —;
+  Unit adapter test (catalog); Sem mutation attempts (catalog); Int —;
+  CI project-specific; Manual provider contract.
 - **Version:** Project/provider contract, not Effect-version-specific.
 
 ## EFF-016 — Fiber and task ownership
@@ -264,9 +274,9 @@ or repository-host branch protection.
 - **Exception:** Reviewed process-lifetime daemon with bounded cleanup and sole
   observer.
 - **Enforcement:** TS partial; LS —; ESLint blocks `runFork` in component
-  JSX/TSX; Biome partial; Neg —; Unit linter/controller; Sem task
-  shutdown/failure/publication; Int —; CI yes; Manual framework lifecycle and
-  owner review.
+  JSX/TSX; Biome partial; Neg —; Unit linter/controller (catalog); Sem task
+  shutdown/failure/publication (catalog); Int —; CI yes; Manual framework
+  lifecycle and owner review.
 - **Version:** Effect 3.22.1 ManagedRuntime and FiberSet behavior.
 
 ## EFF-017 — Bounded concurrency and capacity
@@ -280,8 +290,8 @@ or repository-host branch protection.
   or omitted limits without a proven finite producer/resource bound.
 - **Exception:** Record the finite bound and resource analysis at the decision.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit limit decode;
-  Sem maximum-concurrency/order/sibling tests; Int overload test; CI yes; Manual
-  capacity review.
+  Sem maximum-concurrency/order/sibling tests; Int —; CI yes; Manual capacity
+  and overload review.
 - **Version:** Effect 3.22.1 collection semantics.
 
 ## EFF-018 — Resource scope and release
@@ -297,8 +307,8 @@ or repository-host branch protection.
 - **Exception:** A wider owner with an explicit lifecycle and count/finalizer
   tests.
 - **Enforcement:** TS partial; LS blocking for common Scope leak; ESLint —; Biome
-  —; Neg diagnostic fixture; Unit releases; Sem success/failure/interruption;
-  Int host resource; CI yes; Manual lifetime review.
+  —; Neg diagnostic fixture; Unit releases (catalog); Sem
+  success/failure/interruption (catalog); Int host resource (catalog); CI yes; Manual lifetime review.
 - **Version:** Effect 3.22.1 finalizer ordering and Cause behavior.
 
 ## EFF-019 — Shutdown policy for blocking close
@@ -317,9 +327,9 @@ or repository-host branch protection.
 - **Exception:** A reviewed zero-wait release is allowed only when unfinished
   cleanup is safe, waiting can be unbounded, and rejection is still observed
   without replacing the primary Exit.
-- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit close policy;
-  Sem slow/failing finalizer plus rejected/stalled body cancellation; Int
-  process shutdown; CI yes; Manual criticality review.
+- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit close policy (catalog);
+  Sem slow/failing finalizer plus rejected/stalled body cancellation (catalog);
+  Int process shutdown (catalog); CI yes; Manual criticality review.
 - **Version:** Effect 3.22.1 timeout/finalizer semantics.
 
 ## EFF-020 — Schema trust and wire boundaries
@@ -351,7 +361,7 @@ or repository-host branch protection.
   secret copy.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
   ESLint partial; Biome partial; Neg diagnostic fixture; Unit redaction; Sem
-  captured diagnostics; Int —; CI secret scan; Manual provider adapter review.
+  captured diagnostics (catalog); Int —; CI secret scan; Manual provider adapter review.
 - **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.1.
 
 ## EFF-022 — Exhaustive handling and one observer
@@ -372,7 +382,7 @@ or repository-host branch protection.
   may omit the raw error and receive only an allowlisted diagnostic.
 - **Enforcement:** TS exhaustive switch; LS partial; ESLint switch check; Biome
   partial; Neg HTTP fixture; Unit status/projector; Sem
-  log-count/interruption/cleanup observation; Int —; CI yes; Manual server
+  log-count/interruption/cleanup observation (catalog); Int —; CI yes; Manual server
   boundary severity/vocabulary.
 - **Version:** Effect 3.22.1, TS 6.0.3; HTTP vocabulary is application-specific.
 
@@ -436,7 +446,7 @@ or repository-host branch protection.
 - **Exception:** Short one-shot CLI where OS signal integration is irrelevant,
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; ESLint partial; Biome partial; Neg —; Unit —;
-  Sem —; Int SIGTERM subprocess; CI yes; Manual entrypoint review.
+  Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
 - **Version:** `@effect/platform-bun` 0.91.0 with Effect 3.22.1, Bun 1.3.14.
 
 ## EFF-027 — Narrow diagnostic suppressions

@@ -16,7 +16,10 @@ Use `Option` or `Either` when absence or validation is data rather than an
 operation. Use `Effect` when the signature benefits from typed operational
 failure, required capabilities, time, interruption, concurrency, or resource
 lifetime. Use `Stream` for multiple asynchronous values with pull,
-backpressure, or stream lifetime.
+backpressure, or stream lifetime. The baseline ships no canonical Effect
+`Stream` fixture — the Bun server overlay covers Web `ReadableStream`
+ownership; a project that adopts `Stream` adds its patterns and semantic tests
+as a project overlay.
 
 Do not turn trusted internal interfaces into Schemas, make every module a
 service, or wrap a pure loop in `Effect.sync`. Add an operational abstraction

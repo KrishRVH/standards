@@ -32,6 +32,12 @@ finalizers, shared layer acquisition, and runtime disposal. Batch tests cover
 fail-fast sibling interruption and outcome collection. Task-service tests cover
 shutdown and non-interruption failure observation.
 
+The catalog's tester owns the reference suites for these contracts; the
+enforcement map marks them `(catalog)`. A copied profile starts with only the
+endpoint-checker suite and the diagnostics harness. When a project adds an
+async adapter, fork, scoped resource, publication controller, or client
+boundary, port the matching tester suite shape next to it in the same change.
+
 ## Static and negative contracts
 
 Keep exact-version Effect language-service diagnostics. The normal project runs

@@ -169,10 +169,11 @@ export function projectCheckFailure(failure: CheckFailure): PublicCheckFailure {
 export type SafeFailureKind =
   | 'configuration-failure'
   | 'endpoint-not-allowed'
-  | 'endpoint-rejected'
   | 'endpoint-redirect-rejected'
+  | 'endpoint-rejected'
   | 'endpoint-timeout'
   | 'endpoint-transport'
+  | 'endpoint-unavailable'
   | 'internal-defect'
   | 'invalid-request'
   | 'protocol-failure'
@@ -236,8 +237,10 @@ export function projectCheckDiagnostic(failure: DiagnosticFailure, attempts?: nu
         ...(attempts === undefined ? {} : { attempts }),
       };
     case 'TransientProbeError':
+      // Without a known attempt count this is a single observed 503, not proof
+      // that a retry policy ran to exhaustion.
       return {
-        failureKind: 'retry-exhausted',
+        failureKind: attempts === undefined ? 'endpoint-unavailable' : 'retry-exhausted',
         operation: 'endpoint-check',
         resource: failure.targetId,
         ...(attempts === undefined ? {} : { attempts }),

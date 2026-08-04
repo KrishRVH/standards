@@ -742,6 +742,15 @@ test('a defect diagnostic remains distinct from an exhausted expected failure', 
   );
 });
 
+test('a transient failure without an attempt count is not labeled retry-exhausted', () => {
+  expect(projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }))).toEqual({
+    failureKind: 'endpoint-unavailable',
+    operation: 'endpoint-check',
+    resource: 'primary-api',
+    statusClass: '5xx',
+  });
+});
+
 test('Schema-encodes the public outcome and rejects an impossible healthy status', async () => {
   const healthyOutcome = { _tag: 'EndpointHealthy' as const, id: 'primary-api', status: 204 };
   const encoded = await Effect.runPromise(encodeEndpointResults([healthyOutcome]));
