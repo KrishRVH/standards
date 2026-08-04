@@ -72,13 +72,10 @@ mirror = [
   "standards-tests/fixtures/sanitizer/signed-overflow.c",
   "standards-tests/format/representative.c.expected",
   "standards-tests/format/representative.c.in",
+  "standards-tests/platform/posix-contract.c",
   "standards-tests/platform/win32-api.c",
-  "standards-tests/platform/wordcount-input.txt",
-  "standards-tests/platform/wordcount-output.json",
   "standards-tests/run.sh",
   "tests/project_tests.c",
-  "wordcount-c99-A.c",
-  "wordcount.c99-B.c",
 ]
 dagger = true
 
@@ -272,9 +269,7 @@ mirror = [
   "scripts/check-effect-diagnostics.mjs",
   "src/endpoint-checker.ts",
   "src/main.ts",
-  "src/math.ts",
   "tests/endpoint-checker.test.ts",
-  "tests/math.test.ts",
   "tsconfig.json",
 ]
 dagger = true

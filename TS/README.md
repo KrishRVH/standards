@@ -117,10 +117,9 @@ The committed default is Option A: type-aware ESLint plus Prettier. The config
 sets `@typescript-eslint/no-floating-promises` with `ignoreVoid: false`; writing
 `void runtime.runPromise(...)` is not accepted as background-task ownership.
 
-`skipLibCheck` is false. This costs some feedback time but catches incompatible
-dependency declarations, as the platform-bun barrel probe demonstrated.
-Re-enable it only after measuring a material project-specific cost and record
-which declaration mismatch becomes invisible.
+`skipLibCheck` is false. This costs some feedback time but checks dependency
+declarations. Re-enable it only after measuring a material project-specific
+cost and record which declaration mismatch becomes invisible.
 
 `moduleResolution: "bundler"`, Bun types, and the Bun package manager are
 application-profile choices. Browser, React Native, and published-library

@@ -37,7 +37,7 @@ The gate profiles are:
 | Gate                         | Status                        | Contents                                                                                                                                  |
 | ---------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `mise run c:standards:check` | mandatory native              | pinned formatting, Clang warnings, direct clang-tidy, native tests, ASan/UBSan, optimized tests, package consumers, standards regressions |
-| `mise run c:portability`     | mandatory when explicitly run | pinned GCC build/tests and GCC/A-B warning regressions                                                                                    |
+| `mise run c:portability`     | mandatory when explicitly run | pinned GCC build/tests plus POSIX declaration and GCC warning regressions                                                                 |
 | `mise run c:advisory`        | reviewed ratchet              | named context-sensitive clang-tidy checks; no automatic source rewrites                                                                   |
 | `mise run c:mingw`           | exploratory, explicit         | MinGW-w64 compile/link only; fails if tools are absent; never runs target                                                                 |
 
@@ -51,7 +51,7 @@ analyzer, formatter, or compilation database is missing.
 | ------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Linux x86-64, hosted ISO C99, Clang 22.1.8  | Native mandatory build, test, ASan/UBSan, analyzer, install, static/shared consumer |
 | Linux x86-64, hosted ISO C99, GCC 15.2.0    | Extended compiler build and native tests                                            |
-| Linux/glibc, POSIX.1-2008, Clang 22.1.8     | Compile/link plus regular-file and monotonic-clock runtime regressions              |
+| Linux/glibc, POSIX.1-2008, Clang 22.1.8     | Compile/link plus file-offset and monotonic-clock runtime regressions               |
 | MinGW-w64 GCC 13.0.0/MSVCRT, `win32`        | Exploratory Win32 API compile/link only; not native Windows support                 |
 | MSVC, clang-cl, AppleClang, CompCert        | Unsupported by strict profiles; no C99/support claim                                |
 | musl, 32-bit ABIs, freestanding, other OSes | Unverified until a named profile and continuously run fixtures are added            |
@@ -139,8 +139,7 @@ the selected configuration registers no tests.
 - `.clang-format` is a presentation contract for clang-format 22.1.8. The
   golden fixture covers declarations, definitions, calls, nested expressions,
   conditions, initializers, casts, preprocessing, comments, macros, and C
-  function pointers. The immutable A/B inputs are intentionally excluded from
-  ordinary formatting so they remain valid historical regression evidence.
+  function pointers.
 - `.clang-tidy` names only checks backed by direct positive and negative
   evidence. `hard-checks.txt` records the 25 checks resolved by clang-tidy
   22.1.8, including analyzer-engine dependencies; drift fails. Unseeded checks
@@ -151,8 +150,8 @@ the selected configuration registers no tests.
   disabled categories with repair and exception policies.
 - `AGENTS.md` defines the agent correction protocol and concise C correctness
   policy.
-- `docs/decisions.md` records normative/tool evidence, uncertainty, baseline
-  failures, and the A/B change-by-change decision.
+- `docs/decisions.md` records normative/tool evidence, active policy decisions,
+  and implementation-specific limits.
 
 ## Return values and suppressions
 

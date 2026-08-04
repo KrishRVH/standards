@@ -80,10 +80,10 @@ an implementation-specific large-file contract, not a POSIX or C99 rule.
 
 Source-local declarations remain acceptable for a deliberately standalone,
 self-declaring source. Such a source must reject a conflicting predefinition;
-the A fixture's `#ifndef` form silently accepts values such as
-`_FILE_OFFSET_BITS=32` and is not a complete contract check. Removing the
-source block is safe only when the selected build target demonstrably supplies
-the equivalent definitions before all system headers.
+a source-local `#ifndef` block silently accepts values such as
+`_FILE_OFFSET_BITS=32` and is not a complete contract check. Omitting a source
+block is safe only when the selected build target demonstrably supplies the
+equivalent definitions before all system headers.
 
 `_TIME_BITS=64` is not enabled by this generic profile. Its availability and
 interaction with `_FILE_OFFSET_BITS` are libc-version-specific and require a
@@ -114,7 +114,7 @@ path.
 The non-null guarantee inside `i < argc` is an agent/review rule; no checker is
 allowed to force a redundant test.
 
-## POSIX interfaces used by the word-count fixture
+## POSIX profile interfaces
 
 `struct timespec`, `clock_gettime`, `CLOCK_MONOTONIC`, `off_t`, `fseeko`, and
 `ftello` are outside the ISO C99 API surface used by this project. POSIX.1-2008
@@ -127,12 +127,11 @@ defines them subject to feature visibility and option requirements:
 - `CLOCK_MONOTONIC` is available when the Monotonic Clock option is supported;
   namespace exposure alone does not prove runtime support.
 
-The local test host reports `_POSIX_MONOTONIC_CLOCK` as a runtime-query value in
-headers and `getconf _POSIX_MONOTONIC_CLOCK` as `200809`. Code must still check
-`clock_gettime`; casting its result to `void` can turn a timer failure into a
-plausible but fabricated timestamp. On glibc, `clock_gettime` has been in libc
-since 2.17; older glibc systems may require `-lrt`. That linker detail is part
-of the supported runtime range, not part of C99 or POSIX source semantics.
+Code must check `clock_gettime`; casting its result to `void` can turn a timer
+failure into a plausible but fabricated timestamp. On glibc, `clock_gettime`
+has been in libc since 2.17; older glibc systems may require `-lrt`. That linker
+detail is part of the supported runtime range, not part of C99 or POSIX source
+semantics.
 
 Enforcement: POSIX compile/link fixtures verify declaration exposure on every
 claimed libc/compiler combination. A behavioral fixture must cover timer
@@ -147,17 +146,18 @@ C99 `fread` returns the number of complete elements read, which can be smaller
 than requested on end-of-file or a read error. If either `size` or `nmemb` is
 zero, it returns zero without changing the array or stream state.
 
-For the word-count fixture's declared operation--read one previously measured,
-seekable regular-file snapshot or reject it--one exact-size `fread` followed by
-an equality check is the clearer expression. A short first call is already
-grounds to reject this operation; retrying without classifying and clearing an
-error does not improve correctness. A stream protocol or a caller that accepts
+For a declared operation that reads one previously measured, seekable
+regular-file snapshot or rejects it, one exact-size `fread` followed by an
+equality check is the clearer expression. A short first call is already grounds
+to reject this operation; retrying without classifying and clearing an error
+does not improve correctness. A stream protocol or a caller that accepts
 incremental data has a different contract and normally needs a loop.
 
-Neither A nor B obtains an atomic snapshot. The file can grow, shrink, or be
-replaced between measurement and reading. The implementation must explicitly
-choose whether to reject a short read, reject any size change, retry a bounded
-snapshot, or consume a stream. A loop is not evidence that the race disappeared.
+A prior measurement does not create an atomic snapshot. The file can grow,
+shrink, or be replaced between measurement and reading. The implementation must
+explicitly choose whether to reject a short read, reject any size change, retry
+a bounded snapshot, or consume a stream. A loop is not evidence that the race
+disappeared.
 
 ### Output and cleanup contract
 
@@ -222,106 +222,6 @@ Enforcement: seeded compiler, sanitizer, analyzer, and behavior fixtures cover
 the defect classes they claim. Remaining cases are explicit review rules and
 must not be advertised as automatically proved.
 
-## Word-count A/B evidence
-
-The mandatory sources were compiled unmodified on Linux x86-64 with glibc
-2.43, Clang 21.1.8, and GCC 15.2.0:
-
-```sh
-clang -std=c99 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount-c99-A.c -o /dev/null
-clang -std=c99 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount.c99-B.c -o /dev/null
-gcc -std=c99 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount-c99-A.c -o /dev/null
-gcc -std=c99 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount.c99-B.c -o /dev/null
-```
-
-Both A commands exited 0. Both B commands exited 1. Clang reported five hard
-errors: incomplete `struct timespec`, undeclared `clock_gettime`, undeclared
-`CLOCK_MONOTONIC`, undeclared `fseeko`, and undeclared `ftello`. GCC reported
-the same absent declarations/types, with the functions diagnosed through
-`-Werror=implicit-function-declaration`.
-
-Adding both definitions to B through the build contract made both compilers
-exit 0:
-
-```sh
-clang -std=c99 -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 \
-  -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount.c99-B.c -o /dev/null
-gcc -std=c99 -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64 \
-  -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror \
-  C/wordcount.c99-B.c -o /dev/null
-```
-
-On this 64-bit glibc host, `_POSIX_C_SOURCE=200809L` alone was sufficient to
-compile B and `_FILE_OFFSET_BITS=64` alone was not. That local result proves the
-immediate failure was namespace exposure; it does not make the large-file
-contract unnecessary on a supported 32-bit glibc ABI.
-
-The POSIX-profile regression also runs B over a committed regular-file input,
-compares its JSON result byte-for-byte, and runs its benchmark path so the
-checked monotonic-clock calls execute. The MinGW profile separately compiles
-and links a Windows-10-gated API call; it does not execute the target and makes
-no native-Windows claim.
-
-### Change-by-change classification
-
-| A-to-B change                                                                            | Classification                                                                            | Evidence and decision                                                                                            |
-| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Remove `_POSIX_C_SOURCE` and `_FILE_OFFSET_BITS` while retaining POSIX calls             | Regression unless the selected build target replaces the exact contract                   | Reproduced compile failure; the language flag does not expose POSIX.                                             |
-| Pass the current option argument into `option_value` instead of rereading `argv[*index]` | Neutral local clarification                                                               | It does not alter the startup contract when the caller's index invariant holds.                                  |
-| Add `argv[i] == NULL` inside `i < argc`                                                  | Noisy regression                                                                          | Hosted C99 already guarantees a string pointer for that range; it distracts from the permitted `argc == 0` case. |
-| Continue using `argv[0]` on parse/usage failure                                          | Existing correctness defect in both                                                       | C99 allows `argc == 0`; select a fallback program name before access.                                            |
-| Replace the repeated exact-file `fread` loop with one exact-size call                    | Valid improvement for the declared regular-file snapshot-or-reject contract               | A short return already means EOF or error; neither form solves file mutation.                                    |
-| Replace cohesive `fprintf` diagnostics with multiple `fputs`/`fputc` calls               | Checker-appeasement regression                                                            | More observable writes and failure/interleaving points, with no additional handling.                             |
-| Add `(void)` casts to discarded output results                                           | Context-dependent annotation used without a stated policy; no correctness improvement     | Allowed only at a narrow best-effort boundary with a reason. It is not error handling.                           |
-| Ignore `clock_gettime` and use the zero-initialized timestamp after failure              | Existing correctness defect in both                                                       | POSIX specifies a fallible call; zero is a fabricated sample, not error handling.                                |
-| Reformat declarations and continuations                                                  | Semantically neutral; readability regression if it violates the golden formatter contract | Formatting is lower authority and must be judged by the versioned golden corpus, not analyzer success.           |
-
-## Baseline inventory and reproduced failures
-
-The fixed baseline was commit `e96f786ab7cf0a995d6e38a013dbc608914c7b7d`.
-It was run before the standards files were changed.
-
-| File or area                         | Claimed policy                                                     | Actual behavior and decision                                                                                                                                         |
-| ------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.clang-format`                      | Readable LLVM-derived C presentation                               | clang-format 22.1.8 made B byte-for-byte stable and reproduced every A-to-B layout-only hunk, including isolated return types and 12-column continuations. Replaced. |
-| `.clang-tidy`                        | Bugprone, CERT, analyzer, performance, and portability coverage    | Wildcards resolved to 296 checks, mostly unrelated C++/OS checks; only two families were errors; cast-to-void appeasement was enabled. Replaced with named policies. |
-| `c-quality.sh`                       | Hard formatting and semantic checks                                | Used clangd instead of direct clang-tidy. Missing `compile_commands.json` printed “skipping clangd,” then “All quality checks passed” with status 0. Replaced.       |
-| `CMakeLists.txt`                     | Strict GCC/Clang, conservative CompCert, MSVC-friendly, sanitizers | Every unknown non-MSVC/non-CompCert compiler received GCC flags. MSVC and CompCert branches were untested claims. Sanitizer recovery was not disabled. Refactored.   |
-| `CMakePresets.json`                  | Clang/GCC/CompCert/MinGW portability                               | CompCert was unavailable and silently omitted by the script. Build directories were reused while cache options changed. Presets now have one bounded purpose each.   |
-| `c-build.sh`                         | Debug, release, portability, package consumers                     | Optional compiler stages silently disappeared; `release` was reconfigured in place for packaging; generated consumers and destructive cleanup obscured evidence.     |
-| `mingw-w64.cmake`                    | Windows cross toolchain                                            | Hard-coded a host sysroot and configured unused C++ despite a C-only project. It now selects only the C/RC tools; the job is explicitly compile-only exploratory.    |
-| package config/export header         | Static/shared CMake package consumers                              | The baseline native package consumer passed. The capability remains and now uses a committed external consumer with an isolated package build.                       |
-| public header, sample, and unit test | Neutral arithmetic library and test                                | They compiled and the one behavioral test passed, but they did not exercise the standards policy. Focused positive/negative standards fixtures were added.           |
-| `README.md`                          | Described compiler, analyzer, sanitizer, and portability workflow  | It overstated clangd/static-analysis coverage and CompCert portability. Rewritten to match executable gates and the explicit support matrix.                         |
-| `Mise/conf.d/20-c.toml`              | Pinned developer workflow                                          | Clang, clangd, and format were pinned, but clang-tidy was not installed. Direct analysis now pins `conda:clang-tools=22.1.8`; GCC is pinned separately.              |
-| lockfiles and drift manifest         | Deterministic tester and canonical/template alignment              | Existing mirrored files were checked, but no policy fixtures existed. New executable policy files are declared mirrors and the tester lock is regenerated.           |
-| CI configuration                     | none                                                               | This repository has no C-specific hosted CI file. The deterministic mise tasks are the executable CI interface; platform claims are limited accordingly.             |
-
-The untouched tester gate ran as:
-
-```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run standards:check
-```
-
-It exited 0, including formatter, clangd, sanitizer, release, and package
-consumer stages. The isolated missing-database experiment also exited 0 after
-printing the skip message; this proved the green result did not establish that
-mandatory analysis ran. Direct clangd 22.1.8 then exited 0 on seeded double-free
-and null-dereference inputs. Direct clang-tidy 22.1.8 diagnosed those inputs and
-the remaining seeded lifetime/stream defects.
-
-Tool versions captured before editing were Clang 21.1.8 and GCC 15.2.0 from the
-host, clang-format/clangd 22.1.8 through the tester's mise environment, CMake
-4.4.0 and Ninja 1.13.2 through mise, and MinGW-w64 GCC 13 from the host.
-`clang-tidy` and CompCert were absent from the old pinned environment. The
-final developer profile pins Clang/clang-format/clang-tidy 22.1.8, GCC 15.2.0,
-CMake 4.4.0, and Ninja 1.13.2.
-
 ## Tooling decisions
 
 ### Compiler and CMake policy
@@ -374,8 +274,7 @@ guessing from source paths. After `add_subdirectory`, the narrow
 reviewed third-party directory after it is added. The reason is mandatory and
 reported at configure time; a directory cannot exempt itself, and the
 exception cannot exempt one owned target. This is the concrete reason the
-minimum remains 3.20 rather than being lowered or raised. The C++-only
-`VISIBILITY_INLINES_HIDDEN` property and unused C++ cross compiler were removed.
+minimum remains 3.20 rather than being lowered or raised.
 
 Before a named stage builds, `c-build.sh` verifies the configured compiler path,
 family and version, build type, platform name and exact feature-macro set,
@@ -387,18 +286,18 @@ while silently using a different tool or weaker profile.
 
 The native sanitizer job combines ASan and UBSan because Clang officially
 supports both in one invocation and the seeded defects prove independent
-signals. `-fno-sanitize-recover=all` is essential: the baseline UBSan setup
-could report signed overflow and still exit successfully. MemorySanitizer is
-not a default because all linked code must be instrumented and initialized;
+signals. `-fno-sanitize-recover=all` is essential because recovering UBSan can
+report signed overflow and still exit successfully. MemorySanitizer is not a
+default because all linked code must be instrumented and initialized;
 ThreadSanitizer is not a default for a nonconcurrent sample; fuzzing has no
 declared input surface. GCC's static analyzer, 32-bit, and musl jobs remain
 project-specific extensions rather than prestige gates.
 
-The prior MinGW option forced `-static` without a package-consumer or native
-runtime contract. The exploratory cross profile now uses the selected
-MinGW-w64 toolchain's default linkage. Static CRT/runtime packaging varies by
-toolchain and CRT choice and remains unsupported until a named deployment
-profile can compile, package, and execute a representative consumer.
+The MinGW profile does not force `-static` without a package-consumer or native
+runtime contract. The exploratory cross profile uses the selected MinGW-w64
+toolchain's default linkage. Static CRT/runtime packaging varies by toolchain
+and CRT choice and remains unsupported until a named deployment profile can
+compile, package, and execute a representative consumer.
 
 ### Direct clang-tidy policy
 
@@ -424,7 +323,8 @@ profile before a POSIX declaration exists. ISO-only compilation remains the
 higher-ranked namespace gate, while the POSIX model becomes relevant only for
 a translation unit whose declared profile exposes those calls.
 
-The old wildcard configuration resolved 296 checks under clang-tidy 22.1.8:
+Broad wildcard families are disabled. Under clang-tidy 22.1.8 they resolve to
+296 checks:
 102 `bugprone`, 41 `cert`, 128 analyzer, 19 `performance`, five `portability`,
 and one readability check. Many were C++, Objective-C, or platform-specific.
 Hard checks are now explicit and limited to top-level checks with seeded
@@ -441,49 +341,35 @@ non-pedantic because LLVM defines that mode to assume commonly unchecked stream
 operations do not fail; the explicit I/O ownership policy and fixtures decide
 where failure handling is required. POSIX standard-library modeling is
 advisory and cannot expose declarations absent from the compiler profile.
-`cert-err33-c.AllowCastToVoid=false` makes B-style casts visible. The checker
-does not decide the repair: required results are handled at the operation or
-ownership boundary, while one cohesive best-effort fatal diagnostic may use a
-check-specific, reasoned suppression. The hard analyzer caught the seeded
-double free, use after free, path leak, null dereference, uninitialized return,
-invalid shift, mismatched cleanup as an unclosed stream, and header defect. It did not reliably
-prove generic allocation multiplication overflow or conditional signed
-overflow; behavior helpers and UBSan own those claims.
+`cert-err33-c.AllowCastToVoid=false` makes mechanical discarded-result casts
+visible. The checker does not decide the repair: required results are handled
+at the operation or ownership boundary, while one cohesive best-effort fatal
+diagnostic may use a check-specific, reasoned suppression. The hard analyzer
+caught the seeded double free, use after free, path leak, null dereference,
+uninitialized return, invalid shift, mismatched cleanup as an unclosed stream,
+and header defect. It did not reliably prove generic allocation multiplication
+overflow or conditional signed overflow; behavior helpers and UBSan own those
+claims.
 
 CTest is invoked with `--no-tests=error`, and every native test preset carries
 the same policy. A configuration that accidentally removes all registered
 tests therefore fails instead of printing “No tests were found” and passing.
 The sample arithmetic API also demonstrates its own integer policy: it checks
 representability before addition, rejects a null output pointer, and preserves
-the output on failure. Boundary tests cover `INT_MIN` and `INT_MAX`; the prior
-unchecked `int` addition admitted reachable signed-overflow undefined behavior.
+the output on failure. Boundary tests cover `INT_MIN` and `INT_MAX`; unchecked
+`int` addition would admit reachable signed-overflow undefined behavior.
 
 ### Formatter policy
 
-With clang-format 22.1.8, the old configuration used an eight-column
-`ContinuationIndentWidth`, allowed all arguments/parameters on the next line,
-disabled bin-packing, and retained the default return-type break penalty of 60.
-Controlled experiments showed:
+The clang-format 22.1.8 policy uses four-column continuation indentation,
+disallows the all-arguments and all-parameters next-line shortcuts, and assigns
+a high penalty to isolating C return types. Bracket alignment remains enabled
+to keep function-pointer declarations cohesive, while separate definition
+blocks preserve readable boundaries between C definitions.
 
-- reducing continuation indentation from eight to four fixed the extreme
-  indentation but did not prevent isolated return types;
-- `PenaltyReturnTypeOnItsOwnLine: 1000` kept readable C return types with their
-  declarations;
-- `AllowAllArgumentsOnNextLine: true` overrode the intended one-per-line shape
-  after a break, so both “allow all” options are now false;
-- `AlignAfterOpenBracket: false` or
-  `BreakAfterOpenBracketFunction: true` split a function-pointer typedef between
-  `(` and `*name`, so bracket alignment remains enabled and that break remains
-  disabled;
-- `SeparateDefinitionBlocks: Always` prevents source-local blank-line choices
-  from sticking adjacent C definitions together.
-
-LLVM 22 changed `AlignAfterOpenBracket` to a boolean and deprecates the old
-`Align` spelling; it also deprecates `BreakAfterReturnType: None` in favor of
-`Automatic` and the older `AlwaysBreakAfter*` names. Deprecated, renamed,
-inert, and C++-only entries were removed. The representative golden fixture is
-compared byte-for-byte and formatted twice to prove stability. Formatting never
-establishes behavior preservation.
+Only options valid for the pinned major version remain. The representative
+golden fixture is compared byte-for-byte and formatted twice to prove stability.
+Formatting never establishes behavior preservation.
 
 ## Primary-source ledger
 
@@ -505,10 +391,10 @@ establishes behavior preservation.
 | [GCC 15.2 warning options](https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/Warning-Options.html)                                                                                                                                                                                                                                                                                                                                                                                                                       | GCC-specific warning levels, optimizer dependencies, and `-Werror` behavior                                                                                                     | GCC warning implementations can change; the supported version is pinned and seeded independently.                                                                                                          |
 | [LLVM 22.1 clang-tidy guide](https://releases.llvm.org/22.1.0/tools/clang/tools/extra/docs/clang-tidy/index.html), [check catalog](https://releases.llvm.org/22.1.0/tools/clang/tools/extra/docs/clang-tidy/checks/list.html), and [`cert-err33-c`](https://releases.llvm.org/22.1.0/tools/clang/tools/extra/docs/clang-tidy/checks/cert/err33-c.html)                                                                                                                                                               | Compilation database/direct parallel execution, explicit check selection, suppression syntax, and `AllowCastToVoid`                                                             | Analyzer path models remain heuristic; tool names do not establish CERT compliance.                                                                                                                        |
 | [LLVM 22.1 `clang-analyzer-unix.Stream` alias](https://releases.llvm.org/22.1.0/tools/clang/tools/extra/docs/clang-tidy/checks/clang-analyzer/unix.Stream.html) and [official analyzer checker reference](https://clang.llvm.org/docs/analyzer/checkers.html)                                                                                                                                                                                                                                                        | `BitwiseShift:Pedantic`, `Stream:Pedantic`, and `StdCLibraryFunctions:ModelPOSIX` semantics; exact option defaults were also inspected in the installed 22.1.8 checker metadata | The detailed online analyzer reference follows current LLVM; the pinned config validation, seeded behavior, and installed 22.1.8 metadata bound this repository's actual claim.                            |
-| [clangd features](https://clangd.llvm.org/features) and [clangd configuration](https://clangd.llvm.org/config#clangtidy)                                                                                                                                                                                                                                                                                                                                                                                             | Not every clang-tidy check works in clangd; the default fast-check policy is intentionally bounded                                                                              | Current online clangd documentation is not versioned at the 22.1 patch level; local seeded experiments independently establish the limitation.                                                             |
+| [clangd features](https://clangd.llvm.org/features) and [clangd configuration](https://clangd.llvm.org/config#clangtidy)                                                                                                                                                                                                                                                                                                                                                                                             | Not every clang-tidy check works in clangd; the default fast-check policy is intentionally bounded                                                                              | Current online clangd documentation is not versioned at the 22.1 patch level; clangd remains informational and never substitutes for the direct hard gate.                                                 |
 | [LLVM 22.1 clang-format options](https://releases.llvm.org/22.1.0/tools/clang/docs/ClangFormatStyleOptions.html)                                                                                                                                                                                                                                                                                                                                                                                                     | Version-valid option names, deprecations, bracket/argument/return-type interactions                                                                                             | Readability choices remain project policy and are accepted only through the local golden corpus.                                                                                                           |
 | [Clang AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html) and [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)                                                                                                                                                                                                                                                                                                                                            | Supported instrumentation, exit/failure controls, and combined native profile                                                                                                   | Sanitizers observe executed paths only and do not prove absence of defects. Platform/runtime support varies.                                                                                               |
 | [CMake 4.4 `C_STANDARD`](https://cmake.org/cmake/help/v4.4/prop_tgt/C_STANDARD.html), [`C_EXTENSIONS`](https://cmake.org/cmake/help/v4.4/prop_tgt/C_EXTENSIONS.html), [`target_compile_options`](https://cmake.org/cmake/help/v4.4/command/target_compile_options.html), and [`target_compile_definitions`](https://cmake.org/cmake/help/v4.4/command/target_compile_definitions.html)                                                                                                                               | Target-scoped dialect, warnings, and platform definitions; private/public propagation                                                                                           | CMake feature selection cannot by itself prove compiler conformance or runtime API availability.                                                                                                           |
 | [CMake 4.4 `EXPORT_COMPILE_COMMANDS`](https://cmake.org/cmake/help/v4.4/prop_tgt/EXPORT_COMPILE_COMMANDS.html), [CTest `--no-tests`](https://cmake.org/cmake/help/v4.4/manual/ctest.1.html#cmdoption-ctest-no-tests), and [test-preset execution options](https://cmake.org/cmake/help/v4.4/manual/cmake-presets.7.html#test-preset)                                                                                                                                                                                 | Per-target compilation-database membership and explicit no-test failure behavior                                                                                                | The target property was introduced in CMake 3.20. A compilation database still proves only the targets deliberately opted into it, so the directory assertion separately proves owned-target registration. |
-| [Microsoft C language conformance](https://learn.microsoft.com/en-us/cpp/overview/visual-cpp-language-conformance?view=msvc-170) and [`/std` C modes](https://learn.microsoft.com/en-us/cpp/build/reference/std-specify-language-standard-version?view=msvc-170)                                                                                                                                                                                                                                                     | No strict C99 `/std:c99` profile exists to substantiate the prior MSVC branch                                                                                                   | Current MSVC may accept many C99 features; acceptance is not this template's tested strict profile.                                                                                                        |
+| [Microsoft C language conformance](https://learn.microsoft.com/en-us/cpp/overview/visual-cpp-language-conformance?view=msvc-170) and [`/std` C modes](https://learn.microsoft.com/en-us/cpp/build/reference/std-specify-language-standard-version?view=msvc-170)                                                                                                                                                                                                                                                     | No strict C99 `/std:c99` profile exists to substantiate an MSVC strict profile                                                                                                  | Current MSVC may accept many C99 features; acceptance is not this template's tested strict profile.                                                                                                        |
 | [MinGW-w64 pre-built toolchains](https://www.mingw-w64.org/downloads/) and [official CMake cross-build example](https://www.mingw-w64.org/build-systems/cmake/)                                                                                                                                                                                                                                                                                                                                                      | MinGW-w64 supplies Windows headers/libraries alongside multiple compiler and CRT combinations; a CMake toolchain can establish a compile/link cross target                      | The local GCC 13/MSVCRT compile-only result does not establish native execution, UCRT behavior, or MSVC compatibility.                                                                                     |

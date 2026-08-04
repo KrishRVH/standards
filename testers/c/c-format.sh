@@ -32,8 +32,7 @@ list_files() {
     git -C "$SOURCE_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     git -C "$SOURCE_ROOT" ls-files --cached --others --exclude-standard -z -- \
       '*.c' '*.h' \
-      ':(exclude)build/**' ':(exclude)build-*/**' \
-      ':(exclude)wordcount-c99-A.c' ':(exclude)wordcount.c99-B.c' |
+      ':(exclude)build/**' ':(exclude)build-*/**' |
       while IFS= read -r -d '' file; do
         [[ -f "$SOURCE_ROOT/$file" ]] || continue
         printf '%s/%s\0' "$SOURCE_ROOT" "$file"
@@ -42,8 +41,7 @@ list_files() {
     find "$SOURCE_ROOT" \
       -type d \( -name .git -o -name build -o -name 'build-*' -o \
       -name vendor -o -name third_party \) -prune -o \
-      -type f \( -name '*.c' -o -name '*.h' \) \
-      ! -name 'wordcount-c99-A.c' ! -name 'wordcount.c99-B.c' -print0
+      -type f \( -name '*.c' -o -name '*.h' \) -print0
   fi
 }
 

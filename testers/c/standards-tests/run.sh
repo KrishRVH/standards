@@ -105,7 +105,7 @@ strict_compile_posix() {
     "$source" -o "$output"
 }
 
-configure_wordcount() {
+configure_platform_fixture() {
   local build_dir="$1"
   local platform_profile="$2"
   local source_file="$3"
@@ -146,55 +146,38 @@ configure_analyzer_fixture() {
     -DFIXTURE_SOURCE="$source_file" > /dev/null
 }
 
-run_ab_clang_reproduction() {
+run_posix_declaration_contract() {
   local scratch_dir="$1"
+  local compiler="$2"
+  local fixture="$ROOT/standards-tests/platform/posix-contract.c"
 
-  note "Original A/B Clang language/platform reproduction"
-  strict_compile clang "$ROOT/wordcount-c99-A.c" "$scratch_dir/a-clang"
-  expect_failure "B without feature-test macros under strict Clang C99" \
-    strict_compile clang "$ROOT/wordcount.c99-B.c" "$scratch_dir/b-clang"
-  strict_compile_posix clang "$ROOT/wordcount.c99-B.c" "$scratch_dir/b-posix-clang"
-}
-
-run_ab_gcc_reproduction() {
-  local scratch_dir="$1"
-
-  note "Original A/B GCC language/platform reproduction"
-  strict_compile gcc "$ROOT/wordcount-c99-A.c" "$scratch_dir/a-gcc"
-  expect_failure "B without feature-test macros under strict GCC C99" \
-    strict_compile gcc "$ROOT/wordcount.c99-B.c" "$scratch_dir/b-gcc"
-  strict_compile_posix gcc "$ROOT/wordcount.c99-B.c" "$scratch_dir/b-posix-gcc"
+  expect_failure_containing \
+    "$compiler rejects undeclared POSIX APIs under strict C99" \
+    "CLOCK_MONOTONIC" "$scratch_dir/$compiler-posix-under-iso.log" \
+    strict_compile "$compiler" "$fixture" "$scratch_dir/$compiler-iso-posix"
+  strict_compile_posix \
+    "$compiler" "$fixture" "$scratch_dir/$compiler-declared-posix"
 }
 
 run_platform_contract_tests() {
   local scratch_dir="$1"
-  local posix_build="$scratch_dir/posix-wordcount"
-  local iso_build="$scratch_dir/iso-wordcount"
+  local fixture="$ROOT/standards-tests/platform/posix-contract.c"
+  local posix_build="$scratch_dir/posix-contract"
+  local iso_build="$scratch_dir/iso-contract"
 
-  note "POSIX profile supplies feature-test macros to B"
-  configure_wordcount "$posix_build" posix-2008 "$ROOT/wordcount.c99-B.c"
+  note "POSIX profile supplies the declared API and large-file contracts"
+  configure_platform_fixture "$posix_build" posix-2008 "$fixture"
   "$ROOT/c-build.sh" verify-preset-contract \
     "$posix_build" none Debug Clang posix-2008
   cmake --build "$posix_build" --parallel "$JOBS"
-  require_file_text "$posix_build/compile_commands.json" "-std=c99"
-  require_file_text "$posix_build/compile_commands.json" "-D_POSIX_C_SOURCE=200809L"
-  require_file_text "$posix_build/compile_commands.json" "-D_FILE_OFFSET_BITS=64"
-  reject_file_text "$posix_build/compile_commands.json" "-std=gnu99"
-  "$posix_build/project_cli" --json \
-    "$ROOT/standards-tests/platform/wordcount-input.txt" \
-    > "$scratch_dir/wordcount-output.json"
-  cmp "$ROOT/standards-tests/platform/wordcount-output.json" \
-    "$scratch_dir/wordcount-output.json" ||
-    fail "posix-2008 wordcount runtime output changed"
-  "$posix_build/project_cli" --bench-runs 1 --bench-warmups 0 \
-    "$ROOT/standards-tests/platform/wordcount-input.txt" \
-    > "$scratch_dir/wordcount-benchmark.json"
-  require_file_text "$scratch_dir/wordcount-benchmark.json" '"checksum":'
-  note "POSIX file and monotonic-clock runtime paths passed"
+  "$posix_build/project_cli"
+  note "POSIX file-offset and monotonic-clock runtime paths passed"
 
   note "ISO-only profile does not silently expose POSIX interfaces"
-  configure_wordcount "$iso_build" iso-hosted "$ROOT/wordcount.c99-B.c"
-  expect_failure "POSIX interfaces under iso-hosted" \
+  configure_platform_fixture "$iso_build" iso-hosted "$fixture"
+  "$ROOT/c-build.sh" verify-preset-contract "$iso_build" none Debug Clang
+  expect_failure_containing "POSIX interfaces under iso-hosted" \
+    "CLOCK_MONOTONIC" "$scratch_dir/posix-under-iso.log" \
     cmake --build "$iso_build" --parallel "$JOBS"
 }
 
@@ -636,7 +619,7 @@ main() {
       require_tool clang-format
       printf '[INFO] clang: %s\n' "$(clang --version | head -n 1)"
       printf '[INFO] cmake: %s\n' "$(cmake --version | head -n 1)"
-      run_ab_clang_reproduction "$scratch_dir"
+      run_posix_declaration_contract "$scratch_dir" clang
       run_platform_contract_tests "$scratch_dir"
       run_cmake_policy_tests "$scratch_dir"
       run_clang_warning_tests "$scratch_dir"
@@ -649,7 +632,7 @@ main() {
     gcc)
       require_tool gcc
       printf '[INFO] gcc: %s\n' "$(gcc --version | head -n 1)"
-      run_ab_gcc_reproduction "$scratch_dir"
+      run_posix_declaration_contract "$scratch_dir" gcc
       run_gcc_warning_tests "$scratch_dir"
       run_gcc_warning_contracts "$scratch_dir"
       ;;

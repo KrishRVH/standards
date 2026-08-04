@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { Config, ConfigProvider, Context, Duration, Effect, Exit, Layer, Option, Schema } from 'effect';
+import { Cause, Config, ConfigProvider, Context, Duration, Effect, Exit, Layer, Option, Schema } from 'effect';
 
 const RawSettings = Config.all({
   baseUrl: Config.url('BASE_URL'),
@@ -72,7 +72,9 @@ test('external boundaries can reject excess properties deliberately', async () =
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(exit.cause._tag).toBe('Fail');
+    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('ParseError');
+    expect(Cause.defects(exit.cause)).toHaveLength(0);
+    expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
   }
 
   expect(Schema.decodeUnknownSync(Payload)({ count: '3' })).toEqual({

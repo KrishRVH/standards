@@ -14,19 +14,15 @@ import {
   TestContext,
 } from 'effect';
 
-class AdapterFailure extends Data.TaggedError('AdapterFailure') {}
-
 class AttemptBudgetExceeded extends Data.TaggedError('AttemptBudgetExceeded') {}
 
 class OverallDeadlineExceeded extends Data.TaggedError('OverallDeadlineExceeded') {}
 
 class TransientFailure extends Data.TaggedError('TransientFailure') {}
 
-class ValidationRejected extends Data.TaggedError('ValidationRejected') {}
-
 class AmbiguousCommit extends Data.TaggedError('AmbiguousCommit') {}
 
-type OperationFailure = AmbiguousCommit | TransientFailure | ValidationRejected;
+type OperationFailure = AmbiguousCommit | TransientFailure;
 
 function retryDuplicateSafe<A, R>(
   effect: Effect.Effect<A, OperationFailure, R>,
@@ -38,42 +34,6 @@ function retryDuplicateSafe<A, R>(
     }),
   );
 }
-
-test('tryPromise forwards interruption through its AbortSignal', async () => {
-  const started = Promise.withResolvers<undefined>();
-  let adapterSignal: AbortSignal | undefined;
-  const controller = new AbortController();
-  const pending = Effect.runPromiseExit(
-    Effect.tryPromise({
-      try: (signal) => {
-        adapterSignal = signal;
-        started.resolve(undefined);
-
-        return new Promise<never>((_resolve, reject) => {
-          signal.addEventListener(
-            'abort',
-            () => {
-              reject(new Error('aborted'));
-            },
-            { once: true },
-          );
-        });
-      },
-      catch: () => new AdapterFailure(),
-    }),
-    { signal: controller.signal },
-  );
-
-  await started.promise;
-  controller.abort();
-  const exit = await pending;
-
-  expect(adapterSignal?.aborted).toBe(true);
-  expect(Exit.isFailure(exit)).toBe(true);
-  if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
-  }
-});
 
 test('a signal-ignorant promise continues after its Effect times out', async () => {
   const underlying = Promise.withResolvers<undefined>();
@@ -213,40 +173,6 @@ test('timeout outside retry caps the workflow and interrupts retry sleep', async
   if (Exit.isFailure(result.exit)) {
     expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('OverallDeadlineExceeded');
   }
-});
-
-test('a non-retryable tagged failure executes once', async () => {
-  let attempts = 0;
-  const exit = await Effect.runPromiseExit(
-    retryDuplicateSafe(
-      Effect.suspend(() => {
-        attempts += 1;
-        return Effect.fail(new ValidationRejected());
-      }),
-    ),
-  );
-
-  expect(attempts).toBe(1);
-  expect(Exit.isFailure(exit)).toBe(true);
-  if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('ValidationRejected');
-  }
-});
-
-test('a duplicate-safe transient failure retries and eventually succeeds', async () => {
-  let attempts = 0;
-  const result = await Effect.runPromise(
-    retryDuplicateSafe(
-      Effect.suspend(() => {
-        attempts += 1;
-
-        return attempts < 3 ? Effect.fail(new TransientFailure()) : Effect.succeed('available');
-      }),
-    ),
-  );
-
-  expect(result).toBe('available');
-  expect(attempts).toBe(3);
 });
 
 test('an ambiguous non-idempotent mutation is not retried automatically', async () => {

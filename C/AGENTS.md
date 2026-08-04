@@ -22,8 +22,8 @@ is strict hosted C99, not GNU99. Declare `iso-hosted`, `posix-2008`, or `win32`
 per target; do not infer an OS API from `-std=c99`. Freestanding execution is
 unsupported until a project adds a named runtime profile and tests.
 
-Enforcement: CMake target properties, platform compile fixtures, and the A/B
-word-count regression are hard gates. Authority resolution is a review rule.
+Enforcement: CMake target properties and the ISO/POSIX compile and runtime
+fixture are hard gates. Authority resolution is a review rule.
 
 ## Correction protocol
 
