@@ -134,9 +134,12 @@ Finally, copy the matching language or tooling folders:
 - `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks treated as failures, and tiny executable tests.
-- `TS/` — Effect-first, Bun-backed TypeScript with strict `tsc`, Effect Schema
-  boundaries and diagnostics, tests, ESLint plus Prettier as Option A, and a
-  pinned one-file Biome configuration as Option B.
+- `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
+  Effect Schema boundaries and diagnostics, semantic and negative tests,
+  automatic CI, ESLint plus Prettier as Option A, and a separately tested
+  pinned Biome configuration as Option B. The catalog's
+  [hardening report](docs/research/typescript-effect-bun-hardening-report.md)
+  records the exact evidence and downstream validation for this revision.
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
@@ -207,9 +210,17 @@ mise run sbom
 
 `mise run standards` applies available safe autofixes, then runs each detected
 language's local workflow. `mise run standards:check` runs the CI-grade
-aggregate gate and the shared `.gitleaks.toml` secret scan. The catalog does
-not include a hosted workflow or impose its runner costs; downstream projects
-can attach the same command to their chosen provider.
+aggregate gate and the shared `.gitleaks.toml` secret scan. The root
+`.github/workflows/quality.yml` runs that gate automatically for pull requests,
+pushes to `main`, and manual dispatch. The TypeScript application profile also
+contains a copyable workflow with the same event contract and locked command
+surface. Both workflows pin the locally tested mise 2026.7.15; the lower
+configuration minimums remain compatibility floors.
+
+Repository host settings must require the `quality` job before merge; committed
+YAML does not itself configure branch protection. Expensive project-specific
+integration or deployment checks may remain separate jobs, but they do not
+replace the fast static and deterministic gate.
 
 `mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
@@ -249,7 +260,7 @@ path wildcard because the current stable validator does not resolve monorepo
 paths in native task relationships; that child still uses mise's scheduler and
 project-attributed output.
 
-For an opt-in isolated proof without a hosted workflow, run the representative
+For an opt-in isolated proof outside the hosted runner, run the representative
 Python fixture through its existing Dagger entrypoint:
 
 ```sh

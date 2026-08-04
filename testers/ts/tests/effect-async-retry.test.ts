@@ -14,6 +14,8 @@ import {
   TestContext,
 } from 'effect';
 
+import { waitForScheduledSleep } from './support/test-clock.js';
+
 class AttemptBudgetExceeded extends Data.TaggedError('AttemptBudgetExceeded') {}
 
 class OverallDeadlineExceeded extends Data.TaggedError('OverallDeadlineExceeded') {}
@@ -58,6 +60,7 @@ test('a signal-ignorant promise continues after its Effect times out', async () 
     const fiber = yield* Effect.fork(operation);
 
     yield* Deferred.await(started);
+    yield* waitForScheduledSleep(1_000);
     yield* TestClock.adjust('1 second');
 
     return yield* Fiber.await(fiber);
@@ -109,6 +112,7 @@ test('timeout inside retry gives every attempt a budget and includes backoff', a
       );
 
       yield* Deferred.await(firstAttemptStarted);
+      yield* waitForScheduledSleep(1_000);
       yield* TestClock.adjust('4 seconds');
 
       return {
@@ -157,6 +161,7 @@ test('timeout outside retry caps the workflow and interrupts retry sleep', async
       const fiber = yield* Effect.fork(workflow);
 
       yield* Deferred.await(firstAttemptStarted);
+      yield* waitForScheduledSleep(1_000);
       yield* TestClock.adjust('2500 millis');
 
       return {
@@ -191,4 +196,24 @@ test('an ambiguous non-idempotent mutation is not retried automatically', async 
   if (Exit.isFailure(exit)) {
     expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('AmbiguousCommit');
   }
+});
+
+test('duplicate-safe retries reuse one logical-operation idempotency key', async () => {
+  const idempotencyKey = 'order-123/charge';
+  const observedKeys: string[] = [];
+  let attempts = 0;
+  const result = await Effect.runPromise(
+    retryDuplicateSafe(
+      Effect.suspend(() => {
+        attempts += 1;
+        observedKeys.push(idempotencyKey);
+
+        return attempts < 3 ? Effect.fail(new TransientFailure()) : Effect.succeed('accepted');
+      }),
+    ),
+  );
+
+  expect(result).toBe('accepted');
+  expect(attempts).toBe(3);
+  expect(observedKeys).toEqual([idempotencyKey, idempotencyKey, idempotencyKey]);
 });

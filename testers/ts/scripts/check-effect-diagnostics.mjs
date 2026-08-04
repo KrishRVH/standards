@@ -300,7 +300,48 @@ const expected = [
   },
 ];
 
-assert.deepEqual(actual, expected);
+const guidanceByDiagnostic = {
+  'effect(-1)': 'EFF-027 docs/effect/enforcement.md#eff-027--narrow-diagnostic-suppressions',
+  anyUnknownInErrorContext: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
+  classSelfMismatch: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  effectFnImplicitAny: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
+  effectGenUsesAdapter: 'EFF-001 docs/effect/enforcement.md#eff-001--selective-effect-adoption',
+  effectInFailure: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  effectInVoidSuccess: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  floatingEffect: 'EFF-011 docs/effect/enforcement.md#eff-011--named-runtime-edges',
+  genericEffectServices: 'EFF-008 docs/effect/enforcement.md#eff-008--non-generic-runtime-service-identity',
+  globalDateInEffect: 'EFF-024 docs/effect/enforcement.md#eff-024--deterministic-synchronization',
+  globalRandomInEffect: 'EFF-024 docs/effect/enforcement.md#eff-024--deterministic-synchronization',
+  globalTimersInEffect: 'EFF-024 docs/effect/enforcement.md#eff-024--deterministic-synchronization',
+  layerMergeAllWithDependencies: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
+  lazyPromiseInEffectSync: 'EFF-004 docs/effect/enforcement.md#eff-004--lazy-side-effects',
+  missingEffectContext: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  missingEffectServiceDependency: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  missingLayerContext: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
+  missingReturnYieldStar: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  missingStarInYieldEffectGen: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  multipleEffectProvide: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
+  nonObjectEffectServiceType: 'EFF-008 docs/effect/enforcement.md#eff-008--non-generic-runtime-service-identity',
+  overriddenSchemaConstructor: 'EFF-020 docs/effect/enforcement.md#eff-020--schema-trust-and-wire-boundaries',
+  processEnvInEffect: 'EFF-021 docs/effect/enforcement.md#eff-021--secret-containment',
+  returnEffectInGen: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  runEffectInsideEffect: 'EFF-011 docs/effect/enforcement.md#eff-011--named-runtime-edges',
+  schemaSyncInEffect: 'EFF-020 docs/effect/enforcement.md#eff-020--schema-trust-and-wire-boundaries',
+  scopeInLayerEffect: 'EFF-009 docs/effect/enforcement.md#eff-009--scoped-layer-construction',
+  unknownInEffectCatch: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
+  unsafeEffectTypeAssertion: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+};
+const expectedNames = [...new Set(expected.map(({ name }) => name))].sort();
+const missingGuidance = expectedNames.filter((name) => guidanceByDiagnostic[name] === undefined);
+
+assert.deepEqual(missingGuidance, [], 'Every blocking diagnostic needs a direct local rule reference.');
+assert.deepEqual(
+  actual,
+  expected,
+  `Blocking diagnostics drifted. Review the exact pinned diagnostic and its local rule:\n${expectedNames
+    .map((name) => `${name}: ${guidanceByDiagnostic[name]}`)
+    .join('\n')}`,
+);
 
 const fixtureDirectory = new URL('../effect-diagnostics/fixtures/', import.meta.url);
 const triggerFiles = (await readdir(fixtureDirectory))

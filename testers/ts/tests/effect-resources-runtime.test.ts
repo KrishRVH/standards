@@ -15,6 +15,8 @@ import {
   TestContext,
 } from 'effect';
 
+import { waitForScheduledSleep } from './support/test-clock.js';
+
 class UseFailure extends Data.TaggedError('UseFailure') {}
 
 interface BaseService {
@@ -142,6 +144,7 @@ test('a slow finalizer delays the interrupted Exit until release completes', asy
       const interruptFiber = yield* Effect.fork(Fiber.interrupt(resourceFiber));
 
       yield* Deferred.await(finalizerStarted);
+      yield* waitForScheduledSleep(5_000);
       yield* TestClock.adjust('4 seconds');
 
       const beforeDeadline = yield* Fiber.poll(interruptFiber);

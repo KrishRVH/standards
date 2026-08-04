@@ -8,6 +8,9 @@
 
   "files": {
     "ignoreUnknown": true,
+    // Generated code is intentionally outside Biome formatter, linter, and
+    // project-analysis input for this optional profile.
+    "includes": ["**", "!**/*.generated.ts"],
   },
 
   "formatter": {
@@ -52,21 +55,15 @@
       "types": "recommended",
     },
     "rules": {
-      "preset": "all",
-      "correctness": {
-        "noNodejsModules": "off",
-        "noUnresolvedImports": "off",
-        "useImportExtensions": "off",
-      },
-      "performance": {
-        "useTopLevelRegex": "off",
+      "preset": "recommended",
+      "nursery": {
+        "recommended": false,
       },
       "style": {
-        // A compact tagged-error algebra is clearer together than split across
-        // one file per class, and public TypeScript modules export in place.
-        "noExcessiveClassesPerFile": "off",
-        "noExcessiveLinesPerFile": "off",
-        "useExportsLast": "off",
+        // Targeted beyond recommended: modules should expose named contracts,
+        // and constructor syntax should not hide runtime initialization.
+        "noDefaultExport": "error",
+        "noParameterProperties": "error",
       },
     },
   },
@@ -97,16 +94,6 @@
         "rules": {
           "style": {
             "noDefaultExport": "off",
-          },
-        },
-      },
-    },
-    {
-      "includes": ["**/*.{test,spec}.{js,jsx,ts,tsx}", "**/__tests__/**/*.{js,jsx,ts,tsx}"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noMagicNumbers": "off",
           },
         },
       },

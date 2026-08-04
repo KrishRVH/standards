@@ -50,6 +50,11 @@ description = "Run TypeScript type checks"
 depends = ["ts:install"]
 run = "bun run typecheck"
 
+[tasks."ts:type-tests:check"]
+description = "Verify isolated TypeScript negative contracts"
+depends = ["ts:install"]
+run = "bun run type-tests:check"
+
 [tasks."ts:effect:check"]
 description = "Run Effect-specific diagnostics"
 depends = ["ts:install"]

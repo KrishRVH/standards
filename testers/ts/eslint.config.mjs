@@ -27,6 +27,7 @@ export default defineConfig(
       '**/effect-diagnostics/fixtures/**',
       '**/node_modules/**',
       '**/out/**',
+      '**/type-tests/**',
       '**/*.tsbuildinfo',
     ],
     'base/global-ignores',
@@ -241,7 +242,25 @@ export default defineConfig(
   },
 
   /**
-   * 9) JS files: disable type-aware TS rules for performance + correctness.
+   * UI overlay: component files delegate fiber ownership to a tested framework
+   * controller. Runtime adapters should live in ordinary .ts modules.
+   */
+  {
+    name: 'effect/ui-component-fiber-ownership',
+    files: ['src/**/*.{jsx,tsx}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          property: 'runFork',
+          message: 'Components must use the owned UI operation controller; see EFF-016 and the framework UI overlay.',
+        },
+      ],
+    },
+  },
+
+  /**
+   * 10) JS files: disable type-aware TS rules for performance + correctness.
    * Still enforce ESM-only without eslint-plugin-import.
    */
   {
@@ -262,18 +281,18 @@ export default defineConfig(
   },
 
   /**
-   * 10) Prettier must come last to turn off conflicting formatting rules.
+   * 11) Prettier must come last to turn off conflicting formatting rules.
    */
   { ...prettier, name: 'prettier/config' },
 
   /**
-   * 11) Re-enable specific rules you want even if Prettier disables them.
+   * 12) Re-enable specific rules you want even if Prettier disables them.
    * Here: always require braces for blocks.
    */
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 12) Hygiene: fail if eslint-disable comments are unused.
+   * 13) Hygiene: fail if eslint-disable comments are unused.
    */
   { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
 );

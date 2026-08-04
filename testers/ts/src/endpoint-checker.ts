@@ -1,107 +1,72 @@
-import { Context, Data, Duration, Effect, Layer, Option, type ParseResult, Schedule, Schema } from 'effect';
+import { Context, Effect, Layer, Schedule } from 'effect';
 
-const maximumEndpoints = 16;
-const maximumRetries = 5;
+import {
+  AttemptTimedOut,
+  type EndpointHealthy,
+  type EndpointLocalFailure,
+  EndpointNotAllowed,
+  type EndpointOutcome,
+  type EndpointProbeFailure,
+  EndpointRedirectRejected,
+  EndpointRejected,
+  type EndpointTargetInput,
+  ProbeTransportError,
+  TransientProbeError,
+  WorkflowDeadlineExceeded,
+  decodeCheckRequest,
+} from './endpoint-contracts.js';
+import { type CheckedPolicy, decodeCheckPolicy, defaultCheckPolicy } from './endpoint-policy.js';
+
 const serviceUnavailableStatus = 503;
 
-export const CheckRequest = Schema.Struct({
-  endpoints: Schema.NonEmptyArray(Schema.URL).pipe(Schema.maxItems(maximumEndpoints)),
-});
-
-export type CheckRequest = Schema.Schema.Type<typeof CheckRequest>;
-
-export const decodeCheckRequest = Effect.fn('project-name/endpoint-checker.decode-request')((input: unknown) =>
-  Schema.decodeUnknown(CheckRequest)(input),
-);
-
-export const EndpointResult = Schema.Struct({
-  status: Schema.Int,
-  target: Schema.String,
-});
-
-export const EndpointResults = Schema.Array(EndpointResult);
-
-export type EndpointResult = Schema.Schema.Type<typeof EndpointResult>;
-
-export const encodeEndpointResults = Effect.fn('project-name/endpoint-checker.encode-results')(
-  (results: readonly EndpointResult[]) => Schema.encode(EndpointResults)(results),
-);
-
-export class TransientProbeError extends Data.TaggedError('TransientProbeError')<{
-  readonly target: string;
-}> {}
-
-export class EndpointRejected extends Data.TaggedError('EndpointRejected')<{
-  readonly status: number;
-  readonly target: string;
-}> {}
-
-export class EndpointNotAllowed extends Data.TaggedError('EndpointNotAllowed')<{
-  readonly target: string;
-}> {}
-
-export class ProbeTransportError extends Data.TaggedError('ProbeTransportError')<{
-  readonly target: string;
-}> {}
-
-export class AttemptTimedOut extends Data.TaggedError('AttemptTimedOut')<{
-  readonly target: string;
-}> {}
-
-export class WorkflowDeadlineExceeded extends Data.TaggedError('WorkflowDeadlineExceeded')<{
-  readonly operation: 'endpoint-check';
-}> {}
-
-export class InvalidCheckPolicy extends Data.TaggedError('InvalidCheckPolicy')<{
-  readonly reason: string;
-}> {}
-
-export type EndpointProbeFailure = TransientProbeError | EndpointRejected | ProbeTransportError;
+export interface CheckedEndpointTarget {
+  readonly id: string;
+  readonly origin: string;
+  readonly url: URL;
+}
 
 export interface EndpointProbeService {
-  readonly head: (endpoint: URL) => Effect.Effect<EndpointResult, EndpointProbeFailure>;
+  readonly head: (target: CheckedEndpointTarget) => Effect.Effect<EndpointHealthy, EndpointProbeFailure>;
 }
 
 export class EndpointProbe extends Context.Tag('project-name/EndpointProbe')<EndpointProbe, EndpointProbeService>() {}
 
 export type FetchLike = (input: Request | string | URL, init?: RequestInit) => Promise<Response>;
 
-function targetOf(endpoint: URL): string {
-  return endpoint.origin;
-}
+function classifyResponse(
+  target: CheckedEndpointTarget,
+  response: Response,
+): Effect.Effect<EndpointHealthy, EndpointProbeFailure> {
+  if (response.status >= 300 && response.status <= 399) {
+    return Effect.fail(new EndpointRedirectRejected({ status: response.status, targetId: target.id }));
+  }
 
-function classifyResponse(endpoint: URL, response: Response): Effect.Effect<EndpointResult, EndpointProbeFailure> {
-  const target = targetOf(endpoint);
-
-  // This example probes with duplicate-safe HEAD requests. Its retry
-  // classification is local to that operation, not a universal HTTP table.
-  // This adapter retries only the explicitly selected 503 overload response.
-  // A 429 requires provider-specific Retry-After handling, so it is rejected
-  // here rather than guessed at by a universal table.
+  // HEAD is duplicate-safe here. Only the explicitly selected overload
+  // response retries; this is not a universal HTTP retry table.
   if (response.status === serviceUnavailableStatus) {
-    return Effect.fail(new TransientProbeError({ target }));
+    return Effect.fail(new TransientProbeError({ targetId: target.id }));
   }
   if (!response.ok) {
-    return Effect.fail(new EndpointRejected({ status: response.status, target }));
+    return Effect.fail(new EndpointRejected({ status: response.status, targetId: target.id }));
   }
 
-  return Effect.succeed({ status: response.status, target });
+  return Effect.succeed({ _tag: 'EndpointHealthy', id: target.id, status: response.status });
 }
 
 export function makeEndpointProbe(fetcher: FetchLike): EndpointProbeService {
   return {
-    head: Effect.fn('project-name/EndpointProbe.head')((endpoint: URL) =>
+    head: Effect.fn('project-name/EndpointProbe.head')((target: CheckedEndpointTarget) =>
       Effect.tryPromise({
         try: (signal) =>
-          fetcher(endpoint, {
+          fetcher(target.url, {
             method: 'HEAD',
-            redirect: 'error',
+            redirect: 'manual',
             signal,
           }),
-        // Unknown transport failures are not automatically retryable. A
-        // concrete adapter may map proven transient cases more narrowly.
-        catch: () => new ProbeTransportError({ target: targetOf(endpoint) }),
-      }).pipe(Effect.flatMap((response) => classifyResponse(endpoint, response))),
+        // Never retain or project the native error. Bun redirect:error can
+        // include the original query string, and provider errors are untrusted.
+        catch: () => new ProbeTransportError({ targetId: target.id }),
+      }).pipe(Effect.flatMap((response) => classifyResponse(target, response))),
     ),
   };
 }
@@ -111,199 +76,90 @@ export const EndpointProbeLive = Layer.succeed(
   makeEndpointProbe((input, init) => fetch(input, init)),
 );
 
-export interface CheckPolicy {
-  readonly allowedOrigins: ReadonlySet<string>;
-  readonly attemptTimeout: Duration.DurationInput;
-  readonly concurrency: number;
-  readonly retries: number;
-  readonly retryDelay: Duration.DurationInput;
-  readonly totalDeadline: Duration.DurationInput;
-}
-
-export const defaultCheckPolicy: CheckPolicy = {
-  allowedOrigins: new Set(['https://example.com']),
-  attemptTimeout: '2 seconds',
-  concurrency: 4,
-  retries: 2,
-  retryDelay: '100 millis',
-  totalDeadline: '7 seconds',
-};
-
-function isFiniteDuration(input: Duration.DurationInput, allowZero: boolean): boolean {
-  const decoded = Duration.decodeUnknown(input);
-
-  if (Option.isNone(decoded) || !Duration.isFinite(decoded.value)) {
-    return false;
-  }
-
-  return allowZero || !Duration.isZero(decoded.value);
-}
-
-function validatePolicy(policy: CheckPolicy): Effect.Effect<CheckPolicy, InvalidCheckPolicy> {
-  if (!Number.isSafeInteger(policy.concurrency) || policy.concurrency < 1 || policy.concurrency > maximumEndpoints) {
-    return Effect.fail(new InvalidCheckPolicy({ reason: 'concurrency must be an integer from 1 through 16' }));
-  }
-  if (!Number.isSafeInteger(policy.retries) || policy.retries < 0 || policy.retries > maximumRetries) {
-    return Effect.fail(new InvalidCheckPolicy({ reason: 'retries must be an integer from 0 through 5' }));
-  }
-  if (policy.allowedOrigins.size === 0 || policy.allowedOrigins.size > maximumEndpoints) {
-    return Effect.fail(new InvalidCheckPolicy({ reason: 'allowedOrigins must contain from 1 through 16 origins' }));
-  }
-  const durationsAreValid =
-    isFiniteDuration(policy.attemptTimeout, false) &&
-    isFiniteDuration(policy.retryDelay, true) &&
-    isFiniteDuration(policy.totalDeadline, false);
-
-  if (!durationsAreValid) {
-    return Effect.fail(
-      new InvalidCheckPolicy({ reason: 'timeouts must be finite and positive; retryDelay may be zero' }),
-    );
-  }
-
-  return Effect.succeed(policy);
-}
-
-function authorizeEndpoint(endpoint: URL, policy: CheckPolicy): Effect.Effect<URL, EndpointNotAllowed> {
+function authorizeEndpoint(
+  target: EndpointTargetInput,
+  policy: CheckedPolicy,
+): Effect.Effect<CheckedEndpointTarget, EndpointNotAllowed> {
   const authorized =
-    endpoint.protocol === 'https:' &&
-    endpoint.username === '' &&
-    endpoint.password === '' &&
-    policy.allowedOrigins.has(endpoint.origin);
+    target.url.protocol === 'https:' &&
+    target.url.username === '' &&
+    target.url.password === '' &&
+    policy.allowedOrigins.has(target.url.origin);
 
-  if (authorized) {
-    return Effect.succeed(endpoint);
-  }
-
-  return Effect.fail(new EndpointNotAllowed({ target: targetOf(endpoint) }));
+  return authorized
+    ? Effect.succeed({ id: target.id, origin: target.url.origin, url: target.url })
+    : Effect.fail(new EndpointNotAllowed({ targetId: target.id }));
 }
 
 function isRetryable(failure: EndpointProbeFailure | AttemptTimedOut): boolean {
   return failure._tag === 'TransientProbeError' || failure._tag === 'AttemptTimedOut';
 }
 
-function checkOne(
+export function checkEndpoint(
   probe: EndpointProbeService,
-  endpoint: URL,
-  policy: CheckPolicy,
-): Effect.Effect<EndpointResult, EndpointProbeFailure | AttemptTimedOut> {
-  const attempt = probe.head(endpoint).pipe(
+  target: CheckedEndpointTarget,
+  policy: CheckedPolicy,
+): Effect.Effect<EndpointHealthy, EndpointProbeFailure | AttemptTimedOut> {
+  const attempt = probe.head(target).pipe(
     Effect.timeoutFail({
       duration: policy.attemptTimeout,
-      onTimeout: () => new AttemptTimedOut({ target: targetOf(endpoint) }),
+      onTimeout: () => new AttemptTimedOut({ targetId: target.id }),
     }),
   );
 
   return attempt.pipe(
     Effect.retry({
-      schedule: Schedule.exponential(policy.retryDelay).pipe(Schedule.jittered),
+      schedule: Schedule.spaced(policy.retryDelay),
       times: policy.retries,
       while: isRetryable,
     }),
   );
 }
 
-export const checkEndpoints = Effect.fn('project-name/endpoint-checker.check')(
-  (input: unknown, policy: CheckPolicy = defaultCheckPolicy) =>
-    validatePolicy(policy).pipe(
-      Effect.flatMap((checkedPolicy) =>
-        Effect.gen(function* () {
-          const request = yield* decodeCheckRequest(input);
-          const probe = yield* EndpointProbe;
+function projectEndpointOutcome(failure: EndpointLocalFailure): EndpointOutcome {
+  switch (failure._tag) {
+    case 'AttemptTimedOut':
+      return { _tag: 'EndpointTimedOut', id: failure.targetId };
+    case 'EndpointNotAllowed':
+      return { _tag: 'EndpointNotAllowed', id: failure.targetId };
+    case 'EndpointRedirectRejected':
+      return { _tag: 'EndpointRedirectRejected', id: failure.targetId, status: failure.status };
+    case 'EndpointRejected':
+      return { _tag: 'EndpointRejected', id: failure.targetId, status: failure.status };
+    case 'ProbeTransportError':
+      return { _tag: 'EndpointUnavailable', id: failure.targetId, reason: 'transport' };
+    case 'TransientProbeError':
+      return { _tag: 'EndpointUnavailable', id: failure.targetId, reason: 'service-unavailable' };
+    default:
+      return failure satisfies never;
+  }
+}
 
-          return yield* Effect.forEach(
-            request.endpoints,
-            (endpoint) =>
-              authorizeEndpoint(endpoint, checkedPolicy).pipe(
-                Effect.flatMap((authorized) => checkOne(probe, authorized, checkedPolicy)),
-              ),
-            {
-              concurrency: checkedPolicy.concurrency,
-            },
-          );
-        }).pipe(
+export const checkEndpoints = Effect.fn('project-name/endpoint-checker.check')(
+  (input: unknown, policyInput: unknown = defaultCheckPolicy) =>
+    decodeCheckPolicy(policyInput).pipe(
+      Effect.flatMap((policy) =>
+        decodeCheckRequest(input).pipe(
+          Effect.flatMap((request) =>
+            Effect.gen(function* () {
+              const probe = yield* EndpointProbe;
+
+              return yield* Effect.forEach(
+                request.endpoints,
+                (target) =>
+                  authorizeEndpoint(target, policy).pipe(
+                    Effect.flatMap((authorized) => checkEndpoint(probe, authorized, policy)),
+                    Effect.catchAll((failure) => Effect.succeed(projectEndpointOutcome(failure))),
+                  ),
+                { concurrency: policy.concurrency },
+              );
+            }),
+          ),
           Effect.timeoutFail({
-            duration: checkedPolicy.totalDeadline,
+            duration: policy.totalDeadline,
             onTimeout: () => new WorkflowDeadlineExceeded({ operation: 'endpoint-check' }),
           }),
         ),
       ),
     ),
 );
-
-export type CheckFailure =
-  | ParseResult.ParseError
-  | EndpointProbeFailure
-  | EndpointNotAllowed
-  | AttemptTimedOut
-  | WorkflowDeadlineExceeded
-  | InvalidCheckPolicy;
-
-export interface PublicCheckFailure {
-  readonly code:
-    | 'deadline_exceeded'
-    | 'endpoint_not_allowed'
-    | 'endpoint_rejected'
-    | 'endpoint_unavailable'
-    | 'internal_error'
-    | 'invalid_request';
-  readonly message: string;
-  readonly retryable: boolean;
-}
-
-export function projectCheckFailure(failure: CheckFailure): PublicCheckFailure {
-  switch (failure._tag) {
-    case 'ParseError':
-      return {
-        code: 'invalid_request',
-        message: 'The endpoint request is invalid.',
-        retryable: false,
-      };
-    case 'EndpointRejected':
-      return {
-        code: 'endpoint_rejected',
-        message: 'An endpoint rejected the probe.',
-        retryable: false,
-      };
-    case 'EndpointNotAllowed':
-      return {
-        code: 'endpoint_not_allowed',
-        message: 'An endpoint is not in the configured destination policy.',
-        retryable: false,
-      };
-    case 'ProbeTransportError':
-      return {
-        code: 'endpoint_unavailable',
-        message: 'An endpoint could not be reached.',
-        retryable: false,
-      };
-    case 'TransientProbeError':
-    case 'AttemptTimedOut':
-      return {
-        code: 'endpoint_unavailable',
-        message: 'An endpoint is temporarily unavailable.',
-        retryable: true,
-      };
-    case 'WorkflowDeadlineExceeded':
-      return {
-        code: 'deadline_exceeded',
-        message: 'The endpoint check exceeded its total deadline.',
-        retryable: true,
-      };
-    case 'InvalidCheckPolicy':
-      return {
-        code: 'internal_error',
-        message: 'The endpoint checker is misconfigured.',
-        retryable: false,
-      };
-    default:
-      return failure satisfies never;
-  }
-}
-
-export function projectEncodingFailure(_failure: ParseResult.ParseError): PublicCheckFailure {
-  return {
-    code: 'internal_error',
-    message: 'The endpoint result could not be encoded.',
-    retryable: false,
-  };
-}

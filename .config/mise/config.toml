@@ -24,8 +24,7 @@ run = "mise lock"
 
 [tasks."standards:biome:check"]
 description = "Validate the optional Biome TypeScript template"
-dir = "TS"
-run = "biome ci --error-on-warnings --reporter=concise --vcs-root=.. biome.jsonc package.json src tests tsconfig.json"
+run = "scripts/check-biome-template.sh"
 
 [tasks."standards:drift"]
 description = "Check standards profile manifest and fixture drift"
