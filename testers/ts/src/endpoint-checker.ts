@@ -91,8 +91,11 @@ function authorizeEndpoint(
     : Effect.fail(new EndpointNotAllowed({ targetId: target.id }));
 }
 
+// A timed-out attempt is not retried: interrupting the Effect attempt does not
+// prove the underlying operation stopped, so another attempt could overlap
+// signal-ignorant work and exceed the apparent concurrency bound.
 function isRetryable(failure: EndpointProbeFailure | AttemptTimedOut): boolean {
-  return failure._tag === 'TransientProbeError' || failure._tag === 'AttemptTimedOut';
+  return failure._tag === 'TransientProbeError';
 }
 
 export function checkEndpoint(

@@ -177,11 +177,12 @@ export type SafeFailureKind =
   | 'internal-defect'
   | 'invalid-request'
   | 'protocol-failure'
-  | 'retry-exhausted'
   | 'workflow-deadline';
 
+// This fixture has no automatic-retry owner producing attempt metadata, so it
+// carries no attempt count and no retry-exhaustion classification. Both must
+// originate from a real retry owner.
 export interface SafeFailureDiagnostic {
-  readonly attempts?: number;
   readonly failureKind: SafeFailureKind;
   readonly operation: 'endpoint-check';
   readonly resource?: string;
@@ -201,7 +202,7 @@ function statusClass(status: number): '4xx' | '5xx' | undefined {
   return undefined;
 }
 
-export function projectCheckDiagnostic(failure: DiagnosticFailure, attempts?: number): SafeFailureDiagnostic {
+export function projectCheckDiagnostic(failure: DiagnosticFailure): SafeFailureDiagnostic {
   switch (failure._tag) {
     case 'ParseError':
       return { failureKind: 'invalid-request', operation: 'endpoint-check' };
@@ -234,16 +235,12 @@ export function projectCheckDiagnostic(failure: DiagnosticFailure, attempts?: nu
         failureKind: 'endpoint-timeout',
         operation: 'endpoint-check',
         resource: failure.targetId,
-        ...(attempts === undefined ? {} : { attempts }),
       };
     case 'TransientProbeError':
-      // Without a known attempt count this is a single observed 503, not proof
-      // that a retry policy ran to exhaustion.
       return {
-        failureKind: attempts === undefined ? 'endpoint-unavailable' : 'retry-exhausted',
+        failureKind: 'endpoint-unavailable',
         operation: 'endpoint-check',
         resource: failure.targetId,
-        ...(attempts === undefined ? {} : { attempts }),
         statusClass: '5xx',
       };
     default:

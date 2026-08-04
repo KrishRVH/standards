@@ -444,6 +444,58 @@ test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal'
   }
 });
 
+test('configured retries do not retry a timed-out attempt into overlapping work', async () => {
+  const started = Promise.withResolvers<undefined>();
+  const underlying = Promise.withResolvers<Response>();
+  let invocations = 0;
+  let publications = 0;
+  // The adapter deliberately ignores the supplied signal, so a retried timeout
+  // would start a second attempt while the first one keeps running underneath.
+  const probe = makeEndpointProbe(() => {
+    invocations += 1;
+    started.resolve(undefined);
+
+    return underlying.promise;
+  });
+  const exit = await Effect.runPromise(
+    Effect.gen(function* () {
+      const policy = yield* decodeCheckPolicy({
+        ...defaultCheckPolicy,
+        attemptTimeoutMilliseconds: 100,
+        retries: 3,
+        retryDelayMilliseconds: 0,
+      });
+      const fiber = yield* checkEndpoint(probe, checkedTarget('primary-api', 'https://example.com'), policy).pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            publications += 1;
+          }),
+        ),
+        Effect.fork,
+      );
+
+      yield* Effect.promise(() => started.promise);
+      yield* waitForScheduledSleep(100);
+      yield* TestClock.adjust('100 millis');
+
+      return yield* Fiber.await(fiber);
+    }).pipe(Effect.provide(TestContext.TestContext)),
+  );
+
+  expect(invocations).toBe(1);
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('AttemptTimedOut');
+  }
+
+  underlying.resolve(new Response(null, { status: 204 }));
+  await Promise.resolve();
+  await Promise.resolve();
+
+  expect(invocations).toBe(1);
+  expect(publications).toBe(0);
+});
+
 test('a non-retryable status rejection executes once', async () => {
   let attempts = 0;
   const probe = makeEndpointProbe(() => {
@@ -687,7 +739,7 @@ test('external interruption revokes normal result publication even when fetch ig
 
 test('public and telemetry projections are separate, allowlisted, and actionable', () => {
   const publicFailure = projectCheckFailure(new InvalidCheckPolicy({ reason: 'secret configuration detail' }));
-  const telemetry = projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }), 3);
+  const telemetry = projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }));
 
   expect(publicFailure).toEqual({
     code: 'internal_error',
@@ -695,8 +747,7 @@ test('public and telemetry projections are separate, allowlisted, and actionable
     retryDisposition: 'never',
   });
   expect(telemetry).toEqual({
-    attempts: 3,
-    failureKind: 'retry-exhausted',
+    failureKind: 'endpoint-unavailable',
     operation: 'endpoint-check',
     resource: 'primary-api',
     statusClass: '5xx',
@@ -732,23 +783,14 @@ test('safe telemetry drops unsafe internal detail instead of using it for classi
   expect(serialized).not.toContain('constructor');
 });
 
-test('a defect diagnostic remains distinct from an exhausted expected failure', () => {
+test('a defect diagnostic remains distinct from an expected endpoint failure', () => {
   expect(projectDefectDiagnostic()).toEqual({
     failureKind: 'internal-defect',
     operation: 'endpoint-check',
   });
-  expect(projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }), 3).failureKind).toBe(
-    'retry-exhausted',
+  expect(projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' })).failureKind).toBe(
+    'endpoint-unavailable',
   );
-});
-
-test('a transient failure without an attempt count is not labeled retry-exhausted', () => {
-  expect(projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }))).toEqual({
-    failureKind: 'endpoint-unavailable',
-    operation: 'endpoint-check',
-    resource: 'primary-api',
-    statusClass: '5xx',
-  });
 });
 
 test('Schema-encodes the public outcome and rejects an impossible healthy status', async () => {

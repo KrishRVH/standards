@@ -60,6 +60,17 @@ ambiguity, provider contract, overload response, authentication, validation,
 conflict, and partial batch outcome matter. There is no universal HTTP retry
 table.
 
+A per-attempt timeout is not a transient classification by default.
+Interrupting the Effect attempt does not prove the underlying operation
+stopped, so retrying a timed-out attempt can overlap signal-ignorant work and
+exceed the apparent concurrency bound. Retry a timeout only when the repeat is
+duplicate-safe, the adapter contract proves prompt underlying cancellation or
+the application independently bounds overlapping underlying operations, a
+semantic test measures actual underlying in-flight work rather than active
+Effect fibers, and the attempts stay inside the total budget. The canonical
+checker therefore retries only its explicitly transient 503 classification and
+reports a timed-out attempt as its endpoint-local timeout outcome.
+
 Keep one idempotency key outside the retry loop when provider deduplication is
 the safety mechanism. An ambiguous non-idempotent mutation returns an
 outcome-unknown/reconcile result. Public `caller-may-retry` guidance is not the

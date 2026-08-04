@@ -235,7 +235,9 @@ vocabulary, or repository-host branch protection.
 ## EFF-014 — One retry owner
 
 - **Rule — MUST:** Declare one automatic retry owner and wrap only the smallest
-  explicitly classified duplicate-safe unit with bounded attempts.
+  explicitly classified duplicate-safe unit with bounded attempts. An attempt
+  timeout is not automatically transient: classify it retryable only with proof
+  that overlapping underlying work is impossible or independently bounded.
 - **Rationale:** Layered retries amplify load and ambiguous mutations can commit
   more than once.
 - **Minimum / prohibited:** Operation-specific predicate and attempt limit / SDK,

@@ -30,11 +30,19 @@ Expected domain rejection is not automatically a server error. Interruption is
 ordinary cancellation/shutdown telemetry when useful, not a provider failure.
 An exhausted expected failure and a defect remain distinguishable.
 
+Attempt counts and `retry-exhausted` classification must originate from the
+automatic retry owner or from structured metadata produced by that owner. A
+raw optional integer passed to a projector must not manufacture retry
+exhaustion.
+
 ## Cardinality and exporter lifetime
 
 Use stable operation and resource names, coarse status classes, and bounded
 attempt values. User IDs, raw URLs, request IDs used as metric labels, and
 provider messages create high-cardinality or sensitive telemetry.
+Event/log/span context and metric dimensions are not interchangeable: a
+resource identifier that is safe in an event can still be too high-cardinality
+as a metric label.
 
 When an exporter is adopted, acquire it in a scoped layer, make propagation
 explicit, bound its queues, and give shutdown flushing a liveness budget. A
