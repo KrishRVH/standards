@@ -3,6 +3,11 @@
 
 namespace project {
 
+/**
+ * Returns twice the supplied value.
+ *
+ * @throws std::overflow_error when the result is not representable as an int.
+ */
 [[nodiscard]] int double_value(int value);
 
 } // namespace project

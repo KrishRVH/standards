@@ -366,8 +366,10 @@ Every owned compiled target must pass through `project_apply_common`; a final
 recursive directory assertion rejects a target that does not, including an
 omission below an owned `add_subdirectory`. That helper alone opts the
 target into `EXPORT_COMPILE_COMMANDS`, a target property introduced in CMake
-3.20. The dedicated analyzer database therefore excludes third-party targets
-without guessing from source paths. After `add_subdirectory`, the narrow
+3.20. It rejects interface and other noncompiled targets because this template
+does not define header-only warning or platform-macro propagation. The
+dedicated analyzer database therefore excludes third-party targets without
+guessing from source paths. After `add_subdirectory`, the narrow
 `project_exclude_c_standards_directory(path, reason)` marker can exempt a
 reviewed third-party directory after it is added. The reason is mandatory and
 reported at configure time; a directory cannot exempt itself, and the

@@ -164,6 +164,24 @@ test('rejects invalid resource policy before invoking the adapter', async () => 
   }
 });
 
+test('rejects an invalid total deadline before applying it', async () => {
+  const exit = await Effect.runPromiseExit(
+    checkEndpoints(
+      { endpoints: ['https://example.com/'] },
+      {
+        ...defaultCheckPolicy,
+        totalDeadline: 'not-a-duration' as typeof defaultCheckPolicy.totalDeadline,
+      },
+    ).pipe(Effect.provide(Layer.succeed(EndpointProbe, { head: () => Effect.die('unexpected probe') }))),
+  );
+
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+    expect(Cause.defects(exit.cause)).toHaveLength(0);
+  }
+});
+
 test('retries only the duplicate-safe transient endpoint attempt', async () => {
   let attempts = 0;
   const probe = Layer.succeed(EndpointProbe, {

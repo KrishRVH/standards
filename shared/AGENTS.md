@@ -20,8 +20,7 @@ knowledge.
 - Design for agent legibility: conventional layouts, precise names and types,
   explicit inputs, outputs, and side effects, actionable failures, and stable
   tests at real boundaries.
-- Prefer ASD-STE100 Simplified Technical English for user communications and
-  technical documents.
+- Prefer ASD-STE100 Simplified Technical English for user communications.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or

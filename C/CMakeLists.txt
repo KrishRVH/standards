@@ -77,20 +77,18 @@ set(PROJECT_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 function(project_apply_common target)
   get_target_property(_type ${target} TYPE)
-  set(_is_interface OFF)
-  if(_type STREQUAL "INTERFACE_LIBRARY")
-    set(_is_interface ON)
+  if(NOT _type STREQUAL "EXECUTABLE" AND
+     NOT _type STREQUAL "STATIC_LIBRARY" AND
+     NOT _type STREQUAL "SHARED_LIBRARY" AND
+     NOT _type STREQUAL "MODULE_LIBRARY" AND
+     NOT _type STREQUAL "OBJECT_LIBRARY")
+    message(FATAL_ERROR
+      "project_apply_common requires an owned compiled target; "
+      "'${target}' has type '${_type}'")
   endif()
 
-  if(_is_interface)
-    target_include_directories(${target} INTERFACE
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-      $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
-    set(_feature_scope INTERFACE)
-  elseif(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
-         _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
+  if(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
+     _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
     target_include_directories(${target} PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
@@ -105,9 +103,7 @@ function(project_apply_common target)
   project_apply_c_standards(${target} ${_feature_scope})
   project_apply_platform_profile(${target})
 
-  if(NOT _is_interface)
-    set_property(TARGET ${target} PROPERTY EXPORT_COMPILE_COMMANDS ON)
-  endif()
+  set_property(TARGET ${target} PROPERTY EXPORT_COMPILE_COMMANDS ON)
   set_property(TARGET ${target} PROPERTY PROJECT_C_STANDARDS_APPLIED TRUE)
 
   # Visibility: default to hidden for shared libs; export public symbols explicitly.
@@ -117,7 +113,7 @@ function(project_apply_common target)
     )
   endif()
 
-  if(PROJECT_SANITIZER STREQUAL "address-undefined" AND NOT _is_interface)
+  if(PROJECT_SANITIZER STREQUAL "address-undefined")
     if(MINGW OR CMAKE_CROSSCOMPILING)
       message(FATAL_ERROR
         "The address-undefined profile is supported only for native Clang/GCC builds")

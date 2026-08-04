@@ -37,6 +37,7 @@ mirror = [
   "standards-tests/analyzer/hard-checks.txt",
   "standards-tests/analyzer/include with spaces/project defect.h",
   "standards-tests/cmake/excluded-directory/CMakeLists.txt",
+  "standards-tests/cmake/interface-target/CMakeLists.txt",
   "standards-tests/cmake/no-tests/CMakeLists.txt",
   "standards-tests/cmake/no-tests/main.c",
   "standards-tests/cmake/stripped-target/CMakeLists.txt",

@@ -204,26 +204,29 @@ function checkOne(
 
 export const checkEndpoints = Effect.fn('project-name/endpoint-checker.check')(
   (input: unknown, policy: CheckPolicy = defaultCheckPolicy) =>
-    Effect.gen(function* () {
-      const checkedPolicy = yield* validatePolicy(policy);
-      const request = yield* decodeCheckRequest(input);
-      const probe = yield* EndpointProbe;
+    validatePolicy(policy).pipe(
+      Effect.flatMap((checkedPolicy) =>
+        Effect.gen(function* () {
+          const request = yield* decodeCheckRequest(input);
+          const probe = yield* EndpointProbe;
 
-      return yield* Effect.forEach(
-        request.endpoints,
-        (endpoint) =>
-          authorizeEndpoint(endpoint, checkedPolicy).pipe(
-            Effect.flatMap((authorized) => checkOne(probe, authorized, checkedPolicy)),
-          ),
-        {
-          concurrency: checkedPolicy.concurrency,
-        },
-      );
-    }).pipe(
-      Effect.timeoutFail({
-        duration: policy.totalDeadline,
-        onTimeout: () => new WorkflowDeadlineExceeded({ operation: 'endpoint-check' }),
-      }),
+          return yield* Effect.forEach(
+            request.endpoints,
+            (endpoint) =>
+              authorizeEndpoint(endpoint, checkedPolicy).pipe(
+                Effect.flatMap((authorized) => checkOne(probe, authorized, checkedPolicy)),
+              ),
+            {
+              concurrency: checkedPolicy.concurrency,
+            },
+          );
+        }).pipe(
+          Effect.timeoutFail({
+            duration: checkedPolicy.totalDeadline,
+            onTimeout: () => new WorkflowDeadlineExceeded({ operation: 'endpoint-check' }),
+          }),
+        ),
+      ),
     ),
 );
 

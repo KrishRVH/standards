@@ -1,3 +1,5 @@
+using System;
+
 namespace StandardsCsharpTester;
 
 /// <summary>
@@ -10,5 +12,8 @@ public static class Calculator
     /// </summary>
     /// <param name="value">The integer to double.</param>
     /// <returns>The doubled integer.</returns>
+    /// <exception cref="OverflowException">
+    /// The doubled value is outside the <see cref="int" /> range.
+    /// </exception>
     public static int Twice(int value) => value * 2;
 }

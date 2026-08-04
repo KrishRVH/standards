@@ -9,4 +9,3 @@ trim_trailing_whitespace = true
 [*.{sh,bash,bats,zsh}]
 indent_style = space
 indent_size = 2
-

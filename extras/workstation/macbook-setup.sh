@@ -330,6 +330,24 @@ brew_install_formulae() {
   return 0
 }
 
+read_file_mode() {
+  local path mode
+  path="$1"
+
+  if mode="$(stat -f '%Lp' "$path" 2> /dev/null)"; then
+    :
+  elif mode="$(stat -c '%a' "$path" 2> /dev/null)"; then
+    :
+  else
+    return 1
+  fi
+
+  case "$mode" in
+    '' | *[!0-7]*) return 1 ;;
+    *) printf '%s\n' "$mode" ;;
+  esac
+}
+
 atomic_install_file() {
   local src path mode dir base tmp
   src="$1"
@@ -414,7 +432,7 @@ write_managed_file() {
 }
 
 put_managed_block() {
-  local path begin end mode block out rc
+  local path begin end mode block out existing_mode rc
   path="$1"
   begin="$2"
   end="$3"
@@ -457,6 +475,12 @@ put_managed_block() {
     rm -f "$block"
     return 1
   fi
+
+  existing_mode="$(read_file_mode "$path")" || {
+    warn "could not read permissions for $path"
+    rm -f "$block"
+    return 1
+  }
 
   out="$(mktemp_file)" || {
     rm -f "$block"
@@ -506,6 +530,10 @@ put_managed_block() {
       rm -f "$block" "$out"
       return "$rc"
     fi
+  elif grep -qF -- "$end" "$path"; then
+    warn "$path contains end marker but not begin marker"
+    rm -f "$block" "$out"
+    return 1
   else
     cat "$path" > "$out" || {
       rm -f "$block" "$out"
@@ -523,7 +551,7 @@ put_managed_block() {
     }
   fi
 
-  atomic_install_file "$out" "$path" "$mode"
+  atomic_install_file "$out" "$path" "$existing_mode"
   rc=$?
   rm -f "$block" "$out"
   return "$rc"

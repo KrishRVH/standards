@@ -58,6 +58,22 @@ setup() {
   [[ "${status}" -eq 0 ]]
 }
 
+@test "skips zsh formatting because shfmt has no zsh parser" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/zsh-formatting"
+  mkdir -p "${workspace}/scripts"
+  printf '%s\n' \
+    '#!/usr/bin/env zsh' \
+    'value="hello world"' \
+    "print -r -- \"\${(q)value}\"" > "${workspace}/scripts/example.zsh"
+
+  run bash -c 'cd "$1" && "$2" fmt-check' -- \
+    "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -eq 0 ]]
+  [[ "${output}" = "No shfmt-compatible shell files found." ]]
+}
+
 @test "ignores shell files in nested generated directories outside Git" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/nested-generated"

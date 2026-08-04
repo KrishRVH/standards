@@ -1,3 +1,4 @@
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace StandardsCsharpTester;
@@ -13,4 +14,11 @@ public sealed class CalculatorTests
     /// </summary>
     [TestMethod]
     public void TwiceReturnsTwiceTheInput() => Assert.AreEqual(42, Calculator.Twice(21));
+
+    /// <summary>
+    /// Verifies that checked arithmetic rejects an unrepresentable result.
+    /// </summary>
+    [TestMethod]
+    public void TwiceThrowsWhenResultOverflows() =>
+        Assert.ThrowsExactly<OverflowException>(() => Calculator.Twice(int.MaxValue));
 }

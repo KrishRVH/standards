@@ -335,6 +335,7 @@ run_cmake_policy_tests() {
   local namespace_build="$scratch_dir/preset-namespace-leak"
   local override_build="$scratch_dir/preset-warning-override"
   local expanded_build="$scratch_dir/preset-warning-expansion"
+  local interface_target_build="$scratch_dir/interface-target"
   local stripped_target_build="$scratch_dir/preset-stripped-target"
   local werror_off_build="$scratch_dir/preset-werror-off"
   local unregistered_build="$scratch_dir/unregistered-target"
@@ -358,6 +359,11 @@ run_cmake_policy_tests() {
     "did not call project_apply_common" "$scratch_dir/unregistered-target.log" \
     cmake -S "$ROOT/standards-tests/cmake/unregistered-target" \
     -B "$unregistered_build" -G Ninja -DCMAKE_C_COMPILER=clang
+  expect_failure_containing "interface target passed to the compiled-target helper" \
+    "project_apply_common requires an owned compiled target" \
+    "$scratch_dir/interface-target.log" \
+    cmake -S "$ROOT/standards-tests/cmake/interface-target" \
+    -B "$interface_target_build" -G Ninja -DCMAKE_C_COMPILER=clang
   cmake -S "$ROOT/standards-tests/cmake/excluded-directory" \
     -B "$excluded_build" -G Ninja -DCMAKE_C_COMPILER=clang > /dev/null
   expect_failure_containing "third-party directory exception without a reason" \

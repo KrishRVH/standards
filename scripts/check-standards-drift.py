@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import filecmp
 import os
 import subprocess
@@ -582,32 +581,8 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     return errors
 
 
-def validate_for_listing(profiles: dict[str, dict[str, object]]) -> list[str]:
-    errors = validate_profiles(profiles)
-    if errors:
-        return errors
-    errors.extend(check_tester_inventory(profiles))
-    errors.extend(check_mise_lockfiles(profiles))
-    return errors
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--list-testers", action="store_true", help="print tester paths from the manifest")
-    args = parser.parse_args()
-
     profiles = load_profiles()
-
-    if args.list_testers:
-        errors = validate_for_listing(profiles)
-        if errors:
-            for error in errors:
-                print(error, file=sys.stderr)
-            return 1
-        for profile in profiles.values():
-            print(profile["tester"])
-        return 0
-
     errors = check_profiles(profiles)
     if errors:
         for error in errors:

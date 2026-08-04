@@ -325,11 +325,11 @@ scope = "native, GCC, sanitizer, package, and MinGW preset gates"
 profile = "build and test gates"
 severity = "hard"
 tool = "CMake target registry, c-build.sh, CTest, and compile database assertions"
-exact = ["recursive PROJECT_C_STANDARDS_APPLIED assertion", "reasoned third-party directory exception", "EXPORT_COMPILE_COMMANDS=ON for owned targets", "every required warning flag on every compile command", "unreviewed -W*/compiler-analyzer flags rejected", "compiler path/ID/version", "build type", "platform profile and macro set", "PROJECT_WERROR=ON and -Werror", "sanitizer cache and flags", "ctest --no-tests=error"]
+exact = ["recursive PROJECT_C_STANDARDS_APPLIED assertion", "compiled-target helper rejects noncompiled target types", "reasoned third-party directory exception", "EXPORT_COMPILE_COMMANDS=ON for owned targets", "every required warning flag on every compile command", "unreviewed -W*/compiler-analyzer flags rejected", "compiler path/ID/version", "build type", "platform profile and macro set", "PROJECT_WERROR=ON and -Werror", "sanitizer cache and flags", "ctest --no-tests=error"]
 rationale = "A green command is evidence only when the named compiler, profile, instrumentation, targets, and tests actually ran."
 repair = "Register every owned compiled target, restore the preset contract, or add the missing test; never weaken the asserted label."
 exception = "After add_subdirectory, a reviewed third-party directory may be marked with project_exclude_c_standards_directory(path, nonempty reason); the calling directory and individual owned targets cannot be exempted."
-fixture = "standards-tests/cmake/{excluded-directory,no-tests,unregistered-target,stripped-target}; standards-tests/run.sh preset-contract attacks"
+fixture = "standards-tests/cmake/{excluded-directory,interface-target,no-tests,unregistered-target,stripped-target}; standards-tests/run.sh preset-contract attacks"
 version = "CMake/CTest 4.4.0; EXPORT_COMPILE_COMMANDS target property since CMake 3.20"
 
 [[rule]]

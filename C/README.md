@@ -115,6 +115,9 @@ its source path with
 `project_exclude_c_standards_directory(path, "reason and upstream policy")`;
 the reason is mandatory, the caller cannot exempt itself, and the exception
 must never hide an owned target.
+`project_apply_common` rejects interface and other noncompiled targets because
+the template defines no header-only warning or platform-macro propagation
+contract.
 The build verifier requires every configured
 warning token on every compile command. The regression matrix also observes
 each warning's unpromoted diagnostic, then proves the reviewed `-Werror`

@@ -132,7 +132,7 @@ retry_quiet() {
   local delay=2
   local tmp
   local status
-  tmp="$(mktemp)"
+  tmp="$(make_tmpfile)"
 
   while true; do
     if "$@" > "$tmp" 2>&1; then
@@ -268,7 +268,7 @@ write_managed_file() {
   local mode="${3:-0644}"
 
   local tmp
-  tmp="$(mktemp)"
+  tmp="$(make_tmpfile)"
   cat > "$tmp"
 
   # Markers may start with '-' (e.g., Lua comments "-- ...").
@@ -587,8 +587,20 @@ apt_get install "${BASE_PKGS[@]}"
 
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
-if has fdfind && ! has fd; then ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"; fi
-if has batcat && ! has bat; then ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"; fi
+if has fdfind && ! has fd; then
+  if [[ -e "$HOME/.local/bin/fd" || -L "$HOME/.local/bin/fd" ]]; then
+    warn "refusing to replace existing non-command path: $HOME/.local/bin/fd"
+  else
+    ln -s "$(command -v fdfind)" "$HOME/.local/bin/fd"
+  fi
+fi
+if has batcat && ! has bat; then
+  if [[ -e "$HOME/.local/bin/bat" || -L "$HOME/.local/bin/bat" ]]; then
+    warn "refusing to replace existing non-command path: $HOME/.local/bin/bat"
+  else
+    ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
+  fi
+fi
 
 # --- curated upstream release binaries -------------------------------------
 # Ubuntu either ships old versions of these or, in yq's case, a different tool.
@@ -597,10 +609,12 @@ case "$release_arch" in
   amd64)
     release_go_arch="amd64"
     release_uname_arch="x86_64"
+    release_herdr_arch="x86_64"
     ;;
   arm64)
     release_go_arch="arm64"
     release_uname_arch="arm64"
+    release_herdr_arch="aarch64"
     ;;
   *)
     die "unsupported architecture for upstream CLI releases: $release_arch"
@@ -613,6 +627,8 @@ install_github_release_binary jesseduffield/lazygit lazygit "^lazygit_[^/]+_linu
 install_github_release_binary muesli/duf duf "^duf_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
 install_github_release_binary johnkerl/miller mlr "^miller-[^/]+-linux-${release_go_arch}\\.tar\\.gz$" mlr
 install_github_release_binary cli/cli gh "^gh_[^/]+_linux_${release_go_arch}\\.tar\\.gz$" gh
+# Herdr publishes bare Linux binaries; use its official GitHub release assets.
+install_github_release_binary herdrdev/herdr herdr "^herdr-linux-${release_herdr_arch}$"
 
 # --- mise + dagger -----------------------------------------------------------
 
@@ -811,7 +827,7 @@ generate_completion() {
   shift
   local tmp
 
-  tmp="$(mktemp)"
+  tmp="$(make_tmpfile)"
   if "$@" > "$tmp" 2> /dev/null && [[ -s "$tmp" ]]; then
     atomic_install_file "$tmp" "$path" 0644
   else
@@ -845,7 +861,7 @@ readonly -a TOOLS=(
   btop dust duf lnav
   xh
   ouch zstd trash age
-  tmux nvim dagger
+  tmux herdr nvim dagger
 )
 
 readonly -a CATEGORIES=(
@@ -862,7 +878,7 @@ declare -Ar CATEGORY=(
   [btop]=system [dust]=system [duf]=system [lnav]=system
   [xh]=network
   [ouch]=files [zstd]=files [trash]=files [age]=files
-  [tmux]=workspace [nvim]=workspace [dagger]=workspace
+  [tmux]=workspace [herdr]=workspace [nvim]=workspace [dagger]=workspace
 )
 
 declare -Ar SUMMARY=(
@@ -903,6 +919,7 @@ declare -Ar SUMMARY=(
   [trash]='recoverable interactive deletion via the desktop trash standard'
   [age]='small, composable modern file encryption'
   [tmux]='persistent terminal sessions and pane orchestration'
+  [herdr]='agent-aware multiplexer for supervising several coding agents at once'
   [nvim]='programmable terminal editor with LazyVim bootstrap support'
   [dagger]='containerized programmable CI and development pipelines'
 )
@@ -1454,9 +1471,9 @@ DOC
 SHFMT — parser-backed shell formatting
 
 Purpose:
-  Parse and deterministically format POSIX shell, Bash, mksh, Bats, and current
-  basic Zsh syntax. It complements ShellCheck: shfmt normalizes structure;
-  ShellCheck finds likely bugs.
+  Parse and deterministically format POSIX shell, Bash, mksh, and Bats. It
+  complements ShellCheck: shfmt normalizes structure; ShellCheck finds likely
+  bugs.
 
 Use it when:
   Keeping repository shell readable and producing stable agent-generated output.
@@ -1466,12 +1483,11 @@ Examples:
   shfmt -w -i 2 -ci script.sh
   fd -e sh -x shfmt -d
   shfmt --language-dialect bash -w script
-  shfmt --language-dialect zsh -d ~/.zshrc
 
 Notes:
   Check the chosen style into CI rather than relying on each developer's memory.
-  Zsh parsing support is newer and incomplete for advanced syntax; review its
-  output instead of treating it as a universal Zsh rewriter.
+  shfmt does not parse Zsh; use zsh -n for syntax checks and review Zsh
+  formatting separately.
 DOC
       ;;
     zsh)
@@ -1906,6 +1922,29 @@ Examples:
 Managed prefix: Ctrl-Space. Ctrl-h/j/k/l moves between tmux and Neovim panes.
 DOC
       ;;
+    herdr)
+      cat <<'DOC'
+HERDR — agent-aware terminal multiplexer
+
+Purpose:
+  Run several AI coding agents in one terminal as workspaces, tabs, and panes,
+  and track whether each agent is working, blocked, done, or idle. Supports
+  detach/reattach and mouse-driven splitting, like a tmux built around agents.
+
+Use it when:
+  Supervising more than one coding agent at a time. For ordinary editing and
+  long-lived shell sessions, tmux remains the managed default.
+
+Examples:
+  herdr                 # launch or attach to the default session
+  herdr --help          # authoritative command reference
+
+Notes:
+  The bootstrap installs the binary only. It does not configure herdr, does not
+  change the tmux setup, and does not start herdr automatically. Existing tmux
+  sessions remain unchanged.
+DOC
+      ;;
     nvim)
       cat <<'DOC'
 NVIM (NEOVIM) — programmable terminal editor
@@ -2053,7 +2092,7 @@ _toolhelp() {
     rg fd fzf zoxide bat eza delta difftastic jq yq mlr sd ast-grep
     hyperfine just watchexec shellcheck shfmt zsh atuin tldr mise starship
     cargo-binstall jj gh lazygit btop dust duf lnav xh ouch zstd trash age
-    tmux nvim dagger
+    tmux herdr nvim dagger
   )
   categories=(search viewing data workflow shell vcs system network files workspace)
 

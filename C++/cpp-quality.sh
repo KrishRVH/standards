@@ -95,7 +95,7 @@ if cdb_dir="$(detect_cdb_dir)"; then
     done
   fi
 else
-  note "No $CDB found (expected in repo root or build dir); skipping clangd."
+  fail "No $CDB found; configure a C++ build before running semantic checks."
 fi
 
 note "All quality checks passed (hard checks)."

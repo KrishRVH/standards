@@ -150,6 +150,10 @@ run_shfmt() {
 
   while IFS= read -r file; do
     dialect="$(dialect_for "${file}")"
+    if [ "${dialect}" = "zsh" ]; then
+      continue
+    fi
+
     count=$((count + 1))
 
     if [ "${mode}" = "write" ]; then
@@ -160,7 +164,7 @@ run_shfmt() {
   done < <(shell_files)
 
   if [ "${count}" -eq 0 ]; then
-    echo "No shell files found."
+    echo "No shfmt-compatible shell files found."
   fi
 
   return "${status}"

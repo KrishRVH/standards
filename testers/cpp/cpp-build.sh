@@ -10,11 +10,12 @@ run_preset() {
   echo "Running preset: $preset"
   echo "----------------------------------------------------"
 
+  cmake -E remove_directory "$ROOT/build/$preset"
   cmake --preset "$preset"
   cmake --build --preset "$preset" --parallel "$JOBS"
 
   if [[ "$preset" != "mingw" ]]; then
-    ctest --preset "$preset"
+    ctest --preset "$preset" --no-tests=error
   fi
 }
 

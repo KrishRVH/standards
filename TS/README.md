@@ -132,7 +132,7 @@ and Prettier with Biome 2.5.5. The catalog validates that alternative
 separately; it is not installed or run by the default project.
 
 If a project chooses Option B, remove `@eslint/js`, `eslint`,
-`eslint-config-prettier`, `globals`, `eslint-plugin-regexp`, `prettier`, and
+`eslint-config-prettier`, `eslint-plugin-regexp`, `globals`, `prettier`, and
 `typescript-eslint`; add exact dev dependency
 `"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
 service, TypeScript, Bun types, and the lock policy.
