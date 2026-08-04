@@ -213,16 +213,19 @@ mise run sbom
 `mise run standards` applies available safe autofixes, then runs each detected
 language's local workflow. `mise run standards:check` runs the CI-grade
 aggregate gate and the shared `.gitleaks.toml` secret scan. The root
-`.github/workflows/quality.yml` runs that gate automatically for pull requests,
-pushes to `main`, and manual dispatch. The TypeScript application profile also
-contains a copyable workflow with the same event contract and locked command
-surface. Both workflows pin the locally tested mise 2026.7.15; the lower
-configuration minimums remain compatibility floors.
+`.github/workflows/quality.yml` is manual-dispatch-only: catalog maintenance
+runs the aggregate gate locally before pushing, and hosted runs are dispatched
+on demand to keep CI spend deliberate. The TypeScript application profile
+contains the copyable workflow downstream projects use; that one keeps the
+automatic pull-request, `main`-push, and manual-dispatch event contract with
+the same locked command surface. Both workflows pin the locally tested mise
+2026.7.15; the lower configuration minimums remain compatibility floors.
 
-Repository host settings must require the `quality` job before merge; committed
-YAML does not itself configure branch protection. Expensive project-specific
-integration or deployment checks may remain separate jobs, but they do not
-replace the fast static and deterministic gate.
+Downstream repository host settings must require the copied workflow's
+`quality` job before merge; committed YAML does not itself configure branch
+protection. Expensive project-specific integration or deployment checks may
+remain separate jobs, but they do not replace the fast static and
+deterministic gate.
 
 `mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
