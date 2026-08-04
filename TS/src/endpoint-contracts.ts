@@ -29,7 +29,7 @@ export type CheckRequest = Schema.Schema.Type<typeof CheckRequest>;
 export type EndpointTargetInput = Schema.Schema.Type<typeof EndpointTargetInput>;
 
 export const decodeCheckRequest = Effect.fn('project-name/endpoint-checker.decode-request')((input: unknown) =>
-  Schema.decodeUnknown(CheckRequest)(input),
+  Schema.decodeUnknown(CheckRequest, { onExcessProperty: 'ignore' })(input),
 );
 
 const RejectedHttpStatus = Schema.Number.pipe(

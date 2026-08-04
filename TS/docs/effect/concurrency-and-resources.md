@@ -34,6 +34,12 @@ keeps workflow-wide initialization/deadline failures in `E`. Test input-order
 preservation, whether all items run, sibling interruption, partial-result
 policy at a total deadline, and maximum observed concurrency.
 
+The canonical endpoint checker deliberately uses all-or-nothing publication at
+its total deadline: it interrupts remaining work and returns
+`WorkflowDeadlineExceeded` without completed outcomes. Policy decoding precedes
+that deadline because the checked policy supplies its duration; the deadline
+then covers request decoding and the concurrent batch.
+
 Fibers provide cooperative JavaScript concurrency, not CPU parallelism. Long
 CPU work may need yielding, workers, native code, or process isolation.
 

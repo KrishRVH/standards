@@ -50,6 +50,25 @@ test('reports invalid external input as ParseError without a defect or interrupt
   }
 });
 
+test('strips excess request and endpoint properties for forward compatibility', async () => {
+  const decoded = await Effect.runPromise(
+    decodeCheckRequest({
+      endpoints: [
+        {
+          id: 'primary-api',
+          ignoredEndpointProperty: true,
+          url: 'https://example.com/health',
+        },
+      ],
+      ignoredRequestProperty: true,
+    }),
+  );
+
+  expect(decoded).toEqual({
+    endpoints: [{ id: 'primary-api', url: new URL('https://example.com/health') }],
+  });
+});
+
 test('rejects duplicate endpoint IDs at the external boundary', async () => {
   const exit = await Effect.runPromiseExit(
     decodeCheckRequest({
@@ -151,6 +170,22 @@ test('normalizes valid positive policy values only after decoding them', async (
   expect(Duration.toMillis(policy.totalDeadline)).toBe(125);
   expect(policy.concurrency).toBe(3);
   expect(policy.retries).toBe(1);
+});
+
+test('rejects excess configuration properties as likely mistakes', async () => {
+  const exit = await Effect.runPromiseExit(
+    decodeCheckPolicy({ ...defaultCheckPolicy, legacyAttemptTimeoutMilliseconds: 250 }),
+  );
+
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+
+    expect(failure._tag).toBe('InvalidCheckPolicy');
+    expect(failure.reason).toBe('policy input does not match the bounded configuration schema');
+    expect(Cause.defects(exit.cause)).toHaveLength(0);
+    expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
+  }
 });
 
 test('allows a caller total deadline shorter than the theoretical attempt budget', async () => {
@@ -688,6 +723,45 @@ test('total deadline interrupts active siblings instead of publishing partial re
   );
 
   expect(result.interrupted).toBe(2);
+  expect(Exit.isFailure(result.exit)).toBe(true);
+  if (Exit.isFailure(result.exit)) {
+    expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');
+  }
+});
+
+test('total deadline discards a completed outcome when another endpoint is still active', async () => {
+  const result = await Effect.runPromise(
+    Effect.gen(function* () {
+      const secondStarted = yield* Deferred.make<undefined>();
+      const interrupted = yield* Ref.make(false);
+      const probe = Layer.succeed(EndpointProbe, {
+        head: (target) =>
+          target.id === 'endpoint-one'
+            ? Effect.succeed(healthy(target))
+            : Deferred.succeed(secondStarted, undefined).pipe(
+                Effect.zipRight(Effect.never),
+                Effect.onInterrupt(() => Ref.set(interrupted, true)),
+              ),
+      });
+      const fiber = yield* checkEndpoints(
+        {
+          endpoints: [
+            { id: 'endpoint-one', url: 'https://example.com/one' },
+            { id: 'endpoint-two', url: 'https://example.com/two' },
+          ],
+        },
+        { ...defaultCheckPolicy, concurrency: 1, totalDeadlineMilliseconds: 100 },
+      ).pipe(Effect.provide(probe), Effect.fork);
+
+      yield* Deferred.await(secondStarted);
+      yield* waitForScheduledSleep(100);
+      yield* TestClock.adjust('100 millis');
+
+      return { exit: yield* Fiber.await(fiber), interrupted: yield* Ref.get(interrupted) };
+    }).pipe(Effect.provide(TestContext.TestContext)),
+  );
+
+  expect(result.interrupted).toBe(true);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
     expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');

@@ -90,7 +90,7 @@ function normalizePolicy(input: CheckPolicyInput): PolicyNormalization {
 }
 
 export const decodeCheckPolicy = Effect.fn('project-name/endpoint-checker.decode-policy')((input: unknown) =>
-  Schema.decodeUnknown(CheckPolicyInput)(input).pipe(
+  Schema.decodeUnknown(CheckPolicyInput, { onExcessProperty: 'error' })(input).pipe(
     Effect.mapError(
       () => new InvalidCheckPolicy({ reason: 'policy input does not match the bounded configuration schema' }),
     ),
