@@ -3,81 +3,65 @@ experimental = true
 
 [tools]
 "pkgx:llvm.org" = "22.1.8"
+"conda:clang-tools" = "22.1.8"
+"conda:gcc" = "15.2.0"
 clang-format = "22.1.8"
 cmake = "4.4.0"
 ninja = "1.13.2"
 
 [tasks."c:fmt"]
-description = "Format C sources"
-run = """
-set -eu
-if command -v clang-format >/dev/null 2>&1; then
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
-  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    git ls-files --cached --others --exclude-standard -z -- \
-      '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
-      xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp/files"
-  else
-    find . -type d \\( -name .git -o -name build -o -name 'build-*' -o -name vendor \\) -prune \
-      -o -type f \\( -name '*.c' -o -name '*.h' \\) -print0 > "$tmp/files"
-  fi
-  if [ -s "$tmp/files" ]; then
-    xargs -0 clang-format -i < "$tmp/files"
-  fi
-else
-  echo "clang-format is required for C formatting." >&2
-  exit 1
-fi
-"""
+description = "Format C sources with the pinned presentation contract"
+run = "./c-format.sh write ."
 
 [tasks."c:fmt:check"]
-description = "Check C source formatting"
-run = """
-set -eu
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- \
-    '*.c' '*.h' ':(exclude)build/**' ':(exclude)build-*/**' |
-    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp/files"
-else
-  find . -type d \\( -name .git -o -name build -o -name 'build-*' -o -name vendor \\) -prune \
-    -o -type f \\( -name '*.c' -o -name '*.h' \\) -print0 > "$tmp/files"
-fi
-if [ ! -s "$tmp/files" ]; then
-  exit 0
-fi
-xargs -0 -n 1 sh -c '
-  for file do
-    clang-format "$file" | cmp -s "$file" - || {
-      echo "Needs formatting: $file" >&2
-      exit 1
-    }
-  done
-' sh < "$tmp/files"
-"""
+description = "Check C sources with the pinned presentation contract"
+run = "./c-format.sh check ."
 
 [tasks."c:lint"]
-description = "Run C static checks"
-run = ["cmake --preset clang", "cmake --build --preset clang", "./c-quality.sh . build/clang"]
+description = "Run mandatory C compiler and direct clang-tidy checks"
+run = [
+  "cmake -E remove_directory build/clang-fast",
+  "cmake --preset clang-fast",
+  "./c-build.sh verify-preset-contract build/clang-fast none Debug Clang",
+  "cmake --build --preset clang-fast --parallel",
+  "./c-quality.sh hard . build/clang-fast",
+]
+
+[tasks."c:advisory"]
+description = "Run the reviewed, non-autofix clang-tidy advisory ratchet"
+run = [
+  "cmake -E remove_directory build/clang-fast",
+  "cmake --preset clang-fast",
+  "./c-build.sh verify-preset-contract build/clang-fast none Debug Clang",
+  "cmake --build --preset clang-fast --parallel",
+  "./c-quality.sh advisory . build/clang-fast",
+]
 
 [tasks."c:test"]
-description = "Run pinned C Debug and Release tests"
-run = "./c-build.sh"
+description = "Run native Clang tests, sanitizers, optimized tests, and consumers"
+run = "./c-build.sh native"
 
 [tasks."c:portability"]
-description = "Run C checks with available alternate and cross compilers"
+description = "Run the pinned GCC extended portability gate"
 run = "./c-build.sh portability"
 
+[tasks."c:mingw"]
+description = "Run the explicit MinGW-w64 compile-only exploratory gate"
+run = "./c-build.sh mingw"
+
+[tasks."c:regression"]
+description = "Test the C standards configuration with positive and negative fixtures"
+run = "./standards-tests/run.sh native"
+
 [tasks."c:standards"]
-description = "Run the C standards workflow with autofixes"
+description = "Run the C standards workflow with presentation autofixes"
 depends = ["c:fmt"]
 
 [tasks."c:standards:check"]
-description = "Run the C standards CI gate"
+description = "Run every mandatory native C standards gate"
 run = [
   { task = "c:fmt:check" },
   { task = "c:lint" },
   { task = "c:test" },
+  { task = "c:regression" },
 ]

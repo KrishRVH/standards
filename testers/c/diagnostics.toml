@@ -1,0 +1,389 @@
+schema = 1
+policy_version = "2026-08-03"
+
+[severity]
+hard = "The invoked gate fails on a demonstrated correctness, safety, build-contract, supported-portability, or deterministic-presentation violation."
+ratcheted-advisory = "A context-sensitive finding is reviewed and may not increase beyond the explicit baseline; it is never an autonomous rewrite order."
+informational = "Useful interactive or periodic evidence that cannot fail a mandatory gate or justify an autonomous source change."
+disabled-with-rationale = "Not enabled because the rule is noisy, duplicated, inapplicable, unstable, or lacks a defensible repair and fixture."
+
+# Each entry is one reviewable policy category. `exact` is exhaustive for that
+# category; no wildcard expands into an unreviewed hard rule.
+
+[[rule]]
+id = "C-LANG-001"
+concern = "ISO C99 syntax and extension leakage"
+scope = "every project target"
+profile = "all hosted profiles"
+severity = "hard"
+tool = "CMake target properties and compiler"
+exact = ["C_STANDARD=99", "C_STANDARD_REQUIRED=YES", "C_EXTENSIONS=NO", "c_std_99"]
+rationale = "The declared language contract is strict C99, never an inferred GNU dialect."
+repair = "Remove the extension or introduce a separately justified profile; do not switch to gnu99."
+exception = "No local exception; a new language profile needs an explicit contract and tests."
+fixture = "standards-tests/fixtures/compile/gnu-extension.c"
+version = "CMake 4.4.0; Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-PLATFORM-001"
+concern = "undeclared platform API and feature exposure"
+scope = "translation units using operating-system APIs"
+profile = "iso-hosted, posix-2008, win32"
+severity = "hard"
+tool = "CMake profile definitions and compile fixtures"
+exact = ["PROJECT_PLATFORM_PROFILE", "_POSIX_C_SOURCE=200809L", "_FILE_OFFSET_BITS=64", "_WIN32_WINNT=0x0A00", "WINVER=0x0A00"]
+rationale = "A language dialect does not declare POSIX, Win32, libc, or large-file ABI contracts."
+repair = "Select the target-scoped platform profile or replace the platform API with ISO C99."
+exception = "Public ABI-visible platform types require an explicit consumer contract, not a local suppression."
+fixture = "wordcount.c99-B.c; standards-tests/run.sh platform contract"
+version = "POSIX.1-2008 namespace; glibc-specific large-file macro"
+
+[[rule]]
+id = "C-ARITH-001"
+concern = "signed overflow and public arithmetic contracts"
+scope = "public APIs, allocation sizes, indexes, counters, and shifts"
+profile = "all"
+severity = "hard"
+tool = "behavior tests, compiler diagnostics, clang-tidy, and UBSan"
+exact = ["check before signed arithmetic", "checked project_add API", "clang-analyzer-core.BitwiseShift", "-fsanitize=undefined"]
+rationale = "Representable public inputs must not reach undefined signed overflow or invalid shifts; checked outputs make failure explicit."
+repair = "Prove bounds before evaluation, preserve outputs on failure, and test both representable limits."
+exception = "A documented precondition is permitted only when every caller is inside the same enforceable contract; untrusted/public inputs use a checked result."
+fixture = "tests/project_tests.c; standards-tests/fixtures/runtime/allocation-size.c; analyzer/fixtures/invalid-shift.c; sanitizer/signed-overflow.c"
+version = "ISO C99 arithmetic contract; Clang/UBSan 22.1.8"
+
+[[rule]]
+id = "C-COMP-DECL-001"
+concern = "declaration, prototype, and type-constraint correctness"
+scope = "project targets; private warning policy"
+profile = "Clang and GCC"
+severity = "hard"
+tool = "compiler"
+exact = ["-Wstrict-prototypes", "-Wmissing-prototypes", "-Wdeprecated-non-prototype (Clang)", "-Wold-style-definition (GCC)", "-Werror=implicit-function-declaration", "-Werror=incompatible-pointer-types", "-Werror=int-conversion"]
+rationale = "These diagnose C99 constraints, accidental old-style interfaces, and incompatible calls with direct repairs."
+repair = "Declare the exact interface and correct the represented type mismatch."
+exception = "Generated or foreign declarations must be isolated in a target not governed by the private policy."
+fixture = "standards-tests/compiler/warning-cases.tsv and warning-fixtures.c"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-CONV-001"
+concern = "lossy, sign-changing, qualifier, and pointer conversions"
+scope = "project targets; private warning policy"
+profile = "Clang and GCC"
+severity = "hard"
+tool = "compiler"
+exact = ["-Wconversion", "-Wsign-conversion", "-Wcast-qual", "-Wpointer-arith"]
+rationale = "Implicit representation changes and discarded qualifiers commonly invalidate size, bounds, and ownership reasoning."
+repair = "Prove the range or redesign the types; use a cast only when it records that proof rather than hiding it."
+exception = "A narrow cast may be documented beside a checked range or API invariant."
+fixture = "standards-tests/compiler/warning-cases.tsv and warning-fixtures.c"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-FORMAT-001"
+concern = "variadic format type mismatch and format injection"
+scope = "project targets"
+profile = "Clang and GCC"
+severity = "hard"
+tool = "compiler"
+exact = ["-Wformat=2", "-Wformat-security"]
+rationale = "Mismatched variadic arguments can be undefined behavior; nonliteral formats prevent the compiler from proving the argument contract and stay hard by default."
+repair = "Match every conversion to the promoted argument type, use a literal format boundary, or give a real variadic wrapper a supported compiler format attribute."
+exception = "A reviewed wrapper may use the narrowest compiler-specific attribute or local suppression with an API invariant; no global disable permits an unchecked nonliteral format."
+fixture = "standards-tests/compiler/format-wrapper.c and warning-fixtures.c"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-CONTROL-001"
+concern = "shadowing, fallthrough, incomplete switches, and suspicious control flow"
+scope = "project targets"
+profile = "Clang and GCC"
+severity = "hard"
+tool = "compiler"
+exact = ["-Wshadow", "-Wimplicit-fallthrough", "-Wswitch-enum"]
+rationale = "These protect local invariants and make control transfer explicit without banning disciplined cleanup paths."
+repair = "Rename the binding, annotate deliberate fallthrough, or handle the enumerator explicitly."
+exception = "A switch default is not required when explicit enumerator handling provides stronger evolution diagnostics."
+fixture = "standards-tests/compiler/warning-cases.tsv and warning-fixtures.c"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-PORT-001"
+concern = "extension, preprocessor, stack, and reproducibility hazards"
+scope = "project targets"
+profile = "Clang and GCC"
+severity = "hard"
+tool = "compiler"
+exact = ["-Wall", "-Wextra", "-Wpedantic", "-Wundef", "-Wvla", "-Walloca", "-Wdate-time", "-fno-common"]
+rationale = "The set rejects undeclared dialect features, unbounded automatic allocation, unstable timestamps, and tentative-definition linkage accidents."
+repair = "Use declared features, bounded owned storage, explicit preprocessor tests, and one definition."
+exception = "No VLA/alloca exception in the default profile; generated code belongs in a separate target."
+fixture = "standards-tests/compiler/warning-cases.tsv, warning-fixtures.c, and common-definition-*.c"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-CLANG-001"
+concern = "Clang-specific casts, sequencing, declarations, and shifts"
+scope = "project targets"
+profile = "upstream Clang GNU frontend"
+severity = "hard"
+tool = "Clang"
+exact = ["-Wcast-align", "-Wcast-function-type-strict", "-Wcomma", "-Wdeprecated-non-prototype", "-Wmissing-variable-declarations", "-Wshift-sign-overflow"]
+rationale = "Each selected diagnostic has a C-specific defect path and was evaluated independently under the pinned compiler."
+repair = "Restore alignment/type/sequence/declaration/shift preconditions; do not cast away the warning."
+exception = "A function-pointer ABI cast requires a local platform contract and isolated adapter."
+fixture = "standards-tests/compiler/clang-flags.txt, warning-cases.tsv, and warning-fixtures.c"
+version = "Clang 22.1.8"
+
+[[rule]]
+id = "C-COMP-GCC-001"
+concern = "GCC-specific duplicated logic, stale ownership, casts, shifts, and optimized null paths"
+scope = "project targets"
+profile = "GCC"
+severity = "hard"
+tool = "GCC"
+exact = ["-Wcast-align=strict", "-Wcast-function-type", "-Wduplicated-cond", "-Wold-style-definition", "-Wshift-overflow=2", "-Wuse-after-free=2", "-Wnull-dereference (Release/RelWithDebInfo)"]
+rationale = "The flags add proven GCC signal without routing unknown compilers through GCC syntax."
+repair = "Correct the duplicated/reachable path or ownership/type invariant."
+exception = "No global disable; a demonstrated compiler false positive may use the narrowest source or target exception with a reason."
+fixture = "standards-tests/compiler/gcc-*-flags.txt, warning-cases.tsv, and warning-fixtures.c"
+version = "GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-WERROR-001"
+concern = "warning gate enforcement"
+scope = "owned project targets only"
+profile = "mandatory and extended gates"
+severity = "hard"
+tool = "compiler"
+exact = ["PROJECT_WERROR=ON", "-Werror"]
+rationale = "A reviewed warning matrix is enforceable only when findings cannot pass unnoticed."
+repair = "Fix the represented defect or document a narrow exception; do not remove Werror."
+exception = "Dependencies are not compiled under this private warning policy."
+fixture = "standards-tests/compiler common-flags.txt, warning-cases.tsv, and behavior-contracts.txt"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-COMP-RESOLUTION-001"
+concern = "compiler warning-group and default-diagnostic drift"
+scope = "the exact mandatory Clang Debug and GCC Debug/Release invocations"
+profile = "supported compiler gates"
+severity = "hard"
+tool = "Clang diagtool show-enabled; GCC -Q --help=warnings"
+exact = ["clang-debug: 1694-line sha256 contract", "gcc-debug: 473-line sha256 contract", "gcc-release: 473-line sha256 contract"]
+rationale = "Wall, Wextra, Wpedantic, Wconversion, and default-on diagnostics are groups; pinned resolution hashes prevent an upgrade or option change from silently expanding the hard set."
+repair = "Review the full resolved output and group trees, update fixtures/rationales where signal changes, then deliberately update the contract."
+exception = "A resolved member is not an autonomous rewrite order; the agent correction protocol still requires a reachable path and semantics-preserving repair."
+fixture = "standards-tests/compiler/warning-resolution.txt and run.sh verify_warning_resolution"
+version = "Clang/diagtool 22.1.8; GCC 15.2.0; LC_ALL=C"
+
+[[rule]]
+id = "C-LINK-001"
+concern = "unresolved symbols in a produced shared library"
+scope = "native Linux shared-library target"
+profile = "clang-package"
+severity = "hard"
+tool = "ELF linker through CMake"
+exact = ["LINKER:-z,defs"]
+rationale = "A package library that retains unresolved nonruntime symbols defers a deterministic build defect to its consumer."
+repair = "Link the owning dependency or correct the missing/hidden definition."
+exception = "A plugin ABI that intentionally resolves host symbols needs a separate target contract; it must not weaken ordinary libraries."
+fixture = "standards-tests/consumer static/shared package build and execution"
+version = "supported native Linux linker through Clang 22.1.8"
+
+[[rule]]
+id = "C-TIDY-BUG-001"
+concern = "focused C allocation, macro, loop, string, and POSIX result defects"
+scope = "project translation units and project headers"
+profile = "advisory analysis"
+severity = "ratcheted-advisory"
+tool = "clang-tidy"
+exact = ["bugprone-assignment-in-if-condition", "bugprone-branch-clone", "bugprone-command-processor", "bugprone-float-loop-counter", "bugprone-incorrect-roundings", "bugprone-infinite-loop", "bugprone-macro-parentheses", "bugprone-macro-repeated-side-effects", "bugprone-misplaced-operator-in-strlen-in-alloc", "bugprone-misplaced-pointer-arithmetic-in-alloc", "bugprone-misplaced-widening-cast", "bugprone-multi-level-implicit-pointer-conversion", "bugprone-not-null-terminated-result", "bugprone-posix-return", "bugprone-reserved-identifier", "bugprone-reserved-identifier.AllowedIdentifiers=^_FILE_OFFSET_BITS$;^_POSIX_C_SOURCE$", "bugprone-signal-handler", "bugprone-signed-char-misuse", "bugprone-sizeof-expression", "bugprone-string-literal-with-embedded-nul", "bugprone-suspicious-enum-usage", "bugprone-suspicious-memset-usage", "bugprone-suspicious-memory-comparison", "bugprone-suspicious-realloc-usage", "bugprone-suspicious-string-compare", "bugprone-swapped-arguments", "bugprone-too-small-loop-variable"]
+rationale = "Named checks have plausible C defect models but are context-sensitive or not yet backed by an independent hard fixture; they are leads, not rewrite orders. Only the two normative platform feature-test macro names are excepted from the reserved-identifier lead."
+repair = "First prove a reachable defect, then correct the concrete operation or precondition represented by the diagnostic."
+exception = "Use NOLINT(check): reason only after proving the path safe; wildcard or file-wide suppression is prohibited."
+fixture = ".clang-tidy-advisory-baseline and c-quality.sh advisory ratchet"
+version = "clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-TIDY-MEM-001"
+concern = "null, bounds, uninitialized, lifetime, ownership, stream, and deallocation defects"
+scope = "project translation units and project headers"
+profile = "hard analysis"
+severity = "hard"
+tool = "Clang Static Analyzer through clang-tidy"
+exact = ["clang-analyzer-core.BitwiseShift", "clang-analyzer-core.BitwiseShift:Pedantic=true", "clang-analyzer-core.NullDereference", "clang-analyzer-core.uninitialized.UndefReturn", "clang-analyzer-unix.Malloc", "clang-analyzer-unix.Stream", "clang-analyzer-unix.Stream:Pedantic=false", "analyzer dependency closure recorded in hard-checks.txt"]
+rationale = "Only five top-level analyzer checks with seeded path defects are selected. BitwiseShift's pedantic mode diagnoses ISO undefined shifts even when a compiler commonly defines them. Stream's non-pedantic mode intentionally avoids demanding handling at every commonly unchecked stream call; the return-value policy and ownership-boundary tests own those contextual decisions. Analyzer-engine dependencies remain in the committed 25-check resolution but are not independent claims."
+repair = "Repair the reachable path, ownership transition, bound, initialization, or cleanup boundary."
+exception = "A path proven impossible by a higher-ranked contract may use one check-named suppression with that invariant."
+fixture = "standards-tests/analyzer/fixtures/{double-free,use-after-free,leak-on-path,null-dereference,uninitialized-read,invalid-shift,mismatched-cleanup,header source with spaces}.c"
+version = "clang-tidy 22.1.8; exact resolution in hard-checks.txt"
+
+[[rule]]
+id = "C-TIDY-API-001"
+concern = "dangerous environment, privilege, temporary-file, executable-memory, and vfork API paths"
+scope = "project translation units and project headers"
+profile = "advisory analysis"
+severity = "ratcheted-advisory"
+tool = "Clang Static Analyzer through clang-tidy"
+exact = ["clang-analyzer-security.MmapWriteExec", "clang-analyzer-security.PutenvStackArray", "clang-analyzer-security.SetgidSetuidOrder", "clang-analyzer-security.cert.env.InvalidPtr", "clang-analyzer-security.insecureAPI.UncheckedReturn", "clang-analyzer-security.insecureAPI.gets", "clang-analyzer-security.insecureAPI.mkstemp", "clang-analyzer-security.insecureAPI.mktemp", "clang-analyzer-unix.Errno", "clang-analyzer-unix.Vfork"]
+rationale = "These checks model plausible misuse, but remain advisory until their tool-version behavior and repair have dedicated evidence."
+repair = "Confirm the represented API path against its normative contract before changing source."
+exception = "Platform-only code may suppress one check after documenting the exact runtime contract."
+fixture = ".clang-tidy-advisory-baseline and c-quality.sh advisory ratchet"
+version = "clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-TIDY-RESULT-001"
+concern = "ignored operation results"
+scope = "calls covered by cert-err33-c"
+profile = "hard analysis"
+severity = "hard"
+tool = "clang-tidy"
+exact = ["cert-err33-c", "cert-err33-c.AllowCastToVoid=false"]
+rationale = "A void cast must not turn ignored failure into apparent handling; operation context controls the repair."
+repair = "Handle or propagate required failure, check at the owning boundary, or keep one cohesive best-effort operation with a reasoned check-specific suppression."
+exception = "NOLINT(cert-err33-c): reason on fatal-diagnostic or cleanup-only best effort; no bare void-cast exception."
+fixture = "standards-tests/analyzer/fixtures/fragmented-diagnostic.c and cohesive-diagnostic.c"
+version = "clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-TIDY-BRACES-001"
+concern = "ambiguous unbraced control-flow bodies"
+scope = "project translation units and headers"
+profile = "hard analysis"
+severity = "hard"
+tool = "clang-tidy"
+exact = ["readability-braces-around-statements"]
+rationale = "Semantic analysis handles macros and preprocessor paths more safely than formatter insertion."
+repair = "Add braces without changing the body or control flow."
+exception = "A macro definition that cannot safely be rewritten requires a named local suppression and invariant."
+fixture = "standards-tests/analyzer/fixtures/missing-braces.c"
+version = "clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-SAN-ASAN-001"
+concern = "runtime memory safety"
+scope = "native test executables"
+profile = "clang-asan-ubsan"
+severity = "hard"
+tool = "AddressSanitizer"
+exact = ["-fsanitize=address", "detect_leaks=1", "halt_on_error=1"]
+rationale = "A seeded out-of-bounds access terminates the test process."
+repair = "Correct lifetime, ownership, or bounds; do not suppress a reachable defect."
+exception = "External-library suppressions require a narrow runtime suppression file and recorded provenance."
+fixture = "standards-tests/fixtures/sanitizer/heap-buffer-overflow.c"
+version = "Clang/ASan 22.1.8 on supported native Linux"
+
+[[rule]]
+id = "C-SAN-UBSAN-001"
+concern = "runtime undefined integer and language operations"
+scope = "native test executables"
+profile = "clang-asan-ubsan"
+severity = "hard"
+tool = "UndefinedBehaviorSanitizer"
+exact = ["-fsanitize=undefined", "-fno-sanitize-recover=all", "halt_on_error=1"]
+rationale = "Nonrecovering instrumentation makes a detected defect fail the gate rather than merely print a warning."
+repair = "Check the operation's preconditions before evaluating it."
+exception = "Disable one sanitizer only for an independently proven tool limitation, never for ordinary reachable code."
+fixture = "standards-tests/fixtures/sanitizer/signed-overflow.c"
+version = "Clang/UBSan 22.1.8 on supported native Linux"
+
+[[rule]]
+id = "C-FORMAT-001"
+concern = "deterministic readable presentation"
+scope = "owned C sources and headers, excluding immutable A/B regression inputs"
+profile = "presentation gate"
+severity = "hard"
+tool = "clang-format"
+exact = [".clang-format", "clang-format --dry-run --Werror"]
+rationale = "One pinned presentation produces stable review diffs; it remains below all semantic authorities."
+repair = "Apply c-format.sh write only after behavior is established."
+exception = "clang-format off/on is allowed only for a documented table, protocol layout, or macro that the golden policy cannot preserve."
+fixture = "standards-tests/format/representative.c.in and representative.c.expected"
+version = "clang-format 22.1.8 exactly"
+
+[[rule]]
+id = "C-GATE-ANALYZER-001"
+concern = "silent analyzer omission and tool drift"
+scope = "hard and advisory analysis invocations"
+profile = "analysis gates"
+severity = "hard"
+tool = "c-quality.sh"
+exact = ["compile_commands.json required", "all database entries selected as C", "one unambiguous command per source", "duplicate source commands rejected", "clang/clang-tidy version 22.1.8", "25-check golden resolution", "direct clang-tidy over explicit files"]
+rationale = "A missing database, tool, translation unit, duplicate/ambiguous source command, or changed check resolution must not report success."
+repair = "Run clang-fast configure, install the pinned tools, or explicitly review a check-set update."
+exception = "None when the gate is invoked. clangd is editor-only and cannot substitute."
+fixture = "standards-tests/run.sh missing CDB/tool and analyzer fixtures"
+version = "clang-tidy/run-clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-GATE-BUILD-001"
+concern = "mandatory stage mislabeling, unregistered targets, and zero-test success"
+scope = "native, GCC, sanitizer, package, and MinGW preset gates"
+profile = "build and test gates"
+severity = "hard"
+tool = "CMake target registry, c-build.sh, CTest, and compile database assertions"
+exact = ["recursive PROJECT_C_STANDARDS_APPLIED assertion", "reasoned third-party directory exception", "EXPORT_COMPILE_COMMANDS=ON for owned targets", "every required warning flag on every compile command", "unreviewed -W*/compiler-analyzer flags rejected", "compiler path/ID/version", "build type", "platform profile and macro set", "PROJECT_WERROR=ON and -Werror", "sanitizer cache and flags", "ctest --no-tests=error"]
+rationale = "A green command is evidence only when the named compiler, profile, instrumentation, targets, and tests actually ran."
+repair = "Register every owned compiled target, restore the preset contract, or add the missing test; never weaken the asserted label."
+exception = "After add_subdirectory, a reviewed third-party directory may be marked with project_exclude_c_standards_directory(path, nonempty reason); the calling directory and individual owned targets cannot be exempted."
+fixture = "standards-tests/cmake/{excluded-directory,no-tests,unregistered-target,stripped-target}; standards-tests/run.sh preset-contract attacks"
+version = "CMake/CTest 4.4.0; EXPORT_COMPILE_COMMANDS target property since CMake 3.20"
+
+[[rule]]
+id = "C-ADVISORY-001"
+concern = "context-sensitive and heuristic defect leads"
+scope = "project translation units and headers"
+profile = "ratcheted advisory"
+severity = "ratcheted-advisory"
+tool = "clang-tidy"
+exact = ["clang-analyzer-deadcode.DeadStores", "clang-analyzer-optin.core.EnumCastOutOfRange", "clang-analyzer-optin.taint.GenericTaint", "clang-analyzer-optin.taint.TaintedAlloc", "clang-analyzer-optin.taint.TaintedDiv", "clang-analyzer-security.ArrayBound", "clang-analyzer-security.FloatLoopCounter", "clang-analyzer-security.PointerSub", "clang-analyzer-security.VAList", "clang-analyzer-security.insecureAPI.rand", "clang-analyzer-security.insecureAPI.strcpy", "clang-analyzer-security.insecureAPI.vfork", "clang-analyzer-unix.API", "clang-analyzer-unix.BlockInCriticalSection", "clang-analyzer-unix.Chroot", "clang-analyzer-unix.MallocSizeof", "clang-analyzer-unix.StdCLibraryFunctions", "clang-analyzer-unix.StdCLibraryFunctions:ModelPOSIX=true", "clang-analyzer-unix.cstring.BadSizeArg", "clang-analyzer-unix.cstring.NotNullTerminated", "clang-analyzer-unix.cstring.NullArg"]
+rationale = "Signal depends on application intent, trust boundaries, platform, or performance context; findings may not drive mechanical rewrites. The POSIX library model is advisory and becomes relevant only when the compilation profile has already exposed POSIX declarations."
+repair = "Review the execution path, then fix a demonstrated defect or explicitly update the reviewed baseline."
+exception = "The baseline is the exception record; increasing it requires review, rationale, and a nearby contract where applicable."
+fixture = ".clang-tidy-advisory-baseline and c-quality.sh advisory ratchet"
+version = "clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-DISABLED-WILDCARDS-001"
+concern = "unreviewed check-family expansion"
+scope = "clang-tidy configuration"
+profile = "all analysis"
+severity = "disabled-with-rationale"
+tool = "clang-tidy"
+exact = ["bugprone-*", "cert-*", "clang-analyzer-*", "performance-*", "portability-*"]
+rationale = "The old policy resolved 296 checks, including C++, Objective-C, OS-specific, duplicated, and upgrade-sensitive checks."
+repair = "Evaluate and name one check with a repair class and fixture before enabling it."
+exception = "No wildcard becomes hard; an exact pinned resolution is still required."
+fixture = "standards-tests/analyzer/hard-checks.txt"
+version = "Observed with clang-tidy 22.1.8"
+
+[[rule]]
+id = "C-DISABLED-NOISE-001"
+concern = "diagnostics that force churn or duplicate stronger owners"
+scope = "compiler and clang-tidy policy"
+profile = "all"
+severity = "disabled-with-rationale"
+tool = "compiler/clang-tidy"
+exact = ["-Wpadded", "-Wstrict-overflow", "-Wjump-misses-init", "-Wwrite-strings", "-Wdouble-promotion", "-Wunreachable-code", "-Warray-bounds=2", "-Walloc-size-larger-than", "-Wstack-usage", "-Wframe-larger-than", "-Wdeclaration-after-statement", "-Wstrict-aliasing=3", "bugprone-easily-swappable-parameters", "bugprone-narrowing-conversions", "bugprone-switch-missing-default-case", "bugprone-unsafe-functions", "bugprone-unused-return-value", "readability-misleading-indentation", "clang-analyzer-optin.performance.Padding"]
+rationale = "These are ABI/threshold noise, optimizer heuristics, valid-cleanup-path conflicts, C99-hostile style constraints, incomplete alias proofs, C++-leaning policy, or duplicates of stronger compiler/contextual owners."
+repair = "Enable only in a project-specific profile with a demonstrated bug class and fixture."
+exception = "Project-local opt-in, never a silent template expansion."
+fixture = "documented rationale; no hard-gate claim"
+version = "Clang 22.1.8; GCC 15.2.0"
+
+[[rule]]
+id = "C-INFORMATIONAL-001"
+concern = "editor semantic smoke signal"
+scope = "interactive development"
+profile = "informational"
+severity = "informational"
+tool = "clangd"
+exact = ["clangd diagnostics and navigation"]
+rationale = "Official clangd documentation states that not all clang-tidy checks work in clangd; seeded memory defects were missed."
+repair = "Use editor diagnostics as leads and run the direct hard gate before claiming evidence."
+exception = "clangd never substitutes for c-quality.sh."
+fixture = "baseline seeded-defect experiment recorded in docs/decisions.md"
+version = "clangd 22.1.8"

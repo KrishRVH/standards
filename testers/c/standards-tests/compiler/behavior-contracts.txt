@@ -1,0 +1,4 @@
+# compiler|contract|positive invocation property|negative invocation property
+both|-Werror|CASE_WALL is a warning without -Werror|CASE_WALL fails with -Werror
+both|-fno-common|common-definition-a.c plus common-definition-b.c links with -fcommon|the same translation units fail to link with -fno-common
+clang|-Wold-style-definition|accepted by Clang 22.1.8 for GCC command-line compatibility|does not diagnose CASE_OLD_STYLE_DEFINITION, so the active matrix uses -Wdeprecated-non-prototype

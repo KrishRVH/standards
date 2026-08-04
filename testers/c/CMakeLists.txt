@@ -5,13 +5,59 @@ include(CMakePackageConfigHelpers)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
 include(CTest)
+include(cmake/ProjectCStandards.cmake)
 
-option(PROJECT_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang only)" OFF)
-option(PROJECT_WERROR "Treat compiler warnings as errors when supported" OFF)
-option(PROJECT_MINGW_STATIC "Static link MinGW executables" ON)
+option(PROJECT_WERROR "Treat the reviewed compiler warnings as errors" ON)
 option(PROJECT_BUILD_CLI "Build the CLI executable" ON)
 option(PROJECT_BUILD_SHARED "Build a shared library in addition to the static library" OFF)
 option(PROJECT_INSTALL "Install library and headers" OFF)
+option(PROJECT_ALLOW_UNVERIFIED_COMPILER
+       "Configure without the strict warning policy on an unsupported compiler" OFF)
+
+set(PROJECT_PLATFORM_PROFILE
+    "iso-hosted"
+    CACHE STRING "Platform API contract: iso-hosted, posix-2008, or win32")
+set_property(CACHE PROJECT_PLATFORM_PROFILE PROPERTY STRINGS iso-hosted posix-2008 win32)
+set(PROJECT_WIN32_WINNT
+    "0x0A00"
+    CACHE STRING "Minimum Windows API level for the win32 profile")
+
+set(PROJECT_SANITIZER
+    "none"
+    CACHE STRING "Runtime instrumentation: none or address-undefined")
+set_property(CACHE PROJECT_SANITIZER PROPERTY STRINGS none address-undefined)
+
+if(NOT PROJECT_SANITIZER STREQUAL "none" AND
+   NOT PROJECT_SANITIZER STREQUAL "address-undefined")
+  message(FATAL_ERROR
+    "Unsupported PROJECT_SANITIZER='${PROJECT_SANITIZER}'. "
+    "Choose none or address-undefined.")
+endif()
+
+if(PROJECT_PLATFORM_PROFILE STREQUAL "posix-2008")
+  if(WIN32)
+    message(FATAL_ERROR "The posix-2008 profile is incompatible with a Windows target")
+  endif()
+elseif(PROJECT_PLATFORM_PROFILE STREQUAL "win32")
+  if(NOT WIN32)
+    message(FATAL_ERROR "The win32 profile requires a Windows target")
+  endif()
+  if(NOT PROJECT_WIN32_WINNT MATCHES "^0x[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]$")
+    message(FATAL_ERROR
+      "PROJECT_WIN32_WINNT must be a four-digit hexadecimal API level, "
+      "for example 0x0A00")
+  endif()
+elseif(NOT PROJECT_PLATFORM_PROFILE STREQUAL "iso-hosted")
+  message(FATAL_ERROR
+    "Unsupported PROJECT_PLATFORM_PROFILE='${PROJECT_PLATFORM_PROFILE}'. "
+    "Choose iso-hosted, posix-2008, or win32.")
+endif()
+
+message(STATUS "C platform profile: ${PROJECT_PLATFORM_PROFILE}")
+if(PROJECT_PLATFORM_PROFILE STREQUAL "win32")
+  message(STATUS "Win32 minimum API level: ${PROJECT_WIN32_WINNT}")
+endif()
+message(STATUS "C sanitizer profile: ${PROJECT_SANITIZER}")
 
 set(PROJECT_LIBRARY_SOURCES
     "src/library.c"
@@ -23,20 +69,11 @@ set(PROJECT_TEST_SOURCES
     "tests/project_tests.c"
     CACHE STRING "Semicolon-separated test source list")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Keep the analysis database limited to targets that opt in below. This avoids
+# turning vendored or dependency targets into project-owned analyzer inputs.
+set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
 
-# Project-wide defaults. Targets may still override these when necessary.
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
 set(PROJECT_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
-
-# Detect CompCert by compiler executable name (CMake may not have a built-in ID).
-get_filename_component(PROJECT_C_COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
-set(PROJECT_COMPILER_IS_COMPCERT OFF)
-if(PROJECT_C_COMPILER_BASENAME MATCHES "^(ccomp|ccomp\\.exe)$")
-  set(PROJECT_COMPILER_IS_COMPCERT ON)
-endif()
 
 function(project_apply_common target)
   get_target_property(_type ${target} TYPE)
@@ -51,7 +88,6 @@ function(project_apply_common target)
       $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
-    set(_opt_scope INTERFACE)
     set(_feature_scope INTERFACE)
   elseif(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
          _type STREQUAL "MODULE_LIBRARY" OR _type STREQUAL "OBJECT_LIBRARY")
@@ -60,68 +96,47 @@ function(project_apply_common target)
       $<BUILD_INTERFACE:${PROJECT_GENERATED_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
-    set(_opt_scope PRIVATE)
     set(_feature_scope PUBLIC)
   else()
     target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
-    set(_opt_scope PRIVATE)
     set(_feature_scope PRIVATE)
   endif()
 
-  if(NOT PROJECT_COMPILER_IS_COMPCERT)
-    target_compile_features(${target} ${_feature_scope} c_std_99)
-  endif()
+  project_apply_c_standards(${target} ${_feature_scope})
+  project_apply_platform_profile(${target})
 
-  # Warnings: strict for GCC/Clang, conservative for CompCert, MSVC-friendly.
-  if(MSVC)
-    target_compile_options(${target} ${_opt_scope} /W4)
-    if(PROJECT_WERROR)
-      target_compile_options(${target} ${_opt_scope} /WX)
-    endif()
-  elseif(PROJECT_COMPILER_IS_COMPCERT)
-    target_compile_options(${target} ${_opt_scope} -Wall)
-    if(PROJECT_WERROR)
-      target_compile_options(${target} ${_opt_scope} -Werror)
-    endif()
-  else()
-    target_compile_options(${target} ${_opt_scope}
-      "$<$<COMPILE_LANGUAGE:C>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow>"
-    )
-    if(PROJECT_WERROR)
-      target_compile_options(${target} ${_opt_scope} -Werror)
-    endif()
+  if(NOT _is_interface)
+    set_property(TARGET ${target} PROPERTY EXPORT_COMPILE_COMMANDS ON)
   endif()
+  set_property(TARGET ${target} PROPERTY PROJECT_C_STANDARDS_APPLIED TRUE)
 
   # Visibility: default to hidden for shared libs; export public symbols explicitly.
   if(_type STREQUAL "SHARED_LIBRARY")
     set_target_properties(${target} PROPERTIES
       C_VISIBILITY_PRESET hidden
-      VISIBILITY_INLINES_HIDDEN YES
     )
   endif()
 
-  # Sanitizers: native GCC/Clang only (not MinGW, not MSVC, not CompCert).
-  if(PROJECT_ENABLE_SANITIZERS AND NOT _is_interface)
-    if(NOT MSVC AND NOT MINGW AND NOT PROJECT_COMPILER_IS_COMPCERT)
-      target_compile_options(${target} PRIVATE
+  if(PROJECT_SANITIZER STREQUAL "address-undefined" AND NOT _is_interface)
+    if(MINGW OR CMAKE_CROSSCOMPILING)
+      message(FATAL_ERROR
+        "The address-undefined profile is supported only for native Clang/GCC builds")
+    endif()
+    target_compile_options(${target} PRIVATE
+      -fsanitize=address,undefined
+      -fno-omit-frame-pointer
+      -fno-sanitize-recover=all
+    )
+    get_target_property(_target_type ${target} TYPE)
+    if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
+       _target_type STREQUAL "MODULE_LIBRARY")
+      target_link_options(${target} PRIVATE
         -fsanitize=address,undefined
-        -fno-omit-frame-pointer
+        -fno-sanitize-recover=all
       )
-      get_target_property(_target_type ${target} TYPE)
-      if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
-         _target_type STREQUAL "MODULE_LIBRARY")
-        target_link_options(${target} PRIVATE -fsanitize=address,undefined)
-      endif()
     endif()
   endif()
 
-  # MinGW static linking (executables only).
-  if(WIN32 AND NOT MSVC AND PROJECT_MINGW_STATIC)
-    get_target_property(_target_type ${target} TYPE)
-    if(_target_type STREQUAL "EXECUTABLE")
-      target_link_options(${target} PRIVATE -static)
-    endif()
-  endif()
 endfunction()
 
 add_library(project_library STATIC ${PROJECT_LIBRARY_SOURCES})
@@ -136,7 +151,7 @@ set_target_properties(project_library PROPERTIES
 target_compile_definitions(project_library PUBLIC PROJECT_LIBRARY_STATIC_DEFINE)
 add_library(${PROJECT_NAME}::library ALIAS project_library)
 
-if(PROJECT_BUILD_SHARED OR BUILD_SHARED_LIBS)
+if(PROJECT_BUILD_SHARED)
   add_library(project_library_shared SHARED ${PROJECT_LIBRARY_SOURCES})
   project_apply_common(project_library_shared)
   set_target_properties(project_library_shared PROPERTIES
@@ -147,6 +162,9 @@ if(PROJECT_BUILD_SHARED OR BUILD_SHARED_LIBS)
     SOVERSION ${PROJECT_VERSION_MAJOR}
   )
   add_library(${PROJECT_NAME}::library_shared ALIAS project_library_shared)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(project_library_shared PRIVATE "LINKER:-z,defs")
+  endif()
 endif()
 
 if(TARGET project_library_shared)
@@ -172,6 +190,10 @@ if(BUILD_TESTING)
   project_apply_common(project_tests)
   add_test(NAME project_tests COMMAND project_tests)
 endif()
+
+# Keep this after all owned add_subdirectory calls and target declarations. The
+# assertion recursively checks owned subdirectories.
+project_assert_c_standards_applied()
 
 if(PROJECT_INSTALL)
   set(PROJECT_INSTALL_TARGETS project_library)

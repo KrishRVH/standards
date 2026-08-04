@@ -1,0 +1,69 @@
+---
+Checks: >-
+  -*,
+  bugprone-assignment-in-if-condition,
+  bugprone-branch-clone,
+  bugprone-command-processor,
+  bugprone-float-loop-counter,
+  bugprone-incorrect-roundings,
+  bugprone-infinite-loop,
+  bugprone-macro-parentheses,
+  bugprone-macro-repeated-side-effects,
+  bugprone-misplaced-operator-in-strlen-in-alloc,
+  bugprone-misplaced-pointer-arithmetic-in-alloc,
+  bugprone-misplaced-widening-cast,
+  bugprone-multi-level-implicit-pointer-conversion,
+  bugprone-not-null-terminated-result,
+  bugprone-posix-return,
+  bugprone-reserved-identifier,
+  bugprone-signal-handler,
+  bugprone-signed-char-misuse,
+  bugprone-sizeof-expression,
+  bugprone-string-literal-with-embedded-nul,
+  bugprone-suspicious-enum-usage,
+  bugprone-suspicious-memset-usage,
+  bugprone-suspicious-memory-comparison,
+  bugprone-suspicious-realloc-usage,
+  bugprone-suspicious-string-compare,
+  bugprone-swapped-arguments,
+  bugprone-too-small-loop-variable,
+  clang-analyzer-deadcode.DeadStores,
+  clang-analyzer-optin.core.EnumCastOutOfRange,
+  clang-analyzer-optin.taint.GenericTaint,
+  clang-analyzer-optin.taint.TaintedAlloc,
+  clang-analyzer-optin.taint.TaintedDiv,
+  clang-analyzer-security.ArrayBound,
+  clang-analyzer-security.FloatLoopCounter,
+  clang-analyzer-security.MmapWriteExec,
+  clang-analyzer-security.PutenvStackArray,
+  clang-analyzer-security.SetgidSetuidOrder,
+  clang-analyzer-security.cert.env.InvalidPtr,
+  clang-analyzer-security.insecureAPI.UncheckedReturn,
+  clang-analyzer-security.insecureAPI.gets,
+  clang-analyzer-security.insecureAPI.mkstemp,
+  clang-analyzer-security.insecureAPI.mktemp,
+  clang-analyzer-security.insecureAPI.rand,
+  clang-analyzer-security.insecureAPI.strcpy,
+  clang-analyzer-security.insecureAPI.vfork,
+  clang-analyzer-security.PointerSub,
+  clang-analyzer-security.VAList,
+  clang-analyzer-unix.API,
+  clang-analyzer-unix.BlockInCriticalSection,
+  clang-analyzer-unix.Chroot,
+  clang-analyzer-unix.Errno,
+  clang-analyzer-unix.MallocSizeof,
+  clang-analyzer-unix.StdCLibraryFunctions,
+  clang-analyzer-unix.Vfork,
+  clang-analyzer-unix.cstring.BadSizeArg,
+  clang-analyzer-unix.cstring.NotNullTerminated,
+  clang-analyzer-unix.cstring.NullArg
+WarningsAsErrors: ''
+HeaderFileExtensions:
+  - h
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '(^|[/\\])(build|vendor|third_party|external)([/\\]|$)'
+FormatStyle: none
+CheckOptions:
+  bugprone-reserved-identifier.AllowedIdentifiers: '^_FILE_OFFSET_BITS$;^_POSIX_C_SOURCE$'
+  'clang-analyzer-unix.StdCLibraryFunctions:ModelPOSIX': 'true'
+...

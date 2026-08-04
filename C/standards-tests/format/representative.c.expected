@@ -1,0 +1,83 @@
+#include <stddef.h>
+#if defined(ENABLE_RECORDS)
+#include <stdint.h>
+#endif
+
+#define CLAMP(value, low, high) \
+    ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
+#define FOR_EACH_RECORD(records, count, BODY)               \
+    do {                                                    \
+        for (size_t index = 0U; index < (count); ++index) { \
+            BODY;                                           \
+        }                                                   \
+    } while (0)
+
+typedef struct {
+    const unsigned char *data;
+    size_t length;
+} Record;
+
+typedef int (*record_writer_fn)(void *context,
+                                const unsigned char *data,
+                                size_t length,
+                                const char *ownership_note);
+
+static int short_declaration(int value);
+static int long_declaration(const unsigned char *data,
+                            size_t length,
+                            record_writer_fn writer,
+                            void *context,
+                            const char *ownership_note);
+
+static int short_definition(int value)
+{
+    return value + 1;
+}
+
+static size_t cast_length(ptrdiff_t length)
+{
+    return (size_t)length;
+}
+
+static int long_definition(const unsigned char *data,
+                           size_t length,
+                           record_writer_fn writer,
+                           void *context,
+                           const char *ownership_note)
+{
+    if (data == NULL || (length > 0U && writer == NULL) ||
+        (context == NULL && ownership_note != NULL)) {
+        return -1;
+    }
+    return writer(context, data, length, ownership_note);
+}
+
+static int use_record(Record record, record_writer_fn writer, void *context)
+{
+    Record empty = (Record){ .data = NULL, .length = 0U };
+    Record selected = record.length == 0U ? empty
+                                          : (Record){ .data = record.data,
+                                                      .length = record.length };
+    /* Borrowed bytes remain owned by the caller for this call. */
+    return long_definition(selected.data,
+                           selected.length,
+                           writer,
+                           context,
+                           "borrowed until return");
+}
+
+static int nested_expression(int left, int right, int limit)
+{
+    int value = (left + right) * (limit - (left < right ? left : right));
+    return value > limit && (left == 0 || right == 0) ? CLAMP(value, 0, limit)
+                                                      : value;
+}
+
+static int conditional_build(int value)
+{
+#if defined(ENABLE_RECORDS)
+    return value > 0 ? value : 0;
+#else
+    return value;
+#endif
+}

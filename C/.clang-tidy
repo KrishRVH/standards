@@ -1,12 +1,21 @@
-Checks: >
+---
+Checks: >-
   -*,
-  bugprone-*,
-  cert-*,
-  clang-analyzer-*,
-  performance-*,
-  portability-*,
-  readability-misleading-indentation,
-  -bugprone-easily-swappable-parameters
-WarningsAsErrors: 'bugprone-*,clang-analyzer-*'
-HeaderFilterRegex: '^(include|src|tests)/.*\.(c|h)$'
+  cert-err33-c,
+  clang-analyzer-core.BitwiseShift,
+  clang-analyzer-core.NullDereference,
+  clang-analyzer-core.uninitialized.UndefReturn,
+  clang-analyzer-unix.Malloc,
+  clang-analyzer-unix.Stream,
+  readability-braces-around-statements
+WarningsAsErrors: '*'
+HeaderFileExtensions:
+  - h
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '(^|[/\\])(build|vendor|third_party|external)([/\\]|$)'
 FormatStyle: none
+CheckOptions:
+  cert-err33-c.AllowCastToVoid: 'false'
+  'clang-analyzer-core.BitwiseShift:Pedantic': 'true'
+  'clang-analyzer-unix.Stream:Pedantic': 'false'
+...

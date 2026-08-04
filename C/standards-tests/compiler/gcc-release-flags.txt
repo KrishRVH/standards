@@ -1,0 +1,7 @@
+-Wcast-align=strict
+-Wcast-function-type
+-Wduplicated-cond
+-Wold-style-definition
+-Wshift-overflow=2
+-Wuse-after-free=2
+-Wnull-dereference

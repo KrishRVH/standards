@@ -2,5 +2,7 @@
 
 int main(void)
 {
-    return project_add(2, 3) == 5 ? 0 : 1;
+    int result = 0;
+
+    return project_add(2, 3, &result) && result == 5 ? 0 : 1;
 }

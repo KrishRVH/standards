@@ -12,86 +12,123 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "PROJECT_WERROR": "ON"
+        "PROJECT_PLATFORM_PROFILE": "iso-hosted",
+        "PROJECT_SANITIZER": "none"
       }
     },
     {
-      "name": "clang",
+      "name": "clang-fast",
       "inherits": "base",
-      "displayName": "Clang (Debug + ASan/UBSan)",
+      "displayName": "Clang mandatory fast gate",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "PROJECT_ENABLE_SANITIZERS": "ON"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang"
       }
     },
     {
-      "name": "release",
+      "name": "clang-asan-ubsan",
       "inherits": "base",
-      "displayName": "Clang (Release)",
+      "displayName": "Clang native ASan + UBSan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "PROJECT_SANITIZER": "address-undefined"
+      }
+    },
+    {
+      "name": "clang-release",
+      "inherits": "base",
+      "displayName": "Clang optimized test gate",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang"
+      }
+    },
+    {
+      "name": "clang-package",
+      "inherits": "base",
+      "displayName": "Clang static/shared install package",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_C_COMPILER": "clang",
-        "PROJECT_ENABLE_SANITIZERS": "OFF"
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "PROJECT_BUILD_SHARED": "ON",
+        "PROJECT_INSTALL": "ON"
       }
     },
     {
-      "name": "compcert",
+      "name": "gcc-fast",
       "inherits": "base",
-      "displayName": "CompCert (ccomp, no sanitizers)",
+      "displayName": "GCC extended compiler gate",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "ccomp",
-        "PROJECT_ENABLE_SANITIZERS": "OFF"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc"
       }
     },
     {
-      "name": "gcc",
+      "name": "gcc-release",
       "inherits": "base",
-      "displayName": "GCC (Debug + ASan/UBSan)",
+      "displayName": "GCC optimized extended compiler gate",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "PROJECT_ENABLE_SANITIZERS": "ON"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc"
       }
     },
     {
       "name": "mingw",
       "inherits": "base",
-      "displayName": "MinGW-w64 Windows cross (static exe)",
+      "displayName": "MinGW-w64 compile-only exploratory gate",
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/mingw-w64.cmake",
-        "PROJECT_ENABLE_SANITIZERS": "OFF",
-        "PROJECT_MINGW_STATIC": "ON"
+        "PROJECT_PLATFORM_PROFILE": "win32",
+        "PROJECT_CLI_SOURCES": "standards-tests/platform/win32-api.c"
       }
     }
   ],
   "buildPresets": [
-    { "name": "clang", "configurePreset": "clang" },
-    { "name": "release", "configurePreset": "release" },
-    { "name": "compcert", "configurePreset": "compcert" },
-    { "name": "gcc", "configurePreset": "gcc" },
+    { "name": "clang-fast", "configurePreset": "clang-fast" },
+    { "name": "clang-asan-ubsan", "configurePreset": "clang-asan-ubsan" },
+    { "name": "clang-release", "configurePreset": "clang-release" },
+    { "name": "clang-package", "configurePreset": "clang-package" },
+    { "name": "gcc-fast", "configurePreset": "gcc-fast" },
+    { "name": "gcc-release", "configurePreset": "gcc-release" },
     { "name": "mingw", "configurePreset": "mingw" }
   ],
   "testPresets": [
     {
-      "name": "clang",
-      "configurePreset": "clang",
-      "output": { "outputOnFailure": true }
+      "name": "clang-fast",
+      "configurePreset": "clang-fast",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
     },
     {
-      "name": "release",
-      "configurePreset": "release",
-      "output": { "outputOnFailure": true }
+      "name": "clang-asan-ubsan",
+      "configurePreset": "clang-asan-ubsan",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1:strict_string_checks=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
     },
     {
-      "name": "compcert",
-      "configurePreset": "compcert",
-      "output": { "outputOnFailure": true }
+      "name": "clang-release",
+      "configurePreset": "clang-release",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
     },
     {
-      "name": "gcc",
-      "configurePreset": "gcc",
-      "output": { "outputOnFailure": true }
+      "name": "gcc-fast",
+      "configurePreset": "gcc-fast",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "gcc-release",
+      "configurePreset": "gcc-release",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
     }
   ]
 }
