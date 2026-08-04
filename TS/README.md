@@ -50,6 +50,22 @@ together, so the profile lands on the new major with the same closed feedback
 loop it has today. Until then, do not mix majors: v4 APIs and documentation
 are not evidence for this v3 baseline.
 
+## Integrating into an existing project
+
+The copy steps above assume a fresh application. For a project that already
+has TypeScript tooling:
+
+- Merge `TS/AGENTS.md` into the project's existing agent guide instead of
+  replacing it; it stays a routed fragment either way.
+- Adopt configuration additively. Where an existing setting conflicts with
+  this profile, prefer the stricter one and record any deliberate exception
+  next to it.
+- Never downgrade an existing dependency to match this profile's pins. Keep
+  the project's newer version, run the full `ts:standards:check` gate against
+  it, and treat any red result as the concrete migration work list. The pins
+  are the catalog's tested evidence floor, not a ceiling.
+- Conformance is the green gate, not visual similarity to this catalog.
+
 ## Profile boundary
 
 This is a Bun application baseline, not one universal tsconfig for Bun servers,
