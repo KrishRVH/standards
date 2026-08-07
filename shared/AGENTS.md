@@ -14,13 +14,13 @@ knowledge.
 
 ## Principles
 
+- Prefer ASD-STE100 Simplified Technical English for user communications. No dead prose.
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
   flow over clever abstractions. See
   [grugbrain.dev](https://grugbrain.dev/).
 - Design for agent legibility: conventional layouts, precise names and types,
   explicit inputs, outputs, and side effects, actionable failures, and stable
   tests at real boundaries.
-- Prefer ASD-STE100 Simplified Technical English for user communications.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or
