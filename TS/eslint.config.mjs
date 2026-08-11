@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
+import jsxA11y from 'eslint-plugin-jsx-a11y-x';
 import regexp from 'eslint-plugin-regexp';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -77,7 +78,17 @@ export default defineConfig(
   },
 
   /**
-   * 6) Import/export baseline using ESLint core rules only.
+   * 6) JSX/TSX accessibility baseline.
+   * The preset also enables JSX parsing without adding browser globals.
+   */
+  {
+    ...jsxA11y.configs.recommended,
+    name: 'accessibility/recommended',
+    files: ['src/**/*.{jsx,tsx}'],
+  },
+
+  /**
+   * 7) Import/export baseline using ESLint core rules only.
    * This avoids eslint-plugin-import compatibility churn while preserving the key policies:
    * - no duplicate imports
    * - sorted import specifiers
@@ -113,7 +124,7 @@ export default defineConfig(
   },
 
   /**
-   * 7) TS/TSX: type-aware correctness and modern TypeScript idioms.
+   * 8) TS/TSX: type-aware correctness and modern TypeScript idioms.
    */
   {
     name: 'typescript/strict-typechecked',
@@ -225,7 +236,7 @@ export default defineConfig(
   },
 
   /**
-   * 8) d.ts: allow declare global/module while keeping erasable-syntax bans.
+   * 9) d.ts: allow declare global/module while keeping erasable-syntax bans.
    */
   {
     name: 'typescript/dts-ambient-ok',
@@ -242,7 +253,7 @@ export default defineConfig(
   },
 
   /**
-   * 9) UI overlay: component files delegate fiber ownership to a tested framework
+   * 10) UI overlay: component files delegate fiber ownership to a tested framework
    * controller. Runtime adapters should live in ordinary .ts modules.
    */
   {
@@ -260,7 +271,7 @@ export default defineConfig(
   },
 
   /**
-   * 10) JS files: disable type-aware TS rules for performance + correctness.
+   * 11) JS files: disable type-aware TS rules for performance + correctness.
    * Still enforce ESM-only without eslint-plugin-import.
    */
   {
@@ -281,18 +292,18 @@ export default defineConfig(
   },
 
   /**
-   * 11) Prettier must come last to turn off conflicting formatting rules.
+   * 12) Prettier must come last to turn off conflicting formatting rules.
    */
   { ...prettier, name: 'prettier/config' },
 
   /**
-   * 12) Re-enable specific rules you want even if Prettier disables them.
+   * 13) Re-enable specific rules you want even if Prettier disables them.
    * Here: always require braces for blocks.
    */
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 13) Hygiene: fail if eslint-disable comments are unused.
+   * 14) Hygiene: fail if eslint-disable comments are unused.
    */
   { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
 );
