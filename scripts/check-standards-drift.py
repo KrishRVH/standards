@@ -32,6 +32,7 @@ AGGREGATE_MARKER_CASES = {
     "go": ("go.mod",),
     "godot": ("project.godot", "src/features/player/state/machine/main.gd"),
     "haskell": ("project.cabal",),
+    "js": ("package.json", "jsconfig.json"),
     "kotlin": ("build.gradle.kts",),
     "lua": (".luarc.json",),
     "md": (".markdownlint-cli2.jsonc",),
@@ -318,8 +319,8 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
             for case, markers in {
                 "cmake-without-source": ("CMakeLists.txt",),
                 "godot-without-gdscript": ("project.godot",),
+                "package-without-js-or-ts-config": ("package.json",),
                 "spark-without-source": ("alire.toml",),
-                "typescript-without-config": ("package.json",),
             }.items():
                 commands, stderr, returncode = execute(case, "fmt", markers)
                 if returncode != 0:

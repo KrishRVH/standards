@@ -55,13 +55,14 @@ constrain tools from a developer's global mise configuration.
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP, Python,
-Roc, Rust, Shell, SPARK/Ada, Bun-backed TypeScript/JavaScript, and Zig when
+Fortran, GDScript, Go, Haskell, JavaScript, Kotlin, Lua, Markdown/MDX, Odin,
+PHP, Python, Roc, Rust, Shell, SPARK/Ada, TypeScript, and Zig when
 their project files are detected. Roc dispatch requires `main.roc`; Odin
 dispatch requires an owned source file under `src/` or `tests/`; GDScript
 dispatch requires `project.godot` and an owned script under `src/` or `tests/`;
-Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`; TypeScript dispatch
-requires both `package.json` and `tsconfig.json`.
+Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`; JavaScript and
+TypeScript dispatch require `package.json` plus `jsconfig.json` or
+`tsconfig.json`, respectively.
 
 Each language fragment expresses static workflow composition with native mise
 dependencies and structured task references. Shared install, restore,
@@ -78,10 +79,12 @@ generic aggregate tasks with explicit native dependencies. The dispatcher is a
 POSIX shell template verified on Linux; Windows consumers need explicit task
 relationships or a reviewed `run_windows` implementation.
 
-The TypeScript task file is intentionally Bun-only. If a project uses pnpm,
-yarn, or npm, replace the TypeScript task file with a project-specific one
-instead of keeping multiple unpinned package-manager branches in the shared
-standard. Its Effect-first workflow exposes separate diagnostics and
+The JavaScript and TypeScript task files are intentionally Bun-only. If a
+project uses pnpm, Yarn, or npm, replace the matching task file with a
+project-specific one instead of keeping multiple unpinned package-manager
+branches in the shared standard. The JavaScript workflow uses Biome for
+formatting and linting and `tsc` only for strict `checkJs` analysis. The
+TypeScript Effect-first workflow exposes separate diagnostics and
 agent-oriented overview tasks.
 
 The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX

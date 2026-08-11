@@ -2,9 +2,9 @@
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`,
-`Haskell/`, `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`, `Roc/`,
-`Rust/`, `Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain this repo.
-`testers/` smoke-test copied standards for every language template.
+`Haskell/`, `JS/`, `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`,
+`Roc/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain
+this repo. `testers/` smoke-test copied standards for every language template.
 
 Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
 changing architecture or domain language. Use this file for agent working rules.
@@ -92,7 +92,7 @@ mise and report that.
   drift checker proving that every discovered fixture is declared and every
   declaration has a fixture. Keep declared mirror paths byte-for-byte aligned,
   refresh affected fixture lockfiles, then run `mise run standards:drift`
-  before the root gate.
+  before handoff.
 - Fixtures prove install, format, lint/static analysis, and tests. Keep them
   tiny, not example apps.
 - Commit the root `.config/mise/mise.lock` and deterministic tester
@@ -133,8 +133,16 @@ If generated output is stale, fix the source template/task and regenerate.
 - Prefer stable behavior/integration tests around real cut points.
 - Keep E2E coverage small, important, and reliable.
 - Do not chase coverage numbers for their own sake.
-- Before handoff, run `mise run standards:check` unless blocked or the user asks
-  to skip it; report any skipped verification and why.
+- Before handoff, use `standards.manifest.toml` to identify every changed
+  profile's tester and task prefix, then run each affected fixture gate as
+  `mise run //<tester>:<task-prefix>:standards:check`.
+- Run `mise run standards:drift` after changing a template, shared task,
+  manifest entry, or fixture configuration. Run the closest root check for
+  other changed root files, such as `mise run md:standards:check` for Markdown.
+- Run the aggregate `mise run standards:check` for release/CI validation,
+  changes to shared or aggregate infrastructure that can affect unrelated
+  fixtures, or when the user explicitly requests it. Report any required check
+  that could not run and why.
 
 ## Git
 

@@ -60,8 +60,8 @@ Mise/config.toml   -> .config/mise/config.toml
 Mise/conf.d/*.toml -> .config/mise/conf.d/
 ```
 
-Keep only the language `conf.d` fragments the project uses. A PHP and TypeScript
-project, for example, would retain `20-php.toml` and `20-ts.toml`.
+Keep only the language `conf.d` fragments the project uses. A PHP and JavaScript
+project, for example, would retain `20-php.toml` and `20-js.toml`.
 
 The copyable configuration requires mise `2026.6.12` or newer for structured
 task references and checksum-backed HTTP tool locks. This is a minimum
@@ -106,6 +106,9 @@ Finally, copy the matching language or tooling folders:
 - `Haskell/` — a Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
   errors in the local gate, named Haddock/source-distribution tasks, and
   optional freeze support.
+- `JS/` — Bun-backed JavaScript with first-class Biome formatting and linting,
+  strict compiler analysis through `checkJs` in `jsconfig.json`, dependency
+  auditing, and Bun tests.
 - `Kotlin/` — a Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/` — a Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
@@ -214,8 +217,9 @@ mise run sbom
 language's local workflow. `mise run standards:check` runs the CI-grade
 aggregate gate and the shared `.gitleaks.toml` secret scan. The root
 `.github/workflows/quality.yml` is manual-dispatch-only: catalog maintenance
-runs the aggregate gate locally before pushing, and hosted runs are dispatched
-on demand to keep CI spend deliberate. The TypeScript application profile
+uses targeted local gates by default, while release, CI, and cross-cutting
+validation use the aggregate gate. Hosted runs are dispatched on demand to keep
+CI spend deliberate. The TypeScript application profile
 contains the copyable workflow downstream projects use; that one keeps the
 automatic pull-request, `main`-push, and manual-dispatch event contract with
 the same locked command surface. Both workflows pin the locally tested mise
@@ -243,19 +247,25 @@ the mise executable. The root `.config/mise/mise.lock` pins the Biome
 alternative verifier, gitleaks, Python, and the root Markdown and Shell tools;
 `bun.lock` pins the Markdown JavaScript dependencies.
 
-Before handing off a change to this repository, run its full local gate:
+Before handing off a change, run the checks for the surfaces actually changed.
+For each changed profile, read its `tester` and `task_prefix` from
+`standards.manifest.toml`, then run:
 
 ```sh
-mise run standards:check
+mise run //<tester>:<task-prefix>:standards:check
 ```
 
-The gate scans the repository for secrets; checks the pinned Biome alternative,
-drift, Markdown, and Shell; and runs every tester fixture for C, C#, C++,
-Elixir, Fortran, GDScript, Go, Haskell, Kotlin, Lua, Markdown/MDX, Odin, PHP,
-Python, Roc, Rust, Shell, SPARK/Ada, TypeScript, and Zig through
-`standards:check`. These fixtures include audits, proof, package, and slower
-quality gates. When a template changes, update its fixture and refresh the
-affected lockfiles so the copied layout remains proven.
+Run `mise run standards:drift` after changing a template, shared task, manifest
+entry, or fixture configuration. Run the closest root check for other root
+files, such as `mise run md:standards:check` for Markdown. These fixture gates
+include their audits, proof, package, and slower quality checks. When a template
+changes, update its fixture and refresh the affected lockfiles so the copied
+layout remains proven.
+
+Use `mise run standards:check` for release or CI validation, explicit requests,
+and changes to shared or aggregate infrastructure that can affect unrelated
+fixtures. That aggregate gate scans for secrets; checks the optional TypeScript
+Biome configuration, drift, Markdown, and Shell; and runs every tester fixture.
 
 Root mise discovers fixture tasks through the explicit `testers/*` monorepo
 configuration roots and schedules two top-level fixture jobs at a time.
@@ -283,4 +293,4 @@ When adding or changing a profile:
 2. Add or update the matching `testers/<profile>` fixture.
 3. Keep every declared mirror path byte-for-byte aligned.
 4. Refresh the affected fixture lockfiles.
-5. Run `mise run standards:drift` and `mise run standards:check`.
+5. Run `mise run standards:drift` and the affected fixture gate.

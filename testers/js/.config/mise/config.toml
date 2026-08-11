@@ -1,0 +1,12 @@
+min_version = "2026.6.12"
+
+[settings]
+lockfile = true
+
+[tasks.standards]
+description = "Run the JavaScript tester standards workflow"
+depends = ["js:standards"]
+
+[tasks."standards:check"]
+description = "Run the JavaScript tester standards CI gate"
+depends = ["js:standards:check"]

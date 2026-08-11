@@ -135,6 +135,23 @@ task_prefix = "haskell"
 task_fragment = "20-haskell.toml"
 mirror = [".hlint.yaml", "cabal.project", "project-name.cabal"]
 
+[profiles.js]
+name = "JavaScript"
+template = "JS"
+tester = "testers/js"
+task_prefix = "js"
+task_fragment = "20-js.toml"
+mirror = [
+  "README.md",
+  "biome.jsonc",
+  "bunfig.toml",
+  "jsconfig.json",
+  "package.json",
+  "src/math.js",
+  "tests/math.test.js",
+]
+required_tester_files = [".gitignore", "bun.lock"]
+
 [profiles.kotlin]
 name = "Kotlin"
 template = "Kotlin"
