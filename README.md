@@ -1,21 +1,19 @@
 # Standards
 
-Use this repository by copying the parts a project needs. It is not an
-installable package. The catalog covers formatting, linting, static analysis,
+Copy only the parts your project needs. This repository is a catalog, not an
+installable package. Its templates cover formatting, linting, static analysis,
 tests, dependency hygiene, and repeatable CI gates.
 
-The templates deliberately start strict and stay close to their ecosystems.
-Treat them as high-signal baselines, then narrow or remove rules that do not fit
-the project's risk, lifecycle, domain, or team tolerance.
+Each template starts strict but stays close to its ecosystem. Use it as a
+high-signal baseline. Then narrow or remove rules that do not fit the project's
+risk, lifecycle, domain, or team tolerance.
 
-Agents should not need unwritten knowledge to work in a copied baseline.
-Conventional layouts, nearby contracts, explicit side effects, actionable
-failures, and deterministic commands provide enough local evidence to make and
-verify changes.
+The copied baseline should also give agents enough local evidence to work
+without unwritten instructions. It favors conventional layouts, nearby
+contracts, explicit side effects, actionable failures, and deterministic
+commands.
 
-## How the Catalog Is Divided
-
-The copyable material is split by purpose:
+## What to Copy
 
 - `shared/` provides generic top-level project files: `AGENTS.md`, `CLAUDE.md`,
   `.gitattributes`, `.gitleaks.toml`, and `.gitignore`.
@@ -23,25 +21,23 @@ The copyable material is split by purpose:
   surface.
 - `Dagger/` provides the optional module behind the explicit
   `dagger:standards:check` mise task.
-- The language and tooling folders contain the individual profiles listed
-  below.
+- Each language or tooling folder contains one of the profiles listed below.
 - `extras/workstation/` holds optional personal workstation bootstrap scripts.
 
-Root files maintain the catalog itself. `testers/` contains small standalone
-projects that prove every language template through the documented mise
-layout. Each fixture commits `.config/mise/mise.lock` so Linux tool resolution
-remains deterministic. `standards.manifest.toml` is the profile map that agents
-and the root gate use to locate canonical templates, tester fixtures, task
-fragments, and exact mirror files.
+The root files maintain the catalog. The small standalone projects under
+`testers/` prove each language template through the documented mise layout.
+Each fixture commits `.config/mise/mise.lock` for deterministic Linux tool
+resolution. `standards.manifest.toml` maps profiles to their canonical
+templates, tester fixtures, task fragments, and exact mirror files.
 
 Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/` govern
 this repository; they are not project defaults.
 
-## Build a Project Baseline
+## Create a Project Baseline
 
-### Copy the shared files
+### 1. Copy the shared files
 
-Start with the files that apply across ecosystems:
+Start with the files shared across ecosystems:
 
 ```sh
 cp shared/AGENTS.md /path/to/project/AGENTS.md
@@ -51,23 +47,24 @@ cp shared/.gitleaks.toml /path/to/project/.gitleaks.toml
 cp shared/.gitignore /path/to/project/.gitignore
 ```
 
-### Add the mise task surface
+### 2. Add the mise tasks
 
-Copy the baseline configuration into its conventional location:
+Copy the mise configuration into its conventional location:
 
 ```text
 Mise/config.toml   -> .config/mise/config.toml
 Mise/conf.d/*.toml -> .config/mise/conf.d/
 ```
 
-Keep only the language `conf.d` fragments the project uses. A PHP and JavaScript
-project, for example, would retain `20-php.toml` and `20-js.toml`.
+Keep only the language fragments from `conf.d` that the project uses. For
+example, a PHP and JavaScript project would retain `20-php.toml` and
+`20-js.toml`.
 
 The copyable configuration requires mise `2026.6.12` or newer for structured
 task references and checksum-backed HTTP tool locks. This is a minimum
 version, not a pin on the mise executable.
 
-### Add Dagger isolation if needed
+### 3. Add Dagger isolation if needed
 
 Projects that need isolated Dagger checks should also copy the task fragment
 and module:
@@ -78,9 +75,9 @@ Dagger/dagger.json          -> dagger.json
 Dagger/dagger/              -> dagger/
 ```
 
-### Choose the profiles
+### 4. Choose the profiles
 
-Finally, copy the matching language or tooling folders:
+Copy each language or tooling folder that the project needs:
 
 - `C/` — CMake presets, Clang formatting and static-analysis configuration,
   and helper scripts.
@@ -152,54 +149,54 @@ A language folder may also contain an `AGENTS.md`. Those files are merge
 fragments, not standalone guides: copy `shared/AGENTS.md` first, then merge the
 language sections into it.
 
+### 5. Adapt the baseline
+
 The copyable files use neutral project names, conventional `src` and `tests`
 directories, and generic package namespaces. Replace those placeholders when
 the project uses a different layout or architectural boundary. Package
 identity, author, maintainer, copyright, license, and publication metadata must
 match the project's legal and release posture.
 
-### Add optional workstation tooling
-
-The scripts at `extras/workstation/macbook-setup.sh` and
-`extras/workstation/wsl-setup.sh` are optional personal workstation
-bootstraps. They install mise, so they are the explicit exception to the
-mise-only project command surface. Read the relevant script before running it
-directly on the target machine.
-
-### Decide what earns a place
-
 A template is a strict seed, not a finished architecture. Begin with the
 ecosystem-native formatter, compiler or type checker, test runner, and lockfile
-policy. Keep a dependency advisory gate when the ecosystem has a dependable,
-high-signal native option. Otherwise, retain the native integrity controls and
-choose project-specific auditing after adoption. Style-only rules, coverage
-policy, release profiles, and heavier optional analyzers can wait until the
-project has taken shape.
+policy. Keep a dependency advisory gate when the ecosystem provides a
+dependable, high-signal option. Otherwise, keep its native integrity controls
+and choose project-specific auditing after adoption. Style-only rules,
+coverage policy, release profiles, and heavier optional analyzers can wait
+until the project has taken shape.
 
 Applications and CLIs should usually commit lockfiles, pin toolchains exactly,
 and run audits in CI. Libraries may need wider runtime version ranges,
 different release profiles, and narrower public API gates. Existing projects
-should adopt strict checks through reviewed suppressions or CI ratchets instead
-of broadly disabling rules to get a green build.
+should adopt strict checks through reviewed suppressions or CI ratchets. Do not
+broadly disable rules only to get a green build.
 
-The aggregate mise tasks detect marker files to keep the defaults copyable.
-Monorepos and mixed-tooling repositories should replace that generic dispatcher
+The aggregate mise tasks use marker files so the defaults remain copyable.
+Monorepos and mixed-tooling repositories should replace this generic dispatcher
 with explicit project-specific task dependencies or narrower markers.
 
-### Finish the copy
+### Optional: set up a workstation
+
+The personal bootstrap scripts are at
+`extras/workstation/macbook-setup.sh` and
+`extras/workstation/wsl-setup.sh`. They install mise, so they are the explicit
+exception to the mise-only project command surface. Read the relevant script
+before you run it directly on the target machine.
+
+### 6. Verify the copied baseline
 
 1. Remove language task files that do not apply.
 2. Adjust package names, namespaces, source directories, and test directories.
 3. Run `mise run install`.
 4. Run `mise run standards`.
 5. Run `mise run standards:check`.
-6. Commit the resulting lockfiles, including the mise lockfile written for the
+6. Commit the resulting lockfiles. These include the mise lockfile for the
    chosen configuration layout, such as `.config/mise/mise.lock`, and any
    package-manager lockfiles the project uses.
 
-## Work Through Mise
+## Use Mise for Development and CI
 
-Developer and CI entrypoints use one command surface:
+Developers and CI use the same command surface:
 
 ```sh
 mise run install
@@ -213,79 +210,87 @@ mise run secrets
 mise run sbom
 ```
 
-`mise run standards` applies available safe autofixes, then runs each detected
-language's local workflow. `mise run standards:check` runs the CI-grade
-aggregate gate and the shared `.gitleaks.toml` secret scan. The root
-`.github/workflows/quality.yml` is manual-dispatch-only: catalog maintenance
-uses targeted local gates by default, while release, CI, and cross-cutting
-validation use the aggregate gate. Hosted runs are dispatched on demand to keep
-CI spend deliberate. The TypeScript application profile
-contains the copyable workflow downstream projects use; that one keeps the
-automatic pull-request, `main`-push, and manual-dispatch event contract with
-the same locked command surface. Both workflows pin the locally tested mise
-2026.7.15; the lower configuration minimums remain compatibility floors.
+`mise run standards` applies the available safe autofixes, then runs the local
+workflow for each detected language. `mise run standards:check` runs the
+CI-grade aggregate gate and scans for secrets with the shared
+`.gitleaks.toml`.
 
-Downstream repository host settings must require the copied workflow's
-`quality` job before merge; committed YAML does not itself configure branch
-protection. Expensive project-specific integration or deployment checks may
-remain separate jobs, but they do not replace the fast static and
+The root `.github/workflows/quality.yml` supports manual dispatch only. Use
+targeted local gates for routine catalog maintenance. Use the aggregate gate
+for releases, CI, and cross-cutting validation. Dispatch hosted runs on demand
+to control CI spending.
+
+The TypeScript application profile contains the copyable workflow for
+downstream projects. It runs automatically for pull requests and pushes to
+`main`, and it also supports manual dispatch. Both workflows use the same
+locked command surface and pin the locally tested mise `2026.7.15`. The lower
+configuration minimums remain compatibility floors.
+
+The downstream repository host settings must require the copied workflow's
+`quality` job before merge. The committed YAML does not configure branch
+protection. Expensive project-specific integration or deployment checks can
+remain in separate jobs, but they do not replace the fast, static,
 deterministic gate.
 
 `mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
 differ from the directory name and default `0.0.0` version.
 
-With the Dagger template installed, `mise run dagger:standards:check` runs
+If the Dagger template is installed, `mise run dagger:standards:check` runs
 `standards:check` in an official, digest-pinned `mise` Linux reference
-container while keeping the task definitions in mise.
+container. The task definitions remain in mise.
 
 ## Maintain the Catalog
 
-This repository's root requires mise `2026.7.0` or newer for its explicit
-monorepo per-project lockfile policy. That is a minimum version, not a pin on
-the mise executable. The root `.config/mise/mise.lock` pins the Biome
-alternative verifier, gitleaks, Python, and the root Markdown and Shell tools;
+The repository root requires mise `2026.7.0` or newer for its explicit
+per-project lockfile policy in the monorepo. This is a minimum version, not a
+pin on the mise executable. The root `.config/mise/mise.lock` pins the Biome
+alternative verifier, gitleaks, Python, and the root Markdown and Shell tools.
 `bun.lock` pins the Markdown JavaScript dependencies.
 
-Before handing off a change, run the checks for the surfaces actually changed.
-For each changed profile, read its `tester` and `task_prefix` from
-`standards.manifest.toml`, then run:
+Before you hand off a change, check each surface that changed. For a changed
+profile, read its `tester` and `task_prefix` from `standards.manifest.toml` and
+run:
 
 ```sh
 mise run //<tester>:<task-prefix>:standards:check
 ```
 
-Run `mise run standards:drift` after changing a template, shared task, manifest
-entry, or fixture configuration. Run the closest root check for other root
-files, such as `mise run md:standards:check` for Markdown. These fixture gates
-include their audits, proof, package, and slower quality checks. When a template
-changes, update its fixture and refresh the affected lockfiles so the copied
-layout remains proven.
+These fixture gates include audits, proof, package checks, and slower quality
+checks. When you change a template, update its fixture and refresh the affected
+lockfiles. This keeps the copied layout proven.
 
-Use `mise run standards:check` for release or CI validation, explicit requests,
-and changes to shared or aggregate infrastructure that can affect unrelated
-fixtures. That aggregate gate scans for secrets; checks the optional TypeScript
-Biome configuration, drift, Markdown, and Shell; and runs every tester fixture.
+Run `mise run standards:drift` after you change a template, shared task,
+manifest entry, or fixture configuration. For other root files, run the closest
+root check. For example, use `mise run md:standards:check` for Markdown.
 
-Root mise discovers fixture tasks through the explicit `testers/*` monorepo
-configuration roots and schedules two top-level fixture jobs at a time.
+Use `mise run standards:check` for release or CI validation, when explicitly
+requested, and after changes to shared or aggregate infrastructure that can
+affect unrelated fixtures. The aggregate gate scans for secrets, checks the
+optional TypeScript Biome configuration, drift, Markdown, and Shell, and runs
+every tester fixture.
+
+The root mise configuration discovers fixture tasks through the explicit
+`testers/*` monorepo configuration roots. It schedules two top-level fixture
+jobs at a time.
+
 `[monorepo] lockfile = false` keeps each committed fixture lockfile beside its
 standalone configuration. The root runner uses one child mise process for the
 path wildcard because the current stable validator does not resolve monorepo
-paths in native task relationships; that child still uses mise's scheduler and
+paths in native task relationships. That child still uses mise's scheduler and
 project-attributed output.
 
-For an opt-in isolated proof outside the hosted runner, run the representative
-Python fixture through its existing Dagger entrypoint:
+To run an optional isolated proof outside the hosted runner, use the existing
+Dagger entrypoint for the representative Python fixture:
 
 ```sh
 mise run testers:standards:check:isolated
 ```
 
-The drift portion of the root gate runs `scripts/check-standards-drift.py`. It
-keeps shared task fragments, aggregate task dispatch, fixture configurations,
-Dagger fragments, full-configuration shared files, and declared mirror files
-in sync. Undeclared fixture source and tests remain free to stay tiny.
+The drift portion of the root gate runs `scripts/check-standards-drift.py`.
+This script keeps shared task fragments, aggregate task dispatch, fixture
+configurations, Dagger fragments, full-configuration shared files, and declared
+mirror files in sync. Undeclared fixture source and tests can remain small.
 
 When adding or changing a profile:
 
