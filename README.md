@@ -13,6 +13,35 @@ without unwritten instructions. It favors conventional layouts, nearby
 contracts, explicit side effects, actionable failures, and deterministic
 commands.
 
+## Adoption Model
+
+Treat this repository as a source catalog. Do not copy it wholesale or keep a
+permanent dependency on it. An agent that adopts these standards must:
+
+1. Inspect the target repository and identify its actual languages, tools,
+   workflows, and release surfaces.
+2. Copy the shared baseline and only the language or tooling profiles that
+   match those surfaces.
+3. Merge the relevant language-specific `AGENTS.md` fragments into the copied
+   `shared/AGENTS.md`.
+4. Review every copied file line by line. Keep each rule, pattern, task, tool,
+   dependency, detector, and instruction only when it applies to the target
+   repository.
+5. Remove unused ecosystem coverage wherever it appears. Check agent guides,
+   attributes, ignore rules, mise configuration and task fragments, workflows,
+   documentation, and tool configuration. This list is illustrative, not
+   exhaustive.
+6. Adapt paths, package metadata, policies, and verification tasks to the
+   target repository, then run its copied mise gates.
+
+The finished baseline must describe the target repository, not the full
+catalog. `shared` means broadly reusable, not universally applicable. For
+example, a TypeScript-only repository must remove Haskell patterns, tasks,
+outputs, tools, and guidance from every copied file that contains them. Apply
+the same test to every language, tool, workflow, and policy outside the target
+repository's surface. Keep cross-cutting rules such as secret scanning and Git
+guidance when they still apply.
+
 ## What to Copy
 
 - `shared/` provides generic top-level project files: `AGENTS.md`, `CLAUDE.md`,

@@ -105,3 +105,18 @@ If generated output is stale, fix the generator or mise task and regenerate.
 - Keep generated and local-only files out of commits.
 - Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification)
   for all git commit messages.
+- Write commit messages for future maintainers. Use
+  [Tim Pope's note](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+  and [Chris Beams' guide](https://cbea.ms/git-commit/) as the Git-specific
+  references. Use [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/)
+  and the [Google developer documentation style guide](https://developers.google.com/style)
+  for clear, consistent prose.
+- Keep the Conventional Commit subject concise. Write its description in the
+  imperative mood, use the repository's lowercase style, and omit ending
+  punctuation. Aim for 50 characters and do not exceed 72 characters.
+- Add a body only when it provides useful context. Separate it from the subject
+  with a blank line, wrap it at 72 characters, and explain the problem, the
+  reason for the change, and material consequences. Let the diff explain the
+  implementation.
+- Use short, direct sentences, active voice, and consistent terminology. Avoid
+  idioms, filler, vague wording, and unnecessary jargon.
