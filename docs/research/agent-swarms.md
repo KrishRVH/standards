@@ -8,9 +8,10 @@ cheap models, how verification fleets are shaped, and which failure modes the
 profiles defend against. The authoritative executable configuration remains
 the profile configs and `Mise/conf.d/` task fragments; the doctrine owners
 are `Rust/AGENTS.md` and `TS/AGENTS.md`. Evidence comes from vendor
-engineering posts, production systems, and the 2024–2026 judge/verifier
-literature. Prices and model names are a dated snapshot and go stale;
-mechanisms are the durable part.
+engineering posts, production systems, the 2024–2026 judge/verifier
+literature, and a GitHub survey of agent-automation adoption. Prices, model
+names, and ledger counts are a dated snapshot and go stale; mechanisms are
+the durable part.
 
 ## Decision
 
