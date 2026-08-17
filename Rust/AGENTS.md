@@ -170,10 +170,9 @@ adversarial reviewer audits the rest.
 A green gate is necessary, never sufficient: CI green is not a verdict, and
 neither is the author's self-report. After the gate, the diff gets an
 adversarial pass in a fresh context that did not write it — a subagent, a
-second model (diversity of model beats diversity of persona), or a CI
-reviewer wired to this same file. The reviewer receives the diff, this
-file, and the mutants report; reads the test diff first (weakening a test
-to pass is the canonical reward hack); and attacks:
+second model, or a CI reviewer wired to this same file. The reviewer
+receives the diff, this file, and the mutants report; reads the test diff
+first (weakening a test to pass is the canonical reward hack); and attacks:
 
 - Every `#[expect]` reason: is the invariant real, and is the structural
   fix genuinely worse?
@@ -191,6 +190,22 @@ to pass is the canonical reward hack); and attacks:
   human countersign. Conditional compilation keyed on the checker
   (`cfg(clippy)`, `cfg(test)` changing production behavior, `cfg_attr`
   smuggling skips) is a wall bypass, full stop.
+
+Review is a fleet, not a bigger reviewer. Verifier tokens cost a tenth to
+an eightieth of author tokens, so the pass defaults to up to three cheap
+reviewers; beyond that, correlated errors make extra judges nearly
+worthless. What decorrelates reviewers is input view, not model family:
+one reads the test diff only, one the full diff, one the code with no
+change narrative. Model diversity is layered on top of that, not relied on
+alone. Findings gate on the union after dedup — most real findings surface
+from exactly one reviewer, so majority and unanimity rules discard signal —
+and scores aggregate by median, never mean, so one degenerate verdict
+cannot swing the panel. Cheap reviewers flag and never rewrite; a weaker
+model with write-back authority degrades a stronger author's work, so
+fixes come from the author or a stronger arbiter, spent only on disputed
+or high-severity findings. And the cheapest reviewer is not a model:
+triage on metadata — files touched, diff size, whether the wall was
+edited — decides which diffs deserve the fleet at all.
 
 A disputed finding is settled by writing the failing test, not by argument;
 a finding no test can express is recorded as a design note, not silently
