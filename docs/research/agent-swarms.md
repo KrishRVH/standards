@@ -3,11 +3,11 @@
 Research date: 2026-08-17 (America/Chicago)
 
 This record explains the durable decisions behind the agent-driven doctrine in
-the Rust and TypeScript profiles: how work is assigned across expensive and
+the Rust, TypeScript, and C# profiles: how work is assigned across expensive and
 cheap models, how verification fleets are shaped, and which failure modes the
 profiles defend against. The authoritative executable configuration remains
 the profile configs and `Mise/conf.d/` task fragments; the doctrine owners
-are `Rust/AGENTS.md` and `TS/AGENTS.md`. Evidence comes from vendor
+are the profiles' `AGENTS.md` files. Evidence comes from vendor
 engineering posts, production systems, the 2024–2026 judge/verifier
 literature, and a GitHub survey of agent-automation adoption. Prices, model
 names, and ledger counts are a dated snapshot and go stale; mechanisms are
@@ -247,12 +247,12 @@ Sources:
 
 - Frontier-owns-ambiguity role split, verification-fleet shape (size,
   lenses, aggregation, union gating), flag-never-rewrite, and the triage
-  gradient live in the adversarial-review sections of `Rust/AGENTS.md` and
-  `TS/AGENTS.md`.
+  gradient live in the adversarial-review sections of the profiles'
+  `AGENTS.md` files.
 - Executable-verification-first is the existing gate order: types, lints,
-  tests, mutation testing (cargo-mutants in Rust, Stryker under a ratcheted
-  `break` threshold in TypeScript), and property tests (proptest,
-  fast-check) run before any model review, and a disputed finding is
+  tests, mutation testing (cargo-mutants in Rust; Stryker under ratcheted
+  `break` thresholds in TypeScript and C#), and property tests (proptest,
+  fast-check, CsCheck) run before any model review, and a disputed finding is
   settled by a failing test.
 - Out-of-band harness is the existing wall-integrity rule: enforcement edits
   are findings by default and loosening requires human countersign.

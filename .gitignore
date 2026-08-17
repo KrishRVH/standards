@@ -124,6 +124,7 @@ mise.*.local.lock
 /.vs/
 /artifacts/
 **/TestResults/
+**/StrykerOutput/
 **/[Bb]in/[Dd]ebug/
 **/[Bb]in/[Rr]elease/
 **/[Oo]bj/

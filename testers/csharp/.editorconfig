@@ -21,6 +21,23 @@ dotnet_code_quality.api_surface = public, internal
 dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.IDE1006.severity = error
 
+# Exception protocol: a suppression is per-site and reasoned, or it fails.
+# SA1404 rejects [SuppressMessage] without a real Justification (StyleCop is
+# imported for exactly this rule; all eight categories are disabled below).
+# IDE0079 marks stale suppressions, but only inside the IDE - no CLI build
+# surfaces it - so removing dead suppressions stays a review duty.
+dotnet_diagnostic.IDE0079.severity = error
+dotnet_remove_unnecessary_suppression_exclusions = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.MaintainabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.NamingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.OrderingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.ReadabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpecialRules.severity = none
+dotnet_diagnostic.SA1404.severity = error
+
 dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
 
@@ -65,7 +82,6 @@ dotnet_style_readonly_field = true:error
 
 # Parameter preferences
 dotnet_code_quality_unused_parameters = all
-dotnet_diagnostic.CA1801.severity = error
 
 #### C# Coding Conventions ####
 

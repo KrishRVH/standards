@@ -27,10 +27,27 @@ depends = ["csharp:restore"]
 wait_for = ["csharp:lint"]
 run = "dotnet test --no-restore --configuration Release --results-directory TestResults -- --report-trx"
 
+[tasks."csharp:mutants:install"]
+description = "Restore the pinned dotnet-stryker local tool"
+run = "dotnet tool restore"
+
+[tasks."csharp:mutants"]
+description = "Run the full mutation sweep; a surviving mutant is a review finding"
+depends = ["csharp:mutants:install", "csharp:restore"]
+wait_for = ["csharp:test"]
+run = "dotnet stryker --config-file stryker-config.json"
+
+[tasks."csharp:mutants:diff"]
+description = "Mutation-test only code changed relative to MUTANTS_BASE_REF (default main)"
+depends = ["csharp:mutants:install", "csharp:restore"]
+run = """
+dotnet stryker --config-file stryker-config.json --since:"${MUTANTS_BASE_REF:-main}"
+"""
+
 [tasks."csharp:standards"]
 description = "Run the C# standards workflow with autofixes"
 depends = ["csharp:fmt"]
 
 [tasks."csharp:standards:check"]
 description = "Run the C# standards CI gate"
-depends = ["csharp:fmt:check", "csharp:lint", "csharp:test"]
+depends = ["csharp:fmt:check", "csharp:lint", "csharp:test", "csharp:mutants"]

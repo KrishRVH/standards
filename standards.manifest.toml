@@ -85,7 +85,7 @@ template = "C#"
 tester = "testers/csharp"
 task_prefix = "csharp"
 task_fragment = "20-csharp.toml"
-mirror = [".editorconfig", "Directory.Build.props", "Directory.Packages.props", "global.json"]
+mirror = [".config/dotnet-tools.json", ".editorconfig", "BannedSymbols.txt", "Directory.Build.props", "Directory.Packages.props", "global.json", "stryker-config.json"]
 
 [profiles.cpp]
 name = "C++"

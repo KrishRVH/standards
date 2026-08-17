@@ -112,7 +112,9 @@ Copy each language or tooling folder that the project needs:
   and helper scripts.
 - `C#/` — pinned .NET and Microsoft Testing Platform configuration, strict
   compiler and analyzer policy, central package management, locked restore,
-  application-boundary guidance, and Release build and test defaults.
+  application-boundary guidance, Release build and test defaults, a banned-API
+  wall, mutation testing, and the agent-driven doctrine shared with the Rust
+  and TS profiles ([research record](docs/research/agent-swarms.md)).
 - `C++/` — an idiomatic C++20 CMake library, CLI, and test template with Clang
   format and tidy configuration, sanitizer presets, and an opt-in GCC/MinGW
   portability lane.
