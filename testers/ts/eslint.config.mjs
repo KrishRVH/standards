@@ -52,9 +52,9 @@ export default defineConfig(
   {
     name: 'base/exception-protocol',
     rules: {
-      '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
       '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
       '@eslint-community/eslint-comments/no-use': ['error', { allow: ['eslint-disable-next-line'] }],
+      '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
     },
   },
 

@@ -246,9 +246,9 @@ task_prefix = "ts"
 task_fragment = "20-ts.toml"
 mirror = [
   ".github/workflows/quality.yml",
+  ".prettierignore",
   "AGENTS.md",
   "README.md",
-  ".prettierignore",
   "biome.jsonc",
   "bun.lock",
   "bunfig.toml",
