@@ -142,6 +142,9 @@ mise run ts:effect:diagnostics:check
 mise run ts:effect:overview
 mise run ts:test
 mise run ts:audit
+mise run ts:knip
+mise run ts:mutants
+mise run ts:mutants:diff
 mise run ts:lock
 mise run ts:lock:check
 mise run ts:standards
@@ -155,17 +158,29 @@ generated and is not committed.
 `ts:standards` runs ESLint autofix before the final Prettier pass so a lint fix
 cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
-unit/semantic/type-negative tests, and `bun audit --audit-level=low`.
+unit/semantic/type-negative tests, `bun audit --audit-level=low`, knip, and
+the full Stryker mutation sweep.
+
+`ts:knip` fails on declared dependencies, exports, and files no code uses.
+`ts:mutants` audits whether the tests would notice wrong code; its `break`
+threshold is a ratchet pinned at the measured floor, and `ts:mutants:diff`
+is the incremental inner loop (Stryker's `--incremental` cache). Property
+tests use `fast-check`; a counterexample found by a property run is pinned
+as a deterministic example test because fast-check keeps no regression
+corpus. On large projects, keep `ts:mutants:diff` in the PR gate and move
+the full sweep to a scheduled job.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
-diagnostics, semantic tests, audit, then the aggregate gate. `AGENTS.md`
-contains the full verification and upgrade protocols.
+diagnostics, semantic tests, audit, knip, incremental mutants, then the
+aggregate gate. `AGENTS.md` contains the full verification and upgrade
+protocols.
 
 ## Automatic quality gate
 
 Copy `.github/workflows/quality.yml` with the profile. It runs the pinned,
 locked `mise run standards:check` gate for every pull request, every push to
-`main`, and manual dispatch. The mandatory job is named `quality`.
+`main`, merge-queue groups, and manual dispatch. The mandatory job is named
+`quality`.
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
@@ -216,14 +231,14 @@ service, TypeScript, Bun types, and the lock policy.
 
 Remap package scripts without changing mise task names:
 
-| Script            | Option B value                                                                                                                                     |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `format`          | `biome format --write .`                                                                                                                           |
-| `format:check`    | `biome format .`                                                                                                                                   |
-| `lint`            | `biome lint --error-on-warnings .`                                                                                                                 |
-| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                         |
-| `standards`       | `biome check --write --error-on-warnings .`                                                                                                        |
-| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit` |
+| Script            | Option B value                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `format`          | `biome format --write .`                                                                                                                                           |
+| `format:check`    | `biome format .`                                                                                                                                                   |
+| `lint`            | `biome lint --error-on-warnings .`                                                                                                                                 |
+| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                                         |
+| `standards`       | `biome check --write --error-on-warnings .`                                                                                                                        |
+| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit && bun run knip` |
 
 Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
 The Biome baseline enables recommended stable rules, explicitly excludes the
@@ -240,7 +255,14 @@ the conformance gate verifies that exclusion explicitly.
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
 subprocesses resolve through Bun's PATH shim. A pinned tool that demonstrably
 requires real Node gets one narrow, tested runner override; do not add
-pnpm/yarn/npm/runtime fallback branches to the shared task fragment.
+pnpm/yarn/npm/runtime fallback branches to the shared task fragment. The one
+current override is Stryker: its CLI is not yet Bun-clean (Babel CJS
+interop), so the `ts:mutants` tasks invoke it under the mise-pinned Node
+while mutated tests still run through `bun test`.
+
+`bunfig.toml` also pins install posture: new dependencies land exact, and
+`minimumReleaseAge` refuses versions younger than three days, since most
+registry malware is caught and unpublished inside that window.
 
 Long-running Bun programs use `BunRuntime.runMain`. Framework applications
 instead build one application-owned `ManagedRuntime`, dispose it at application

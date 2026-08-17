@@ -160,8 +160,10 @@ Copy each language or tooling folder that the project needs:
   `expect` tests through the development backend. Its
   [decision record](docs/research/roc.md) explains the reviewed nightly and
   package-shape choices.
-- `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
-  `cargo package` and `cargo-deny` dependency-policy defaults.
+- `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace,
+  `cargo package` and `cargo-deny` dependency-policy defaults, mutation
+  testing, and an agent-driven development doctrine grounded in the
+  [agent-swarm research record](docs/research/agent-swarms.md).
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
 - `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
@@ -169,8 +171,10 @@ Copy each language or tooling folder that the project needs:
   warnings and unproved checks treated as failures, and tiny executable tests.
 - `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
   Effect Schema boundaries and diagnostics, semantic and negative tests,
-  automatic CI, ESLint plus Prettier as Option A, and a separately tested
-  pinned Biome configuration as Option B.
+  mutation testing and knip gates, automatic CI, ESLint plus Prettier as
+  Option A, and a separately tested pinned Biome configuration as Option B.
+  Shares the Rust profile's agent-driven doctrine and the
+  [agent-swarm research record](docs/research/agent-swarms.md).
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 

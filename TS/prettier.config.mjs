@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-exports
+// eslint-disable-next-line no-restricted-exports -- Prettier loads its config through a default export by contract.
 export default {
   arrowParens: 'always',
   bracketSameLine: false,

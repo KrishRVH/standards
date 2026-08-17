@@ -1,0 +1,91 @@
+/**
+ * Property tests for the two trust boundaries of the fixture: diagnostic
+ * projection (no unsafe detail may leak, status classes match their ranges)
+ * and policy decoding (origins normalize safely, durations decode exactly).
+ * A property that finds a counterexample gets pinned as a deterministic
+ * example test; random search finds the case, the suite keeps it.
+ */
+import { expect, test } from 'bun:test';
+import { Duration, Effect, Exit } from 'effect';
+import fc from 'fast-check';
+
+import { EndpointRejected, projectCheckDiagnostic } from '../src/endpoint-contracts.js';
+import { decodeCheckPolicy, defaultCheckPolicy } from '../src/endpoint-policy.js';
+
+test('rejected statuses always carry the endpoint resource and the status class of their range', () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 400, max: 599 }), (status) => {
+      const diagnostic = projectCheckDiagnostic(new EndpointRejected({ status, targetId: 'primary-api' }));
+
+      expect(diagnostic.failureKind).toBe('endpoint-rejected');
+      expect(diagnostic.resource).toBe('primary-api');
+      expect(diagnostic.statusClass).toBe(status <= 499 ? '4xx' : '5xx');
+    }),
+  );
+});
+
+test('informational rejected statuses carry no status class', () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 100, max: 199 }), (status) => {
+      const diagnostic = projectCheckDiagnostic(new EndpointRejected({ status, targetId: 'primary-api' }));
+
+      expect(diagnostic.failureKind).toBe('endpoint-rejected');
+      expect(diagnostic.statusClass).toBeUndefined();
+    }),
+  );
+});
+
+test('valid bounded policies decode with exact durations and normalized unique origins', async () => {
+  await fc.assert(
+    fc.asyncProperty(
+      fc.record({
+        attemptTimeoutMilliseconds: fc.integer({ min: 1, max: 3_600_000 }),
+        concurrency: fc.integer({ min: 1, max: 16 }),
+        domains: fc.uniqueArray(fc.domain(), { minLength: 1, maxLength: 16 }),
+        retries: fc.integer({ min: 0, max: 5 }),
+        retryDelayMilliseconds: fc.integer({ min: 0, max: 3_600_000 }),
+        totalDeadlineMilliseconds: fc.integer({ min: 1, max: 3_600_000 }),
+      }),
+      async (input) => {
+        const policy = await Effect.runPromise(
+          decodeCheckPolicy({
+            allowedOrigins: input.domains.map((domain) => `https://${domain}`),
+            attemptTimeoutMilliseconds: input.attemptTimeoutMilliseconds,
+            concurrency: input.concurrency,
+            retries: input.retries,
+            retryDelayMilliseconds: input.retryDelayMilliseconds,
+            totalDeadlineMilliseconds: input.totalDeadlineMilliseconds,
+          }),
+        );
+
+        expect(Duration.toMillis(policy.attemptTimeout)).toBe(input.attemptTimeoutMilliseconds);
+        expect(Duration.toMillis(policy.retryDelay)).toBe(input.retryDelayMilliseconds);
+        expect(Duration.toMillis(policy.totalDeadline)).toBe(input.totalDeadlineMilliseconds);
+        expect(policy.concurrency).toBe(input.concurrency);
+        expect(policy.retries).toBe(input.retries);
+        expect(policy.allowedOrigins.size).toBe(input.domains.length);
+        for (const domain of input.domains) {
+          expect(policy.allowedOrigins.has(`https://${domain}`)).toBe(true);
+        }
+      },
+    ),
+  );
+});
+
+test('origins with credentials, paths, queries, or non-https schemes are rejected at the boundary', async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.domain(), fc.constantFrom('credentials', 'http', 'path', 'query'), async (domain, defect) => {
+      const origin =
+        defect === 'credentials'
+          ? `https://user:secret@${domain}`
+          : defect === 'http'
+            ? `http://${domain}`
+            : defect === 'path'
+              ? `https://${domain}/health`
+              : `https://${domain}?probe=1`;
+      const exit = await Effect.runPromiseExit(decodeCheckPolicy({ ...defaultCheckPolicy, allowedOrigins: [origin] }));
+
+      expect(Exit.isFailure(exit)).toBe(true);
+    }),
+  );
+});

@@ -3,3 +3,10 @@ bun = true
 
 [install]
 peer = false
+# New dependencies land exact-pinned, matching the manifest policy.
+exact = true
+# Refuse versions younger than three days; most registry malware is caught and
+# unpublished inside that window. This bites only when the lock changes, which
+# is exactly when supply-chain attacks land.
+minimumReleaseAge = 259200
+minimumReleaseAgeExcludes = []

@@ -148,6 +148,9 @@ mise.*.local.lock
 **/target/
 **/mutants.out/
 **/mutants.out.old/
+**/.stryker-tmp/
+**/reports/mutation/
+**/reports/stryker-incremental.json
 **/*.rs.bk
 
 # Lua

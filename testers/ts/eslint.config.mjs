@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
@@ -14,7 +15,7 @@ import tseslint from 'typescript-eslint';
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// eslint-disable-next-line no-restricted-exports
+// eslint-disable-next-line no-restricted-exports -- ESLint flat config is consumed through a default export by contract.
 export default defineConfig(
   /**
    * 1) Global ignores (applies regardless of CLI globs)
@@ -28,6 +29,8 @@ export default defineConfig(
       '**/effect-diagnostics/fixtures/**',
       '**/node_modules/**',
       '**/out/**',
+      '**/reports/**',
+      '**/.stryker-tmp/**',
       '**/type-tests/**',
       '**/*.tsbuildinfo',
     ],
@@ -38,6 +41,22 @@ export default defineConfig(
    * 2) Core ESLint recommended rules (baseline correctness for JS).
    */
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
+
+  /**
+   * 2b) Exception protocol: every suppression is per-site, reasoned, and
+   * self-expiring. A disable without rule names is a silenced wall, not an
+   * exception; a disable without a `-- reason` is not reviewable; and block
+   * disables span unbounded code. Unused directives already fail below.
+   */
+  { ...comments.recommended, name: 'eslint-comments/recommended' },
+  {
+    name: 'base/exception-protocol',
+    rules: {
+      '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/no-use': ['error', { allow: ['eslint-disable-next-line'] }],
+    },
+  },
 
   /**
    * 3) RegExp correctness and complexity checks.
@@ -158,12 +177,34 @@ export default defineConfig(
         },
         { selector: 'TSImportEqualsDeclaration', message: 'Do not use import =. Use standard ES imports.' },
         { selector: 'TSExportAssignment', message: 'Do not use export =. Use ES exports.' },
+
+        /**
+         * Shared-mutable-state wall: ambient module-scope mutation is the TS
+         * analog of a global atomic. State lives on the owning service, layer,
+         * or root model; each message names the replacement, not just the ban.
+         */
+        {
+          selector: "Program > VariableDeclaration[kind='let'], Program > VariableDeclaration[kind='var']",
+          message:
+            'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
+        },
+        {
+          selector:
+            "ExportNamedDeclaration > VariableDeclaration[kind='let'], ExportNamedDeclaration > VariableDeclaration[kind='var']",
+          message:
+            'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
+        },
+        {
+          selector: "AssignmentExpression[left.type='MemberExpression'][left.object.name='globalThis']",
+          message: 'Mutating globalThis creates ambient state. Thread the value through a service or the root model.',
+        },
       ],
 
       // General correctness / maintainability rules
       'array-callback-return': 'error',
       eqeqeq: 'error',
       'no-debugger': 'error',
+      'no-eval': 'error',
       'no-else-return': 'error',
       'no-param-reassign': ['error', { props: false }],
       'no-sequences': 'error',
@@ -198,13 +239,15 @@ export default defineConfig(
 
       /**
        * Controlled escape hatches:
-       * - allow @ts-expect-error only with a meaningful description
-       * - disallow other ts comment escapes
+       * - allow @ts-expect-error only with a `-- reason` in the same shape as
+       *   ESLint disable directives; the compiler expires it when the error
+       *   stops occurring, so stale suppressions cannot accumulate
+       * - disallow the non-expiring ts comment escapes entirely
        */
       '@typescript-eslint/ban-ts-comment': [
         'error',
         {
-          'ts-expect-error': 'allow-with-description',
+          'ts-expect-error': { descriptionFormat: '^ -- .+$' },
           'ts-ignore': true,
           'ts-nocheck': true,
           'ts-check': true,
@@ -232,6 +275,60 @@ export default defineConfig(
           allowAny: false,
         },
       ],
+    },
+  },
+
+  /**
+   * 8b) Production-only ambient-state wall. Unowned timers and cross-process
+   * or cross-thread shared memory are design smells in src; tests may hold a
+   * timer backstop, so the wall stops at the src boundary.
+   */
+  {
+    name: 'typescript/ambient-state-wall',
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'setInterval',
+          message:
+            'An unowned timer loop is ambient state. Use Effect.repeat/Schedule under an owner, or a scoped signal-aware adapter.',
+        },
+        {
+          name: 'setTimeout',
+          message:
+            'Unowned delayed work escapes interruption. Use Effect timeout/sleep under the owning fiber, or a signal-aware adapter.',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'node:cluster',
+              message: 'Multi-process shared state is out of profile: one Bun process, one runtime owner.',
+            },
+            {
+              name: 'node:worker_threads',
+              message:
+                'Cross-thread shared memory is out of profile. If a worker is genuinely needed, message-pass and justify it per site.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  /**
+   * 8c) Tests may assert invariants the test itself established, mirroring
+   * the production/test split of the panic-class rules. Production code is
+   * not a test fixture; nothing else relaxes here.
+   */
+  {
+    name: 'typescript/tests-assertion-exemptions',
+    files: ['tests/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
 
@@ -303,7 +400,11 @@ export default defineConfig(
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 14) Hygiene: fail if eslint-disable comments are unused.
+   * 14) Hygiene: fail on unused eslint-disable comments and on inline configs
+   * that change nothing — stale suppressions self-expire instead of piling up.
    */
-  { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
+  {
+    name: 'base/hygiene',
+    linterOptions: { reportUnusedDisableDirectives: 'error', reportUnusedInlineConfigs: 'error' },
+  },
 );

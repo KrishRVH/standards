@@ -178,6 +178,61 @@ Use Schema at untrusted and protocol boundaries, not for every internal type.
 | Protected infrastructure wrapper | Accept `Effect<Response, never, R>`                |
 | Unexpected defect/interruption   | Outer server/runtime boundary, never generic `503` |
 
+## Hands-off development doctrine
+
+This profile assumes the agent is the author and the first adversary; humans
+audit reports rather than diffs. The machine owns every checkable rule —
+`eslint . --max-warnings 0` promotes every warning to a failure, and the gate
+adds type checks, Effect diagnostics, the dependency audit, knip, and
+mutation testing. A diagnostic an agent can ignore does not exist.
+
+Exceptions are per-site, reasoned, and self-expiring:
+
+- ESLint: `// eslint-disable-next-line <rule> -- <reason>` is the only form.
+  Disables without rule names, without reasons, or in block form fail the
+  build, and unused directives fail via `reportUnusedDisableDirectives`.
+- TypeScript: `// @ts-expect-error -- <reason>`; the compiler fails the
+  build when the suppressed error stops occurring. `@ts-ignore` and
+  `@ts-nocheck` are banned.
+- A reason names the invariant that holds, then why the structural fix
+  loses. The adversarial reviewer's first duty is refuting these reasons.
+
+Shared mutable state: module-scope `let`/`var`, exported mutable bindings,
+`globalThis` mutation, and unowned timers in `src/` are lint-walled; state
+lives on the owning service, layer, or root model, or in a `Ref` inside
+Effect. Routing around the wall through a shape the selectors miss violates
+the doctrine, not just the lint — the selector list is examples, not the
+rule.
+
+Semantic verification — the gate proves form, and wrong logic type-checks:
+
+- Done, for a behavior change, means at least one test fails without the
+  change; the handoff report says which. Tests may assert invariants the
+  test itself established; production code is not a test fixture.
+- Trust boundaries get fast-check property tests. fast-check keeps no
+  regression corpus, so a counterexample found by a property run is pinned
+  as a deterministic example test.
+- `mise run ts:mutants` is the mechanical adversary: would the tests notice
+  if this code were wrong? A surviving mutant is a finding with exactly two
+  exits — the suite gains a test that kills it, or the code loses the
+  branch the suite cannot reach. The Stryker `break` threshold is a ratchet
+  pinned at the measured floor: raising it is normal work; lowering it,
+  excluding a mutator, or narrowing `mutate` is a wall edit that requires
+  human countersign. `mise run ts:mutants:diff` scopes the inner loop.
+- `mise run ts:knip` fails on unused dependencies, exports, and files:
+  agents add and abandon all three autonomously.
+
+Adversarial self-review: a green gate is necessary, never sufficient. The
+diff gets a fresh-context pass from a reviewer that did not write it — up
+to three cheap reviewers decorrelated by input view (test diff only, full
+diff, code without the change narrative), who flag and never rewrite, with
+findings gated on the union after dedup. Any edit to the enforcement
+surface — `eslint.config.mjs`, `tsconfig.json`, `stryker.config.mjs`,
+`knip.json`, `bunfig.toml`, the mise tasks — is a finding by default, and
+loosening requires human countersign. A disputed finding is settled by
+writing the failing test, not by argument. Verdicts pin the commit they
+judged; bots advise, gates block, humans merge.
+
 ## Agent workflow
 
 Use `mise run ...`; do not call Bun, package managers, TypeScript, test runners,
@@ -195,6 +250,8 @@ mise run ts:effect:check
 mise run ts:effect:diagnostics:check
 mise run ts:test
 mise run ts:audit
+mise run ts:knip
+mise run ts:mutants:diff
 mise run ts:standards:check
 ```
 

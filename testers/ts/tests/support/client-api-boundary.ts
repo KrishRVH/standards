@@ -2,8 +2,6 @@ import { type Duration, Effect, Schema } from 'effect';
 
 import type { RetryDisposition } from '../../src/endpoint-contracts.js';
 
-export { type RetryDisposition } from '../../src/endpoint-contracts.js';
-
 const ProfileResponseSchema = Schema.Struct({
   displayName: Schema.String,
   id: Schema.String,
