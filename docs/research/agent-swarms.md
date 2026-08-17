@@ -192,6 +192,56 @@ Sources:
 - [Addy Osmani: Agentic Code Review](https://addyosmani.com/blog/agentic-code-review/)
 - [Human review bottleneck: 33,707 agent PRs](https://codex.danielvaughan.com/2026/05/24/human-review-bottleneck-code-review-strategies-agent-output/)
 
+## Adoption in the TypeScript ecosystem (surveyed 2026-08-17)
+
+The Rust profile has a fully assembled public existence proof: oven-sh/bun
+(a majority-Rust codebase) combines a dedicated coding machine account
+(robobun, 9,299 PRs authored / 2,295 merged, humans performing merges), a
+guidelines file fed to the review bot, bot-to-bot thread resolution, hook
+and comment-cop enforcement, and bot-PR lifecycle GC. A targeted survey —
+authenticated GitHub search over machine-account PR ledgers,
+`.coderabbit.yaml` co-occurrence with agent guideline files, and direct
+audits of high-prior candidates — found **no public TypeScript repo that
+assembles all five mechanisms**. The pieces exist, scattered:
+
+| Repo                      | Agent ledger                                           | What it proves                                                                                                                                |
+| ------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| microsoft/vscode          | copilot-swe-agent 2,030 authored / 715 merged          | Volume leader (~22% of robobun); stock Copilot plumbing, no bot-to-bot interaction, no provenance labels                                      |
+| liam-hq/liam              | Devin 659 authored / 456 merged (69% merge rate)       | Most Bun-shaped: CodeRabbit `code_guidelines` knowledge base, four-bot PR threads, agent provenance labels                                    |
+| mastra-ai/mastra          | Devin 338 authored; dane-ai-mastra 1,254 (chores only) | Strongest single thread evidence: Devin answering human reviewers with commit-hash receipts                                                   |
+| triggerdotdev/trigger.dev | claude[bot] 36 authored / 21 merged                    | Best enforcement engineering: repo-calibrated `.claude/REVIEW.md` plus CI that audits the agent instructions themselves for drift on every PR |
+| firecrawl/firecrawl       | Devin 184 authored / 102 merged                        | Volume without mechanism: guideline files exist, nothing wired to them                                                                        |
+
+The nulls are findings in their own right:
+
+- Bot-answers-bot thread resolution — observed live on Bun — was found
+  nowhere in TypeScript. The closest is mastra's Devin answering _human_
+  reviewers with evidence while the review bot's comments go unanswered.
+- No TypeScript repo runs a dedicated coding machine account. The one
+  first-party candidate (dane-ai-mastra, 82% merge rate) ships version
+  bumps and dependency chores — robobun's shape doing janitor work.
+- Configuration runs ahead of practice: cal.com carries the full
+  aspirational stack (`.claude/` rules and skills, AGENTS.md, CLAUDE.md,
+  an experimental agent-teams flag) and zero bot-authored PRs.
+- The volume exists but diffuses: copilot-swe-agent has ~2.0M PRs and
+  Devin ~226K globally, concentrated in private and small repos rather
+  than public TypeScript flagships.
+
+One surveyed mechanism is a candidate for these profiles rather than an
+adopted rule: trigger.dev's instructions-drift audit, a per-PR CI job that
+checks the agent guidelines against the code they describe. This catalog's
+drift check proves template-fixture byte equality; nothing yet polices an
+AGENTS.md staying true to its repo. Try it manually before tooling it.
+
+Sources:
+
+- [robobun ledger](https://github.com/oven-sh/bun/pulls?q=is%3Apr+author%3Arobobun)
+- [vscode copilot-swe-agent ledger](https://github.com/microsoft/vscode/pulls?q=is%3Apr+author%3Aapp%2Fcopilot-swe-agent)
+- [liam Devin ledger](https://github.com/liam-hq/liam/pulls?q=is%3Apr+author%3Aapp%2Fdevin-ai-integration)
+- [mastra PR #21650 (Devin evidence replies)](https://github.com/mastra-ai/mastra/pull/21650)
+- [CodeRabbit agentic SDLC guide (Mastra numbers)](https://www.coderabbit.ai/guides/agentic-sdlc)
+- [Agent PR adoption estimate, 128K projects](https://arxiv.org/html/2601.18341)
+
 ## What the profiles adopt
 
 - Frontier-owns-ambiguity role split, verification-fleet shape (size,
