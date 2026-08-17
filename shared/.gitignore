@@ -146,6 +146,8 @@ mise.*.local.lock
 **/.cargo-tools/
 /target/
 **/target/
+**/mutants.out/
+**/mutants.out.old/
 **/*.rs.bk
 
 # Lua

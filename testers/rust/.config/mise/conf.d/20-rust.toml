@@ -27,6 +27,36 @@ if [ ! -x "$cargo_deny" ] || ! "$cargo_deny" --version | grep -qxF "cargo-deny $
 fi
 """
 
+[tasks."rust:mutants:install"]
+description = "Install pinned cargo-mutants"
+wait_for = ["rust:components"]
+run = """
+set -eu
+
+cargo_mutants_version="27.1.0"
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+cargo_mutants="$cargo_tools_dir/bin/cargo-mutants"
+
+if [ ! -x "$cargo_mutants" ] || ! "$cargo_mutants" mutants --version | grep -qxF "cargo-mutants $cargo_mutants_version"; then
+  cargo install cargo-mutants --version "$cargo_mutants_version" --locked --root "$cargo_tools_dir"
+fi
+"""
+
+[tasks."rust:machete:install"]
+description = "Install pinned cargo-machete"
+wait_for = ["rust:components"]
+run = """
+set -eu
+
+cargo_machete_version="0.9.2"
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+cargo_machete="$cargo_tools_dir/bin/cargo-machete"
+
+if [ ! -x "$cargo_machete" ] || ! "$cargo_machete" --version | grep -qxF "$cargo_machete_version"; then
+  cargo install cargo-machete --version "$cargo_machete_version" --locked --root "$cargo_tools_dir"
+fi
+"""
+
 [tasks."rust:lock:check"]
 description = "Ensure Cargo.lock exists and matches Cargo metadata"
 run = """
@@ -84,6 +114,48 @@ depends = ["rust:lock:check"]
 wait_for = ["rust:doc"]
 run = "cargo package --workspace --allow-dirty --locked"
 
+[tasks."rust:mutants"]
+description = "Run mutation testing; a surviving mutant is a review finding"
+depends = ["rust:mutants:install", "rust:lock:check"]
+wait_for = ["rust:test"]
+run = """
+set -eu
+
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+"$cargo_tools_dir/bin/cargo-mutants" mutants --workspace --all-features --cargo-arg=--locked
+"""
+
+[tasks."rust:mutants:diff"]
+description = "Mutation-test only code changed relative to MUTANTS_BASE_REF (default main)"
+depends = ["rust:mutants:install", "rust:lock:check"]
+run = """
+set -eu
+
+base_ref="${MUTANTS_BASE_REF:-main}"
+diff_file="$(mktemp)"
+trap 'rm -f "$diff_file"' EXIT
+
+git diff --relative "$base_ref" > "$diff_file"
+
+if [ ! -s "$diff_file" ]; then
+  echo "No changes relative to $base_ref; nothing to mutate."
+  exit 0
+fi
+
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+"$cargo_tools_dir/bin/cargo-mutants" mutants --workspace --all-features --cargo-arg=--locked --in-diff "$diff_file"
+"""
+
+[tasks."rust:machete"]
+description = "Detect declared dependencies no code uses"
+depends = ["rust:machete:install"]
+run = """
+set -eu
+
+cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
+"$cargo_tools_dir/bin/cargo-machete"
+"""
+
 [tasks."rust:deny"]
 description = "Run cargo-deny dependency policy checks"
 depends = ["rust:deny:install", "rust:lock:check"]
@@ -107,5 +179,7 @@ depends = [
   "rust:test:doc",
   "rust:doc",
   "rust:package",
+  "rust:mutants",
+  "rust:machete",
   "rust:deny",
 ]

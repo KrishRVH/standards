@@ -9,51 +9,88 @@ publish = false
 
 [dependencies]
 
-# Practical strict-by-default linting baseline.
-[lints.rust]
+[dev-dependencies]
+# Property tests are the default posture at trust boundaries; see AGENTS.md.
+proptest = "1.11.0"
+
+# The lint wall lives at workspace scope so growth cannot silently shed it:
+# every member crate (including this root package) opts in with
+# `[lints] workspace = true`, and a member without that opt-in is a review
+# finding. Profiles are only honored in this root manifest.
+[workspace]
+
+# Agent-optimized posture: every rule a machine can check is denied here. The
+# only sanctioned escape is a per-site `#[expect(lint, reason = "...")]`;
+# `#[allow]` is banned below.
+[workspace.lints.rust]
 future_incompatible = { level = "deny", priority = -1 }
+# Public API is a context budget: anything `pub` is documented and reachable,
+# or it is not `pub`.
+missing_docs = "deny"
 unexpected_cfgs = "deny"
-unreachable_pub = "warn"
+unreachable_pub = "deny"
 unsafe_code = "forbid"
 
-[lints.rustdoc]
-all = { level = "warn", priority = -1 }
-bare_urls = "deny"
-broken_intra_doc_links = "deny"
-invalid_codeblock_attributes = "deny"
-invalid_rust_codeblocks = "deny"
-private_intra_doc_links = "deny"
+[workspace.lints.rustdoc]
+all = { level = "deny", priority = -1 }
 
-[lints.clippy]
-# Set lint groups with lower priority
-all = { level = "warn", priority = -1 }
+[workspace.lints.clippy]
+# Lint groups at lower priority so the named lints below override them. The
+# rust:lint gate runs with warnings denied, so `warn` here changes nothing at
+# the gate; nursery is marked `warn` anyway to document lower trust, and its
+# known false-positive offenders are allowed out explicitly below.
+all = { level = "deny", priority = -1 }
 correctness = { level = "deny", priority = -1 }
 nursery = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
 suspicious = { level = "deny", priority = -1 }
 
-# Numeric casts are common at system and boundary layers. Tighten per project
-# when conversions need stronger guarantees.
-cast_lossless = "allow"
-cast_possible_truncation = "allow"
-cast_possible_wrap = "allow"
-cast_precision_loss = "allow"
-cast_sign_loss = "allow"
+# Exceptions are visible and self-expiring or they do not exist: no bare
+# `#[allow]`, ever. `#[expect]` fails the build once the lint stops firing,
+# so stale exceptions cannot accumulate.
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
 
-# Specific lints with higher priority
-allow_attributes_without_reason = "warn"
+# Panic-free production code: a reachable panic is an invariant the types
+# failed to carry. Tests are exempt via clippy.toml `allow-*-in-tests`.
+arithmetic_side_effects = "deny"
 dbg_macro = "deny"
-expect_used = "warn"
-let_underscore_must_use = "warn"
-map_err_ignore = "warn"
-panic = "warn"
-todo = "warn"
-unimplemented = "warn"
-unused_result_ok = "warn"
-unwrap_used = "warn"
+exit = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+mem_forget = "deny"
+panic = "deny"
+string_slice = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+unwrap_used = "deny"
+
+# Results are handled or visibly, reasons-attached discarded.
+let_underscore_must_use = "deny"
+map_err_ignore = "deny"
+unused_result_ok = "deny"
+
+# Dependency hygiene.
 wildcard_dependencies = "deny"
 
-# Commonly noisy pedantic lints. Tighten these per project when they add signal.
+# Deep nesting is context-hostile; the threshold lives in clippy.toml.
+excessive_nesting = "deny"
+
+# Lossy casts (truncation, wrap, sign loss) are denied by pedantic above:
+# conversions go through From/TryFrom or checked methods. These two remain
+# allowed: int-to-float precision loss is usually intended, and widening `as`
+# casts are harmless in systems code.
+cast_lossless = "allow"
+cast_precision_loss = "allow"
+
+# Known ping-pong with `unreachable_pub` (narrowing to `pub(crate)` trips
+# this nursery lint); an exception forced by a lint interaction is not a real
+# invariant, so the lint loses.
+redundant_pub_crate = "allow"
+
+# Deliberately relaxed style lints: size and repetition counts are poor
+# proxies for wrongness and generate churn instead of findings.
 cognitive_complexity = "allow"
 enum_variant_names = "allow"
 missing_const_for_fn = "allow"
@@ -62,6 +99,13 @@ needless_pass_by_value = "allow"
 only_used_in_recursion = "allow"
 option_if_let_else = "allow"
 too_many_lines = "allow"
-uninlined_format_args = "allow"
 use_self = "allow"
-wildcard_imports = "allow"
+
+[lints]
+workspace = true
+
+# Checks are part of the artifact, not just the tests: release keeps integer
+# overflow checks. The lint wall forces explicit arithmetic anyway; this
+# covers `#[expect]`ed sites and dependency code.
+[profile.release]
+overflow-checks = true

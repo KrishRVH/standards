@@ -177,6 +177,8 @@ mise.*.local.lock
 /target/
 **/target/
 **/*.rs.bk
+**/mutants.out/
+**/mutants.out.old/
 
 # Lua generated output
 .lua-language-server/
