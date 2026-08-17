@@ -169,8 +169,9 @@ test, not by argument.
 
 ### Triage gradient
 
-The cheapest verifier is not a model at all. A study of 33,707 agent-
-authored PRs found a metadata classifier (file types, patch size) predicts
+The cheapest verifier is not a model at all. A study of 33,707
+agent-authored PRs found a metadata classifier (file types, patch size)
+predicts
 high-maintenance PRs before any LLM runs. The full gradient: metadata
 classifier, then cheap-model classification, then frontier deep-dive, then
 human — each stage filtering for the next, with fast-track for trivial

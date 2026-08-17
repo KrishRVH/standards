@@ -51,6 +51,9 @@ node_modules/
 # JavaScript / TypeScript
 *.tsbuildinfo
 .eslintcache
+**/.stryker-tmp/
+**/reports/mutation/
+**/reports/stryker-incremental.json
 /.angular/
 /.astro/
 /.next/
@@ -148,9 +151,6 @@ mise.*.local.lock
 **/target/
 **/mutants.out/
 **/mutants.out.old/
-**/.stryker-tmp/
-**/reports/mutation/
-**/reports/stryker-incremental.json
 **/*.rs.bk
 
 # Lua

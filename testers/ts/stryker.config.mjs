@@ -12,8 +12,9 @@
  * - `inPlace` mutates the working tree (and restores it) instead of a sandbox
  *   copy, because the suite reads contract files outside the project root. If
  *   a run is killed hard, `git status` shows any leftover mutation.
- * - Stryker's own CLI is not yet Bun-clean (Babel CJS interop), so the mutants
- *   scripts run it under the pinned Node while tests still run under Bun.
+ * - Stryker's own CLI is not yet Bun-clean (Babel CJS interop), so the
+ *   ts:mutants tasks run it under the pinned Node while tests still run
+ *   under Bun.
  */
 // eslint-disable-next-line no-restricted-exports -- Stryker loads its config through a default export by contract.
 export default {

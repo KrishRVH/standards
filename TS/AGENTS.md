@@ -228,7 +228,7 @@ to three cheap reviewers decorrelated by input view (test diff only, full
 diff, code without the change narrative), who flag and never rewrite, with
 findings gated on the union after dedup. Any edit to the enforcement
 surface — `eslint.config.mjs`, `tsconfig.json`, `stryker.config.mjs`,
-`knip.json`, `bunfig.toml`, the mise tasks — is a finding by default, and
+`knip.jsonc`, `bunfig.toml`, the mise tasks — is a finding by default, and
 loosening requires human countersign. A disputed finding is settled by
 writing the failing test, not by argument. Verdicts pin the commit they
 judged; bots advise, gates block, humans merge.

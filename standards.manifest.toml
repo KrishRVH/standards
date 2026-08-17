@@ -298,7 +298,7 @@ mirror = [
   "effect-diagnostics/fixtures/unused-next-line-suppression.ts",
   "effect-diagnostics/tsconfig.json",
   "eslint.config.mjs",
-  "knip.json",
+  "knip.jsonc",
   "package.json",
   "prettier.config.mjs",
   "scripts/check-effect-diagnostics.mjs",

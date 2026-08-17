@@ -24,6 +24,16 @@ test('rejected statuses always carry the endpoint resource and the status class 
   );
 });
 
+test('status-class edges are exact at the 4xx/5xx boundary', () => {
+  const classAt = (status: number): string | undefined =>
+    projectCheckDiagnostic(new EndpointRejected({ status, targetId: 'primary-api' })).statusClass;
+
+  expect(classAt(400)).toBe('4xx');
+  expect(classAt(499)).toBe('4xx');
+  expect(classAt(500)).toBe('5xx');
+  expect(classAt(599)).toBe('5xx');
+});
+
 test('informational rejected statuses carry no status class', () => {
   fc.assert(
     fc.property(fc.integer({ min: 100, max: 199 }), (status) => {

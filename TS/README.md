@@ -223,9 +223,10 @@ alternative converges without making both formatter/linter stacks active in one
 generated project or forcing their different formatting/import repairs onto
 the same files.
 
-If a project chooses Option B, remove `@eslint/js`, `eslint`,
-`eslint-config-prettier`, `eslint-plugin-regexp`, `globals`, `prettier`, and
-`typescript-eslint`; add exact dev dependency
+If a project chooses Option B, remove `@eslint/js`,
+`@eslint-community/eslint-plugin-eslint-comments`, `eslint`,
+`eslint-config-prettier`, `eslint-plugin-jsx-a11y-x`, `eslint-plugin-regexp`,
+`globals`, `prettier`, and `typescript-eslint`; add exact dev dependency
 `"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
 service, TypeScript, Bun types, and the lock policy.
 
