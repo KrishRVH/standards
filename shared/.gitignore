@@ -67,11 +67,14 @@ node_modules/
 # Python
 .coverage
 .coverage.*
+.hypothesis/
+.mutmut-cache
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
 .venv/
 __pycache__/
+mutants/
 *.py[codz]
 *.egg-info/
 /htmlcov/

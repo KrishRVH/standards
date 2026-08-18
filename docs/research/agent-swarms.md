@@ -3,7 +3,7 @@
 Research date: 2026-08-17 (America/Chicago)
 
 This record explains the durable decisions behind the agent-driven doctrine in
-the Rust, TypeScript, and C# profiles: how work is assigned across expensive and
+the Rust, TypeScript, C#, and Python profiles: how work is assigned across expensive and
 cheap models, how verification fleets are shaped, and which failure modes the
 profiles defend against. The authoritative executable configuration remains
 the profile configs and `Mise/conf.d/` task fragments; the doctrine owners
@@ -251,8 +251,9 @@ Sources:
   `AGENTS.md` files.
 - Executable-verification-first is the existing gate order: types, lints,
   tests, mutation testing (cargo-mutants in Rust; Stryker under ratcheted
-  `break` thresholds in TypeScript and C#), and property tests (proptest,
-  fast-check, CsCheck) run before any model review, and a disputed finding is
+  `break` thresholds in TypeScript and C#; mutmut against a committed floor
+  in Python), and property tests (proptest, fast-check, CsCheck,
+  Hypothesis) run before any model review, and a disputed finding is
   settled by a failing test.
 - Out-of-band harness is the existing wall-integrity rule: enforcement edits
   are findings by default and loosening requires human countersign.

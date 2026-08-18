@@ -71,13 +71,13 @@ run = "uv run --no-sync mypy"
 
 [tasks."py:deps"]
 description = "Check Python dependency hygiene"
-depends = ["py:install:deep"]
-run = "uv run --no-sync deptry ."
+depends = ["py:install"]
+run = "uv run deptry ."
 
 [tasks."py:docs"]
 description = "Report Python docstring coverage"
 depends = ["py:install:deep"]
-run = "uv run --no-sync interrogate --fail-under=0 ."
+run = "uv run --no-sync interrogate --fail-under=100 ."
 
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
@@ -133,7 +133,7 @@ depends = ["py:ruff", "py:type", "py:security"]
 
 [tasks."py:deep"]
 description = "Run optional dependency-sensitive Python analysis"
-depends = ["py:type:mypy", "py:deps", "py:docs", "py:complexity", "py:slots", "py:deadcode"]
+depends = ["py:type:mypy", "py:docs", "py:complexity", "py:slots", "py:deadcode"]
 
 [tasks."py:test"]
 description = "Run Python tests with branch coverage"
@@ -145,6 +145,39 @@ description = "Build Python source and wheel distributions"
 depends = ["py:install"]
 run = "uv build"
 
+[tasks."py:mutants"]
+description = "Run the full mutation sweep; a surviving mutant is a review finding"
+depends = ["py:install"]
+wait_for = ["py:test"]
+run = """
+set -eu
+
+uv run mutmut run
+uv run mutmut export-cicd-stats
+uv run python - <<'PY'
+# Gate the mutation score against the committed ratchet floor.
+import json
+import os
+import pathlib
+import sys
+
+stats = json.loads(pathlib.Path("mutants/mutmut-cicd-stats.json").read_text(encoding="utf-8"))
+total = stats["total"]
+score = 100 * stats["killed"] / total if total else 100.0
+floor_env = os.environ.get("MUTMUT_FLOOR")
+floor_file = pathlib.Path(".mutmut-floor")
+if floor_env is not None:
+    floor = float(floor_env)
+elif floor_file.is_file():
+    floor = float(floor_file.read_text(encoding="utf-8"))
+else:
+    sys.exit("No mutation floor. Commit .mutmut-floor with the measured score or set MUTMUT_FLOOR.")
+if score < floor:
+    sys.exit(f"Mutation score {score:.2f} is below the ratchet floor {floor:g}.")
+print(f"Mutation score {score:.2f} meets the ratchet floor {floor:g}.")
+PY
+"""
+
 [tasks."py:standards"]
 description = "Run the Python standards workflow with autofixes"
 depends = ["py:install"]
@@ -152,7 +185,7 @@ run = ["uv run ruff check --fix .", "uv run ruff format ."]
 
 [tasks."py:standards:check"]
 description = "Run the Python standards CI gate"
-depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit"]
+depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit", "py:deps", "py:mutants"]
 
 [tasks."py:standards:check:deep"]
 description = "Run the Python standards CI gate plus optional deep analysis"

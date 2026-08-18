@@ -155,8 +155,11 @@ Copy each language or tooling folder that the project needs:
   PHPStan, Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis,
   Composer audit, and Roave security advisories.
 - `Python/` — `pyproject` and uv-based configuration for Ruff, basedpyright,
-  Bandit, pytest/coverage, wheel and source builds, plus optional deeper mypy,
-  dependency, documentation, complexity, slots, and dead-code checks.
+  Bandit, pytest/coverage, deptry, Hypothesis property tests, mutmut mutation
+  testing, a banned-API wall, wheel and source builds, plus optional deeper
+  mypy, documentation, complexity, slots, and dead-code checks. Shares the
+  agent-driven doctrine and
+  [research record](docs/research/agent-swarms.md) with Rust, TS, and C#.
 - `Roc/` — an immutable new-compiler nightly with official checksum-backed
   host assets, native formatting, warning-failing checks, and top-level
   `expect` tests through the development backend. Its
