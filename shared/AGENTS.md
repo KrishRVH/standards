@@ -5,9 +5,8 @@ changing architecture or domain language. Use this file for agent working rules.
 
 ## Design Target
 
-These standards primarily pursue ecosystem-idiomatic, almost systems-like
-strictness and elegance. A major secondary goal is dependable agentic
-development: an agent should be able to discover the intended workflow,
+Prioritize ecosystem-idiomatic, systems-like strictness and elegance. Agentic
+development is central: an agent should be able to discover the intended workflow,
 understand contracts from nearby code, config, and tests, make a narrow change,
 and prove it through deterministic commands without relying on tribal
 knowledge.
@@ -15,9 +14,10 @@ knowledge.
 ## Principles
 
 - Prefer ASD-STE100 Simplified Technical English for user communications. No dead prose.
+- When writing technical documentation, follow the
+  [Google Developer Docs Style Guide](https://developers.google.com/style).
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
-  flow over clever abstractions. See
-  [grugbrain.dev](https://grugbrain.dev/).
+  flow over clever abstractions. See [grugbrain.dev](https://grugbrain.dev/).
 - Design for agent legibility: conventional layouts, precise names and types,
   explicit inputs, outputs, and side effects, actionable failures, and stable
   tests at real boundaries.
@@ -51,8 +51,7 @@ Everything a developer does goes through mise.
   configured.
 
 Do not call package managers, compilers, test runners, or Dagger directly
-unless you are fixing the mise task itself. Dagger is invoked through mise only
-when the project keeps the optional Dagger task fragment.
+unless working on the mise task itself.
 
 ## Editing
 
