@@ -54,20 +54,30 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
   pinned as a durable `@example` on the test (`print_blob=True` in the CI
   profile emits the reproduction line).
 - `mise run py:mutants` is the mechanical adversary: would the tests notice
-  if this code were wrong? mutmut has no native break threshold, so the
-  task gates on the committed `.mutmut-floor` ratchet: raising the floor is
-  normal work; lowering it requires human countersign, and a missing floor
-  fails rather than passing vacuously. mutmut caches per-function results
-  in `mutants/`, which is its incremental inner loop.
+  if this code were wrong? A surviving mutant is a finding with exactly
+  three exits: kill — the suite gains a test that observes the difference;
+  delete — the code loses the branch the suite cannot reach; or classify —
+  a `# pragma: no mutate` whose neighboring comment names why no test can
+  observe the mutant (equivalent mutants exist). Classify is a wall edit
+  requiring human countersign. mutmut has no native break threshold, so the
+  task gates on the committed `.mutmut-floor` ratchet — a coarse regression
+  alarm, not a per-mutant guarantee; survivors in changed code are
+  dispositioned in review. Raising the floor is normal work; lowering it
+  requires human countersign, and a missing floor fails rather than
+  passing vacuously. mutmut caches per-function results in `mutants/`,
+  which is its incremental inner loop.
 - Coverage gates at the `fail_under` ratchet in `[tool.coverage.report]`,
   under the same raise-freely, lower-with-countersign rule.
 
 Adversarial self-review and merge shape follow the catalog doctrine: a green
 gate is necessary, never sufficient; the diff gets a fresh-context pass from
 up to three cheap reviewers decorrelated by input view (test diff only, full
-diff, code without the change narrative) who flag and never rewrite; any
-edit to the enforcement surface — `pyproject.toml` tool sections,
-`.mutmut-floor`, the mise tasks — is a finding by default, and loosening
-requires human countersign. A disputed finding is settled by writing the
-failing test. Verdicts pin the commit they judged; bots advise, gates block,
-humans merge.
+diff, code without the change narrative) who flag and never rewrite;
+findings collect on the union after dedup, and severity triage decides what
+blocks. Any edit to the enforcement surface — `pyproject.toml` tool
+sections, `.mutmut-floor`, the mise tasks — is a finding by default, and
+loosening requires human countersign. A disputed finding is settled by
+writing the failing test; a finding no test can express is recorded as a
+design note with a named owner, and a question of intent escalates to the
+human who owns it. Verdicts pin the commit they judged; bots advise, gates
+block, humans merge.

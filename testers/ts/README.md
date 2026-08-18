@@ -163,9 +163,11 @@ the full Stryker mutation sweep.
 
 `ts:knip` fails on declared dependencies, exports, and files no code uses.
 `ts:mutants` audits whether the tests would notice wrong code; its `break`
-threshold is a ratchet pinned at the measured floor, and `ts:mutants:diff`
-is the incremental inner loop (Stryker's `--incremental` cache). Property
-tests use `fast-check`; a counterexample found by a property run is pinned
+threshold is a coarse regression alarm pinned at the measured floor, not a
+per-mutant guarantee — survivors in changed code are dispositioned in
+review — and `ts:mutants:diff` is the incremental inner loop (Stryker's
+`--incremental` cache). Property tests use `fast-check`; a
+counterexample found by a property run is pinned
 as a deterministic example test because fast-check keeps no regression
 corpus. On large projects, keep `ts:mutants:diff` in the PR gate and move
 the full sweep to a scheduled job.
@@ -191,6 +193,13 @@ Repository host settings must require the `quality` job before merge. Committed
 workflow YAML cannot configure branch protection. Project-specific database,
 device, deployment, or other expensive integration checks may be separate
 required jobs, but they do not replace this static and deterministic gate.
+
+`.github/CODEOWNERS` lists the enforcement surface: point its placeholder
+at a real owner and require code-owner review on the protected branch, and
+every wall edit mechanically needs a named human's approval — that host
+setting is what turns "loosening requires human countersign" from an
+instruction into a gate. Without it, countersign is a review duty the PR
+template reminds humans to perform.
 
 ## Tooling choices
 
@@ -263,7 +272,10 @@ while mutated tests still run through `bun test`.
 
 `bunfig.toml` also pins install posture: new dependencies land exact, and
 `minimumReleaseAge` refuses versions younger than three days, since most
-registry malware is caught and unpublished inside that window.
+registry malware is caught and unpublished inside that window. The
+emergency path for a critical patch younger than the window is a
+per-package entry in `minimumReleaseAgeExcludes` — a wall edit that
+requires human countersign and gets removed once the window passes.
 
 Long-running Bun programs use `BunRuntime.runMain`. Framework applications
 instead build one application-owned `ManagedRuntime`, dispose it at application

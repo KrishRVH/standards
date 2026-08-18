@@ -1,0 +1,13 @@
+# The enforcement surface. Replace @OWNER with a real human owner and enable
+# "Require review from Code Owners" on the protected branch; that host
+# setting is what makes AGENTS.md's "loosening requires human countersign"
+# mechanical instead of advisory. Add the repo's mise task file (the
+# 20-csharp.toml fragment) wherever it lives.
+/Directory.Build.props @OWNER
+/Directory.Packages.props @OWNER
+/.editorconfig @OWNER
+/BannedSymbols.txt @OWNER
+/stryker-config.json @OWNER
+/global.json @OWNER
+/AGENTS.md @OWNER
+/.github/ @OWNER

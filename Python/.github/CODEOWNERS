@@ -1,0 +1,9 @@
+# The enforcement surface. Replace @OWNER with a real human owner and enable
+# "Require review from Code Owners" on the protected branch; that host
+# setting is what makes AGENTS.md's "loosening requires human countersign"
+# mechanical instead of advisory. Add the repo's mise task file (the
+# 20-python.toml fragment) wherever it lives.
+/pyproject.toml @OWNER
+/.mutmut-floor @OWNER
+/AGENTS.md @OWNER
+/.github/ @OWNER

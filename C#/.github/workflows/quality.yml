@@ -1,5 +1,7 @@
 name: Quality
 
+# Large projects: keep csharp:mutants:diff in this PR gate and move the full
+# mutation sweep to a scheduled workflow (see README).
 on:
   merge_group:
   pull_request:

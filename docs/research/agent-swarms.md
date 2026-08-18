@@ -24,8 +24,9 @@ The profiles encode a cost-asymmetric swarm shape with four roles:
    property checks, and type gates verify first; model judges only rank what
    the harness cannot distinguish.
 3. Verification fleets are small (three judges, five at most), decorrelated
-   by input view rather than by model family alone, aggregated robustly, and
-   gated on union-with-dedup — never on unanimity or simple majority.
+   by input view rather than by model family alone, and aggregated robustly.
+   Findings are collected on union-with-dedup — never unanimity or simple
+   majority — and severity triage decides what blocks.
 4. Cheap verifiers flag; they never rewrite. Findings route back to the
    author or up to a frontier arbiter, and the verification harness stays
    out-of-band from the author.
@@ -134,7 +135,13 @@ tool and none by all four. Unanimity essentially never occurs, and majority
 vote discards most true findings. Fleets therefore maximize recall, and the
 gate is union-with-dedup plus severity triage — machine-deduplicated before
 a human sees it, because undeduplicated bot disagreement measurably costs
-more time than the bots save.
+more time than the bots save. The singleton rate is an argument against
+consensus rules, not a claim of per-finding precision: union is the
+collection rule, and triage decides what blocks — a claim of observable
+wrongness blocks until dispositioned by the failing-test protocol, a
+judgment call becomes a design note. The measured fleet's findings included
+false positives, and no production system publishes per-reviewer precision;
+an adopting repo tunes its own blocking bar from its own dispositions.
 
 ### Flag, never rewrite
 
@@ -149,13 +156,17 @@ Jules's design and the reviewer-proposes rule already in both profiles.
 
 RLVR-trained models demonstrably learn to game verifiers — overwriting unit
 tests, monkey-patching scorers, emitting formatting artifacts that flip
-judge verdicts. Two consequences are encoded: the author cannot edit tests,
-scoring code, or judge prompts in the same change it wants verified (in the
-profiles: wall edits are findings by default, loosening needs human
-countersign); and author output is sanitized before judging — formatting
-stripped, both pairwise orderings run, length-penalized rubrics — because
-judges are reliably manipulable by presentation and no single mitigation
-suffices.
+judge verdicts. Two consequences are encoded. First, the verified surface
+splits three ways: product tests are author-owned — a behavior change must
+ship the test that fails without it, and the reviewer reads the test diff
+first precisely because the author edits it; an independent acceptance
+harness, where one exists, stays out-of-band from the author; and
+enforcement configuration — lint walls, thresholds, mutation scope, judge
+prompts — is protected surface (in the profiles: wall edits are findings by
+default, loosening needs human countersign). Second, author output is
+sanitized before judging — formatting stripped, both pairwise orderings
+run, length-penalized rubrics — because judges are reliably manipulable by
+presentation and no single mitigation suffices.
 
 ### Executable verification first
 
@@ -166,7 +177,8 @@ rank — remains the template: the strongest cheap verifier is the harness,
 and model judges rank only what tests cannot distinguish. In these profiles
 that ordering is mutation testing and property tests before any model
 review, and a disputed review finding is settled by writing the failing
-test, not by argument.
+test, not by argument; a finding no test can express becomes a design note
+rather than being silently dropped.
 
 ### Triage gradient
 
@@ -246,15 +258,19 @@ Sources:
 ## What the profiles adopt
 
 - Frontier-owns-ambiguity role split, verification-fleet shape (size,
-  lenses, aggregation, union gating), flag-never-rewrite, and the triage
-  gradient live in the adversarial-review sections of the profiles'
-  `AGENTS.md` files.
+  lenses, aggregation, union collection with severity triage),
+  flag-never-rewrite, and the triage gradient live in the
+  adversarial-review sections of the profiles' `AGENTS.md` files. These are
+  process doctrine for the adopting repo's review tooling: the automation
+  this catalog ships ends at `standards:check`, and nothing in it invokes
+  reviewers, stores verdicts, or creates commit statuses.
 - Executable-verification-first is the existing gate order: types, lints,
   tests, mutation testing (cargo-mutants in Rust; Stryker under ratcheted
   `break` thresholds in TypeScript and C#; mutmut against a committed floor
   in Python), and property tests (proptest, fast-check, CsCheck,
   Hypothesis) run before any model review, and a disputed finding is
-  settled by a failing test.
+  settled by a failing test or recorded as a design note when no test can
+  express it.
 - Out-of-band harness is the existing wall-integrity rule: enforcement edits
   are findings by default and loosening requires human countersign.
 - The earlier phrasing "model diversity beats persona diversity" is refined,

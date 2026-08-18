@@ -1,5 +1,7 @@
 name: Quality
 
+# Large projects: mutmut's cache keeps py:mutants incremental in this PR
+# gate; move periodic cold full sweeps to a scheduled workflow.
 on:
   merge_group:
   pull_request:

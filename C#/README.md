@@ -22,10 +22,13 @@ exactly one rule, SA1404, which rejects `[SuppressMessage]` without a real
 justification; ReferenceTrimmer fails the build on references no code uses;
 CsCheck is the property-testing default; and Stryker.NET (pinned as a local
 dotnet tool) runs the mutation gate on the Microsoft Testing Platform runner,
-which is in preview. `thresholds.break` in `stryker-config.json` is a ratchet
-pinned at the measured floor. Mutation testing requires sources and tests in
-separate projects joined by a `ProjectReference`; a single mixed project
-cannot be mutated. Stale-suppression detection (IDE0079) works only inside
+which is in preview. `thresholds.break` in `stryker-config.json` is a coarse
+regression alarm pinned at the measured floor, not a per-mutant guarantee;
+survivors in changed code are dispositioned in review. Mutation testing
+requires sources and tests in separate projects joined by a
+`ProjectReference`; a single mixed project cannot be mutated. On large
+projects, keep `csharp:mutants:diff` in the PR gate and move the full sweep
+to a scheduled job. Stale-suppression detection (IDE0079) works only inside
 the IDE — no CLI build surfaces it — so dead suppressions are a review duty,
 not a gate.
 
@@ -61,3 +64,10 @@ audit warnings fail under warnings-as-errors. Commit `global.json`,
 `Directory.Packages.props`, and every project lock file. Change SDK, language,
 test SDK, target framework, and package versions together in a deliberate
 platform update.
+
+`.github/CODEOWNERS` lists the enforcement surface: point its placeholder
+at a real owner and require code-owner review on the protected branch, and
+every wall edit mechanically needs a named human's approval — that host
+setting is what turns "loosening requires human countersign" from an
+instruction into a gate. Without it, countersign is a review duty the PR
+template reminds humans to perform.

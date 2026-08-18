@@ -10,6 +10,15 @@ mutation-testing gate audits whether the tests would notice wrong code.
 verification, and the adversarial self-review loop. Relax or remove checks
 that do not fit the project.
 
+The shared-mutable-state wall encodes a specific architecture: single-owner
+application state, pure `(state, event)` transitions, message passing over
+shared memory. That is the right default for the applications this profile
+targets and the wrong one for general-purpose libraries, runtimes,
+concurrency primitives, drivers, and systems infrastructure — an `Rc` does
+not imply mutation, and a metrics counter does not need an actor. Projects
+of those shapes strip the `disallowed-types` wall and keep the rest;
+individual sites inside an application argue through a reasoned `#[expect]`.
+
 ## Tooling
 
 ```sh
@@ -67,6 +76,12 @@ pull requests, pushes, and merge-queue groups, and a PR template whose
 second question — how did you verify? — is the handoff-report contract from
 `AGENTS.md`. Wire whatever AI review bot the repo uses to read `AGENTS.md`
 as its guidelines file so authors and reviewers argue from one document.
+`CODEOWNERS` lists the enforcement surface: point its placeholder at a real
+owner and require code-owner review on the protected branch, and every wall
+edit mechanically needs a named human's approval — that host setting is
+what turns "loosening requires human countersign" from an instruction into
+a gate. Without it, countersign is a review duty the PR template reminds
+humans to perform.
 
 Noisy systems-code lints stay relaxed by default: int-to-float precision
 casts, size/repetition style counts, the remainder of `clippy::restriction`

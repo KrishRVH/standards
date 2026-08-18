@@ -59,11 +59,16 @@ Semantic verification — the gate proves form, and wrong logic compiles:
 - `mise run csharp:mutants` is the mechanical adversary: would the tests
   notice if this code were wrong? It runs Stryker.NET on the
   Microsoft.Testing.Platform runner (preview status; verify surprising
-  results). A surviving mutant is a finding with exactly two exits — the
-  suite gains a test that kills it, or the code loses the branch the suite
-  cannot reach. The `thresholds.break` value is a ratchet pinned at the
-  measured floor: raising it is normal work; lowering it requires human
-  countersign. `mise run csharp:mutants:diff` scopes the inner loop (set
+  results). A surviving mutant is a finding with exactly three exits:
+  kill — the suite gains a test that observes the difference; delete — the
+  code loses the branch the suite cannot reach; or classify — a
+  `// Stryker disable once` comment whose reason names why no test can
+  observe the mutant (equivalent mutants exist). Classify is a wall edit
+  requiring human countersign. The `thresholds.break` value is a coarse
+  regression alarm pinned at the measured floor, not a per-mutant
+  guarantee: raising it is normal work; lowering it requires human
+  countersign, and survivors in changed code are dispositioned in review.
+  `mise run csharp:mutants:diff` scopes the inner loop (set
   `MUTANTS_BASE_REF`, default `main`). Mutation requires the src/tests
   project split; a project whose tests live beside its sources cannot be
   mutated.
@@ -73,12 +78,15 @@ Semantic verification — the gate proves form, and wrong logic compiles:
 Adversarial self-review and merge shape follow the catalog doctrine: a green
 gate is necessary, never sufficient; the diff gets a fresh-context pass from
 up to three cheap reviewers decorrelated by input view (test diff only, full
-diff, code without the change narrative) who flag and never rewrite; any
-edit to the enforcement surface — `Directory.Build.props`, `.editorconfig`,
-`BannedSymbols.txt`, `stryker-config.json`, the mise tasks — is a finding by
-default, and loosening requires human countersign. A disputed finding is
-settled by writing the failing test. Verdicts pin the commit they judged;
-bots advise, gates block, humans merge.
+diff, code without the change narrative) who flag and never rewrite;
+findings collect on the union after dedup, and severity triage decides what
+blocks. Any edit to the enforcement surface — `Directory.Build.props`,
+`.editorconfig`, `BannedSymbols.txt`, `stryker-config.json`, the mise
+tasks — is a finding by default, and loosening requires human countersign.
+A disputed finding is settled by writing the failing test; a finding no
+test can express is recorded as a design note with a named owner, and a
+question of intent escalates to the human who owns it. Verdicts pin the
+commit they judged; bots advise, gates block, humans merge.
 
 ## .NET Applications
 

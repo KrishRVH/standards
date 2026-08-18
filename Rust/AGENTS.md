@@ -156,12 +156,16 @@ adversarial reviewer audits the rest.
 - Internal invariants at trust boundaries are `debug_assert!` contracts:
   free in release, exercised by every test and property run.
 - `mise run rust:mutants` is the mechanical adversary: would the tests
-  notice if this code were wrong? A surviving mutant is a finding with
-  exactly two exits — the suite gains a test that kills it, or the code
-  loses the branch the suite cannot reach. Never special-case code to
-  satisfy a mutant. `#[mutants::skip]` and mutants exclusion config are
-  wall edits, not fixes: each needs a use-site reason and lands as a review
-  finding by default. `mise run rust:mutants:diff` scopes the inner loop to
+  notice if this code were wrong? The gate fails on any survivor, and a
+  survivor has exactly three exits: kill — the suite gains a test that
+  observes the difference; delete — the code loses the branch the suite
+  cannot reach; or classify — a per-site `#[mutants::skip]` whose reason
+  names why no test can observe the mutant (equivalent mutants exist; the
+  tool's own docs say so). Classify is a wall edit: a review finding by
+  default, countersigned like any loosening, never a shortcut past writing
+  the test. Config-level mutants exclusions are coarser than per-site
+  skips and are findings for the same reason. Never special-case code to
+  satisfy a mutant. `mise run rust:mutants:diff` scopes the inner loop to
   the change (set `MUTANTS_BASE_REF`, default `main`); the gate runs the
   full sweep.
 
@@ -197,9 +201,11 @@ reviewers; beyond that, correlated errors make extra judges nearly
 worthless. What decorrelates reviewers is input view, not model family:
 one reads the test diff only, one the full diff, one the code with no
 change narrative. Model diversity is layered on top of that, not relied on
-alone. Findings gate on the union after dedup — most real findings surface
-from exactly one reviewer, so majority and unanimity rules discard signal —
-and scores aggregate by median, never mean, so one degenerate verdict
+alone. Findings collect on the union after dedup — most real findings
+surface from exactly one reviewer, so majority and unanimity rules discard
+signal — and severity triage decides what blocks: a claim of observable
+wrongness blocks until dispositioned, a judgment call becomes a design
+note. Scores aggregate by median, never mean, so one degenerate verdict
 cannot swing the panel. Cheap reviewers flag and never rewrite; a weaker
 model with write-back authority degrades a stronger author's work, so
 fixes come from the author or a stronger arbiter, spent only on disputed
@@ -208,9 +214,11 @@ triage on metadata — files touched, diff size, whether the wall was
 edited — decides which diffs deserve the fleet at all.
 
 A disputed finding is settled by writing the failing test, not by argument;
-a finding no test can express is recorded as a design note, not silently
-dropped. Findings return as code or test changes — a reviewer proposes,
-never auto-applies. The author does not merge over an unrefuted finding.
+a finding no test can express is recorded as a design note with a named
+owner, not silently dropped; a finding that turns on what the software is
+meant to do escalates to the human who owns intent. Findings return as
+code or test changes — a reviewer proposes, never auto-applies. The author
+does not merge over an undispositioned blocking finding.
 
 ## Task and merge shape
 

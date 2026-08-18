@@ -45,9 +45,10 @@ branch coverage against the `fail_under` ratchet, Hypothesis carries property
 tests (pin triaged counterexamples as `@example`; `.hypothesis/` stays
 untracked), `py:deps` fails on unused or missing dependencies (deptry),
 `py:audit` checks locked dependencies, `py:mutants` runs the mutmut mutation
-sweep against the committed `.mutmut-floor` ratchet (a missing floor fails
-rather than passing vacuously), and `py:build` verifies wheel and source
-distributions. Projects that want a heavier analysis profile can use
+sweep against the committed `.mutmut-floor` ratchet (a coarse regression
+alarm, not a per-mutant guarantee; a missing floor fails rather than
+passing vacuously; survivors in changed code are dispositioned in review),
+and `py:build` verifies wheel and source distributions. Projects that want a heavier analysis profile can use
 `py:deep` for mypy, documentation coverage (gating at 100 when run),
 complexity, dataclass slots, and high-confidence dead-code checks.
 `py:standards:check:deep` runs the standard CI gate, including the dependency
@@ -58,6 +59,13 @@ or stale.
 Strictness is the starting point, not an obligation. Relax or remove checks
 that do not fit the project's risk, lifecycle, typing surface, or migration
 state.
+
+`.github/CODEOWNERS` lists the enforcement surface: point its placeholder
+at a real owner and require code-owner review on the protected branch, and
+every wall edit mechanically needs a named human's approval — that host
+setting is what turns "loosening requires human countersign" from an
+instruction into a gate. Without it, countersign is a review duty the PR
+template reminds humans to perform.
 
 The aggregate `mise run fmt`, `mise run lint`, `mise run test`, and
 `mise run standards:check` commands also dispatch to these Python tasks when

@@ -245,6 +245,7 @@ tester = "testers/ts"
 task_prefix = "ts"
 task_fragment = "20-ts.toml"
 mirror = [
+  ".github/CODEOWNERS",
   ".github/workflows/quality.yml",
   ".prettierignore",
   "AGENTS.md",

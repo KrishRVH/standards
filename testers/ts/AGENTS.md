@@ -213,25 +213,36 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
   regression corpus, so a counterexample found by a property run is pinned
   as a deterministic example test.
 - `mise run ts:mutants` is the mechanical adversary: would the tests notice
-  if this code were wrong? A surviving mutant is a finding with exactly two
-  exits — the suite gains a test that kills it, or the code loses the
-  branch the suite cannot reach. The Stryker `break` threshold is a ratchet
-  pinned at the measured floor: raising it is normal work; lowering it,
-  excluding a mutator, or narrowing `mutate` is a wall edit that requires
-  human countersign. `mise run ts:mutants:diff` scopes the inner loop.
+  if this code were wrong? A surviving mutant is a finding with exactly
+  three exits: kill — the suite gains a test that observes the difference;
+  delete — the code loses the branch the suite cannot reach; or classify —
+  a `// Stryker disable next-line` comment whose reason names why no test
+  can observe the mutant (equivalent mutants exist). Classify is a wall
+  edit requiring human countersign, like lowering `break`, excluding a
+  mutator, or narrowing `mutate`. The `break` threshold is a coarse
+  regression alarm pinned at the measured floor, not a per-mutant
+  guarantee — an aggregate score proves no individual mutant dead, and new
+  easy kills can mask a new survivor — so survivors in changed code are
+  dispositioned in review and carried verbatim in the handoff report;
+  raising the floor as mutants die is normal work.
+  `mise run ts:mutants:diff` scopes the inner loop.
 - `mise run ts:knip` fails on unused dependencies, exports, and files:
   agents add and abandon all three autonomously.
 
 Adversarial self-review: a green gate is necessary, never sufficient. The
 diff gets a fresh-context pass from a reviewer that did not write it — up
 to three cheap reviewers decorrelated by input view (test diff only, full
-diff, code without the change narrative), who flag and never rewrite, with
-findings gated on the union after dedup. Any edit to the enforcement
+diff, code without the change narrative), who flag and never rewrite.
+Findings collect on the union after dedup; severity triage decides what
+blocks — a claim of observable wrongness blocks until dispositioned, a
+judgment call becomes a design note. Any edit to the enforcement
 surface — `eslint.config.mjs`, `tsconfig.json`, `stryker.config.mjs`,
 `knip.jsonc`, `bunfig.toml`, the mise tasks — is a finding by default, and
 loosening requires human countersign. A disputed finding is settled by
-writing the failing test, not by argument. Verdicts pin the commit they
-judged; bots advise, gates block, humans merge.
+writing the failing test, not by argument; a finding no test can express
+is recorded as a design note with a named owner, and a question of intent
+escalates to the human who owns it. Verdicts pin the commit they judged;
+bots advise, gates block, humans merge.
 
 ## Agent workflow
 

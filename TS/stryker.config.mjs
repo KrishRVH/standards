@@ -2,11 +2,15 @@
  * Mutation gate: would the tests notice if this code were wrong?
  * - `mise run ts:mutants` runs the full sweep (`--force` bypasses the cache).
  * - `mise run ts:mutants:diff` is the incremental inner loop.
- * - A surviving mutant is a review finding with exactly two exits: the suite
- *   gains a test that kills it, or the code loses the branch the suite cannot
- *   reach. `thresholds.break` is a ratchet pinned at the measured floor —
- *   raising it as mutants die is normal work; lowering it is a wall edit that
- *   requires human countersign.
+ * - A surviving mutant is a review finding with exactly three exits: the
+ *   suite gains a test that kills it, the code loses the branch the suite
+ *   cannot reach, or a `// Stryker disable` comment classifies it as
+ *   unobservable with a reason — a wall edit requiring human countersign.
+ * - `thresholds.break` is a coarse regression alarm pinned at the measured
+ *   floor, not a per-mutant guarantee: an aggregate score proves no
+ *   individual mutant dead. Raising it as mutants die is normal work;
+ *   lowering it is a wall edit that requires human countersign. Survivors in
+ *   changed code are dispositioned in review, not amortized into the score.
  * - `src/main.ts` is the composition root: side-effectful wiring with no unit
  *   seam, verified by the type gate and the Effect diagnostics instead.
  * - `inPlace` mutates the working tree (and restores it) instead of a sandbox
@@ -26,6 +30,6 @@ export default {
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json',
   reporters: ['clear-text', 'progress'],
-  thresholds: { high: 80, low: 70, break: 65 },
+  thresholds: { high: 80, low: 70, break: 66 },
   bun: { timeout: 10000 },
 };
