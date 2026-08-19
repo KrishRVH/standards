@@ -336,6 +336,7 @@ required_tester_files = [
   "tests/effect-resources-runtime.test.ts",
   "tests/fixtures/bun-runtime-signal-child.ts",
   "tests/quality-workflow.test.ts",
+  "tests/state-wall-contract.test.ts",
   "tests/support/application-task-service.ts",
   "tests/support/bounded-body-reader.ts",
   "tests/support/client-api-boundary.ts",
