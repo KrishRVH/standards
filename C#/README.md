@@ -37,8 +37,9 @@ code dispositioned in review. Mutation testing requires sources and tests in
 separate projects joined by a `ProjectReference`; a single mixed project
 cannot be mutated. On large projects, swap `csharp:mutants` for
 `csharp:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job; give the workflow's checkout step `fetch-depth: 0` first so `--since`
-can resolve `MUTANTS_BASE_REF` in a shallow clone. Stale-suppression detection (IDE0079) works only inside
+job; give the workflow's checkout step `fetch-depth: 0` first, because a
+shallow clone cannot resolve `MUTANTS_BASE_REF` for `--since`.
+Stale-suppression detection (IDE0079) works only inside
 the IDE — no CLI build surfaces it — so dead suppressions are a review duty,
 not a gate.
 

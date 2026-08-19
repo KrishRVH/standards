@@ -1,9 +1,9 @@
 name: Quality
 
 # Large projects: swap rust:mutants for rust:mutants:diff in the gate this
-# workflow runs, set fetch-depth: 0 on the checkout step so the diff task can
-# resolve MUTANTS_BASE_REF in a shallow clone, and move the full sweep to a
-# scheduled workflow (see README).
+# workflow runs, set fetch-depth: 0 on the checkout step (a shallow clone
+# cannot resolve MUTANTS_BASE_REF), and move the full sweep to a scheduled
+# workflow (see README).
 on:
   pull_request:
   push:

@@ -8,5 +8,7 @@ exact = true
 # unpublished inside that window. This bites only when the lock changes, which
 # is exactly when supply-chain attacks land.
 minimumReleaseAge = 259200
+# Deliberately empty: this list is the documented, countersigned emergency
+# path past the age gate (see README); adding an entry is a wall edit.
 minimumReleaseAgeExcludes = []
 peer = false

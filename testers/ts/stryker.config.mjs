@@ -4,8 +4,8 @@
  * - `mise run ts:mutants:diff` is the incremental inner loop.
  * - A surviving mutant is a review finding with exactly three exits: the
  *   suite gains a test that kills it, the code loses the branch the suite
- *   cannot reach, or a `// Stryker disable` comment classifies it as
- *   unobservable with a reason — a wall edit requiring human countersign.
+ *   cannot reach, or a `// Stryker disable next-line all: <reason>` comment
+ *   classifies it as unobservable — a wall edit requiring human countersign.
  * - `thresholds.break` is a coarse regression alarm pinned at the measured
  *   floor, not a per-mutant guarantee: an aggregate score proves no
  *   individual mutant dead. Raising it as mutants die is normal work;
