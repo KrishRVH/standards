@@ -35,7 +35,7 @@ Everything below is the evidence for those four commitments.
 
 ## The economics: why verification fleets are nearly free
 
-Cheap-tier models cost between one tenth and one eightieth of a frontier
+Cheap-tier models cost one to two orders of magnitude less than a frontier
 model per token. Snapshot of standard API pricing, August 2026, per Mtok
 in/out:
 
@@ -76,7 +76,7 @@ Three independent production systems converged on the same split in 2026.
 Cursor rebuilt SQLite in Rust as a controlled experiment: GPT-5.5 in both
 planner and worker roles cost $10,565; an Opus 4.8 planner with Composer 2.5
 workers cost $1,339 at similar held-out test pass rates, with workers
-carrying 69–90% of tokens. Their summary: "Once a frontier planner has
+carrying at least 69% of tokens, over 90% in most runs. Their summary: "Once a frontier planner has
 collapsed ambiguity into explicit instruction, less expensive models simply
 execute it."
 
@@ -113,21 +113,28 @@ same-family judge pairs were barely more correlated than cross-family pairs,
 so model-family diversity alone does not buy independence. Effective jury
 size saturates fast; three judges is the sweet spot, five the ceiling.
 
-What does decorrelate judges is what they see. Cursor's review design gives
-one reviewer the worker's full transcript, one only the output, and one only
-the surrounding codebase: "No single perspective caught everything, but
-uncorrelated perspectives combined for higher reliability." The profiles
-adopt this directly: reviewer lenses differ in input view (test diff only,
-full diff, codebase-without-transcript), and model diversity is layered on
-top rather than relied on alone.
+The same paper's headline cuts the other way and is reported here so the
+tension stays visible: in its uncorrupted setting the best single judge
+matches or outperforms the full panel across all conditions, and established
+aggregation methods close at most 11% of the gap. The profiles adopt panels
+anyway because the fleet is a union-gated recall machine, not an accuracy
+vote — the gating section below carries that argument.
+
+What does decorrelate judges is what they see. Cursor experimented with
+review lenses that differ in input view — the worker's full transcript, only
+its output, or nothing but the codebase — and reports: "No single lens
+catches everything, but decorrelated lenses stack." The profiles read that
+as three concurrent lenses and adopt it directly: reviewer lenses differ in
+input view (test diff only, full diff, codebase-without-transcript), and
+model diversity is layered on top rather than relied on alone.
 
 ### Robust aggregation, union gating
 
 A panel aggregated by arithmetic mean is corrupted arbitrarily by one
 degenerate judge — parser failures alone occur at 0.6–3.4% rates, before
 sycophancy or mode collapse. Robust aggregation (geometric median, trimmed
-statistics) restores the panel advantage; a 3-judge 38B-parameter committee
-beat a 675B judge under 30% judge corruption.
+statistics) restores the panel advantage under judge corruption; a 3-judge
+38B-parameter committee beat a 675B judge with 30% of judges corrupted.
 
 Gating is the counterintuitive part. In a four-tool concurrent review fleet
 measured over 617 findings, 93.4% of findings were caught by exactly one

@@ -52,7 +52,8 @@ allow_attributes = "deny"
 allow_attributes_without_reason = "deny"
 
 # Panic-free production code: a reachable panic is an invariant the types
-# failed to carry. Tests are exempt via clippy.toml `allow-*-in-tests`.
+# failed to carry. Tests are exempt from unwrap/expect/panic/indexing only,
+# via the four clippy.toml `allow-*-in-tests` knobs; the rest apply everywhere.
 arithmetic_side_effects = "deny"
 dbg_macro = "deny"
 exit = "deny"

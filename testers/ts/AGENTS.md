@@ -220,9 +220,12 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
 - Done, for a behavior change, means at least one test fails without the
   change; the handoff report says which. Tests may assert invariants the
   test itself established; production code is not a test fixture.
-- Trust boundaries get fast-check property tests. fast-check keeps no
-  regression corpus, so a counterexample found by a property run is pinned
-  as a deterministic example test.
+- Trust boundaries get fast-check property tests, imported from
+  `fast-check` directly — never `effect`'s re-exported `FastCheck`
+  namespace, which is the 3.x line whose arbitraries are not
+  interchangeable with the pinned 4.x. fast-check keeps no regression
+  corpus, so a counterexample found by a property run is pinned as a
+  deterministic example test.
 - `mise run ts:mutants` is the mechanical adversary: would the tests notice
   if this code were wrong? A surviving mutant is a finding with exactly
   three exits: kill — the suite gains a test that observes the difference;

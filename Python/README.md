@@ -1,13 +1,24 @@
 # Python Standards
 
-Copy `pyproject.toml` into a Python project and replace the placeholder package
-names:
+Copy `pyproject.toml` and `.github/` (workflow, CODEOWNERS, PR template) into
+a Python project and replace the placeholder package names:
 
 - `project-name`: the distribution name.
 - `project_name`: the import package under `src/`.
 
 Merge `AGENTS.md` into the repository's agent guide; it holds the agent-driven
-doctrine the enforcement below mechanizes.
+doctrine the enforcement below mechanizes. Copy the catalog's
+`shared/.gitignore` too (or fold it into the repo's own): it keeps `mutants/`,
+`.hypothesis/`, and the other tool outputs out of version control. For the
+property-testing posture `AGENTS.md` describes, register the Hypothesis `ci`
+profile in `tests/conftest.py`:
+
+```python
+from hypothesis import settings
+
+settings.register_profile("ci", derandomize=False, print_blob=True)
+settings.load_profile("ci")
+```
 
 Use this with the shared mise template:
 
@@ -56,7 +67,9 @@ complexity, dataclass slots, and high-confidence dead-code checks.
 `py:standards:check:deep` runs the standard CI gate, including the dependency
 audit, before the optional deep analyzers. Generate and commit `uv.lock` before
 relying on `py:standards:check`; the CI gate fails when the lockfile is missing
-or stale.
+or stale. Bootstrap the mutation floor the same way: run
+`MUTMUT_FLOOR=0 mise run py:mutants` once and commit the measured score it
+reports as `.mutmut-floor`.
 
 Strictness is the starting point, not an obligation. Relax or remove checks
 that do not fit the project's risk, lifecycle, typing surface, or migration

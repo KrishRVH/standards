@@ -29,13 +29,16 @@ exactly one rule, SA1404, which rejects `[SuppressMessage]` without a real
 justification; ReferenceTrimmer fails the build on references no code uses;
 CsCheck is the property-testing default; and Stryker.NET (pinned as a local
 dotnet tool) runs the mutation gate on the Microsoft Testing Platform runner,
-which is in preview. `thresholds.break` in `stryker-config.json` is a coarse
-regression alarm pinned at the measured floor, not a per-mutant guarantee;
-survivors in changed code are dispositioned in review. Mutation testing
-requires sources and tests in separate projects joined by a
-`ProjectReference`; a single mixed project cannot be mutated. On large
-projects, keep `csharp:mutants:diff` in the PR gate and move the full sweep
-to a scheduled job. Stale-suppression detection (IDE0079) works only inside
+which is in preview. `thresholds.break` in `stryker-config.json` is pinned
+at the measured floor. The shipped 100 makes every survivor fail — a
+deliberate per-mutant gate at fixture size; pin your own measured floor on
+adoption and it becomes a coarse regression alarm, with survivors in changed
+code dispositioned in review. Mutation testing requires sources and tests in
+separate projects joined by a `ProjectReference`; a single mixed project
+cannot be mutated. On large projects, swap `csharp:mutants` for
+`csharp:mutants:diff` in the PR gate and move the full sweep to a scheduled
+job; give the workflow's checkout step `fetch-depth: 0` first so `--since`
+can resolve `MUTANTS_BASE_REF` in a shallow clone. Stale-suppression detection (IDE0079) works only inside
 the IDE — no CLI build surfaces it — so dead suppressions are a review duty,
 not a gate.
 

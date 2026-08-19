@@ -66,10 +66,11 @@ then lint/test/doc/package/mutants/deny tasks run with `--locked`.
 `rust:package` validates publishable package contents with
 `cargo package --workspace`. The `*:install` tasks put pinned `cargo-deny`,
 `cargo-machete`, and `cargo-mutants` into local `.cargo-tools`. `rust:deny`
-fails on advisories, yanked crates, disallowed licenses, wildcard dependency
-requirements, and unknown registries, and surfaces duplicate-version and
-unmaintained warnings without failing. `rust:machete` fails on declared
-dependencies no code uses.
+fails on advisories (unmaintained crates included), yanked crates, disallowed
+licenses, wildcard dependency requirements, and unknown registries, and
+surfaces duplicate-version warnings without failing. `rust:machete` fails on
+`[dependencies]` entries no code uses; dev- and build-dependencies are not
+checked.
 
 `rust:mutants` runs the full mutation sweep; a surviving mutant is a review
 finding, not a statistic. `rust:mutants:diff` mutates only code changed
@@ -78,7 +79,8 @@ catalog's copyable `shared/.gitignore` already excludes `mutants.out/` and
 `mutants.out.old/`;
 commit `proptest-regressions/`. On large projects, swap `rust:mutants` for
 `rust:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job.
+job; give the workflow's checkout step `fetch-depth: 0` first, or the diff
+task cannot resolve `MUTANTS_BASE_REF` in a shallow CI clone.
 
 `.github/` ships a hash-pinned `quality.yml` workflow that runs the gate on
 pull requests, pushes, and merge-queue groups, and a PR template whose

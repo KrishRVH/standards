@@ -51,8 +51,8 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
   (`tests/**` is exempt from S101).
 - Trust boundaries get Hypothesis property tests. `.hypothesis/` is a local
   cache and stays out of version control; every triaged counterexample is
-  pinned as a durable `@example` on the test (`print_blob=True` in the CI
-  profile emits the reproduction line).
+  pinned as a durable `@example` on the test (`print_blob=True` in the `ci`
+  profile the README ships emits the reproduction line).
 - `mise run py:mutants` is the mechanical adversary: would the tests notice
   if this code were wrong? A surviving mutant is a finding with exactly
   three exits: kill — the suite gains a test that observes the difference;

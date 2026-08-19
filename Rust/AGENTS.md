@@ -199,10 +199,10 @@ first (weakening a test to pass is the canonical reward hack); and attacks:
   (`cfg(clippy)`, `cfg(test)` changing production behavior, `cfg_attr`
   smuggling skips) is a wall bypass, full stop.
 
-Review is a fleet, not a bigger reviewer. Verifier tokens cost a tenth to
-an eightieth of author tokens, so the pass defaults to up to three cheap
-reviewers; beyond that, correlated errors make extra judges nearly
-worthless. What decorrelates reviewers is input view, not model family:
+Review is a fleet, not a bigger reviewer. Verifier tokens cost one to two
+orders of magnitude less than author tokens, so the pass defaults to up to
+three cheap reviewers; beyond that, correlated errors make extra judges
+nearly worthless. What decorrelates reviewers is input view, not model family:
 one reads the test diff only, one the full diff, one the code with no
 change narrative. Model diversity is layered on top of that, not relied on
 alone. Findings collect on the union after dedup — most real findings
@@ -245,12 +245,13 @@ to be read rather than skimmed.
 
 Standard library first. A new dependency is an architecture decision: one
 sentence naming the complexity it removes, or it does not go in.
-Enforcement: `rust:deny` fails on advisories, yanked crates, disallowed
-licenses, wildcard requirements, and unknown registries; `rust:machete`
-fails on declared dependencies no code uses; `Cargo.lock` is exact and
-committed. Duplicate versions and unmaintained-crate advisories surface as
-`rust:deny` warnings and do not fail the gate — the handoff report carries
-them forward verbatim so an ignorable diagnostic still cannot vanish.
+Enforcement: `rust:deny` fails on advisories (unmaintained crates
+included), yanked crates, disallowed licenses, wildcard requirements, and
+unknown registries; `rust:machete` fails on `[dependencies]` entries no
+code uses — dev- and build-dependencies are not checked; `Cargo.lock` is
+exact and committed. Duplicate versions surface as `rust:deny` warnings
+and do not fail the gate — the handoff report carries them forward
+verbatim so an ignorable diagnostic still cannot vanish.
 
 ## Workflow
 

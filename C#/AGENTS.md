@@ -62,12 +62,16 @@ Semantic verification — the gate proves form, and wrong logic compiles:
   results). A surviving mutant is a finding with exactly three exits:
   kill — the suite gains a test that observes the difference; delete — the
   code loses the branch the suite cannot reach; or classify — a
-  `// Stryker disable once` comment whose reason names why no test can
-  observe the mutant (equivalent mutants exist). Classify is a wall edit
-  requiring human countersign. The `thresholds.break` value is a coarse
-  regression alarm pinned at the measured floor, not a per-mutant
-  guarantee: raising it is normal work; lowering it requires human
-  countersign, and survivors in changed code are dispositioned in review.
+  `// Stryker disable once all: <reason>` comment whose reason names why no
+  test can observe the mutant (equivalent mutants exist). The `all`/mutator
+  part is required syntax: a comment without it is silently ignored.
+  Classify is a wall edit requiring human countersign. The
+  `thresholds.break` value is pinned at the measured floor. At this
+  project's floor of 100 every survivor fails the gate — a deliberate
+  per-mutant guarantee at fixture size; a lower measured floor behaves as a
+  coarse regression alarm instead. Raising it is normal work; lowering it
+  requires human countersign, and survivors in changed code are
+  dispositioned in review.
   `mise run csharp:mutants:diff` scopes the inner loop (set
   `MUTANTS_BASE_REF`, default `main`). Mutation requires the src/tests
   project split; a project whose tests live beside its sources cannot be

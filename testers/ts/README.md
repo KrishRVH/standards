@@ -163,6 +163,11 @@ cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
 unit/semantic/type-negative tests, randomized fast-check property tests,
 `bun audit --audit-level=low`, knip, and the full Stryker mutation sweep.
+The audit gate covers dev-only subtrees too — Stryker's legacy
+`typed-rest-client` tree has already tripped it once (the `qs` override in
+`package.json` is the patch). The countersigned escape for an advisory with
+no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
+script, removed once the fix ships.
 
 `ts:knip` fails on declared dependencies, exports, and files no code uses.
 `ts:mutants` audits whether the tests would notice wrong code; its `break`
@@ -173,7 +178,9 @@ review — and `ts:mutants:diff` is the incremental inner loop (Stryker's
 found by a property run is pinned as a deterministic example test because
 fast-check keeps no regression corpus. On large projects, swap `ts:mutants`
 for `ts:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job.
+job; the shipped workflow's cache step keeps
+`reports/stryker-incremental.json` warm between runs, and without it a fresh
+CI checkout makes `ts:mutants:diff` a cold full sweep.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the
@@ -246,6 +253,15 @@ If a project chooses Option B, remove `@eslint/js`,
 `globals`, `prettier`, and `typescript-eslint`; add exact dev dependency
 `"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
 service, TypeScript, Bun types, and the lock policy.
+
+Know what the switch costs: removing ESLint removes walls Biome cannot
+replace — the reasoned-disable exception protocol
+(`eslint-disable-next-line <rule> -- <reason>` with unused-directive
+expiry), the module-scope shared-mutable-state and `globalThis` walls
+(`no-restricted-syntax`), the src-scoped ambient-state walls
+(`no-restricted-globals`, `no-restricted-imports`), and
+`no-unsafe-type-assertion` with `consistent-type-assertions`. Under Option B
+those revert from gates to review duties stated in `AGENTS.md`.
 
 Remap package scripts without changing mise task names:
 
