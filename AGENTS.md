@@ -13,10 +13,9 @@ changing architecture or domain language. Use this file for agent working rules.
 
 These standards primarily pursue ecosystem-idiomatic, almost systems-like
 strictness and elegance. Agentic development is central: an agent should be
-able to discover the intended workflow,
-understand contracts from nearby code, config, and tests, make a narrow change,
-and prove it through deterministic commands without relying on tribal
-knowledge.
+able to discover the intended workflow, understand contracts from nearby code,
+config, and tests, make a narrow change, and prove it through deterministic
+commands without relying on tribal knowledge.
 
 ## Principles
 

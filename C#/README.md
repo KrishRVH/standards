@@ -10,9 +10,9 @@ it with the shared mise template:
 .config/mise/conf.d/20-csharp.toml
 ```
 
-Merge `AGENTS.md` into the repository's agent guide. Applications
-should also copy `APPLICATION.md`; libraries and specialized workloads should
-skip that profile or adopt only the rules that fit their public contract.
+Merge `AGENTS.md` into the repository's agent guide. Applications should also
+copy `APPLICATION.md`; libraries and specialized workloads should skip that
+profile or adopt only the rules that fit their public contract.
 
 The baseline pins .NET 10, C# 14, `MSTest.Sdk`, and Microsoft Testing Platform.
 It enables nullable analysis and checked arithmetic, disables unsafe code,
@@ -39,9 +39,8 @@ cannot be mutated. On large projects, swap `csharp:mutants` for
 `csharp:mutants:diff` in the PR gate and move the full sweep to a scheduled
 job; give the workflow's checkout step `fetch-depth: 0` first, because a
 shallow clone cannot resolve `MUTANTS_BASE_REF` for `--since`.
-Stale-suppression detection (IDE0079) works only inside
-the IDE — no CLI build surfaces it — so dead suppressions are a review duty,
-not a gate.
+Stale-suppression detection (IDE0079) works only inside the IDE — no CLI
+build surfaces it — so dead suppressions are a review duty, not a gate.
 
 Test projects use the centrally pinned SDK without a test package reference:
 

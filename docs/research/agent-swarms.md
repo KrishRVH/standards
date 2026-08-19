@@ -3,12 +3,12 @@
 Research date: 2026-08-17 (America/Chicago)
 
 This record explains the durable decisions behind the agent-driven doctrine in
-the Rust, TypeScript, C#, and Python profiles: how work is assigned across expensive and
-cheap models, how verification fleets are shaped, and which failure modes the
-profiles defend against. The authoritative executable configuration remains
-the profile configs and `Mise/conf.d/` task fragments; the doctrine owners
-are the profiles' `AGENTS.md` files. Evidence comes from vendor
-engineering posts, production systems, the 2024–2026 judge/verifier
+the Rust, TypeScript, C#, and Python profiles: how work is assigned across
+expensive and cheap models, how verification fleets are shaped, and which
+failure modes the profiles defend against. The authoritative executable
+configuration remains the profile configs and `Mise/conf.d/` task fragments;
+the doctrine owners are the profiles' `AGENTS.md` files. Evidence comes from
+vendor engineering posts, production systems, the 2024–2026 judge/verifier
 literature, and a GitHub survey of agent-automation adoption. Prices, model
 names, and ledger counts are a dated snapshot and go stale; mechanisms are
 the durable part.
@@ -76,9 +76,9 @@ Three independent production systems converged on the same split in 2026.
 Cursor rebuilt SQLite in Rust as a controlled experiment: GPT-5.5 in both
 planner and worker roles cost $10,565; an Opus 4.8 planner with Composer 2.5
 workers cost $1,339 at similar held-out test pass rates, with workers
-carrying at least 69% of tokens, over 90% in most runs. Their summary: "Once a frontier planner has
-collapsed ambiguity into explicit instruction, less expensive models simply
-execute it."
+carrying at least 69% of tokens, over 90% in most runs. Their summary: "Once
+a frontier planner has collapsed ambiguity into explicit instruction, less
+expensive models simply execute it."
 
 Cognition's Devin Fusion lands on the same split — the frontier lead plans,
 reviews, and commits while cheap sidekicks execute — and reports 35–60% cost
