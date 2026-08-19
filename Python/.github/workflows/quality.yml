@@ -4,12 +4,12 @@ name: Quality
 # Large projects: cache mutants/ to make this gate incremental, or move the
 # full sweep to a scheduled workflow.
 on:
-  merge_group:
   pull_request:
   push:
     branches:
       - main
   workflow_dispatch:
+  merge_group:
 
 permissions:
   contents: read

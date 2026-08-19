@@ -1,14 +1,16 @@
 name: Quality
 
-# Large projects: keep csharp:mutants:diff in this PR gate and move the full
-# mutation sweep to a scheduled workflow (see README).
+# Large projects: swap csharp:mutants for csharp:mutants:diff in the gate this
+# workflow runs, set fetch-depth: 0 on the checkout step so Stryker's --since
+# can resolve MUTANTS_BASE_REF in a shallow clone, and move the full mutation
+# sweep to a scheduled workflow (see README).
 on:
-  merge_group:
   pull_request:
   push:
     branches:
       - main
   workflow_dispatch:
+  merge_group:
 
 permissions:
   contents: read

@@ -135,7 +135,7 @@ base_ref="${MUTANTS_BASE_REF:-main}"
 diff_file="$(mktemp)"
 trap 'rm -f "$diff_file"' EXIT
 
-git diff --relative "$base_ref" > "$diff_file"
+git diff --relative "$(git merge-base HEAD "$base_ref")" > "$diff_file"
 
 if [ ! -s "$diff_file" ]; then
   echo "No changes relative to $base_ref; nothing to mutate."
@@ -147,7 +147,7 @@ cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
 """
 
 [tasks."rust:machete"]
-description = "Detect declared dependencies no code uses"
+description = "Detect unused [dependencies] entries (dev/build deps are not checked)"
 depends = ["rust:machete:install"]
 run = """
 set -eu
