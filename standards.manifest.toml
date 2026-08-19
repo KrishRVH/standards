@@ -246,6 +246,7 @@ task_prefix = "ts"
 task_fragment = "20-ts.toml"
 mirror = [
   ".github/CODEOWNERS",
+  ".github/pull_request_template.md",
   ".github/workflows/quality.yml",
   ".prettierignore",
   "AGENTS.md",
