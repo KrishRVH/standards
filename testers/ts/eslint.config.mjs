@@ -218,6 +218,17 @@ export default defineConfig(
       yoda: 'error',
 
       // TS hygiene / correctness
+      /**
+       * Casts are earned at validated boundaries only (EFF-030). A narrowing
+       * assertion outside a validated adapter is a per-site exception with a
+       * reasoned suppression; an object-literal assertion has a safe
+       * replacement in `satisfies`.
+       */
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' },
+      ],
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
       '@typescript-eslint/consistent-type-exports': ['error', { fixMixedExportsWithInlineTypeSpecifier: true }],
       '@typescript-eslint/consistent-type-imports': [
         'error',

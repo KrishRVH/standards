@@ -30,7 +30,7 @@ const result = await new Promise((resolve, reject) => {
 
 const output = `${result.stdout}${result.stderr}`;
 
-assert.notEqual(result.code, 0, 'The unprojected route error fixture unexpectedly compiled.');
+assert.notEqual(result.code, 0, 'The negative type fixtures unexpectedly compiled.');
 
 const diagnostics = Array.from(
   output.matchAll(/^(type-tests\/[^\n(]+)\((\d+),(\d+)\): error TS(\d+):/gm),
@@ -44,10 +44,17 @@ const diagnostics = Array.from(
 
 assert.deepEqual(diagnostics, [
   {
+    code: 1360,
+    column: 15,
+    file: 'type-tests/nonexhaustive-variant.ts',
+    line: 14,
+  },
+  {
     code: 2379,
     column: 25,
     file: 'type-tests/protected-route-unprojected.ts',
     line: 16,
   },
 ]);
+assert.match(output, /does not satisfy the expected type 'never'\./);
 assert.match(output, /Type 'RateLimited' is not assignable to type 'never'\./);

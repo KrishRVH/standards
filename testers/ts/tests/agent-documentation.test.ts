@@ -12,6 +12,7 @@ const routedGuides = [
   '../docs/effect/services-layers-and-runtime.md',
   '../docs/effect/testing-and-diagnostics.md',
   '../docs/effect/time-retry-and-cancellation.md',
+  '../docs/effect/type-discipline.md',
   '../docs/effect/overlays/bun-server.md',
   '../docs/effect/overlays/framework-ui.md',
   '../docs/effect/overlays/production-observability.md',
@@ -24,7 +25,7 @@ test('the always-loaded guide remains compact and exposes all decision routes', 
   const decisions = guide.match(/^## Decision \d+:/gmu) ?? [];
 
   expect(words.length).toBeLessThanOrEqual(2_500);
-  expect(decisions).toHaveLength(17);
+  expect(decisions).toHaveLength(18);
 
   for (const path of routedGuides) {
     const linkedPath = path.slice(3);
@@ -36,7 +37,7 @@ test('the always-loaded guide remains compact and exposes all decision routes', 
 test('the enforcement map owns one complete record for every stable rule ID', async () => {
   const enforcement = await readRelative('../docs/effect/enforcement.md');
   const entries = [...enforcement.matchAll(/^## (EFF-\d{3}) — .+$/gmu)];
-  const expectedIds = Array.from({ length: 29 }, (_, index) => `EFF-${String(index + 1).padStart(3, '0')}`);
+  const expectedIds = Array.from({ length: 30 }, (_, index) => `EFF-${String(index + 1).padStart(3, '0')}`);
 
   expect(entries.map(([, id]) => id)).toEqual(expectedIds);
   for (const [index, entry] of entries.entries()) {

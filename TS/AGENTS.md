@@ -26,6 +26,8 @@ Use Schema at untrusted and protocol boundaries, not for every internal type.
 ## Read before changing a boundary
 
 - Pure functions or Effect function shape: [adoption and functions](docs/effect/adoption-and-functions.md).
+- A domain type, variant union, branded identity, or type assertion:
+  [type discipline](docs/effect/type-discipline.md).
 - Errors, Cause, public HTTP/client errors, or failure projection:
   [errors, Cause, and projection](docs/effect/errors-cause-and-projection.md).
 - A service, layer, runtime, or runtime-owned task:
@@ -178,6 +180,15 @@ Use Schema at untrusted and protocol boundaries, not for every internal type.
 | Protected infrastructure wrapper | Accept `Effect<Response, never, R>`                |
 | Unexpected defect/interruption   | Outer server/runtime boundary, never generic `503` |
 
+## Decision 18: invariant representation
+
+| Invariant                               | Model                                                 |
+| --------------------------------------- | ----------------------------------------------------- |
+| Variant state                           | Tagged union on `_tag`, handled exhaustively          |
+| Same-primitive values that must not mix | Branded type validated once at creation               |
+| Structural shape (non-empty, range)     | Constructive type whose illegal value cannot be built |
+| Literal conformance without widening    | `satisfies`, never an object-literal `as`             |
+
 ## Hands-off development doctrine
 
 This profile assumes the agent is the author and the first adversary; humans
@@ -216,7 +227,7 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
   if this code were wrong? A surviving mutant is a finding with exactly
   three exits: kill — the suite gains a test that observes the difference;
   delete — the code loses the branch the suite cannot reach; or classify —
-  a `// Stryker disable next-line` comment whose reason names why no test
+  a `// Stryker disable next-line all: <reason>` comment whose reason names why no test
   can observe the mutant (equivalent mutants exist). Classify is a wall
   edit requiring human countersign, like lowering `break`, excluding a
   mutator, or narrowing `mutate`. The `break` threshold is a coarse
@@ -236,8 +247,8 @@ diff, code without the change narrative), who flag and never rewrite.
 Findings collect on the union after dedup; severity triage decides what
 blocks — a claim of observable wrongness blocks until dispositioned, a
 judgment call becomes a design note. Any edit to the enforcement
-surface — `eslint.config.mjs`, `tsconfig.json`, `stryker.config.mjs`,
-`knip.jsonc`, `bunfig.toml`, the mise tasks — is a finding by default, and
+surface — the lint/type/mutation/knip configs, the check scripts, and the
+mise tasks; `.github/CODEOWNERS` lists it — is a finding by default, and
 loosening requires human countersign. A disputed finding is settled by
 writing the failing test, not by argument; a finding no test can express
 is recorded as a design note with a named owner, and a question of intent

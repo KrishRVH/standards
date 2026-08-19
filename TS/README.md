@@ -97,6 +97,9 @@ The canonical endpoint checker is intentionally small:
   failures, target identity, normalized destination rejection, redirect
   classification, cancellation, attempts, non-retry, batch outcomes,
   concurrency, encoding, and redaction-safe projection behavior.
+- `tests/endpoint-properties.test.ts` holds the trust-boundary property
+  tests; a counterexample found by a run is pinned there as a deterministic
+  example.
 - The copyable profile includes the expected-diagnostic harness because it
   guards the configured language-service contract. The tester alone adds the
   larger fixture-owned semantic probes so the downstream seed remains readable.
@@ -158,8 +161,8 @@ generated and is not committed.
 `ts:standards` runs ESLint autofix before the final Prettier pass so a lint fix
 cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
-unit/semantic/type-negative tests, `bun audit --audit-level=low`, knip, and
-the full Stryker mutation sweep.
+unit/semantic/type-negative tests, randomized fast-check property tests,
+`bun audit --audit-level=low`, knip, and the full Stryker mutation sweep.
 
 `ts:knip` fails on declared dependencies, exports, and files no code uses.
 `ts:mutants` audits whether the tests would notice wrong code; its `break`
@@ -168,8 +171,9 @@ per-mutant guarantee — survivors in changed code are dispositioned in
 review — and `ts:mutants:diff` is the incremental inner loop (Stryker's
 `--incremental` cache). Property tests use `fast-check`; a counterexample
 found by a property run is pinned as a deterministic example test because
-fast-check keeps no regression corpus. On large projects, keep
-`ts:mutants:diff` in the PR gate and move the full sweep to a scheduled job.
+fast-check keeps no regression corpus. On large projects, swap `ts:mutants`
+for `ts:mutants:diff` in the PR gate and move the full sweep to a scheduled
+job.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the
@@ -205,6 +209,11 @@ template reminds humans to perform.
 The committed default is Option A: type-aware ESLint plus Prettier. The config
 sets `@typescript-eslint/no-floating-promises` with `ignoreVoid: false`; writing
 `void runtime.runPromise(...)` is not accepted as background-task ownership.
+It also blocks narrowing and object-literal type assertions
+(`no-unsafe-type-assertion`, `consistent-type-assertions`): a value proves
+conformance with `satisfies`, and a cast is earned only inside a validated
+boundary adapter per EFF-030 and the
+[type discipline guide](docs/effect/type-discipline.md).
 
 `skipLibCheck` is false. This costs some feedback time but checks dependency
 declarations. Re-enable it only after measuring a material project-specific
@@ -240,14 +249,14 @@ service, TypeScript, Bun types, and the lock policy.
 
 Remap package scripts without changing mise task names:
 
-| Script            | Option B value                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `format`          | `biome format --write .`                                                                                                                                           |
-| `format:check`    | `biome format .`                                                                                                                                                   |
-| `lint`            | `biome lint --error-on-warnings .`                                                                                                                                 |
-| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                                         |
-| `standards`       | `biome check --write --error-on-warnings .`                                                                                                                        |
-| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit && bun run knip` |
+| Script            | Option B value                                                                                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`          | `biome format --write .`                                                                                                                                                                       |
+| `format:check`    | `biome format .`                                                                                                                                                                               |
+| `lint`            | `biome lint --error-on-warnings .`                                                                                                                                                             |
+| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                                                                     |
+| `standards`       | `biome check --write --error-on-warnings .`                                                                                                                                                    |
+| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run type-tests:check && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit && bun run knip` |
 
 Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
 The Biome baseline enables recommended stable rules, explicitly excludes the

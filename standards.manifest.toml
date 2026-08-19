@@ -266,6 +266,7 @@ mirror = [
   "docs/effect/services-layers-and-runtime.md",
   "docs/effect/testing-and-diagnostics.md",
   "docs/effect/time-retry-and-cancellation.md",
+  "docs/effect/type-discipline.md",
   "effect-diagnostics/fixtures/any-unknown-error-context.ts",
   "effect-diagnostics/fixtures/class-self-mismatch.ts",
   "effect-diagnostics/fixtures/effect-fn-implicit-any.ts",
@@ -315,6 +316,7 @@ mirror = [
   "tests/fixtures/biome/public-api.d.ts",
   "tests/support/test-clock.ts",
   "tsconfig.json",
+  "type-tests/nonexhaustive-variant.ts",
   "type-tests/protected-route-unprojected.ts",
   "type-tests/tsconfig.json",
 ]

@@ -20,8 +20,8 @@ boundary, port the matching tester suite shape before relying on that cell.
 
 ## Coverage summary
 
-This profile defines 29 mandatory rules. Twenty-five have at least one static
-compiler, language-service, linter, or negative-fixture check; 28 have an
+This profile defines 30 mandatory rules. Twenty-six have at least one static
+compiler, language-service, linter, or negative-fixture check; 29 have an
 executable unit, semantic, integration, or diagnostic contract. EFF-001 remains
 the only wholly non-blocking rule: the language service can advise against some
 ceremonial Effect use, but selective adoption is ultimately an architecture
@@ -490,10 +490,11 @@ vocabulary, or repository-host branch protection.
 ## EFF-029 — Automatic mandatory quality gate
 
 - **Rule — MUST:** Commit a `quality` workflow that runs for pull requests,
-  pushes to `main`, and manual dispatch; installs with locked/frozen inputs; and
-  runs format, lint, TypeScript, Effect and expected diagnostics, deterministic
-  tests, audit, lock/drift checks, and the repository aggregate applicable to
-  the project.
+  merge-queue groups, pushes to `main`, and manual dispatch; installs with
+  locked/frozen inputs; and runs format, lint, TypeScript, Effect and expected
+  diagnostics, type-negative checks, deterministic and property tests, audit,
+  knip, the mutation sweep, lock/drift checks, and the repository aggregate
+  applicable to the project.
 - **Rationale:** A high-signal gate protects autonomous changes only when the
   repository runs it without relying on agent memory.
 - **Minimum / prohibited:** Immutable action revisions, locked install, the
@@ -508,3 +509,26 @@ vocabulary, or repository-host branch protection.
   protection and required-status configuration.
 - **Version:** Workflows pin checkout v7.0.1, mise-action v4.2.4, and the locally
   tested mise 2026.7.15; the TypeScript gate uses the dependency versions above.
+
+## EFF-030 — Constructive type modeling
+
+- **Rule — MUST:** Model variant state as a literal-discriminant tagged union
+  handled exhaustively, construct domain invariants instead of asserting them,
+  and keep narrowing type assertions out of application code outside validated
+  boundary adapters. Literal conformance uses `satisfies`, not an
+  object-literal assertion.
+- **Rationale:** A type that admits an illegal state moves the invariant into
+  runtime checks and review memory, where neither the compiler nor an
+  autonomous caller can see it.
+- **Minimum / prohibited:** `_tag` unions with `satisfies never` exhaustion,
+  branded or constructive domain types, guards that verify their claim /
+  boolean-plus-optional state bags, narrowing `as` in application code,
+  object-literal or non-null assertions.
+- **Exception:** A per-site lint suppression whose reason names the validation
+  that earns the cast and why a Schema decode (EFF-020) does not fit.
+- **Enforcement:** TS blocking for exhaustion; LS —; ESLint blocking for
+  unsafe/object-literal/non-null assertions and switch exhaustiveness; Biome
+  partial; Neg exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual
+  modeling review.
+- **Version:** TS 6.0.3, typescript-eslint 8.65.0; the modeling rule itself is
+  not version-specific.
