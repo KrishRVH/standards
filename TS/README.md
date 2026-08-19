@@ -166,11 +166,10 @@ the full Stryker mutation sweep.
 threshold is a coarse regression alarm pinned at the measured floor, not a
 per-mutant guarantee — survivors in changed code are dispositioned in
 review — and `ts:mutants:diff` is the incremental inner loop (Stryker's
-`--incremental` cache). Property tests use `fast-check`; a
-counterexample found by a property run is pinned
-as a deterministic example test because fast-check keeps no regression
-corpus. On large projects, keep `ts:mutants:diff` in the PR gate and move
-the full sweep to a scheduled job.
+`--incremental` cache). Property tests use `fast-check`; a counterexample
+found by a property run is pinned as a deterministic example test because
+fast-check keeps no regression corpus. On large projects, keep
+`ts:mutants:diff` in the PR gate and move the full sweep to a scheduled job.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the

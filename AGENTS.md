@@ -81,12 +81,13 @@ else; do not add `push`, `pull_request`, `schedule`, or `merge_group` triggers
 to it. Gates run locally before push, and hosted runs are dispatched on
 demand.
 
-Template workflows (`Rust/.github/`, `TS/.github/`) ship automatic triggers
-for downstream copies only; they are inert here because GitHub executes
-workflows only from the root `.github/workflows/`. The contract is enforced
-in both directions by `testers/ts/tests/quality-workflow.test.ts`: the root
-workflow must stay manual-dispatch-only, and the copyable template must keep
-its automatic triggers.
+Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
+`Python/.github/`) ship automatic triggers for downstream copies only; they
+are inert here because GitHub executes workflows only from the root
+`.github/workflows/`. The contract is enforced in both directions by
+`testers/ts/tests/quality-workflow.test.ts`: the root workflow must stay
+manual-dispatch-only, and the copyable template must keep its automatic
+triggers.
 
 ## Editing
 
