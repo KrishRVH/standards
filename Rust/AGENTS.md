@@ -161,9 +161,13 @@ adversarial reviewer audits the rest.
   observes the difference; delete — the code loses the branch the suite
   cannot reach; or classify — a per-site `#[mutants::skip]` whose reason
   names why no test can observe the mutant (equivalent mutants exist; the
-  tool's own docs say so). Classify is a wall edit: a review finding by
-  default, countersigned like any loosening, never a shortcut past writing
-  the test. Config-level mutants exclusions are coarser than per-site
+  tool's own docs say so). The skip attribute resolves against the
+  `mutants` crate, so the first classify also adds `mutants = "0.0.3"` to
+  `[dependencies]` — regular, not dev: skips sit on non-test code — and
+  the last one removes it (`rust:machete` flags the crate once no skip
+  remains). Classify is a wall edit: a review finding by default,
+  countersigned like any loosening, never a shortcut past writing the
+  test. Config-level mutants exclusions are coarser than per-site
   skips and are findings for the same reason. Never special-case code to
   satisfy a mutant. `mise run rust:mutants:diff` scopes the inner loop to
   the change (set `MUTANTS_BASE_REF`, default `main`); the gate runs the
