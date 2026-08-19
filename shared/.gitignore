@@ -65,6 +65,7 @@ node_modules/
 /.vite/
 
 # Python
+.basedpyright/
 .coverage
 .coverage.*
 .hypothesis/

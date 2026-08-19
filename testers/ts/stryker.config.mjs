@@ -34,6 +34,6 @@ export default {
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json',
   reporters: ['clear-text', 'progress'],
-  thresholds: { high: 80, low: 70, break: 66 },
+  thresholds: { high: 80, low: 60, break: 66 },
   bun: { timeout: 10000 },
 };

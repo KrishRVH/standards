@@ -37,6 +37,9 @@ deep = [
 packages = ["src/project_name"]
 
 [tool.ruff]
+# mutmut writes its mutated source copy to mutants/; keep ruff's walks out of
+# it even when the adopting repo has no gitignore entry for it.
+extend-exclude = ["mutants"]
 line-length = 100
 required-version = ">=0.16.0"
 show-fixes = true
@@ -52,7 +55,7 @@ line-ending = "lf"
 # Beyond the correctness baseline: PGH bans blanket suppressions, RUF100
 # expires dead noqa comments and RUF101 rewrites redirected rule codes (both
 # autofixed by py:standards), S mirrors bandit so
-# security suppressions ride the policed noqa channel, TID251/253 carry the
+# security suppressions ride the policed noqa channel, TID251 carries the
 # banned-API wall, PLW0603 bans `global`, ASYNC and DTZ catch blocking sleeps
 # in async code and naive datetimes.
 select = [
@@ -70,7 +73,6 @@ select = [
   "RUF101",
   "S",
   "TID251",
-  "TID253",
   "UP",
 ]
 

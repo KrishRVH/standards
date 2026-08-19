@@ -72,6 +72,7 @@ node_modules/
 /.vite/
 
 # Python generated output
+.basedpyright/
 .coverage
 .coverage.*
 .hypothesis/
