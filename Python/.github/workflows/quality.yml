@@ -1,7 +1,8 @@
 name: Quality
 
-# Large projects: mutmut's cache keeps py:mutants incremental in this PR
-# gate; move periodic cold full sweeps to a scheduled workflow.
+# CI checks out fresh, so every py:mutants run here is a cold full sweep.
+# Large projects: cache mutants/ to make this gate incremental, or move the
+# full sweep to a scheduled workflow.
 on:
   merge_group:
   pull_request:

@@ -163,15 +163,18 @@ import sys
 
 stats = json.loads(pathlib.Path("mutants/mutmut-cicd-stats.json").read_text(encoding="utf-8"))
 total = stats["total"]
-score = 100 * stats["killed"] / total if total else 100.0
-floor_env = os.environ.get("MUTMUT_FLOOR")
+if not total:
+    sys.exit("mutmut generated no mutants; check [tool.mutmut] source_paths.")
+score = 100 * stats["killed"] / total
 floor_file = pathlib.Path(".mutmut-floor")
-if floor_env is not None:
-    floor = float(floor_env)
-elif floor_file.is_file():
+floor_env = os.environ.get("MUTMUT_FLOOR")
+if floor_file.is_file():
     floor = float(floor_file.read_text(encoding="utf-8"))
+elif floor_env is not None:
+    # Bootstrap only: the committed floor is authoritative once it exists.
+    floor = float(floor_env)
 else:
-    sys.exit("No mutation floor. Commit .mutmut-floor with the measured score or set MUTMUT_FLOOR.")
+    sys.exit("No mutation floor. Commit .mutmut-floor with the measured score, or set MUTMUT_FLOOR to bootstrap.")
 if score < floor:
     sys.exit(f"Mutation score {score:.2f} is below the ratchet floor {floor:g}.")
 print(f"Mutation score {score:.2f} meets the ratchet floor {floor:g}.")

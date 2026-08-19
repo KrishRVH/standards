@@ -2,8 +2,15 @@
 
 Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`,
 `global.json`, `BannedSymbols.txt`, `stryker-config.json`,
-`.config/dotnet-tools.json`, and `Mise/conf.d/20-csharp.toml` into a .NET
-repository. Merge `AGENTS.md` into the repository's agent guide. Applications
+`.config/dotnet-tools.json`, and `.github/` into a .NET repository, and use
+it with the shared mise template:
+
+```text
+.config/mise/config.toml
+.config/mise/conf.d/20-csharp.toml
+```
+
+Merge `AGENTS.md` into the repository's agent guide. Applications
 should also copy `APPLICATION.md`; libraries and specialized workloads should
 skip that profile or adopt only the rules that fit their public contract.
 

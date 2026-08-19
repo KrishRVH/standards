@@ -1,5 +1,5 @@
-# Keep Clippy suggestions aligned with the pinned template toolchain.
-msrv = "1.97.1"
+# Clippy reads the MSRV from Cargo.toml's `rust-version`; a second pin here
+# would override it and drift silently on a toolchain bump.
 
 # The panic-free wall applies to production code; tests may assert invariants
 # the test itself established.
@@ -80,6 +80,9 @@ doc-valid-idents = [
     "UUID",
 ]
 
+# enum-variant-size, bool-params, and too-many-arguments pin Clippy's current
+# defaults so an upstream change cannot silently loosen the wall; the nesting
+# and single-char thresholds tighten the defaults.
 enum-variant-size-threshold = 200
 
 excessive-nesting-threshold = 5

@@ -3,6 +3,7 @@
 # setting is what makes AGENTS.md's "loosening requires human countersign"
 # mechanical instead of advisory. Add the repo's mise task file (the
 # 20-csharp.toml fragment) wherever it lives.
+/.config/dotnet-tools.json @OWNER
 /.editorconfig @OWNER
 /.github/ @OWNER
 /AGENTS.md @OWNER

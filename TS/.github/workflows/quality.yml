@@ -1,7 +1,8 @@
 name: Quality
 
-# Large projects: keep ts:mutants:diff in this PR gate and move the full
-# mutation sweep to a scheduled workflow (see README).
+# Large projects: swap ts:mutants for ts:mutants:diff in the
+# ts:standards:check task graph and move the full mutation sweep to a
+# scheduled workflow (see README).
 on:
   pull_request:
   push:

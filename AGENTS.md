@@ -12,8 +12,8 @@ changing architecture or domain language. Use this file for agent working rules.
 ## Design Target
 
 These standards primarily pursue ecosystem-idiomatic, almost systems-like
-strictness and elegance. A major secondary goal is dependable agentic
-development: an agent should be able to discover the intended workflow,
+strictness and elegance. Agentic development is central: an agent should be
+able to discover the intended workflow,
 understand contracts from nearby code, config, and tests, make a narrow change,
 and prove it through deterministic commands without relying on tribal
 knowledge.
@@ -84,10 +84,10 @@ demand.
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`) ship automatic triggers for downstream copies only; they
 are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. The contract is enforced in both directions by
-`testers/ts/tests/quality-workflow.test.ts`: the root workflow must stay
-manual-dispatch-only, and the copyable template must keep its automatic
-triggers.
+`.github/workflows/`. The contract is machine-enforced in both directions by
+`testers/ts/tests/quality-workflow.test.ts` for the root workflow and the
+TypeScript template; the Rust, C#, and Python templates carry the same
+triggers under review discipline only.
 
 ## Editing
 

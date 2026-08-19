@@ -38,8 +38,9 @@ pycodestyle errors, isort, Bugbear, pyupgrade) plus the agent-driven walls:
 blanket-suppression bans (PGH), self-expiring noqa comments (RUF100, fixed by
 `py:standards`), security rules (S, mirroring bandit through the policed noqa
 channel), the banned-API wall for ambient clocks, RNGs, environment reads,
-and `pickle` (TID251, remediation-shaped messages), and a `global` ban
-(PLW0603). Basedpyright runs in `all` mode and rejects rule-less or stale
+and `pickle` (TID251, remediation-shaped messages), a `global` ban
+(PLW0603), and async/datetime hygiene for blocking sleeps and naive
+datetimes (ASYNC, DTZ). Basedpyright runs in `all` mode and rejects rule-less or stale
 `# pyright: ignore` comments. Bandit checks source security, tests collect
 branch coverage against the `fail_under` ratchet, Hypothesis carries property
 tests (pin triaged counterexamples as `@example`; `.hypothesis/` stays
@@ -48,7 +49,8 @@ untracked), `py:deps` fails on unused or missing dependencies (deptry),
 sweep against the committed `.mutmut-floor` ratchet (a coarse regression
 alarm, not a per-mutant guarantee; a missing floor fails rather than
 passing vacuously; survivors in changed code are dispositioned in review),
-and `py:build` verifies wheel and source distributions. Projects that want a heavier analysis profile can use
+and `py:build` verifies wheel and source distributions. Projects that want a
+heavier analysis profile can use
 `py:deep` for mypy, documentation coverage (gating at 100 when run),
 complexity, dataclass slots, and high-confidence dead-code checks.
 `py:standards:check:deep` runs the standard CI gate, including the dependency

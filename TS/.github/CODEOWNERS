@@ -4,11 +4,16 @@
 # mechanical instead of advisory. Add the repo's mise task file (the
 # 20-ts.toml fragment) wherever it lives.
 /.github/ @OWNER
+/.prettierignore @OWNER
 /AGENTS.md @OWNER
 /biome.jsonc @OWNER
 /bunfig.toml @OWNER
+/effect-diagnostics/tsconfig.json @OWNER
 /eslint.config.mjs @OWNER
 /knip.jsonc @OWNER
 /package.json @OWNER
+/prettier.config.mjs @OWNER
+/scripts/ @OWNER
 /stryker.config.mjs @OWNER
 /tsconfig.json @OWNER
+/type-tests/tsconfig.json @OWNER

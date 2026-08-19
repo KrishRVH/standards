@@ -1,6 +1,12 @@
 # Rust Standards
 
-Copy these files into a Rust project and run the tasks through `mise`.
+Copy these files into a Rust project and run the tasks through `mise`, using
+the shared mise template:
+
+```text
+.config/mise/config.toml
+.config/mise/conf.d/20-rust.toml
+```
 
 This baseline is optimized for agent-driven development: every rule a machine
 can check is denied by a lint or a gate, exceptions require a per-site
@@ -27,6 +33,7 @@ mise run rust:deny:install
 mise run rust:machete:install
 mise run rust:mutants:install
 mise run rust:lock:check
+mise run rust:fmt
 mise run rust:fmt:check
 mise run rust:lint
 mise run rust:test
@@ -66,10 +73,12 @@ dependencies no code uses.
 
 `rust:mutants` runs the full mutation sweep; a surviving mutant is a review
 finding, not a statistic. `rust:mutants:diff` mutates only code changed
-relative to `MUTANTS_BASE_REF` (default `main`) for the inner loop. Add
-`mutants.out/` and `mutants.out.old/` to the project `.gitignore`; commit
-`proptest-regressions/`. On large projects, keep `rust:mutants:diff` in the
-PR gate and move the full sweep to a scheduled job.
+relative to `MUTANTS_BASE_REF` (default `main`) for the inner loop. The
+catalog's copyable `shared/.gitignore` already excludes `mutants.out/` and
+`mutants.out.old/`;
+commit `proptest-regressions/`. On large projects, swap `rust:mutants` for
+`rust:mutants:diff` in the PR gate and move the full sweep to a scheduled
+job.
 
 `.github/` ships a hash-pinned `quality.yml` workflow that runs the gate on
 pull requests, pushes, and merge-queue groups, and a PR template whose

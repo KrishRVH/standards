@@ -80,10 +80,10 @@ carrying 69–90% of tokens. Their summary: "Once a frontier planner has
 collapsed ambiguity into explicit instruction, less expensive models simply
 execute it."
 
-Cognition's Devin Fusion inverts the asymmetry — the frontier lead plans,
+Cognition's Devin Fusion lands on the same split — the frontier lead plans,
 reviews, and commits while cheap sidekicks execute — and reports 35–60% cost
-reduction at near-frontier benchmark scores (63.1 at $1.35/task versus 64.9
-at $10.53/task for the frontier model solo). Both directions work; what is
+reduction at near-frontier benchmark scores (one reported eval: 63.1 at
+$1.35/task versus 64.9 at $10.53/task for the frontier model solo). The
 constant is that the frontier model owns ambiguity and final review.
 
 OpenAI's Codex CLI makes the split a first-class config key: `review_model`
@@ -150,7 +150,7 @@ more than review: a stronger model reviewing a weaker author's drafts gained
 18.1 points; a weaker model with write-back power over a stronger author's
 drafts _lost_ 8.6 points (13 regressions against 3 fixes). Cheap verifiers
 gate and flag; the author or a frontier arbiter applies fixes. This is also
-Jules's design and the reviewer-proposes rule already in both profiles.
+Jules's design and the reviewer-proposes rule already in the profiles.
 
 ### The harness stays out-of-band
 
@@ -184,8 +184,7 @@ rather than being silently dropped.
 
 The cheapest verifier is not a model at all. A study of 33,707
 agent-authored PRs found a metadata classifier (file types, patch size)
-predicts
-high-maintenance PRs before any LLM runs. The full gradient: metadata
+predicts high-maintenance PRs before any LLM runs. The full gradient: metadata
 classifier, then cheap-model classification, then frontier deep-dive, then
 human — each stage filtering for the next, with fast-track for trivial
 changes and early kill for sprawling ones.
@@ -207,8 +206,9 @@ Sources:
 
 ## Adoption in the TypeScript ecosystem (surveyed 2026-08-17)
 
-The Rust profile has a fully assembled public existence proof: oven-sh/bun
-(a majority-Rust codebase) combines a dedicated coding machine account
+The hands-off doctrine has a fully assembled public existence proof:
+oven-sh/bun (a majority-Zig systems codebase) combines a dedicated coding
+machine account
 (robobun, 9,299 PRs authored / 2,295 merged, humans performing merges), a
 guidelines file fed to the review bot, bot-to-bot thread resolution, hook
 and comment-cop enforcement, and bot-PR lifecycle GC. A targeted survey —

@@ -1,7 +1,7 @@
 name: Quality
 
-# Large projects: keep rust:mutants:diff in this PR gate and move the full
-# mutation sweep to a scheduled workflow (see README).
+# Large projects: swap rust:mutants for rust:mutants:diff in the gate this
+# workflow runs and move the full sweep to a scheduled workflow (see README).
 on:
   merge_group:
   pull_request:

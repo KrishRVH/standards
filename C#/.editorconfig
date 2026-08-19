@@ -6,7 +6,7 @@ end_of_line = lf
 indent_style = space
 insert_final_newline = true
 
-[*.{config,csproj,css,esproj,html,js,json,jsx,nuspec,proj,projitems,props,resx,ruleset,shproj,sln,targets,ts,tsx,vbproj,vcxproj.filters,vsct,vsixmanifest,xml}]
+[*.{config,csproj,css,esproj,html,js,json,jsx,nuspec,proj,projitems,props,resx,ruleset,shproj,sln,slnx,targets,ts,tsx,vbproj,vcxproj.filters,vsct,vsixmanifest,xml}]
 indent_size = 2
 tab_width = 2
 

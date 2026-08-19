@@ -22,10 +22,10 @@ allow = [
     "Unlicense",
     "Zlib",
 ]
+# Pins cargo-deny's current default license-confidence bar against drift.
 confidence-threshold = 0.8
 
 [bans]
-highlight = "all"
 multiple-versions = "warn"
 wildcards = "deny"
 

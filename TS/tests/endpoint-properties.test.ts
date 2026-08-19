@@ -6,7 +6,7 @@
  * example test; random search finds the case, the suite keeps it.
  */
 import { expect, test } from 'bun:test';
-import { Duration, Effect, Exit } from 'effect';
+import { Cause, Duration, Effect, Exit, Option } from 'effect';
 import fc from 'fast-check';
 
 import { EndpointRejected, projectCheckDiagnostic } from '../src/endpoint-contracts.js';
@@ -55,11 +55,16 @@ test('valid bounded policies decode with exact durations and normalized unique o
         retries: fc.integer({ min: 0, max: 5 }),
         retryDelayMilliseconds: fc.integer({ min: 0, max: 3_600_000 }),
         totalDeadlineMilliseconds: fc.integer({ min: 1, max: 3_600_000 }),
+        // Uppercase hosts prove URL normalization does real work: the policy
+        // must store the canonical lowercase origin, not the raw input.
+        uppercaseHosts: fc.boolean(),
       }),
       async (input) => {
         const policy = await Effect.runPromise(
           decodeCheckPolicy({
-            allowedOrigins: input.domains.map((domain) => `https://${domain}`),
+            allowedOrigins: input.domains.map(
+              (domain) => `https://${input.uppercaseHosts ? domain.toUpperCase() : domain}`,
+            ),
             attemptTimeoutMilliseconds: input.attemptTimeoutMilliseconds,
             concurrency: input.concurrency,
             retries: input.retries,
@@ -96,6 +101,9 @@ test('origins with credentials, paths, queries, or non-https schemes are rejecte
       const exit = await Effect.runPromiseExit(decodeCheckPolicy({ ...defaultCheckPolicy, allowedOrigins: [origin] }));
 
       expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit)) {
+        expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+      }
     }),
   );
 });

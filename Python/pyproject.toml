@@ -49,8 +49,9 @@ docstring-code-format = true
 line-ending = "lf"
 
 [tool.ruff.lint]
-# Beyond the correctness baseline: PGH bans blanket suppressions, RUF100/101
-# expire dead noqa comments (autofixed by py:standards), S mirrors bandit so
+# Beyond the correctness baseline: PGH bans blanket suppressions, RUF100
+# expires dead noqa comments and RUF101 rewrites redirected rule codes (both
+# autofixed by py:standards), S mirrors bandit so
 # security suppressions ride the policed noqa channel, TID251/253 carry the
 # banned-API wall, PLW0603 bans `global`, ASYNC and DTZ catch blocking sleeps
 # in async code and naive datetimes.
@@ -167,8 +168,8 @@ exclude_also = [
   "if __name__ == .__main__.:",
   "raise NotImplementedError",
 ]
-# Ratchet pinned at the measured floor: raising it is normal work; lowering
-# it is a wall edit that requires human countersign.
+# Ratchet floor: raising it is normal work; lowering it is a wall edit that
+# requires human countersign.
 fail_under = 100
 show_missing = true
 skip_covered = true

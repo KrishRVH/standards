@@ -258,6 +258,7 @@ mise run rust:lint
 mise run rust:test
 mise run rust:test:doc
 mise run rust:doc
+mise run rust:package
 mise run rust:mutants:diff
 mise run rust:machete
 mise run rust:deny

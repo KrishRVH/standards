@@ -258,11 +258,12 @@ targeted local gates for routine catalog maintenance. Use the aggregate gate
 for releases, CI, and cross-cutting validation. Dispatch hosted runs on demand
 to control CI spending.
 
-The TypeScript application profile contains the copyable workflow for
-downstream projects. It runs automatically for pull requests and pushes to
-`main`, and it also supports manual dispatch. Both workflows use the same
-locked command surface and pin the locally tested mise `2026.7.15`. The lower
-configuration minimums remain compatibility floors.
+The Rust, TypeScript, C#, and Python profiles each contain a copyable
+workflow for downstream projects. Those run automatically for pull requests,
+merge-queue groups, and pushes to `main`, and also support manual dispatch.
+All the workflows use the same locked command surface and pin the locally
+tested mise `2026.7.15`. The lower configuration minimums remain
+compatibility floors.
 
 The downstream repository host settings must require the copied workflow's
 `quality` job before merge. The committed YAML does not configure branch

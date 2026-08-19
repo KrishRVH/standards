@@ -1,7 +1,7 @@
 """Property tests for the greeting boundary.
 
-A counterexample found by a property run is pinned as a deterministic
-``@example`` on the test; random search finds the case, the suite keeps it.
+The ``@example`` cases seed the deterministic baseline; a counterexample
+found by a property run is pinned the same way.
 """
 
 from hypothesis import example, given
@@ -17,8 +17,6 @@ def test_rendered_greeting_frames_the_name(name: str) -> None:
     rendered = render_greeting(name)
 
     assert rendered == f"Hello, {name}!"
-    assert rendered.startswith("Hello, ")
-    assert rendered.endswith("!")
 
 
 @given(name=st.text())
