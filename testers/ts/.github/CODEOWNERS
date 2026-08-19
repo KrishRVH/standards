@@ -3,12 +3,12 @@
 # setting is what makes AGENTS.md's "loosening requires human countersign"
 # mechanical instead of advisory. Add the repo's mise task file (the
 # 20-ts.toml fragment) wherever it lives.
-/eslint.config.mjs @OWNER
-/tsconfig.json @OWNER
-/stryker.config.mjs @OWNER
-/knip.jsonc @OWNER
-/bunfig.toml @OWNER
-/biome.jsonc @OWNER
-/package.json @OWNER
-/AGENTS.md @OWNER
 /.github/ @OWNER
+/AGENTS.md @OWNER
+/biome.jsonc @OWNER
+/bunfig.toml @OWNER
+/eslint.config.mjs @OWNER
+/knip.jsonc @OWNER
+/package.json @OWNER
+/stryker.config.mjs @OWNER
+/tsconfig.json @OWNER

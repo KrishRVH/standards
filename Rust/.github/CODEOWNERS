@@ -3,9 +3,9 @@
 # setting is what makes AGENTS.md's "loosening requires human countersign"
 # mechanical instead of advisory. Add the repo's mise task file (the
 # 20-rust.toml fragment) wherever it lives.
+/.github/ @OWNER
+/AGENTS.md @OWNER
 /Cargo.toml @OWNER
 /clippy.toml @OWNER
 /deny.toml @OWNER
 /rustfmt.toml @OWNER
-/AGENTS.md @OWNER
-/.github/ @OWNER

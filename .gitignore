@@ -183,9 +183,9 @@ mise.*.local.lock
 **/.cargo-tools/
 /target/
 **/target/
-**/*.rs.bk
 **/mutants.out/
 **/mutants.out.old/
+**/*.rs.bk
 
 # Lua generated output
 .lua-language-server/
