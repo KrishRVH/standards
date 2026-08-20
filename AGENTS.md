@@ -58,7 +58,7 @@ scripts are the explicit exception because they install mise itself.
 - `mise run md:standards:check`: check the repository's Markdown and MDX.
 - `mise run standards:biome:check`: validate the optional Biome TypeScript
   template with the pinned stable CLI.
-- `mise run standards:drift`: manifest/drift check for profile fixtures.
+- `mise run standards:drift`: profile-contract and fixture-drift checks.
 - `mise run testers:standards`: run all tester mini projects through their
   standards workflows and available autofixes.
 - `mise run testers:standards:check`: run all tester mini projects through
@@ -83,12 +83,12 @@ demand.
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`) ship automatic triggers for downstream copies only; they
 are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. `scripts/check-standards-drift.py` enforces automatic
-triggers, one `quality` job, hardened checkout, immutable action pins,
-CODEOWNERS, and related host-setting and pull-request guidance across all four
-templates. `testers/ts/tests/quality-workflow.test.ts` separately enforces the
-root workflow's manual-only contract and the TypeScript-specific workflow
-behavior.
+`.github/workflows/`. `scripts/check-profile-governance.mjs` validates workflow
+YAML with actionlint, then parses it to enforce automatic triggers, one
+`quality` job, hardened checkout, immutable action pins, CODEOWNERS, and related
+host-setting and pull-request guidance across all four templates.
+`testers/ts/tests/quality-workflow.test.ts` separately enforces the root
+workflow's manual-only contract and the TypeScript-specific workflow behavior.
 
 ## Editing
 

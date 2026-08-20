@@ -10,12 +10,12 @@ The tested dependency set is exact:
 | Package/runtime            | Version |
 | -------------------------- | ------- |
 | `effect`                   | 3.22.1  |
-| `@effect/language-service` | 0.87.1  |
+| `@effect/language-service` | 0.87.2  |
 | TypeScript                 | 6.0.3   |
 | Bun                        | 1.4.0   |
-| `@types/bun`               | 1.3.14  |
+| `@types/bun`               | 1.4.0   |
 | `@effect/platform`         | 0.97.1  |
-| `@effect/platform-bun`     | 0.91.0  |
+| `@effect/platform-bun`     | 0.91.2  |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version. Bun
@@ -122,7 +122,7 @@ correctness and ownership diagnostics are errors. Shape/style opportunities
 are editor suggestions. Outside-Effect native APIs and native boundary
 adapters remain allowed when their contract is explicit.
 
-The standalone command omits `--strict`: in language service 0.87.1, strict
+The standalone command omits `--strict`: in language service 0.87.2, strict
 only makes warnings affect the exit code; it does not promote messages or
 suggestions. The expected-diagnostic harness proves configured blockers fail
 and catches silently ignored diagnostic-name drift.

@@ -40,7 +40,7 @@ def test_reasoned_per_site_suppressions_pass_and_strings_are_ignored(tmp_path: P
             (
                 'example = "# noqa and # pragma: no cover are text, not comments"',
                 "# mypy: disallow-any-decorated=False, disallow-any-expr=False",
-                "value = 1  # noqa: TID251 -- the composition root injected this value",
+                "value = 1  # noqa: TID251 -- the composition root injects this value --",
                 "typed = value  # pyright: ignore[reportUnknownVariableType] -- boundary is untyped",
                 "assert typed  # nosec B101 -- this assertion verifies a test-owned invariant",
                 "alias = typed  # pragma: no mutate -- both generated aliases are equivalent",
@@ -119,6 +119,16 @@ def test_default_scan_checks_symlinked_python_source(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "linked.py" in result.stderr
+
+
+def test_default_scan_fails_on_broken_python_symlink(tmp_path: Path) -> None:
+    """A missing symlink target cannot silently bypass comment inspection."""
+    (tmp_path / "linked.py").symlink_to("missing.py")
+
+    result = run_default_policy(tmp_path)
+
+    assert result.returncode == 1
+    assert "linked.py: cannot inspect comments" in result.stderr
 
 
 def test_default_scan_rejects_internal_and_external_symlinked_directories(

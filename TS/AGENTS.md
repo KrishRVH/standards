@@ -1,8 +1,8 @@
 # TypeScript, Effect v3, and Bun agent guide
 
 This fragment is tested with `effect` 3.22.1, `@effect/platform` 0.97.1,
-`@effect/platform-bun` 0.91.0, `@effect/language-service` 0.87.1,
-TypeScript 6.0.3, Bun 1.4.0, and `@types/bun` 1.3.14. Only those pinned
+`@effect/platform-bun` 0.91.2, `@effect/language-service` 0.87.2,
+TypeScript 6.0.3, Bun 1.4.0, and `@types/bun` 1.4.0. Only those pinned
 declarations, sources, and behaviors are evidence for this profile; do not add
 unpinned APIs or silently upgrade the lock.
 

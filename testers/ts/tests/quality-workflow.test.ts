@@ -64,6 +64,18 @@ test('the generated quality workflow rejects floating external action tags', asy
   expect(qualityWorkflowViolations(withFloatingCheckout)).toContain(externalActionPinViolation);
 });
 
+test('external action paths reject traversal and non-portable separators', async () => {
+  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
+  const workflow = await readFile(workflowPath, 'utf8');
+  const commit = '0123456789abcdef0123456789abcdef01234567';
+
+  for (const reference of [`owner/../action@${commit}`, `owner/./action@${commit}`, `owner\\action@${commit}`]) {
+    expect(qualityWorkflowViolations(withActionStep(workflow, reference)), reference).toContain(
+      externalActionPinViolation,
+    );
+  }
+});
+
 test('same-repository action and reusable-workflow references resolve at the running commit', async () => {
   const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
   const workflow = await readFile(workflowPath, 'utf8');

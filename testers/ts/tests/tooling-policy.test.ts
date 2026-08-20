@@ -381,6 +381,14 @@ test('the mutation report gate distinguishes fresh full evidence from compatible
   }
 });
 
+test('the install age gate has only the countersigned Bun types exception', async () => {
+  const config = await Bun.file(new URL('../bunfig.toml', import.meta.url)).text();
+
+  expect(config).toContain('minimumReleaseAge = 259200');
+  expect(config).toContain('minimumReleaseAgeExcludes = ["@types/bun", "bun-types"]');
+  expect(config.match(/minimumReleaseAgeExcludes/gu)).toHaveLength(1);
+});
+
 test('the mutation task graph orders its preflight and pins the intended Stryker config', async () => {
   const tasks = await Bun.file(new URL('../.config/mise/conf.d/20-ts.toml', import.meta.url)).text();
   const packageManifest = await Bun.file(new URL('../package.json', import.meta.url)).text();
@@ -389,7 +397,7 @@ test('the mutation task graph orders its preflight and pins the intended Stryker
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
   expect(tasks).toContain('bun = "1.4.0"');
-  expect(tasks).toContain('node = "22.23.0"');
+  expect(tasks).toContain('node = "26.7.0"');
   expect(packageManifest).toContain('"packageManager": "bun@1.4.0"');
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
   expect(section('ts:preflight')).toContain('depends = ["ts:install"]');

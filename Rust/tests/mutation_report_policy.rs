@@ -108,7 +108,12 @@ fn verify_report(mode: ReportMode, report_directory: &Path) -> Result<(u64, u64)
             report.cargo_mutants_version
         ));
     }
-    if report.start_time.trim().is_empty() || report.end_time.as_deref().is_none_or(str::is_empty) {
+    if report.start_time.trim().is_empty()
+        || report
+            .end_time
+            .as_deref()
+            .is_none_or(|end_time| end_time.trim().is_empty())
+    {
         return Err(
             "cargo-mutants report is incomplete: start_time and end_time are required".to_owned(),
         );
@@ -258,6 +263,26 @@ fn rejects_malformed_trailing_and_duplicate_json() {
     fs::write(duplicate.path().join("outcomes.json"), document)
         .expect("write duplicate-field report");
     assert!(verify_report(ReportMode::Full, duplicate.path()).is_err());
+
+    let blank_end_time = TestReport::new(
+        "blank-end-time",
+        Counts {
+            caught: 1,
+            ..Counts::default()
+        },
+    )
+    .expect("create blank-end-time report");
+    let document = blank_end_time
+        .document()
+        .expect("read blank-end-time report")
+        .replacen(
+            "\"end_time\": \"2026-08-20T00:00:01Z\"",
+            "\"end_time\": \"   \"",
+            1,
+        );
+    fs::write(blank_end_time.path().join("outcomes.json"), document)
+        .expect("write blank-end-time report");
+    assert!(verify_report(ReportMode::Full, blank_end_time.path()).is_err());
 }
 
 #[test]

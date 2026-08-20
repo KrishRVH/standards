@@ -202,7 +202,10 @@ function externalActionsAreImmutable(workflow: string): boolean {
     return (
       separator > 0 &&
       pathSegments.length >= 2 &&
-      pathSegments.every((segment) => segment !== '' && !segment.includes('@') && !/\s/u.test(segment)) &&
+      pathSegments.every(
+        (segment) =>
+          segment !== '' && segment !== '.' && segment !== '..' && !segment.includes('@') && !/[\\\s]/u.test(segment),
+      ) &&
       /^[0-9a-f]{40}$/u.test(commit)
     );
   });

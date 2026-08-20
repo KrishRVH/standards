@@ -170,7 +170,7 @@ const expected = [
     line: 6,
     name: 'missingEffectContext',
   },
-  // @effect/language-service 0.87.1 reports missingEffectError with the
+  // @effect/language-service 0.87.2 reports missingEffectError with the
   // missingEffectContext name. Preserve the observed contract until upgrade.
   {
     column: 59,

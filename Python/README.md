@@ -10,9 +10,8 @@ Merge `AGENTS.md` into the repository's agent guide; it holds the agent-driven
 doctrine the enforcement below mechanizes. Copy the catalog's
 `shared/.gitignore` too (or fold it into the repo's own): it keeps `mutants/`,
 `.mutmut-run.lock/`, `.hypothesis/`, and the other tool outputs out of version
-control. For the
-property-testing posture `AGENTS.md` describes, register the Hypothesis `ci`
-profile in `tests/conftest.py`:
+control. For the property-testing posture that `AGENTS.md` describes, register
+the Hypothesis `ci` profile in `tests/conftest.py`:
 
 ```python
 from hypothesis import settings

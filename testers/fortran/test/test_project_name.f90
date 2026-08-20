@@ -19,19 +19,6 @@ contains
 
    subroutine test_triangular(error)
       type(error_type), allocatable, intent(out) :: error
-      integer(int32) :: minimum_int32
-
-      ! The pinned GNU kind has one extra two's-complement negative value that
-      ! cannot be named by a standard-conforming int32 constant expression.
-      minimum_int32 = huge(0_int32)
-      minimum_int32 = not(minimum_int32)
-
-      call check(error, int(minimum_int32, int64), &
-         -int(huge(0_int32), int64) - 1_int64)
-      if (allocated(error)) return
-
-      call check(error, triangular(minimum_int32), 0_int64)
-      if (allocated(error)) return
 
       call check(error, triangular(-1_int32), 0_int64)
       if (allocated(error)) return

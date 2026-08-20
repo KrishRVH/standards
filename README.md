@@ -290,9 +290,9 @@ container. The task definitions remain in mise.
 
 The repository root requires mise `2026.7.0` or newer for its explicit
 per-project lockfile policy in the monorepo. This is a minimum version, not a
-pin on the mise executable. The root `.config/mise/mise.lock` pins the Biome
-alternative verifier, gitleaks, Python, and the root Markdown and Shell tools.
-`bun.lock` pins the Markdown JavaScript dependencies.
+pin on the mise executable. The root `.config/mise/mise.lock` pins actionlint,
+the Biome alternative verifier, gitleaks, Python, and the root Markdown and
+Shell tools. `bun.lock` pins the Markdown JavaScript dependencies.
 
 Before you hand off a change, check each surface that changed. For a changed
 profile, read its `tester` and `task_prefix` from `standards.manifest.toml` and
@@ -333,12 +333,15 @@ Dagger entrypoint for the representative Python fixture:
 mise run testers:standards:check:isolated
 ```
 
-The drift portion of the root gate runs `scripts/check-standards-drift.py`.
-This script keeps shared task fragments, aggregate task dispatch, fixture
-configurations, Dagger fragments, full-configuration shared files, and declared
-mirror files in sync. It also enforces mutation-output ignore scope and the
-downstream workflow and Code Owners contracts. Undeclared fixture source and
-tests can remain small.
+The profile-contract portion of the root gate has three focused checkers.
+`scripts/check-standards-drift.py` keeps shared task fragments, aggregate task
+dispatch, fixture configurations, Dagger fragments, full-configuration shared
+files, and declared mirror files in sync. `scripts/check-ignore-contracts.py`
+exercises mutation-output ignore scope with Git's matcher.
+`scripts/check-profile-governance.mjs` validates downstream workflow YAML with
+actionlint, then parses it to enforce the workflow, Code Owners, host-setting,
+and pull-request contracts. Undeclared fixture source and tests can remain
+small.
 
 When adding or changing a profile:
 

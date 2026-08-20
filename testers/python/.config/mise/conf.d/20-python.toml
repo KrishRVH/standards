@@ -1,6 +1,6 @@
 [tools]
-python = "3.14.6"
-uv = "0.11.32"
+python = "3.14.7"
+uv = "0.12.5"
 
 [tasks."py:install"]
 description = "Install Python dependencies"
@@ -11,7 +11,7 @@ if [ ! -f pyproject.toml ]; then
   exit 0
 fi
 
-uv sync --locked
+uv sync --python "$(mise which python)" --locked
 """
 
 [tasks."py:install:deep"]
@@ -23,9 +23,9 @@ if [ ! -f pyproject.toml ]; then
 fi
 
 if [ -f uv.lock ]; then
-  uv sync --group deep --locked
+  uv sync --python "$(mise which python)" --group deep --locked
 else
-  uv sync --group deep
+  uv sync --python "$(mise which python)" --group deep
 fi
 """
 

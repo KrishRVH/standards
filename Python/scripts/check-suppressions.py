@@ -93,7 +93,7 @@ class PolicyDiscoveryError(Exception):
 
 def has_meaningful_reason(match: re.Match[str]) -> bool:
     """Return whether a matched reason contains an explanatory word or number."""
-    reason = match.group(0).rpartition("--")[2]
+    reason = match.group("reason")
     return any(character.isalnum() for character in reason)
 
 
@@ -185,7 +185,7 @@ def directory_python_files(path: Path, project_root: Path) -> Iterable[Path]:
                         f"{child}: symlinked source directories are forbidden because "
                         + "Python tools disagree about whether to inspect and package them"
                     )
-                if child.is_file() and child.suffix in {".py", ".pyi"}:
+                if child.suffix in {".py", ".pyi"}:
                     yield child
                 continue
             if child.is_dir():
@@ -204,7 +204,9 @@ def python_files(paths: Iterable[Path], project_root: Path) -> Iterable[Path]:
                 f"{path}: symlinked source directories are forbidden because "
                 + "Python tools disagree about whether to inspect and package them"
             )
-        if path.is_file() and path.suffix in {".py", ".pyi"}:
+        if path.is_symlink() and path.suffix in {".py", ".pyi"}:
+            candidates.add(path)
+        elif path.is_file() and path.suffix in {".py", ".pyi"}:
             candidates.add(path)
         elif path.is_dir() and not is_pruned_directory(path, project_root):
             candidates.update(directory_python_files(path, project_root))

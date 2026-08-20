@@ -5,7 +5,7 @@
 
   <ItemGroup>
     <PackageVersion Include="CsCheck" Version="4.8.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.163" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.176" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.16.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />

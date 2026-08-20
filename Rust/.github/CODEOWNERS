@@ -2,10 +2,10 @@
 # catch-all is deliberate: source-level mutation classifications and lint
 # escapes can live anywhere, so every change needs the named owner's review.
 # Enable the complete protected-branch checklist in README.md; CODEOWNERS alone
-# does not dismiss stale approvals or prevent bypass. Cargo.toml is unanchored on purpose: member
-# crate manifests carry the `[lints] workspace = true` opt-in, so adding one
-# is a wall edit too. If the mise task fragment (20-rust.toml) lives outside
-# /.config/mise/, add its path here.
+# does not dismiss stale approvals or prevent bypass. Cargo.toml is unanchored
+# on purpose: member crate manifests carry the `[lints] workspace = true`
+# opt-in, so adding one is a wall edit too. If the mise task fragment
+# (20-rust.toml) lives outside /.config/mise/, add its path here.
 * @OWNER
 /.cargo/ @OWNER
 /.config/mise/ @OWNER

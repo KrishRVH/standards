@@ -47,7 +47,7 @@ ambient wall-clock time, blocking sleeps, and process exit each carry a
 remediation message naming the replacement. Public mutable statics fail
 separately (CA2211, MA0069). Routing around a banned symbol through an
 equivalent API the list misses violates the doctrine, not just the rule —
-the list is examples.
+the list gives examples.
 
 Semantic verification — the gate proves form, and wrong logic compiles:
 

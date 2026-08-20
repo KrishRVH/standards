@@ -55,16 +55,16 @@ quick-fix meaning, and false-positive risk. Do not bulk-apply quick fixes. A
 narrow suppression names safety reason, owner/version, and removal condition;
 the harness rejects stale suppressions and diagnostic-name drift.
 The exact per-rule record lives in the
-[0.87.1 diagnostic inventory](diagnostic-inventory.md).
+[0.87.2 diagnostic inventory](diagnostic-inventory.md).
 
 ## CI and documentation contracts
 
-The copied workflow reacts to pull requests, pushes to `main`, and manual
-dispatch; performs locked setup and frozen dependency installation through the
-mise task graph; and runs the deterministic `standards:check` gate. A local
-contract test parses or otherwise validates these triggers and the required
-task. Branch protection remains host configuration and requires the workflow's
-`quality` job.
+The copied workflow reacts to pull requests, merge-queue groups, pushes to
+`main`, and manual dispatch; performs locked setup and frozen dependency
+installation through the mise task graph; and runs `standards:check`. Local
+contract tests validate these triggers, the required task, immutable action
+references, and checkout credential hardening. Branch protection remains host
+configuration and requires the workflow's `quality` job.
 
 Documentation drift checks keep routed paths present, stable rule IDs unique,
 and the always-loaded TypeScript fragment under the measured word budget. The
@@ -73,5 +73,6 @@ stay explicitly marked `Manual` in the enforcement map.
 
 Run all development tools through mise. The local gate should include frozen
 install, format, lint, TypeScript, Effect diagnostics, expected diagnostics,
-deterministic unit/semantic/negative tests, audit, lock/drift checks, and the
-repository aggregate. Report every unavailable external integration honestly.
+deterministic unit/semantic/negative tests, property tests, audit, knip,
+mutation testing, lock/drift checks, and the repository aggregate. Report every
+unavailable external integration honestly.

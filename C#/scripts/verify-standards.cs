@@ -86,7 +86,6 @@ internal static class StandardsVerifier
             throw new InvalidDataException("Stryker JSON report has no object-valued files field.");
         }
 
-        int total = 0;
         int executed = 0;
         foreach (JsonProperty file in files.EnumerateObject())
         {
@@ -131,11 +130,10 @@ internal static class StandardsVerifier
                     default:
                         throw new InvalidDataException($"Stryker JSON report contains unknown mutant status '{status}'.");
                 }
-                total++;
             }
         }
 
-        if (requireExecutedMutant && (total == 0 || executed == 0))
+        if (requireExecutedMutant && executed == 0)
         {
             throw new InvalidDataException(
                 "Full mutation testing must execute at least one mutant; empty and all-NoCoverage reports fail.");
