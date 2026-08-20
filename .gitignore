@@ -59,6 +59,7 @@ node_modules/
 *.tsbuildinfo
 .eslintcache
 **/.stryker-tmp/
+**/reports/.stryker-mutation.lock/
 **/reports/mutation/
 **/reports/stryker-incremental.json
 /.angular/
@@ -82,7 +83,7 @@ node_modules/
 .ruff_cache/
 .venv/
 __pycache__/
-mutants/
+/mutants/
 *.py[codz]
 *.egg-info/
 /htmlcov/

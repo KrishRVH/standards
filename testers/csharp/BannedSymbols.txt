@@ -2,7 +2,7 @@
 // Each entry mechanizes a rule from AGENTS.md; the message names the
 // replacement, not just the ban. Escape per site with
 // [SuppressMessage("ApiDesign", "RS0030", Justification = "...")] naming the
-// invariant; SA1404 rejects an empty justification.
+// invariant; SA1404 rejects a missing, blank, or <Pending> justification.
 T:System.Threading.Mutex;Cross-process locking is shared mutable state; give the state one owner and send it messages, or justify the OS handle per site
 T:System.Threading.ReaderWriterLock;Reader-writer locking hides ownership; give the state one owner and send it messages
 T:System.Threading.ReaderWriterLockSlim;Reader-writer locking hides ownership; give the state one owner and send it messages

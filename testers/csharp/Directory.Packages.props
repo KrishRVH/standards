@@ -12,8 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Fails the build on Reference/ProjectReference/PackageReference entries
-         no code uses (RT0001-RT0003); analyzer packages are exempt by design. -->
+    <!-- Fails on analyzable direct compile references reported unused as
+         RT0001-RT0003. SDK, transitive, and build-asset references are
+         conservatively outside ReferenceTrimmer's scope. -->
     <GlobalPackageReference Include="ReferenceTrimmer" Version="3.5.9" />
   </ItemGroup>
 </Project>

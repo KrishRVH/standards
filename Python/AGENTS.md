@@ -21,21 +21,32 @@ gate only when the lane runs.
 
 Exceptions are per-site, reasoned, and self-expiring:
 
-- Type suppressions are `# pyright: ignore[rule]`; basedpyright rejects an
-  ignore without a rule name and fails the build when the ignore stops
-  matching a real diagnostic, so stale type suppressions cannot accumulate.
-- Lint suppressions are `# noqa: CODE` with the specific code; blanket
-  `# noqa` and blanket `# type: ignore` fail (PGH004, PGH003), and a noqa
-  whose diagnostic no longer fires fails via RUF100 and is removed by the
-  `py:standards` autofix.
+- Type suppressions are `# pyright: ignore[rule] -- reason`; basedpyright
+  rejects an ignore without a rule name and fails the build when the ignore
+  stops matching a real diagnostic. `# type: ignore` is forbidden so there is
+  only one local type-suppression channel. Keep analyzer-specific config
+  exceptions scoped to the smallest file, as the Hypothesis fixture does for
+  mypy, and explain them next to the setting.
+- Lint suppressions are `# noqa: CODE -- reason` with every specific code.
+  RUF102 rejects unknown codes, RUF100 expires comments whose diagnostics no
+  longer fire, and `py:standards` removes stale comments.
 - Security findings ride the same channel: ruff's S rules mirror bandit, so
-  their suppressions are policed noqa comments. A standalone-bandit `# nosec`
-  must carry the rule id and a reason — no tool enforces that, so it is an
-  explicit review duty, stated here rather than papered over.
-- No Python tool can require a reason string beside a suppression. The
-  reason is still required — by review, with the same shape as the other
-  profiles: name the invariant that holds, then why the structural fix
-  loses.
+  their suppressions are policed noqa comments. A standalone Bandit escape is
+  `# nosec B123 -- reason`. Coverage exclusions use
+  `# pragma: no cover -- reason` or `# pragma: no branch -- reason`.
+- `py:suppressions` tokenizes source comments and enforces these forms plus
+  the mutation form below across root modules, packages, tests, and scripts;
+  directive-shaped text inside strings is ignored. Ignored dependency and
+  generated trees are pruned, while a nested first-party `mutants/` package
+  remains in scope. Ruff/Flake8 file directives, local Pyright configuration,
+  every formatter/import-order directive, and ranged mutation exclusions are
+  forbidden. A reason names the invariant that holds, then why the structural
+  fix loses. The only accepted mypy file configuration is the two-rule
+  Hypothesis integration exception named above; broad forms such as
+  `ignore-errors` fail. Python-named file symlinks are inspected, while
+  non-pruned first-party directory symlinks fail because the Python tools
+  disagree about whether to inspect and package them. Dependency/cache trees
+  named in the scanner remain deliberately outside this policy.
 
 The banned-API wall (`[tool.ruff.lint.flake8-tidy-imports.banned-api]`,
 TID251) bans ambient state by symbol with remediation-shaped messages:
@@ -56,28 +67,41 @@ Semantic verification — the gate proves form, and wrong logic type-checks:
 - `mise run py:mutants` is the mechanical adversary: would the tests notice
   if this code were wrong? A surviving mutant is a finding with exactly
   three exits: kill — the suite gains a test that observes the difference;
-  delete — the code loses the branch the suite cannot reach; or classify —
-  a `# pragma: no mutate` whose neighboring comment names why no test can
-  observe the mutant (equivalent mutants exist). Classify is a wall edit
-  requiring human countersign. mutmut has no native break threshold, so the
-  task gates on the committed `.mutmut-floor` ratchet — a coarse regression
-  alarm, not a per-mutant guarantee; survivors in changed code are
-  dispositioned in review. Raising the floor is normal work; lowering it
-  requires human countersign, and a missing floor fails rather than
-  passing vacuously. mutmut caches per-function results in `mutants/`,
-  which is its incremental inner loop.
+  delete — the code loses the branch the suite cannot reach; or classify — a
+  `# pragma: no mutate -- reason` that explains why no test can observe the
+  equivalent mutant. Classify is a wall edit requiring human countersign.
+  mutmut has no native break threshold, so the task gates on the committed
+  `.mutmut-floor` ratchet — a coarse regression alarm, not a per-mutant
+  guarantee; survivors in changed code are dispositioned in review. Raising
+  the floor is normal work; lowering it requires human countersign, and a
+  missing floor fails rather than passing vacuously. The mandatory
+  `py:mutants` gate deletes `mutants/` before running, validates the exact
+  terminal-status totals, and requires at least one mutant to reach an
+  executed status; skipped and no-test results do not count.
+  `py:mutants:incremental` is the explicit cached inner loop; it never replaces
+  the cold handoff gate. The reported floor candidate is safe to copy back
+  verbatim without binary-float rounding. Both tasks hold the same project
+  lock for deletion, execution, export, and validation. Normal exit, SIGINT,
+  and SIGTERM release it only after the complete command process group exits;
+  a TERM-resistant descendant is killed before cleanup. If descendant shutdown
+  cannot be confirmed, or a hard kill bypasses cleanup,
+  `.mutmut-run.lock/` remains fail closed. Check for live `mutmut`, mutation
+  subprocess descendants, or `run-mutation-transaction.py` processes, then
+  remove the stale lock only when none remain.
 - Coverage gates at the `fail_under` ratchet in `[tool.coverage.report]`,
   under the same raise-freely, lower-with-countersign rule.
 
 Adversarial self-review and merge shape follow the catalog doctrine: a green
-gate is necessary, never sufficient; the diff gets a fresh-context pass from
-up to three cheap reviewers decorrelated by input view (test diff only, full
-diff, code without the change narrative) who flag and never rewrite;
+gate is necessary, never sufficient. Every non-trivial diff gets three
+fresh-context reviewers, one per input view: test diff only, full diff, and
+code without the change narrative. They flag and never rewrite;
 findings collect on the union after dedup, and severity triage decides what
 blocks. Any edit to the enforcement surface — `pyproject.toml` tool
 sections, `.mutmut-floor`, the mise tasks — is a finding by default, and
 loosening requires human countersign. A disputed finding is settled by
 writing the failing test; a finding no test can express is recorded as a
 design note with a named owner, and a question of intent escalates to the
-human who owns it. Verdicts pin the commit they judged; bots advise, gates
+human who owns it. Metadata triage may fast-track a trivial diff to fewer or
+no model reviewers only when the handoff records that classification and
+reason. Model-review verdicts pin the commit they judged; bots advise, gates
 block, humans merge.

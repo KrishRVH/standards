@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import filecmp
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -49,6 +51,51 @@ AGGREGATE_MARKER_CASES = {
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)
 ROOT_SHARED_MIRROR = (".gitleaks.toml",)
+AUTOMATIC_PROFILE_IDS = frozenset({"csharp", "python", "rust", "ts"})
+AUTOMATIC_PROFILE_PATHS = {
+    "csharp": (
+        ".github/CODEOWNERS",
+        "src/Project/Service.cs",
+        "tests/Project.Tests/ServiceTests.cs",
+    ),
+    "python": (
+        ".github/CODEOWNERS",
+        "src/project_name/service.py",
+        "tests/test_service.py",
+    ),
+    "rust": (
+        ".github/CODEOWNERS",
+        "crates/member/src/lib.rs",
+        "src/lib.rs",
+        "tests/service.rs",
+    ),
+    "ts": (
+        ".github/CODEOWNERS",
+        "packages/app/src/index.ts",
+        "src/index.ts",
+        "tests/service.test.ts",
+    ),
+}
+CHECKOUT_USE = re.compile(
+    r"^(?P<indent> *)(?P<list>- )?uses: "
+    r"actions/checkout@[^\s#]+(?:\s+#.*)?$"
+)
+PERSIST_CREDENTIALS_FALSE = re.compile(
+    r'''^persist-credentials:\s*(?:false|'false'|"false")(?:\s+#.*)?$'''
+)
+ACTION_USE = re.compile(
+    r"^(?P<indent> *)(?P<list>- )?uses:\s+(?P<target>\S+)(?:\s+#.*)?$"
+)
+BLOCK_SCALAR_INDICATOR = re.compile(
+    r"^(?:(?:&[^\s#]+|![^\s#]+)\s+)*"
+    r"[|>](?:[1-9][+-]?|[+-][1-9]?)?\s*(?:#.*)?$"
+)
+DOCKER_NAME_COMPONENT = re.compile(r"^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*$")
+DOCKER_TAG = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
+IMMUTABLE_DOCKER_ACTION = re.compile(
+    r"^docker://(?P<image>.+)@sha256:(?P<digest>[0-9a-f]{64})$"
+)
+FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
 def load_profiles() -> dict[str, dict[str, object]]:
@@ -520,6 +567,877 @@ def check_root_shared_files() -> list[str]:
     return errors
 
 
+def isolated_git_environment() -> dict[str, str]:
+    """Keep user-level ignore configuration out of repository contracts."""
+    environment = os.environ.copy()
+    environment["GIT_CONFIG_GLOBAL"] = os.devnull
+    environment["GIT_CONFIG_NOSYSTEM"] = "1"
+    return environment
+
+
+def check_mutation_ignore_scope() -> list[str]:
+    """Prove mutmut output is ignored without hiding nested source trees."""
+    errors: list[str] = []
+    candidates = (
+        "mutants/mutmut-cicd-stats.json",
+        "src/project_name/mutants/model.py",
+        "tests/mutants/case.py",
+        "packages/api/src/mutants/index.ts",
+    )
+    expected = {candidates[0]}
+
+    for ignore_path in (
+        ROOT / ".gitignore",
+        ROOT / "shared" / ".gitignore",
+        ROOT / "testers" / "python" / ".gitignore",
+    ):
+        try:
+            with tempfile.TemporaryDirectory(prefix="standards-ignore-") as temporary:
+                temporary_root = Path(temporary)
+                subprocess.run(
+                    ["git", "init", "--quiet", str(temporary_root)],
+                    check=True,
+                    capture_output=True,
+                    env=isolated_git_environment(),
+                    text=True,
+                )
+                shutil.copyfile(ignore_path, temporary_root / ".gitignore")
+                result = subprocess.run(
+                    ["git", "check-ignore", "--no-index", "--stdin"],
+                    cwd=temporary_root,
+                    input="\n".join(candidates) + "\n",
+                    capture_output=True,
+                    check=False,
+                    env=isolated_git_environment(),
+                    text=True,
+                )
+                if result.returncode not in (0, 1):
+                    errors.append(
+                        f"could not exercise {rel(ignore_path)}: {result.stderr.strip()}"
+                    )
+                    continue
+                ignored = set(result.stdout.splitlines())
+                if ignored != expected:
+                    errors.append(
+                        f"{rel(ignore_path)} must ignore only the root mutation report path; "
+                        f"got {sorted(ignored)!r}"
+                    )
+        except (OSError, subprocess.SubprocessError) as error:
+            errors.append(f"could not exercise {rel(ignore_path)}: {error}")
+
+    return errors
+
+
+def mapping_child_keys(document: str, parent: str) -> list[str] | None:
+    """Read keys exactly one indentation level below a top-level YAML map."""
+    lines = document.splitlines()
+    parent_pattern = re.compile(rf"^{re.escape(parent)}:\s*(?:#.*)?$")
+    parent_lines = [index for index, line in enumerate(lines) if parent_pattern.fullmatch(line)]
+    if len(parent_lines) != 1:
+        return None
+
+    keys: list[str] = []
+    child_indent: int | None = None
+    key_pattern = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):(?:\s*(?:#.*)?)?$")
+    for line in lines[parent_lines[0] + 1 :]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith(" "):
+            break
+        indent = len(line) - len(line.lstrip(" "))
+        child_indent = indent if child_indent is None else child_indent
+        if indent == child_indent and (match := key_pattern.fullmatch(line[indent:])):
+            keys.append(match.group(1))
+    return keys
+
+
+def checkout_step_bounds(lines: list[str], use_index: int, key_indent: int) -> tuple[int, int] | None:
+    """Find the list item containing a workflow step key."""
+    step_start: int | None = None
+    step_indent: int | None = None
+    for index in range(use_index, -1, -1):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if "\t" in line[: len(line) - len(line.lstrip())]:
+            return None
+        if line.lstrip().startswith("- ") and indent < key_indent:
+            step_start = index
+            step_indent = indent
+            break
+
+    if step_start is None or step_indent is None:
+        return None
+
+    step_end = len(lines)
+    for index in range(step_start + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent < step_indent or (indent == step_indent and line.lstrip().startswith("- ")):
+            step_end = index
+            break
+    return step_start, step_end
+
+
+def checkout_hardening(document: str) -> tuple[int, int]:
+    """Count checkout steps and those with an effective false credentials input."""
+    lines = document.splitlines()
+    checkout_count = 0
+    hardened_count = 0
+
+    for use_index, line in enumerate(lines):
+        match = CHECKOUT_USE.fullmatch(line)
+        if match is None:
+            continue
+
+        checkout_count += 1
+        leading_indent = len(match.group("indent"))
+        key_indent = leading_indent + (2 if match.group("list") else 0)
+        if match.group("list"):
+            step_bounds = (use_index, len(lines))
+            for index in range(use_index + 1, len(lines)):
+                candidate = lines[index]
+                if not candidate.strip() or candidate.lstrip().startswith("#"):
+                    continue
+                indent = len(candidate) - len(candidate.lstrip(" "))
+                if indent < leading_indent or (
+                    indent == leading_indent and candidate.lstrip().startswith("- ")
+                ):
+                    step_bounds = (use_index, index)
+                    break
+        else:
+            step_bounds = checkout_step_bounds(lines, use_index, key_indent)
+        if step_bounds is None:
+            continue
+
+        step_start, step_end = step_bounds
+        with_lines = [
+            index
+            for index in range(step_start, step_end)
+            if lines[index].startswith(" " * key_indent)
+            and not lines[index].startswith(" " * (key_indent + 1))
+            and re.fullmatch(r"with:\s*(?:#.*)?", lines[index][key_indent:])
+        ]
+        if len(with_lines) != 1:
+            continue
+
+        with_index = with_lines[0]
+        sibling_end = step_end
+        for index in range(with_index + 1, step_end):
+            candidate = lines[index]
+            if not candidate.strip() or candidate.lstrip().startswith("#"):
+                continue
+            indent = len(candidate) - len(candidate.lstrip(" "))
+            if indent <= key_indent:
+                sibling_end = index
+                break
+
+        credential_lines = [
+            candidate.strip()
+            for candidate in lines[with_index + 1 : sibling_end]
+            if len(candidate) - len(candidate.lstrip(" ")) == key_indent + 2
+            and candidate.strip().startswith("persist-credentials:")
+        ]
+        if len(credential_lines) == 1 and PERSIST_CREDENTIALS_FALSE.fullmatch(credential_lines[0]):
+            hardened_count += 1
+
+    return checkout_count, hardened_count
+
+
+def parse_mapping_key(text: str, start: int = 0) -> tuple[str, bool, int] | None:
+    """Parse one simple YAML mapping key at start and return its colon offset."""
+    index = start
+    while index < len(text) and text[index].isspace():
+        index += 1
+    if index >= len(text):
+        return None
+
+    quote = text[index]
+    if quote == '"':
+        index += 1
+        characters: list[str] = []
+        escaped = False
+        while index < len(text):
+            character = text[index]
+            if character == "\\":
+                escaped = True
+                if index + 1 >= len(text):
+                    return None
+                characters.extend((character, text[index + 1]))
+                index += 2
+                continue
+            if character == '"':
+                index += 1
+                break
+            characters.append(character)
+            index += 1
+        else:
+            return None
+        key = "".join(characters)
+    elif quote == "'":
+        index += 1
+        characters = []
+        escaped = False
+        while index < len(text):
+            character = text[index]
+            if character != "'":
+                characters.append(character)
+                index += 1
+                continue
+            if index + 1 < len(text) and text[index + 1] == "'":
+                characters.append("'")
+                index += 2
+                continue
+            index += 1
+            break
+        else:
+            return None
+        key = "".join(characters)
+    else:
+        colon = text.find(":", index)
+        if colon == -1:
+            return None
+        key = text[index:colon].strip()
+        if not key or any(character in key for character in "{}[],#\"'"):
+            return None
+        return key, False, colon + 1
+
+    while index < len(text) and text[index].isspace():
+        index += 1
+    if index >= len(text) or text[index] != ":":
+        return None
+    return key, escaped, index + 1
+
+
+def flow_mapping_keys(text: str) -> list[tuple[str, bool]]:
+    """Return mapping keys that occur at structural positions in a flow value."""
+    keys: list[tuple[str, bool]] = []
+    quote: str | None = None
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if quote == '"':
+            if character == "\\":
+                index += 2
+                continue
+            if character == '"':
+                quote = None
+            index += 1
+            continue
+        if quote == "'":
+            if character == "'" and index + 1 < len(text) and text[index + 1] == "'":
+                index += 2
+                continue
+            if character == "'":
+                quote = None
+            index += 1
+            continue
+        if character in ('"', "'"):
+            quote = character
+            index += 1
+            continue
+        if character == "#" and (index == 0 or text[index - 1].isspace()):
+            break
+        if character in "{,":
+            parsed = parse_mapping_key(text, index + 1)
+            if parsed is not None:
+                key, escaped, _ = parsed
+                keys.append((key, escaped))
+        index += 1
+    return keys
+
+
+def workflow_mapping_keys(line: str) -> list[tuple[str, bool]]:
+    """Return actual block and flow mapping keys from one structural YAML line."""
+    body = line.lstrip(" ")
+    if body.startswith("- "):
+        body = body[2:].lstrip()
+    if body.startswith(("{", "[", ",")):
+        return flow_mapping_keys(body)
+
+    parsed = parse_mapping_key(body)
+    if parsed is None:
+        return []
+    key, escaped, value_start = parsed
+    keys = [(key, escaped)]
+    value = body[value_start:].lstrip()
+    if value.startswith(("{", "[")):
+        keys.extend(flow_mapping_keys(value))
+    return keys
+
+
+def block_scalar_parent_indent(line: str) -> int | None:
+    """Return the structural indent above a YAML block scalar's contents."""
+    leading_indent = len(line) - len(line.lstrip(" "))
+    body = line[leading_indent:]
+    if body.startswith("- "):
+        sequence_value = body[2:].lstrip()
+        if BLOCK_SCALAR_INDICATOR.fullmatch(sequence_value):
+            return leading_indent
+        body = sequence_value
+        leading_indent += 2
+
+    parsed = parse_mapping_key(body)
+    if parsed is None:
+        return None
+    _, _, value_start = parsed
+    if BLOCK_SCALAR_INDICATOR.fullmatch(body[value_start:].lstrip()):
+        return leading_indent
+    return None
+
+
+def workflow_structure_lines(document: str) -> list[str]:
+    """Exclude YAML block-scalar payloads from workflow structure scans."""
+    lines: list[str] = []
+    scalar_parent_indent: int | None = None
+    for line in document.splitlines():
+        if scalar_parent_indent is not None:
+            if not line.strip():
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            if indent > scalar_parent_indent:
+                continue
+            scalar_parent_indent = None
+
+        lines.append(line)
+        scalar_parent_indent = block_scalar_parent_indent(line)
+    return lines
+
+
+def is_normalized_local_reference(target: str) -> bool:
+    """Return whether target is a normalized workspace or running-commit path."""
+    if target.startswith("$/") or target.startswith("./"):
+        repository_path = target[2:]
+    else:
+        return False
+    return (
+        bool(repository_path)
+        and "@" not in repository_path
+        and "\\" not in repository_path
+        and not any(character.isspace() for character in repository_path)
+        and all(segment not in ("", ".", "..") for segment in repository_path.split("/"))
+    )
+
+
+def is_normalized_docker_image(image: str) -> bool:
+    """Return whether image is a conservative normalized Docker repository name."""
+    segments = image.split("/")
+    if any(segment in ("", ".", "..") for segment in segments):
+        return False
+
+    last = segments[-1]
+    if ":" in last:
+        if last.count(":") != 1:
+            return False
+        repository, tag = last.split(":")
+        if DOCKER_TAG.fullmatch(tag) is None:
+            return False
+        segments[-1] = repository
+
+    first = segments[0]
+    if ":" in first:
+        if len(segments) == 1 or first.count(":") != 1:
+            return False
+        first, port = first.split(":")
+        if not port.isascii() or not port.isdecimal():
+            return False
+        segments[0] = first
+    return all(
+        DOCKER_NAME_COMPONENT.fullmatch(segment) is not None for segment in segments
+    )
+
+
+def is_immutable_docker_action(target: str) -> bool:
+    """Return whether target pins a normalized Docker image by SHA-256 digest."""
+    match = IMMUTABLE_DOCKER_ACTION.fullmatch(target)
+    return match is not None and is_normalized_docker_image(match.group("image"))
+
+
+def external_action_pin_errors(document: str, description: str) -> list[str]:
+    """Require immutable references for every non-local workflow action."""
+    errors: list[str] = []
+    for line in workflow_structure_lines(document):
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue
+        mapping_keys = workflow_mapping_keys(line)
+        if any(escaped for _, escaped in mapping_keys):
+            errors.append(f"{description} contains an escaped workflow mapping key")
+            continue
+        if not any(key == "uses" for key, _ in mapping_keys):
+            continue
+
+        match = ACTION_USE.fullmatch(line)
+        if match is None:
+            errors.append(f"{description} contains a non-canonical uses entry")
+            continue
+        target = match.group("target")
+        if target.startswith("docker://"):
+            if is_immutable_docker_action(target):
+                continue
+            errors.append(
+                f"every external action in {description} must use an immutable reference"
+            )
+            continue
+        if target.startswith(("./", "$")):
+            if is_normalized_local_reference(target):
+                continue
+            errors.append(f"{description} contains an invalid local action reference")
+            continue
+        _, separator, reference = target.rpartition("@")
+        if not separator or FULL_COMMIT_SHA.fullmatch(reference) is None:
+            errors.append(
+                f"every external action in {description} must use an immutable reference"
+            )
+    return errors
+
+
+def parse_codeowner_rules(document: str) -> list[tuple[str, tuple[str, ...]]]:
+    """Parse the CODEOWNERS subset used by the copyable profiles."""
+    rules: list[tuple[str, tuple[str, ...]]] = []
+    for line in document.splitlines():
+        fields = line.split("#", maxsplit=1)[0].split()
+        if fields:
+            rules.append((fields[0], tuple(fields[1:])))
+    return rules
+
+
+def effective_codeowners(
+    rules: list[tuple[str, tuple[str, ...]]], candidates: tuple[str, ...]
+) -> tuple[dict[str, tuple[str, ...]], str | None]:
+    """Resolve representative paths with Git's last-match path semantics."""
+    try:
+        with tempfile.TemporaryDirectory(prefix="standards-codeowners-") as temporary:
+            temporary_root = Path(temporary)
+            subprocess.run(
+                ["git", "init", "--quiet", str(temporary_root)],
+                check=True,
+                capture_output=True,
+                env=isolated_git_environment(),
+                text=True,
+            )
+            (temporary_root / ".gitignore").write_text(
+                "".join(f"{pattern}\n" for pattern, _ in rules), encoding="utf-8"
+            )
+            result = subprocess.run(
+                ["git", "check-ignore", "--no-index", "--verbose", "--stdin"],
+                cwd=temporary_root,
+                input="\n".join(candidates) + "\n",
+                capture_output=True,
+                check=False,
+                env=isolated_git_environment(),
+                text=True,
+            )
+            if result.returncode not in (0, 1):
+                return {}, result.stderr.strip()
+
+            owners_by_path: dict[str, tuple[str, ...]] = {}
+            for output_line in result.stdout.splitlines():
+                metadata, candidate = output_line.rsplit("\t", maxsplit=1)
+                _, line_number, _ = metadata.split(":", maxsplit=2)
+                owners_by_path[candidate] = rules[int(line_number) - 1][1]
+            return owners_by_path, None
+    except (OSError, subprocess.SubprocessError, ValueError) as error:
+        return {}, str(error)
+
+
+def codeowner_contract_errors(
+    document: str, candidates: tuple[str, ...], description: str
+) -> list[str]:
+    """Check catch-all ownership after every later matching rule is applied."""
+    errors: list[str] = []
+    rules = parse_codeowner_rules(document)
+    if not any(pattern == "*" and "@OWNER" in owners for pattern, owners in rules):
+        errors.append(f"{description} must contain the catch-all '* @OWNER' rule")
+    for pattern, owners in rules:
+        if "@OWNER" not in owners:
+            errors.append(
+                f"{description} rule {pattern!r} overrides the catch-all without retaining @OWNER"
+            )
+
+    effective_owners, codeowners_error = effective_codeowners(rules, candidates)
+    if codeowners_error is not None:
+        errors.append(f"could not exercise {description}: {codeowners_error}")
+    else:
+        for candidate in candidates:
+            if "@OWNER" not in effective_owners.get(candidate, ()):
+                errors.append(f"{description} does not effectively assign {candidate} to @OWNER")
+    return errors
+
+
+def workflow_contract_errors(document: str, description: str) -> list[str]:
+    """Check automatic triggers, the quality job, and checkout credentials."""
+    errors: list[str] = []
+    trigger_keys = mapping_child_keys(document, "on")
+    if trigger_keys is None:
+        errors.append(f"{description} must contain one top-level on mapping")
+        trigger_keys = []
+    elif len(trigger_keys) != len(set(trigger_keys)):
+        errors.append(f"{description} contains duplicate top-level triggers")
+    for trigger in ("pull_request", "push", "workflow_dispatch", "merge_group"):
+        if trigger not in trigger_keys:
+            errors.append(f"{description} missing {trigger} trigger")
+    if "pull_request_target" in trigger_keys:
+        errors.append(f"{description} must not use pull_request_target")
+
+    job_keys = mapping_child_keys(document, "jobs")
+    if job_keys is None or job_keys.count("quality") != 1:
+        errors.append(f"{description} must contain exactly one quality job")
+
+    checkout_count, hardened_checkout_count = checkout_hardening(document)
+    if checkout_count == 0 or checkout_count != hardened_checkout_count:
+        errors.append(f"every checkout in {description} must set persist-credentials: false")
+    errors.extend(external_action_pin_errors(document, description))
+    return errors
+
+
+def check_governance_parser_contracts() -> list[str]:
+    """Exercise cases that naive workflow and CODEOWNERS scans misclassify."""
+    errors: list[str] = []
+    secure_workflow = """\
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+  merge_group:
+jobs:
+  quality:
+    steps:
+      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+"""
+    if workflow_contract_errors(secure_workflow, "secure fixture"):
+        errors.append("governance parser rejected an order-independent secure workflow")
+    wider_indentation = secure_workflow.replace("\n  ", "\n    ")
+    if workflow_contract_errors(wider_indentation, "wider-indentation fixture"):
+        errors.append("governance parser rejected a consistently indented secure workflow")
+
+    disguised_manual_workflow = """\
+on:
+  workflow_dispatch:
+jobs:
+  pull_request:
+  push:
+  merge_group:
+  quality:
+"""
+    disguised_errors = workflow_contract_errors(disguised_manual_workflow, "manual fixture")
+    if not all(trigger in " ".join(disguised_errors) for trigger in ("pull_request", "push", "merge_group")):
+        errors.append("governance parser confused job identifiers with automatic triggers")
+
+    unsafe_workflow = secure_workflow.replace(
+        "        with:\n          fetch-depth: 0\n          persist-credentials: false\n",
+        "        env:\n          persist-credentials: false\n",
+    )
+    if not any(
+        "persist-credentials" in error
+        for error in workflow_contract_errors(unsafe_workflow, "unsafe fixture")
+    ):
+        errors.append("governance parser accepted credentials text outside checkout inputs")
+
+    mutable_action = secure_workflow.replace(
+        "actions/checkout@0123456789abcdef0123456789abcdef01234567",
+        "actions/checkout@v7",
+    )
+    if not any(
+        "immutable reference" in error
+        for error in workflow_contract_errors(mutable_action, "mutable-action fixture")
+    ):
+        errors.append("governance parser accepted a mutable external action reference")
+
+    for label, local_entry in {
+        "running-commit action": "      - uses: $/.github/actions/contract",
+        "workspace action": "      - uses: ./.github/actions/contract",
+        "running-commit reusable workflow": "    uses: $/.github/workflows/contract.yml",
+        "workspace reusable workflow": "    uses: ./.github/workflows/contract.yml",
+    }.items():
+        if external_action_pin_errors(local_entry, f"{label} fixture"):
+            errors.append(f"governance parser rejected a {label} reference")
+
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    image_digest = "0123456789abcdef" * 4
+    for image in (
+        "alpine",
+        "alpine:3.20",
+        "ghcr.io/owner/image",
+        "registry.example.com:5000/owner/image:stable",
+    ):
+        docker_entry = f"      - uses: docker://{image}@sha256:{image_digest}"
+        if external_action_pin_errors(docker_entry, "immutable Docker action fixture"):
+            errors.append(
+                f"governance parser rejected immutable Docker action image {image!r}"
+            )
+
+    invalid_docker_targets = (
+        "docker://alpine",
+        "docker://alpine:3.20",
+        f"docker://@sha256:{image_digest}",
+        "docker://alpine@sha256:",
+        f"docker://alpine@sha256:{image_digest[1:]}",
+        f"docker://alpine@sha256:{image_digest}0",
+        f"docker://alpine@sha256:{image_digest.upper()}",
+        f"docker://alpine@SHA256:{image_digest}",
+        f"docker://alpine@sha256:{image_digest}@extra",
+        f"docker://alpine//child@sha256:{image_digest}",
+        f"docker://alpine/../child@sha256:{image_digest}",
+        f"docker://alpine\\child@sha256:{image_digest}",
+        f"docker://alpine child@sha256:{image_digest}",
+        f"docker://${{{{ github.repository }}}}@sha256:{image_digest}",
+    )
+    for target in invalid_docker_targets:
+        fixture = f"      - uses: {target}"
+        if not external_action_pin_errors(fixture, "invalid Docker action fixture"):
+            errors.append(
+                f"governance parser accepted malformed Docker action reference {target!r}"
+            )
+
+    invalid_local_targets = (
+        "$",
+        f"$actions/contract@{commit}",
+        f"$$/actions/contract@{commit}",
+        "$/",
+        "$//actions/contract",
+        "$/actions//contract",
+        "$/actions/../contract",
+        "$/actions/./contract",
+        "$/actions\\contract",
+        "$/actions contract",
+        "$/actions/contract/",
+        "$/actions/contract@v1",
+        f"$/actions/contract@{commit}",
+        "./",
+        ".//actions/contract",
+        "./../outside",
+        "./actions//contract",
+        "./actions/../contract",
+        "./actions/./contract",
+        "./actions\\contract",
+        "./actions contract",
+        "./actions/contract/",
+        "./actions/contract@v1",
+        f"./actions/contract@{commit}",
+    )
+    for target in invalid_local_targets:
+        for location, prefix in (
+            ("action", "      - uses: "),
+            ("reusable workflow", "    uses: "),
+        ):
+            fixture = f"{prefix}{target}"
+            if not external_action_pin_errors(fixture, f"invalid {location} fixture"):
+                errors.append(
+                    f"governance parser accepted malformed {location} reference {target!r}"
+                )
+
+    escaped_uses_keys = {
+        "hex": r"u\x73es",
+        "short Unicode": r"u\u0073es",
+        "long Unicode": r"u\U00000073es",
+    }
+    pinned_checkout = "actions/checkout@0123456789abcdef0123456789abcdef01234567"
+    canonical_checkout_line = f"      - uses: {pinned_checkout}"
+    for scalar_kind, scalar_step in {
+        "block scalar": (
+            "      - run: |\n"
+            '          "u\\u0073es": actions/checkout@v7'
+        ),
+        "anchored block scalar": (
+            "      - run: &shared-script |2-\n"
+            '          "u\\u0073es": actions/checkout@v7'
+        ),
+        "tagged block scalar": (
+            "      - run: !!str >+\n"
+            '          "u\\u0073es": actions/checkout@v7'
+        ),
+        "inline quoted scalar": '      - run: \'echo "u\\u0073es": data\'',
+        "inline flow-looking scalar": (
+            '      - run: \'echo { "u\\u0073es": data }\''
+        ),
+    }.items():
+        scalar_workflow = secure_workflow.replace(
+            canonical_checkout_line,
+            f"{scalar_step}\n{canonical_checkout_line}",
+        )
+        if workflow_contract_errors(
+            scalar_workflow,
+            f"escaped-key-{scalar_kind} fixture",
+        ):
+            errors.append(
+                "governance parser confused an escaped-key lookalike in a "
+                f"{scalar_kind} with a mapping key"
+            )
+
+    parallel_entries = {
+        ("nested block", "mutable action"): (
+            "      - parallel:\n"
+            "          - parallel:\n"
+            "              - uses: example/action@v1"
+        ),
+        ("nested block", "pinned but unhardened checkout"): (
+            "      - parallel:\n"
+            f"          - uses: {pinned_checkout}"
+        ),
+        ("nested flow", "mutable action"): (
+            "      - { parallel: [ { parallel: [ { uses: example/action@v1 } ] } ] }"
+        ),
+        ("nested flow", "pinned but unhardened checkout"): (
+            f"      - {{ parallel: [ {{ uses: {pinned_checkout} }} ] }}"
+        ),
+    }
+    for (layout, reference_kind), parallel_entry in parallel_entries.items():
+        parallel_workflow = secure_workflow.replace(
+            canonical_checkout_line,
+            f"{parallel_entry}\n{canonical_checkout_line}",
+        )
+        parallel_errors = workflow_contract_errors(
+            parallel_workflow,
+            f"parallel-{layout}-{reference_kind} fixture",
+        )
+        if not parallel_errors:
+            errors.append(
+                "governance parser accepted an unsafe parallel step "
+                f"({layout}, {reference_kind})"
+            )
+        elif layout == "nested block":
+            expected_fragment = (
+                "immutable reference"
+                if reference_kind == "mutable action"
+                else "persist-credentials"
+            )
+            if not any(expected_fragment in error for error in parallel_errors):
+                errors.append(
+                    "governance parser misclassified an unsafe parallel step "
+                    f"({layout}, {reference_kind})"
+                )
+        elif not any("non-canonical uses entry" in error for error in parallel_errors):
+            errors.append(
+                "governance parser did not fail closed for an unsafe flow parallel step "
+                f"({layout}, {reference_kind})"
+            )
+
+    for escape_name, escaped_key in escaped_uses_keys.items():
+        for layout, entry_pattern in (
+            ("block", '      - "{key}": {target}'),
+            ("flow", '      - {{ "{key}": {target} }}'),
+            (
+                "flow after plain hash",
+                '      - {{ note: x#y, "{key}": {target} }}',
+            ),
+        ):
+            for reference_kind, target in (
+                ("mutable", "actions/checkout@v7"),
+                ("pinned but unhardened", pinned_checkout),
+            ):
+                escaped_entry = entry_pattern.format(key=escaped_key, target=target)
+                disguised_workflow = secure_workflow.replace(
+                    canonical_checkout_line,
+                    f"{escaped_entry}\n{canonical_checkout_line}",
+                )
+                if not workflow_contract_errors(
+                    disguised_workflow,
+                    f"escaped-{escape_name}-{layout}-{reference_kind} fixture",
+                ):
+                    errors.append(
+                        "governance parser accepted an escaped uses key "
+                        f"({escape_name}, {layout}, {reference_kind})"
+                    )
+
+    for label, invalid_entry in {
+        "quoted": '      - "uses": actions/checkout@v7',
+        "spaced": "      - uses : actions/checkout@v7",
+        "flow": "      - { uses: actions/checkout@v7 }",
+    }.items():
+        disguised_action = secure_workflow.replace(
+            "      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567",
+            invalid_entry,
+        )
+        if not external_action_pin_errors(disguised_action, f"{label}-action fixture"):
+            errors.append(f"governance parser accepted a {label} mutable action reference")
+
+    codeowner_errors = codeowner_contract_errors(
+        "* @OWNER\nsrc/ @OTHER\n",
+        ("README.md", "src/project/main.py"),
+        "override fixture",
+    )
+    if not any("src/project/main.py" in error for error in codeowner_errors):
+        errors.append("CODEOWNERS contract ignored a later source ownership override")
+    return errors
+
+
+def check_automatic_profile_governance(
+    profiles: dict[str, dict[str, object]],
+) -> list[str]:
+    """Check the host-enforced contracts shipped by automatic profiles."""
+    errors: list[str] = []
+    missing = AUTOMATIC_PROFILE_IDS - set(profiles)
+    if missing:
+        return [f"automatic profiles missing from manifest: {', '.join(sorted(missing))}"]
+
+    errors.extend(check_governance_parser_contracts())
+    for profile_id in sorted(AUTOMATIC_PROFILE_IDS):
+        template = ROOT / str(profiles[profile_id]["template"])
+        codeowners_path = template / ".github" / "CODEOWNERS"
+        workflow_path = template / ".github" / "workflows" / "quality.yml"
+        readme_path = template / "README.md"
+        pull_request_template_path = template / ".github" / "pull_request_template.md"
+
+        required_files = (
+            codeowners_path,
+            workflow_path,
+            readme_path,
+            pull_request_template_path,
+        )
+        if any(not path.is_file() for path in required_files):
+            for path in required_files:
+                if not path.is_file():
+                    errors.append(f"{profile_id}: missing governance file {rel(path)}")
+            continue
+
+        errors.extend(
+            f"{profile_id}: {error}"
+            for error in codeowner_contract_errors(
+                codeowners_path.read_text(encoding="utf-8"),
+                AUTOMATIC_PROFILE_PATHS[profile_id],
+                rel(codeowners_path),
+            )
+        )
+
+        workflow = workflow_path.read_text(encoding="utf-8")
+        errors.extend(
+            f"{profile_id}: {error}"
+            for error in workflow_contract_errors(workflow, rel(workflow_path))
+        )
+
+        readme = " ".join(readme_path.read_text(encoding="utf-8").lower().split())
+        for phrase in (
+            "require the `quality` job",
+            "code owner review",
+            "dismiss stale approvals",
+            "disallow protection",
+        ):
+            if phrase not in readme:
+                errors.append(f"{profile_id}: {rel(readme_path)} missing host-setting contract: {phrase}")
+
+        pull_request_template = " ".join(
+            pull_request_template_path.read_text(encoding="utf-8").lower().split()
+        )
+        if (
+            "surviv" not in pull_request_template
+            or "source reason" not in pull_request_template
+            or not any(word in pull_request_template for word in ("classified", "ignored", "skipped"))
+        ):
+            errors.append(
+                f"{profile_id}: {rel(pull_request_template_path)} must request both surviving "
+                "and source-reasoned classified mutation results"
+            )
+
+    return errors
+
+
 def check_dagger_copy(profile_id: str, tester: Path) -> list[str]:
     errors: list[str] = []
     dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
@@ -542,6 +1460,8 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_aggregate_dispatch(profiles))
     errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())
+    errors.extend(check_mutation_ignore_scope())
+    errors.extend(check_automatic_profile_governance(profiles))
 
     for profile_id, profile in profiles.items():
         tester = ROOT / str(profile["tester"])

@@ -265,11 +265,18 @@ All the workflows use the same locked command surface and pin the locally
 tested mise `2026.7.15`. The lower configuration minimums remain
 compatibility floors.
 
-The downstream repository host settings must require the copied workflow's
-`quality` job before merge. The committed YAML does not configure branch
-protection. Expensive project-specific integration or deployment checks can
-remain in separate jobs, but they do not replace the fast, static,
-deterministic gate.
+The downstream repository host must protect merges with all of these settings:
+
+- require the copied workflow's `quality` job;
+- require review from Code Owners;
+- dismiss stale approvals when new commits are pushed; and
+- disallow bypass of the ruleset or branch protection.
+
+The latest-push approval option is useful defense in depth, but it does not
+replace stale-approval dismissal because that approver need not be the code
+owner. Committed YAML cannot configure these host settings. Expensive
+project-specific integration or deployment checks may remain separate, but
+they do not replace the fast, static, deterministic gate.
 
 `mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
@@ -329,7 +336,9 @@ mise run testers:standards:check:isolated
 The drift portion of the root gate runs `scripts/check-standards-drift.py`.
 This script keeps shared task fragments, aggregate task dispatch, fixture
 configurations, Dagger fragments, full-configuration shared files, and declared
-mirror files in sync. Undeclared fixture source and tests can remain small.
+mirror files in sync. It also enforces mutation-output ignore scope and the
+downstream workflow and Code Owners contracts. Undeclared fixture source and
+tests can remain small.
 
 When adding or changing a profile:
 

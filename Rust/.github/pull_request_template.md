@@ -8,7 +8,8 @@
 The handoff report, per AGENTS.md. Name the test that fails without this
 change (or say why none can exist). List every gate you ran and every one
 you skipped, with why. Carry forward verbatim: new #[expect] sites with
-their reasons, surviving or skipped mutants, and rust:deny
+their reasons, every surviving mutant, every skipped mutant with its source
+reason, and rust:deny
 duplicate-version warnings. State only what a command proved; never
 overstate.
 -->

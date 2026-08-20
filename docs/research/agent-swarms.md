@@ -136,19 +136,20 @@ sycophancy or mode collapse. Robust aggregation (geometric median, trimmed
 statistics) restores the panel advantage under judge corruption; a 3-judge
 38B-parameter committee beat a 675B judge with 30% of judges corrupted.
 
-Gating is the counterintuitive part. In a four-tool concurrent review fleet
-measured over 617 findings, 93.4% of findings were caught by exactly one
-tool and none by all four. Unanimity essentially never occurs, and majority
-vote discards most true findings. Fleets therefore maximize recall, and the
-gate is union-with-dedup plus severity triage — machine-deduplicated before
-a human sees it, because undeduplicated bot disagreement measurably costs
-more time than the bots save. The singleton rate is an argument against
-consensus rules, not a claim of per-finding precision: union is the
-collection rule, and triage decides what blocks — a claim of observable
-wrongness blocks until dispositioned by the failing-test protocol, a
-judgment call becomes a design note. The measured fleet's findings included
-false positives, and no production system publishes per-reviewer precision;
-an adopting repo tunes its own blocking bar from its own dispositions.
+Gating is the counterintuitive part. Across 617 distinct flagged locations in
+a four-tool concurrent review fleet, 93.4% were flagged by exactly one tool
+and none by all four. Unanimity essentially never occurs, and majority voting
+would discard most team-accepted fixes in that run. Fleets therefore maximize
+recall, and the gate is union-with-dedup plus severity triage —
+machine-deduplicated before a human sees it, because undeduplicated bot
+disagreement measurably costs more time than the bots save. The singleton
+rate is an argument against consensus rules, not a claim of per-finding
+precision: union is the collection rule, and triage decides what blocks. A
+claim of observable wrongness blocks until dispositioned by the failing-test
+protocol; a judgment call becomes a design note. The measured fleet's
+findings included false positives, and no production system publishes
+per-reviewer precision. An adopting repo tunes its own blocking bar from its
+own dispositions.
 
 ### Flag, never rewrite
 
@@ -209,16 +210,17 @@ Sources:
 - [Security in LLM-as-a-Judge SoK](https://arxiv.org/pdf/2603.29403)
 - [Judging the Judges](https://arxiv.org/pdf/2604.23178)
 - [Addy Osmani: Agentic Code Review](https://addyosmani.com/blog/agentic-code-review/)
+- [Parallel-review methodology and disposition audit](https://dev.to/_vjk/best-ai-code-reviewer-in-2026-we-ran-4-in-parallel-for-3-weeks-146-prs-679-findings-1c0f)
+- [Parallel-review benchmark data](https://github.com/vlad-ko/pr-review-bench)
 - [Human review bottleneck: 33,707 agent PRs](https://codex.danielvaughan.com/2026/05/24/human-review-bottleneck-code-review-strategies-agent-output/)
 
 ## Adoption in the TypeScript ecosystem (surveyed 2026-08-17)
 
 The hands-off doctrine has a fully assembled public existence proof:
 oven-sh/bun (a majority-Zig systems codebase) combines a dedicated coding
-machine account
-(robobun, 9,299 PRs authored / 2,295 merged, humans performing merges), a
-guidelines file fed to the review bot, bot-to-bot thread resolution, hook
-and comment-cop enforcement, and bot-PR lifecycle GC. A targeted survey —
+machine account (robobun, 9,299 PRs authored / 2,295 merged, humans performing
+merges), a guidelines file fed to the review bot, bot-to-bot thread resolution,
+hook and comment-cop enforcement, and bot-PR lifecycle GC. A targeted survey —
 authenticated GitHub search over machine-account PR ledgers,
 `.coderabbit.yaml` co-occurrence with agent guideline files, and direct
 audits of high-prior candidates — found **no public TypeScript repo that

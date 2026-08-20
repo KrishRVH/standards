@@ -83,10 +83,12 @@ demand.
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`) ship automatic triggers for downstream copies only; they
 are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. The contract is machine-enforced in both directions by
-`testers/ts/tests/quality-workflow.test.ts` for the root workflow and the
-TypeScript template; the Rust, C#, and Python templates carry the same
-triggers under review discipline only.
+`.github/workflows/`. `scripts/check-standards-drift.py` enforces automatic
+triggers, one `quality` job, hardened checkout, immutable action pins,
+CODEOWNERS, and related host-setting and pull-request guidance across all four
+templates. `testers/ts/tests/quality-workflow.test.ts` separately enforces the
+root workflow's manual-only contract and the TypeScript-specific workflow
+behavior.
 
 ## Editing
 

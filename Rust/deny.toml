@@ -10,6 +10,7 @@ yanked = "deny"
 # Pre-emptively widened to the common permissive licenses agents drag in —
 # a deliberate posture choice, not a need of the current tree.
 [licenses]
+include-dev = true
 allow = [
     "0BSD",
     "Apache-2.0",

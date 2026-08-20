@@ -85,7 +85,18 @@ template = "C#"
 tester = "testers/csharp"
 task_prefix = "csharp"
 task_fragment = "20-csharp.toml"
-mirror = [".config/dotnet-tools.json", ".editorconfig", "BannedSymbols.txt", "Directory.Build.props", "Directory.Packages.props", "global.json", "stryker-config.json"]
+mirror = [
+  ".config/dotnet-tools.json",
+  ".editorconfig",
+  "BannedSymbols.txt",
+  "Directory.Build.props",
+  "Directory.Packages.props",
+  "global.json",
+  "scripts/Directory.Build.props",
+  "scripts/Directory.Packages.props",
+  "scripts/verify-standards.cs",
+  "stryker-config.json",
+]
 
 [profiles.cpp]
 name = "C++"
@@ -202,7 +213,13 @@ template = "Python"
 tester = "testers/python"
 task_prefix = "py"
 task_fragment = "20-python.toml"
-mirror = ["pyproject.toml"]
+mirror = [
+  "pyproject.toml",
+  "scripts/check-interrogate-report.py",
+  "scripts/check-mutation-score.py",
+  "scripts/check-suppressions.py",
+  "scripts/run-mutation-transaction.py",
+]
 dagger = true
 
 [profiles.roc]
@@ -219,7 +236,17 @@ template = "Rust"
 tester = "testers/rust"
 task_prefix = "rust"
 task_fragment = "20-rust.toml"
-mirror = ["Cargo.toml", "clippy.toml", "deny.toml", "rustfmt.toml"]
+mirror = [
+  "Cargo.toml",
+  "clippy.toml",
+  "deny.toml",
+  "policy-fixtures/disallowed-mutex.rs",
+  "rustfmt.toml",
+  "scripts/mutants-lock.sh",
+  "scripts/verify-mutants.sh",
+  "tests/allow_policy.rs",
+  "tests/mutation_report_policy.rs",
+]
 
 [profiles.shell]
 name = "Shell"
@@ -304,8 +331,14 @@ mirror = [
   "knip.jsonc",
   "package.json",
   "prettier.config.mjs",
+  "scripts/check-directives.mjs",
   "scripts/check-effect-diagnostics.mjs",
+  "scripts/check-stryker-cache.mjs",
+  "scripts/check-stryker-report.mjs",
   "scripts/check-type-tests.mjs",
+  "scripts/eslint-local-rules.mjs",
+  "scripts/run-stryker.mjs",
+  "scripts/stryker-report-contract.mjs",
   "src/endpoint-checker.ts",
   "src/endpoint-contracts.ts",
   "src/endpoint-policy.ts",
@@ -345,6 +378,7 @@ required_tester_files = [
   "tests/support/operation-controller.ts",
   "tests/support/runtime-lease.ts",
   "tests/support/workflow-contract.ts",
+  "tests/tooling-policy.test.ts",
 ]
 dagger = true
 

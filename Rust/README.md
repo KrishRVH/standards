@@ -32,9 +32,11 @@ mise run rust:components
 mise run rust:deny:install
 mise run rust:machete:install
 mise run rust:mutants:install
+mise run rust:lock
 mise run rust:lock:check
 mise run rust:fmt
 mise run rust:fmt:check
+mise run rust:policy
 mise run rust:lint
 mise run rust:test
 mise run rust:test:doc
@@ -60,6 +62,33 @@ everywhere; tests are exempted from the unwrap/expect/panic/indexing lints
 only — state primitives and arithmetic in tests take a reasoned `#[expect]`.
 Release builds keep integer overflow checks.
 
+`rust:lint` also forces Clippy's bare-attribute rules on the command line, so
+they still cover a workspace member that accidentally omits
+`[lints] workspace = true`. Before the real lint run, `rust:policy` parses
+every first-party Rust source with Rust token and attribute parsers and rejects
+outer, crate-inner, multiline, and `cfg_attr`-nested `#[allow]` attributes,
+including raw `r#allow` spellings and literal attributes inside macro bodies.
+It also rejects direct, repeated, and `cfg_attr`-nested attribute-metavariable
+emission. Stable source tokenization cannot reconstruct arbitrary declarative-
+or procedural-macro output, so a macro that synthesizes an `allow` from split
+or generated tokens remains a prohibited reviewer-owned wall bypass rather
+than a supported exception. Comments and strings containing attribute-shaped
+text remain legal, and vendored dependencies are outside this first-party
+policy. Generated/dependency directories such as `target/` and `vendor/` are
+excluded at each accepted workspace package root, so an ordinary nested source
+directory with the same basename cannot hide compiler inputs.
+Literal `include!` inputs are followed recursively regardless of extension;
+cycles are harmless. In-project source-file and directory symlinks are
+followed cycle-safely, and explicit Cargo lib/bin/test/example/bench and build
+script paths are scanned even without an `.rs` extension. Every resolved
+first-party target or included input must remain inside the canonical project
+root. Non-literal `include!` expressions and custom `#[path]` modules fail
+because the scanner cannot prove their compiler inputs.
+The same task compiles a negative `std::sync::Mutex` probe and requires the
+configured `clippy::disallowed_types` diagnostic, so the state wall cannot
+silently disappear.
+
+Use `rust:lock` to deliberately refresh `Cargo.lock` after dependency changes.
 Lock-sensitive gates run `rust:lock:check` first. That task generates
 `Cargo.lock` locally when it is missing, fails in CI when it is missing, and
 then lint/test/doc/package/mutants/deny tasks run with `--locked`.
@@ -67,32 +96,49 @@ then lint/test/doc/package/mutants/deny tasks run with `--locked`.
 `cargo package --workspace`. The `*:install` tasks put pinned `cargo-deny`,
 `cargo-machete`, and `cargo-mutants` into local `.cargo-tools`. `rust:deny`
 fails on advisories (unmaintained crates included), yanked crates, disallowed
-licenses, wildcard dependency requirements, and unknown registries, and
-surfaces duplicate-version warnings without failing. `rust:machete` fails on
-`[dependencies]` entries no code uses; dev- and build-dependencies are not
-checked.
+licenses, wildcard dependency requirements, and unknown registries across
+normal and development dependency graphs, and surfaces duplicate-version
+warnings without failing. `rust:machete` first proves all-feature Cargo
+metadata against the committed lock, then uses metadata-aware, offline
+analysis for renamed dependencies. It fails on unused `[dependencies]`
+entries; dev- and build-dependencies remain outside cargo-machete's scope.
 
-`rust:mutants` runs the full mutation sweep; a surviving mutant is a review
-finding, not a statistic. `rust:mutants:diff` mutates only code changed
-relative to `MUTANTS_BASE_REF` (default `main`) for the inner loop. The
-catalog's copyable `shared/.gitignore` already excludes `mutants.out/` and
-`mutants.out.old/`;
-commit `proptest-regressions/`. On large projects, swap `rust:mutants` for
-`rust:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job; give the workflow's checkout step `fetch-depth: 0` first, or the diff
-task cannot resolve `MUTANTS_BASE_REF` in a shallow CI clone.
+`rust:mutants` runs the full mutation sweep and runs all workspace tests
+against each mutant. Both lanes force cargo-mutants to create `mutants.out/`
+under the project root, so `.cargo/mutants.toml` cannot redirect the run while
+the verifier reads stale local evidence. After cargo-mutants succeeds, each
+lane validates its native JSON and outcome lists. The full lane requires at
+least one mutant to have actually run; the diff lane accepts a complete
+zero-total report when the diff selects no mutants. A nonempty all-unviable
+report fails in either lane. A surviving mutant is a review finding, not a
+statistic. Both mutation lanes hold the same
+project-local lock through cargo-mutants and post-run verification, so a
+concurrent run fails before it can replace the report; a stale-lock failure
+names the directory to remove after confirming no run is active.
+`rust:mutants:diff` mutates only code changed relative to `MUTANTS_BASE_REF`
+for the inner loop. An explicit value resolves exactly as supplied; otherwise
+the task prefers `refs/remotes/origin/main` over the local `main` branch. It
+hands cargo-mutants a diff from the exact 40-character merge-base commit and
+reports how to fetch full history when no merge base exists. Untracked files
+fail the lane with `git add -N` guidance because Git diff cannot review them.
+The catalog's copyable `shared/.gitignore` already excludes `mutants.out/` and
+`mutants.out.old/`; commit `proptest-regressions/`. On large projects, swap
+`rust:mutants` for `rust:mutants:diff` in the PR gate and move the full sweep
+to a scheduled job; give the workflow's checkout step `fetch-depth: 0` first,
+or the diff task cannot resolve `MUTANTS_BASE_REF` in a shallow CI clone.
 
 `.github/` ships a hash-pinned `quality.yml` workflow that runs the gate on
 pull requests, pushes, and merge-queue groups, and a PR template whose
 second question — how did you verify? — is the handoff-report contract from
 `AGENTS.md`. Wire whatever AI review bot the repo uses to read `AGENTS.md`
 as its guidelines file so authors and reviewers argue from one document.
-`CODEOWNERS` lists the enforcement surface: point its placeholder at a real
-owner and require code-owner review on the protected branch, and every wall
-edit mechanically needs a named human's approval — that host setting is
-what turns "loosening requires human countersign" from an instruction into
-a gate. Without it, countersign is a review duty the PR template reminds
-humans to perform.
+`CODEOWNERS` deliberately assigns every path to the placeholder owner because
+source files can carry mutation classifications and diagnostic escapes. Point
+the placeholder at a real human, require the `quality` job and Code Owner
+review, dismiss stale approvals on every new commit, and disallow protection
+bypass. The latest-push approval option is not a substitute for stale
+dismissal: its approver need not be the code owner. These host settings turn
+"loosening requires human countersign" from an instruction into a gate.
 
 Noisy systems-code lints stay relaxed by default: int-to-float precision
 casts, size/repetition style counts, the remainder of `clippy::restriction`

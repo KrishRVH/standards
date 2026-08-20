@@ -2,8 +2,8 @@
 
 Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`,
 `global.json`, `BannedSymbols.txt`, `stryker-config.json`,
-`.config/dotnet-tools.json`, and `.github/` into a .NET repository, and use
-it with the shared mise template:
+`.config/dotnet-tools.json`, `scripts/`, and `.github/` into a .NET repository,
+and use it with the shared mise template:
 
 ```text
 .config/mise/config.toml
@@ -25,11 +25,23 @@ forcing every diagnostic on.
 The profile is optimized for agent-driven development; `AGENTS.md` holds the
 doctrine. The mechanical walls: `BannedSymbols.txt` bans ambient and shared
 state by symbol with remediation-shaped messages (RS0030); StyleCop ships for
-exactly one rule, SA1404, which rejects `[SuppressMessage]` without a real
-justification; ReferenceTrimmer fails the build on references no code uses;
+exactly one rule, SA1404, which rejects a missing, blank, or `<Pending>`
+`[SuppressMessage]` justification while review checks every other value;
+ReferenceTrimmer fails on analyzable direct compile references reported unused
+as RT0001-RT0003 (SDK, transitive, and build-asset references are conservatively
+outside its scope);
 CsCheck is the property-testing default; and Stryker.NET (pinned as a local
 dotnet tool) runs the mutation gate on the Microsoft Testing Platform runner,
-which is in preview. `thresholds.break` in `stryker-config.json` is pinned
+which is in preview. Coverage analysis is disabled because that integration is
+not yet reliable; each run emits JSON and its complete log to a unique,
+preserved output directory. A dependency-free verifier rejects malformed
+Stryker directives, pending or unknown statuses, and ignored mutants without a
+custom reason. It validates the mutated-source payload and permits only the
+documented one-shot line-comment form; ranged `disable`/`restore` and block
+directives fail. Directive-shaped string text is conservatively reserved for
+the policy. The full gate also requires an actually executed `Killed`,
+`Survived`, or `Timeout` mutant, so empty and all-`NoCoverage` runs fail.
+`thresholds.break` in `stryker-config.json` is pinned
 at the measured floor. The shipped 100 makes every survivor fail — a
 deliberate per-mutant gate at fixture size; pin your own measured floor on
 adoption and it becomes a coarse regression alarm, with survivors in changed
@@ -61,6 +73,7 @@ The standards workflow is:
 ```sh
 mise run csharp:standards
 mise run csharp:fmt:check
+mise run csharp:policy
 mise run csharp:lint
 mise run csharp:test
 mise run csharp:mutants
@@ -75,9 +88,22 @@ audit warnings fail under warnings-as-errors. Commit `global.json`,
 test SDK, target framework, and package versions together in a deliberate
 platform update.
 
-`.github/CODEOWNERS` lists the enforcement surface: point its placeholder
-at a real owner and require code-owner review on the protected branch, and
-every wall edit mechanically needs a named human's approval — that host
-setting is what turns "loosening requires human countersign" from an
-instruction into a gate. Without it, countersign is a review duty the PR
-template reminds humans to perform.
+`csharp:policy` self-tests the JSON/log verifier and compiles negative probes
+that must trigger RS0030 for a banned API and SA1404 for a suppression without
+a justification. `csharp:mutants:diff` resolves an explicit
+`MUTANTS_BASE_REF` exactly as supplied; when unset, it prefers
+`refs/remotes/origin/main` over local `main` and passes the exact 40-character
+merge-base SHA to Stryker. Because Stryker tests branch and tag names before
+its SHA lookup, the task fails closed if any local Git ref name contains that
+SHA. It also rejects untracked files with `git add -N` guidance because Git
+diff cannot review them. Fetch full history before using it in a shallow
+clone.
+
+`.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
+because source files can carry mutation classifications and analyzer
+suppressions. Point the placeholder at a real human, require the `quality` job
+and Code Owner review, dismiss stale approvals on every new commit, and
+disallow protection bypass. The latest-push approval option is not a substitute
+for stale dismissal: its approver need not be the code owner. These host
+settings turn "loosening requires human countersign" from an instruction into
+a gate.

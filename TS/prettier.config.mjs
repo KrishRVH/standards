@@ -1,5 +1,5 @@
-// Every option is spelled out, defaults included, so a Prettier major cannot
-// silently reformat the tree; only printWidth and singleQuote deviate.
+// The formatting options this profile relies on are explicit. With pinned
+// Prettier 3.9.6, only printWidth and singleQuote differ from the defaults.
 // eslint-disable-next-line no-restricted-exports -- Prettier loads its config through a default export by contract.
 export default {
   arrowParens: 'always',

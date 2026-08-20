@@ -6,14 +6,15 @@
   "packageManager": "bun@1.3.14",
   "scripts": {
     "audit": "bun audit --audit-level=low",
+    "directives:check": "bun run scripts/check-directives.mjs",
     "effect:check": "effect-language-service diagnostics --project tsconfig.json --severity error,warning",
     "effect:diagnostics:check": "bun run scripts/check-effect-diagnostics.mjs",
     "effect:overview": "effect-language-service overview --project tsconfig.json",
     "format": "prettier . --write --cache --list-different",
     "format:check": "prettier . --check",
     "knip": "knip",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix --max-warnings 0",
+    "lint": "bun run directives:check && eslint . --max-warnings 0",
+    "lint:fix": "bun run directives:check && eslint . --fix --max-warnings 0",
     "standards": "bun run lint:fix && bun run format",
     "standards:check": "bun run lint && bun run typecheck && bun run type-tests:check && bun run effect:check && bun run effect:diagnostics:check && bun run format:check && bun run test && bun run audit && bun run knip",
     "test": "bun test",
@@ -45,6 +46,6 @@
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "qs": ">=6.15.3"
+    "qs": "6.15.3"
   }
 }

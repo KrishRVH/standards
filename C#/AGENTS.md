@@ -33,10 +33,10 @@ Exceptions are per-site, reasoned, and machine-checked where the toolchain
 allows:
 
 - Suppress through `[SuppressMessage]` with a real `Justification`, never a
-  bare pragma: SA1404 rejects a missing or `<Pending>` justification, and no
-  analyzer can police a pragma's reason. The justification names the
-  invariant that holds, then why the structural fix loses; the adversarial
-  reviewer's first duty is refuting it.
+  bare pragma: SA1404 rejects a missing, blank, or `<Pending>` justification.
+  Review rejects other placeholders because no analyzer can judge a reason's
+  substance. The justification names the invariant that holds, then why the
+  structural fix loses; the adversarial reviewer's first duty is refuting it.
 - Stale suppressions do not self-expire in CI: IDE0079 surfaces them only in
   the IDE, so removing dead suppressions is an explicit review duty on every
   diff that touches one.
@@ -63,34 +63,50 @@ Semantic verification — the gate proves form, and wrong logic compiles:
   kill — the suite gains a test that observes the difference; delete — the
   code loses the branch the suite cannot reach; or classify — a
   `// Stryker disable once all: <reason>` comment whose reason names why no
-  test can observe the mutant (equivalent mutants exist). The `all`/mutator
-  part is required syntax: a comment without it is silently ignored.
-  Classify is a wall edit requiring human countersign. The
+  test can observe the mutant (equivalent mutants exist). The `all` or mutator
+  label is required syntax. Stryker 4.16 logs a malformed label but can still
+  treat its enum default as `Statement`, so the post-run verifier rejects the
+  parser error instead of trusting the score. Classify is a wall edit requiring
+  human countersign. The
   `thresholds.break` value is pinned at the measured floor. At this
   project's floor of 100 every survivor fails the gate — a deliberate
   per-mutant guarantee at fixture size; a lower measured floor behaves as a
   coarse regression alarm instead. Raising it is normal work; lowering it
   requires human countersign, and survivors in changed code are
   dispositioned in review.
-  `mise run csharp:mutants:diff` scopes the inner loop (set
-  `MUTANTS_BASE_REF`, default `main`). Mutation requires the src/tests
-  project split; a project whose tests live beside its sources cannot be
-  mutated.
-- ReferenceTrimmer fails the build on Reference, ProjectReference, and
-  PackageReference entries no code uses.
+  The full gate verifies Stryker's JSON and log, rejects malformed directives
+  and unfinished or unknown statuses, and requires the report's mutated-source
+  payload to use only the one-shot comment above. Ranged `disable`/`restore`
+  comments and block-comment directives fail. Directive-shaped text is
+  conservatively reserved for this policy even inside a string. The full gate
+  also requires at least one `Killed`,
+  `Survived`, or `Timeout` outcome; empty and all-`NoCoverage` runs fail.
+  `mise run csharp:mutants:diff` scopes the inner loop. An explicit
+  `MUTANTS_BASE_REF` resolves exactly as supplied; otherwise it prefers
+  `origin/main` over local `main` and passes the exact merge-base SHA. It fails
+  closed if Stryker could confuse that SHA with a containing branch or tag
+  name, or if the worktree contains untracked files that Git's diff cannot
+  include.
+  Mutation requires the src/tests project split; a project whose tests live
+  beside its sources cannot be mutated.
+- ReferenceTrimmer fails the build on analyzable direct compile references
+  reported unused as RT0001-RT0003. SDK, transitive, and build-asset references
+  are conservatively outside its scope.
 
 Adversarial self-review and merge shape follow the catalog doctrine: a green
-gate is necessary, never sufficient; the diff gets a fresh-context pass from
-up to three cheap reviewers decorrelated by input view (test diff only, full
-diff, code without the change narrative) who flag and never rewrite;
+gate is necessary, never sufficient. Every non-trivial diff gets three
+fresh-context reviewers, one per input view: test diff only, full diff, and
+code without the change narrative. They flag and never rewrite;
 findings collect on the union after dedup, and severity triage decides what
 blocks. Any edit to the enforcement surface — `Directory.Build.props`,
 `.editorconfig`, `BannedSymbols.txt`, `stryker-config.json`, the mise
 tasks — is a finding by default, and loosening requires human countersign.
 A disputed finding is settled by writing the failing test; a finding no
 test can express is recorded as a design note with a named owner, and a
-question of intent escalates to the human who owns it. Verdicts pin the
-commit they judged; bots advise, gates block, humans merge.
+question of intent escalates to the human who owns it. Metadata triage may
+fast-track a trivial diff to fewer or no model reviewers only when the handoff
+records that classification and reason. Model-review verdicts pin the commit
+they judged; bots advise, gates block, humans merge.
 
 ## .NET Applications
 

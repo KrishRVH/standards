@@ -59,6 +59,11 @@ description = "Run Ruff lint rules"
 depends = ["py:install"]
 run = "uv run ruff check ."
 
+[tasks."py:suppressions"]
+description = "Enforce reasoned, per-site Python suppressions"
+depends = ["py:install"]
+run = "uv run python -I scripts/check-suppressions.py"
+
 [tasks."py:type"]
 description = "Run strict Python type analysis"
 depends = ["py:install"]
@@ -75,9 +80,17 @@ depends = ["py:install"]
 run = "uv run deptry ."
 
 [tasks."py:docs"]
-description = "Report Python docstring coverage"
+description = "Require every counted Python object to have a docstring"
 depends = ["py:install:deep"]
-run = "uv run --no-sync interrogate --fail-under=100 ."
+run = """
+set -eu
+
+report="$(mktemp)"
+trap 'rm -f "$report"' EXIT
+uv run --no-sync interrogate --fail-under=100 --no-color --output "$report" .
+cat "$report"
+uv run --no-sync python -I scripts/check-interrogate-report.py "$report"
+"""
 
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
@@ -129,7 +142,7 @@ run = "uv run --no-sync vulture"
 
 [tasks."py:lint"]
 description = "Run default Python static analysis"
-depends = ["py:ruff", "py:type", "py:security"]
+depends = ["py:ruff", "py:suppressions", "py:type", "py:security"]
 
 [tasks."py:deep"]
 description = "Run optional dependency-sensitive Python analysis"
@@ -146,40 +159,16 @@ depends = ["py:install"]
 run = "uv build"
 
 [tasks."py:mutants"]
-description = "Run the full mutation sweep; a surviving mutant is a review finding"
+description = "Run a fresh mutation sweep; a surviving mutant is a review finding"
 depends = ["py:install"]
 wait_for = ["py:test"]
-run = """
-set -eu
+run = "uv run python -I scripts/run-mutation-transaction.py full"
 
-uv run mutmut run
-uv run mutmut export-cicd-stats
-uv run python - <<'PY'
-# Gate the mutation score against the committed ratchet floor.
-import json
-import os
-import pathlib
-import sys
-
-stats = json.loads(pathlib.Path("mutants/mutmut-cicd-stats.json").read_text(encoding="utf-8"))
-total = stats["total"]
-if not total:
-    sys.exit("mutmut generated no mutants; check [tool.mutmut] source_paths.")
-score = 100 * stats["killed"] / total
-floor_file = pathlib.Path(".mutmut-floor")
-floor_env = os.environ.get("MUTMUT_FLOOR")
-if floor_file.is_file():
-    floor = float(floor_file.read_text(encoding="utf-8"))
-elif floor_env is not None:
-    # Bootstrap only: the committed floor is authoritative once it exists.
-    floor = float(floor_env)
-else:
-    sys.exit("No mutation floor. Commit .mutmut-floor with the measured score, or set MUTMUT_FLOOR to bootstrap.")
-if score < floor:
-    sys.exit(f"Mutation score {score:.2f} is below the ratchet floor {floor:g}.")
-print(f"Mutation score {score:.2f} meets the ratchet floor {floor:g}.")
-PY
-"""
+[tasks."py:mutants:incremental"]
+description = "Reuse valid cached mutmut results for the mutation-testing inner loop"
+depends = ["py:install"]
+wait_for = ["py:test"]
+run = "uv run python -I scripts/run-mutation-transaction.py incremental"
 
 [tasks."py:standards"]
 description = "Run the Python standards workflow with autofixes"

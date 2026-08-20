@@ -52,6 +52,7 @@ node_modules/
 *.tsbuildinfo
 .eslintcache
 **/.stryker-tmp/
+**/reports/.stryker-mutation.lock/
 **/reports/mutation/
 **/reports/stryker-incremental.json
 /.angular/
@@ -69,13 +70,14 @@ node_modules/
 .coverage
 .coverage.*
 .hypothesis/
+/.mutmut-run.lock/
 .mutmut-cache
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
 .venv/
 __pycache__/
-mutants/
+/mutants/
 *.py[codz]
 *.egg-info/
 /htmlcov/

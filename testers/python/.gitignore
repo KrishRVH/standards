@@ -13,4 +13,5 @@ build/
 dist/
 
 .hypothesis/
-mutants/
+/.mutmut-run.lock/
+/mutants/

@@ -53,7 +53,7 @@ assert.deepEqual(diagnostics, [
     code: 2379,
     column: 25,
     file: 'type-tests/protected-route-unprojected.ts',
-    line: 16,
+    line: 17,
   },
 ]);
 assert.match(output, /does not satisfy the expected type 'never'\./);

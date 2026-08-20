@@ -12,6 +12,15 @@ publish = false
 [dev-dependencies]
 # Property tests are the default posture at trust boundaries; see AGENTS.md.
 proptest = "1.11.0"
+# The allow-policy integration test tokenizes Rust syntax, including attributes
+# inside macro bodies, without mistaking comments or literals for code.
+proc-macro2 = "=1.0.107"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+syn = { version = "=2.0.119", features = ["full"] }
+# Cargo permits explicit target source paths with arbitrary extensions; parse
+# manifests so the policy scanner still sees those compiler inputs.
+toml = "=1.1.4"
 
 # The lint wall lives at workspace scope so growth cannot silently shed it:
 # every member crate (including this root package) opts in with

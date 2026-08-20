@@ -9,7 +9,8 @@ than diffs. Three consequences shape every rule:
   fails the build. Prose in this file covers only what machines cannot
   check, and each prose rule names how it is verified.
 - Severity has one level. `mise run rust:lint` promotes every warning to a
-  failure; a diagnostic an agent can ignore does not exist.
+  failure and forces the two attribute-policy lints at the command line; a
+  diagnostic an agent can ignore does not exist.
 - Exceptions are per-site, reasoned, and self-expiring. `#[allow]` is banned
   (`clippy::allow_attributes`). The only escape is
   `#[expect(lint, reason = "...")]`, which itself fails the build when the
@@ -21,6 +22,25 @@ An `#[expect]` reason is a review artifact with a required shape: name the
 invariant that holds, then why the structural fix (types, restructuring)
 loses. "Clippy is wrong" is not a reason; neither is restating the lint
 name. The adversarial reviewer's first duty is refuting these reasons.
+`mise run rust:policy` enforces the source-visible part of this contract with a
+syntax-aware scan of first-party Rust files. It catches outer, crate-inner,
+multiline, `cfg_attr`-nested, and raw-identifier attributes, including literal
+attributes inside macro bodies. It also rejects direct `#[$attribute]`,
+repeated, and `cfg_attr` attribute-metavariable emission. Stable source
+tokenization cannot reconstruct arbitrary declarative- or procedural-macro
+expansions: a macro that synthesizes an `allow` from separately forwarded or
+generated tokens is still a prohibited wall bypass and an explicit review
+finding, not a supported exception. Attribute-shaped text in comments and
+strings is deliberately accepted. The scanner recursively follows literal
+`include!` inputs, in-project source-file and directory symlinks, and explicit
+Cargo target and build-script paths, including files without an `.rs`
+extension. Opaque `include!` expressions, enumerated first-party inputs outside
+the canonical project root, and custom `#[path]` modules are rejected because
+they make complete policy discovery unprovable. A real Clippy negative probe
+separately proves the configured `std::sync::Mutex` state wall still emits
+`clippy::disallowed_types`. Generated/dependency roots such as `target/` and
+`vendor/` are pruned at each accepted workspace package root; the same
+directory names below first-party source remain in scope.
 
 An `#[expect]` names a single lint and sits on the smallest enclosing item.
 A lint-group name, or a crate-level `#![expect]` outside a test crate, is a
@@ -170,8 +190,15 @@ adversarial reviewer audits the rest.
   test. Config-level mutants exclusions are coarser than per-site
   skips and are findings for the same reason. Never special-case code to
   satisfy a mutant. `mise run rust:mutants:diff` scopes the inner loop to
-  the change (set `MUTANTS_BASE_REF`, default `main`); the gate runs the
-  full sweep.
+  the change. An explicit `MUTANTS_BASE_REF` resolves exactly as supplied;
+  otherwise the task prefers `origin/main` over local `main`, then computes an
+  exact merge-base commit. The diff lane rejects untracked files with
+  `git add -N` guidance. Both mutation tasks run all workspace tests for every
+  mutant, force the report under the project root so local configuration
+  cannot redirect verification to stale evidence, and share a project-local
+  transaction lock through report verification. The gate runs the full sweep
+  and rejects empty or all-unviable runs after validating cargo-mutants' native
+  outcome evidence.
 
 ## Adversarial self-review
 
@@ -197,25 +224,26 @@ first (weakening a test to pass is the canonical reward hack); and attacks:
   loosening (a new allow, a removed gate, a raised threshold) requires
   human countersign. Conditional compilation keyed on the checker
   (`cfg(clippy)`, `cfg(test)` changing production behavior, `cfg_attr`
-  smuggling skips) is a wall bypass, full stop.
+  smuggling skips), or a macro expansion that synthesizes `allow`, is a wall
+  bypass, full stop.
 
-Review is a fleet, not a bigger reviewer. Verifier tokens cost one to two
-orders of magnitude less than author tokens, so the pass defaults to up to
-three cheap reviewers; beyond that, correlated errors make extra judges
-nearly worthless. What decorrelates reviewers is input view, not model family:
-one reads the test diff only, one the full diff, one the code with no
-change narrative. Model diversity is layered on top of that, not relied on
-alone. Findings collect on the union after dedup — most real findings
-surface from exactly one reviewer, so majority and unanimity rules discard
-signal — and severity triage decides what blocks: a claim of observable
+Review is a fleet, not a bigger reviewer. A non-trivial change gets exactly
+three cheap reviewers: one reads the test diff only, one the full diff, and
+one the code with no change narrative. Beyond three, correlated errors make
+extra judges nearly worthless. Model diversity is layered on top of the input
+views, not relied on alone. Findings collect on the union after dedup — most
+flagged locations in the measured four-tool run surfaced from exactly one
+reviewer, so majority and unanimity rules discard signal — and severity
+triage decides what blocks: a claim of observable
 wrongness blocks until dispositioned, a judgment call becomes a design
 note. Scores aggregate by median, never mean, so one degenerate verdict
 cannot swing the panel. Cheap reviewers flag and never rewrite; a weaker
 model with write-back authority degrades a stronger author's work, so
 fixes come from the author or a stronger arbiter, spent only on disputed
 or high-severity findings. And the cheapest reviewer is not a model:
-triage on metadata — files touched, diff size, whether the wall was
-edited — decides which diffs deserve the fleet at all.
+triage on metadata — files touched, diff size, whether the wall was edited —
+may fast-track a trivial change to fewer or no model reviewers only when the
+handoff records that classification and reason.
 
 A disputed finding is settled by writing the failing test, not by argument;
 a finding no test can express is recorded as a design note with a named
@@ -248,10 +276,12 @@ sentence naming the complexity it removes, or it does not go in.
 Enforcement: `rust:deny` fails on advisories (unmaintained crates
 included), yanked crates, disallowed licenses, wildcard requirements, and
 unknown registries; `rust:machete` fails on `[dependencies]` entries no
-code uses — dev- and build-dependencies are not checked; `Cargo.lock` is
-exact and committed. Duplicate versions surface as `rust:deny` warnings
-and do not fail the gate — the handoff report carries them forward
-verbatim so an ignorable diagnostic still cannot vanish.
+code uses — dev- and build-dependencies are not checked — after an
+all-feature, locked Cargo metadata preflight and metadata-aware offline scan;
+`Cargo.lock` is exact and committed. `rust:deny` includes development
+dependencies. Duplicate versions surface as `rust:deny` warnings and do not
+fail the gate — the handoff report carries them forward verbatim so an
+ignorable diagnostic still cannot vanish.
 
 ## Workflow
 
@@ -259,6 +289,7 @@ Use `mise run ...`; do not call cargo or rustup directly. Repair loop:
 
 ```sh
 mise run rust:fmt:check
+mise run rust:policy
 mise run rust:lint
 mise run rust:test
 mise run rust:test:doc

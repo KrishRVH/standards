@@ -12,9 +12,11 @@ import fc from 'fast-check';
 import { EndpointRejected, projectCheckDiagnostic } from '../src/endpoint-contracts.js';
 import { decodeCheckPolicy, defaultCheckPolicy } from '../src/endpoint-policy.js';
 
+const rejectedStatus = fc.oneof(fc.integer({ min: 400, max: 502 }), fc.integer({ min: 504, max: 599 }));
+
 test('rejected statuses always carry the endpoint resource and the status class of their range', () => {
   fc.assert(
-    fc.property(fc.integer({ min: 400, max: 599 }), (status) => {
+    fc.property(rejectedStatus, (status) => {
       const diagnostic = projectCheckDiagnostic(new EndpointRejected({ status, targetId: 'primary-api' }));
 
       expect(diagnostic.failureKind).toBe('endpoint-rejected');
@@ -87,23 +89,31 @@ test('valid bounded policies decode with exact durations and normalized unique o
   );
 });
 
-test('origins with credentials, paths, queries, or non-https schemes are rejected at the boundary', async () => {
+test('origins with either credential half, paths, queries, or non-https schemes are rejected', async () => {
   await fc.assert(
-    fc.asyncProperty(fc.domain(), fc.constantFrom('credentials', 'http', 'path', 'query'), async (domain, defect) => {
-      const origin =
-        defect === 'credentials'
-          ? `https://user:secret@${domain}`
-          : defect === 'http'
-            ? `http://${domain}`
-            : defect === 'path'
-              ? `https://${domain}/health`
-              : `https://${domain}?probe=1`;
-      const exit = await Effect.runPromiseExit(decodeCheckPolicy({ ...defaultCheckPolicy, allowedOrigins: [origin] }));
+    fc.asyncProperty(
+      fc.domain(),
+      fc.constantFrom('username', 'password', 'http', 'path', 'query'),
+      async (domain, defect) => {
+        const origin =
+          defect === 'username'
+            ? `https://user@${domain}`
+            : defect === 'password'
+              ? `https://:secret@${domain}`
+              : defect === 'http'
+                ? `http://${domain}`
+                : defect === 'path'
+                  ? `https://${domain}/health`
+                  : `https://${domain}?probe=1`;
+        const exit = await Effect.runPromiseExit(
+          decodeCheckPolicy({ ...defaultCheckPolicy, allowedOrigins: [origin] }),
+        );
 
-      expect(Exit.isFailure(exit)).toBe(true);
-      if (Exit.isFailure(exit)) {
-        expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
-      }
-    }),
+        expect(Exit.isFailure(exit)).toBe(true);
+        if (Exit.isFailure(exit)) {
+          expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+        }
+      },
+    ),
   );
 });

@@ -1,7 +1,9 @@
+# mypy: disallow-any-decorated=False, disallow-any-expr=False
 """Property tests for the greeting boundary.
 
-The ``@example`` cases seed the deterministic baseline; a counterexample
-found by a property run is pinned the same way.
+Hypothesis's ``@given`` decorator carries ``Any`` in its plumbing, so only this
+module relaxes those two optional mypy checks. Explicit ``@example`` cases pin
+the deterministic baseline and every triaged counterexample.
 """
 
 from hypothesis import example, given

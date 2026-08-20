@@ -146,6 +146,7 @@ mise run ts:effect:overview
 mise run ts:test
 mise run ts:audit
 mise run ts:knip
+mise run ts:preflight
 mise run ts:mutants
 mise run ts:mutants:diff
 mise run ts:lock
@@ -158,29 +159,60 @@ mise run ts:standards:check
 service, live layer, and errors from the canonical fixture. Its output is
 generated and is not committed.
 
-`ts:standards` runs ESLint autofix before the final Prettier pass so a lint fix
-cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
+`ts:standards` runs the out-of-band directive check and ESLint autofix before
+the final Prettier pass, so neither an exception bypass nor a lint fix can leave
+the tree green incorrectly. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
 unit/semantic/type-negative tests, randomized fast-check property tests,
 `bun audit --audit-level=low`, knip, and the full Stryker mutation sweep.
+
+Application source is compiler-owned and uses `.cts`, `.mts`, `.ts`, or `.tsx`;
+`jsx: preserve` keeps TSX inside the strict type gate. ESLint state walls, knip,
+and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
+`.mjs` files under `src/` fail lint instead of silently escaping typechecking.
+The directive scanner still covers all eight JavaScript-like suffixes so
+tooling and configuration files cannot bypass the exception protocol.
 The audit gate covers dev-only subtrees too — Stryker's legacy
 `typed-rest-client` tree has already tripped it once (the `qs` override in
 `package.json` is the patch). The countersigned escape for an advisory with
 no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
 script, removed once the fix ships.
 
-`ts:knip` fails on declared dependencies, exports, and files no code uses.
-`ts:mutants` audits whether the tests would notice wrong code; its `break`
+`ts:knip` fails on declared dependencies, files, and unused exports from both
+entry and non-entry modules. The directive checker tokenizes comments outside
+ESLint, so an ESLint directive cannot disable the exception protocol itself.
+`ts:preflight` runs every non-mutation gate before Stryker can touch source.
+`ts:mutants` then audits whether the tests would notice wrong code in Stryker's
+isolated sandbox; its `break`
 threshold is a coarse regression alarm pinned at the measured floor, not a
 per-mutant guarantee — survivors in changed code are dispositioned in
-review — and `ts:mutants:diff` is the incremental inner loop (Stryker's
-`--incremental` cache). Property tests use `fast-check`; a counterexample
+review. Both mutation tasks pass `stryker.config.mjs` explicitly and acquire
+the project-scoped `reports/.stryker-mutation.lock` before replacing the
+machine report. The lock is held while Stryker and the report checker access
+the shared report and incremental state; a second run fails immediately
+instead of racing. The full task bypasses cached outcomes, requires
+`force=true` in the report, and requires at least one killed or surviving
+mutant with a positive completed-test count; timeouts alone are not fresh-test
+evidence. Because Stryker scores timeouts as detected, the report gate permits
+at most one percent (with a one-mutant minimum allowance); every remaining
+timeout needs investigation and a handoff explanation. Stryker core receives
+30 seconds of absolute timeout deviation under the Bun runner's 60-second hard
+child timeout. Mutation concurrency is fixed at two so Bun children and a
+parallel aggregate fixture retain CPU capacity; ordinary host load must not
+cheaply improve the score.
+`ts:mutants:diff` requires `force=false` and `incremental=true`; its evidence
+may be newly tested or compatibly reused from Stryker's incremental state. A
+stale lock fails closed: first verify that no mutation process is running,
+then remove `reports/.stryker-mutation.lock` manually and rerun. Property tests
+use `fast-check`; a counterexample
 found by a property run is pinned as a deterministic example test because
 fast-check keeps no regression corpus. On large projects, swap `ts:mutants`
 for `ts:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job; the shipped workflow's cache step keeps
-`reports/stryker-incremental.json` warm between runs, and without it a fresh
-CI checkout makes `ts:mutants:diff` a cold full sweep.
+job; the shipped workflow restores and saves only
+`reports/stryker-incremental.json`, fingerprints the tool and configuration
+inputs, and saves structurally usable state after successful or failed gates but not
+cancelled runs. Without that cache, a fresh CI checkout makes
+`ts:mutants:diff` a cold full sweep.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the
@@ -199,17 +231,16 @@ push cannot hide an earlier main failure.
 The workflow pins mise 2026.7.15. The configuration's 2026.6.12 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
-Repository host settings must require the `quality` job before merge. Committed
-workflow YAML cannot configure branch protection. Project-specific database,
-device, deployment, or other expensive integration checks may be separate
+`.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
+because source files can carry mutation classifications and diagnostic
+suppressions. Point the placeholder at a real human, require the `quality` job
+and Code Owner review, dismiss stale approvals on every new commit, and
+disallow protection bypass. The latest-push approval option is not a substitute
+for stale dismissal: its approver need not be the code owner. These host
+settings turn "loosening requires human countersign" from an instruction into
+a gate. Committed workflow YAML cannot configure them. Project-specific
+database, device, deployment, or other expensive checks may be separate
 required jobs, but they do not replace this static and deterministic gate.
-
-`.github/CODEOWNERS` lists the enforcement surface: point its placeholder
-at a real owner and require code-owner review on the protected branch, and
-every wall edit mechanically needs a named human's approval — that host
-setting is what turns "loosening requires human countersign" from an
-instruction into a gate. Without it, countersign is a review duty the PR
-template reminds humans to perform.
 
 ## Tooling choices
 
@@ -257,8 +288,8 @@ service, TypeScript, Bun types, and the lock policy.
 Know what the switch costs: removing ESLint removes walls Biome cannot
 replace — the reasoned-disable exception protocol
 (`eslint-disable-next-line <rule> -- <reason>` with unused-directive
-expiry), the module-scope shared-mutable-state and `globalThis` walls
-(`no-restricted-syntax`), the src-scoped ambient-state walls
+expiry), the module-scope shared-mutable-state and semantic `globalThis` walls,
+the src-scoped ambient-state walls
 (`no-restricted-globals`, `no-restricted-imports`), and
 `no-unsafe-type-assertion` with `consistent-type-assertions`. Under Option B
 those revert from gates to review duties stated in `AGENTS.md`.
@@ -295,9 +326,10 @@ interop), so the `ts:mutants` tasks invoke it under the mise-pinned Node
 while mutated tests still run through `bun test`.
 
 `bunfig.toml` also pins install posture: new dependencies land exact, and
-`minimumReleaseAge` refuses versions younger than three days, since most
-registry malware is caught and unpublished inside that window. The
-emergency path for a critical patch younger than the window is a
+`minimumReleaseAge` delays newly resolved versions for three days. OpenSSF
+reports that most malicious packages are classified by OSV.dev within that
+window; the delay does not revalidate locked versions or guarantee registry
+removal. The emergency path for a critical patch younger than the window is a
 per-package entry in `minimumReleaseAgeExcludes` — a wall edit that
 requires human countersign and gets removed once the window passes.
 

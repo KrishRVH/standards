@@ -1,8 +1,9 @@
 name: Quality
 
-# CI checks out fresh, so every py:mutants run here is a cold full sweep.
-# Large projects: cache mutants/ to make this gate incremental, or move the
-# full sweep to a scheduled workflow.
+# py:mutants deletes mutants/ before every mandatory sweep, so caching that
+# directory does not accelerate this gate. Large projects may add the explicit
+# py:mutants:incremental task as earlier, optional feedback, but it never
+# substitutes for the required cold sweep in standards:check.
 on:
   pull_request:
   push:
@@ -29,6 +30,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install pinned tools
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
         with:

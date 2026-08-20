@@ -32,9 +32,10 @@
     <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
     <PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" />
-    <!-- StyleCop is imported for exactly one rule: SA1404 rejects suppression
-         attributes without a real Justification. Every other StyleCop category
-         is disabled in .editorconfig. -->
+    <!-- StyleCop is imported for exactly one rule: SA1404 rejects a missing,
+         blank, or <Pending> Justification. Review validates the substance of
+         every other value. Every other StyleCop category is disabled in
+         .editorconfig. -->
     <PackageReference Include="StyleCop.Analyzers" PrivateAssets="all" />
   </ItemGroup>
 

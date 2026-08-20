@@ -10,10 +10,32 @@ import regexp from 'eslint-plugin-regexp';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import { standardsPlugin } from './scripts/eslint-local-rules.mjs';
+
 /**
  * Flat config runs in ESM, so reconstruct __dirname for TS project service.
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const applicationSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
+const javaScriptFiles = '**/*.{cjs,js,jsx,mjs}';
+const sourceFiles = '**/*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}';
+const typeScriptFiles = '**/*.{cts,mts,ts,tsx}';
+const typeScriptSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
+const typeScriptTestFiles = 'tests/**/*.{cts,mts,ts,tsx}';
+const unsupportedJavaScriptSourceFiles = 'src/**/*.{cjs,js,jsx,mjs}';
+const moduleMutableBindingRestrictions = [
+  {
+    selector: "Program > VariableDeclaration[kind='let'], Program > VariableDeclaration[kind='var']",
+    message:
+      'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
+  },
+  {
+    selector:
+      "ExportNamedDeclaration > VariableDeclaration[kind='let'], ExportNamedDeclaration > VariableDeclaration[kind='var']",
+    message:
+      'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
+  },
+];
 
 // eslint-disable-next-line no-restricted-exports -- ESLint flat config is consumed through a default export by contract.
 export default defineConfig(
@@ -41,6 +63,12 @@ export default defineConfig(
    * 2) Core ESLint recommended rules (baseline correctness for JS).
    */
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
+
+  /**
+   * 2a) Project-local semantic rules for boundaries that cannot be expressed
+   * reliably as syntax selectors alone.
+   */
+  { name: 'base/local-rules', plugins: { standards: standardsPlugin } },
 
   /**
    * 2b) Exception protocol: every suppression is per-site, reasoned, and
@@ -85,7 +113,7 @@ export default defineConfig(
    */
   {
     name: 'typescript/parse-only',
-    files: ['**/*.{ts,tsx}'],
+    files: [typeScriptFiles],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -103,7 +131,7 @@ export default defineConfig(
   {
     ...jsxA11y.configs.recommended,
     name: 'accessibility/recommended',
-    files: ['src/**/*.{jsx,tsx}'],
+    files: ['src/**/*.tsx'],
   },
 
   /**
@@ -115,7 +143,7 @@ export default defineConfig(
    */
   {
     name: 'imports/baseline',
-    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
+    files: [sourceFiles],
     rules: {
       'no-duplicate-imports': 'error',
       'no-restricted-exports': [
@@ -147,7 +175,7 @@ export default defineConfig(
    */
   {
     name: 'typescript/strict-typechecked',
-    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
+    files: [typeScriptSourceFiles, typeScriptTestFiles],
     ignores: ['**/*.d.ts'],
     extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
@@ -177,28 +205,15 @@ export default defineConfig(
         },
         { selector: 'TSImportEqualsDeclaration', message: 'Do not use import =. Use standard ES imports.' },
         { selector: 'TSExportAssignment', message: 'Do not use export =. Use ES exports.' },
-
         /**
          * Shared-mutable-state wall: ambient module-scope mutation is the TS
          * analog of a global atomic. State lives on the owning service, layer,
          * or root model; each message names the replacement, not just the ban.
          */
-        {
-          selector: "Program > VariableDeclaration[kind='let'], Program > VariableDeclaration[kind='var']",
-          message:
-            'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
-        },
-        {
-          selector:
-            "ExportNamedDeclaration > VariableDeclaration[kind='let'], ExportNamedDeclaration > VariableDeclaration[kind='var']",
-          message:
-            'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
-        },
-        {
-          selector: "AssignmentExpression[left.type='MemberExpression'][left.object.name='globalThis']",
-          message: 'Mutating globalThis creates ambient state. Thread the value through a service or the root model.',
-        },
+        ...moduleMutableBindingRestrictions,
       ],
+
+      'standards/no-global-mutation': 'error',
 
       // General correctness / maintainability rules
       'array-callback-return': 'error',
@@ -290,16 +305,24 @@ export default defineConfig(
   },
 
   /**
-   * 8b) Production-only ambient-state wall. Unowned timers and cross-process
-   * or cross-thread shared memory are design smells in src; tests may hold a
-   * timer backstop, so the wall stops at the src boundary.
+   * 8b) Production-only ambient-state wall for every supported application
+   * source extension. Unowned timers and cross-process or cross-thread shared
+   * memory are design smells in src; tests may hold a timer backstop, so the
+   * wall stops at the src boundary.
    */
   {
-    name: 'typescript/ambient-state-wall',
-    files: ['src/**/*.{ts,tsx}'],
+    name: 'application/ambient-state-wall',
+    files: [applicationSourceFiles],
     rules: {
+      'standards/no-ambient-runtime': 'error',
+      'standards/no-global-mutation': 'error',
       'no-restricted-globals': [
         'error',
+        {
+          name: 'setImmediate',
+          message:
+            'Unowned immediate work escapes structured ownership. Use Effect scheduling under the owning fiber, or a scoped signal-aware adapter.',
+        },
         {
           name: 'setInterval',
           message:
@@ -316,13 +339,38 @@ export default defineConfig(
         {
           paths: [
             {
+              name: 'cluster',
+              message: 'Multi-process shared state is out of profile: one Bun process, one runtime owner.',
+            },
+            {
               name: 'node:cluster',
               message: 'Multi-process shared state is out of profile: one Bun process, one runtime owner.',
+            },
+            {
+              name: 'worker_threads',
+              message:
+                'Cross-thread shared memory is out of profile. If a worker is genuinely needed, message-pass and justify it per site.',
             },
             {
               name: 'node:worker_threads',
               message:
                 'Cross-thread shared memory is out of profile. If a worker is genuinely needed, message-pass and justify it per site.',
+            },
+            {
+              name: 'timers',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'node:timers',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'timers/promises',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'node:timers/promises',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
             },
           ],
         },
@@ -337,7 +385,7 @@ export default defineConfig(
    */
   {
     name: 'typescript/tests-assertion-exemptions',
-    files: ['tests/**/*.{ts,tsx}'],
+    files: [typeScriptTestFiles],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
@@ -366,7 +414,7 @@ export default defineConfig(
    */
   {
     name: 'effect/ui-component-fiber-ownership',
-    files: ['src/**/*.{jsx,tsx}'],
+    files: ['src/**/*.tsx'],
     rules: {
       'no-restricted-properties': [
         'error',
@@ -379,12 +427,13 @@ export default defineConfig(
   },
 
   /**
-   * 11) JS files: disable type-aware TS rules for performance + correctness.
-   * Still enforce ESM-only without eslint-plugin-import.
+   * 11) JavaScript tooling files: disable type-aware TS rules because allowJs
+   * is deliberately false. Still enforce ESM-only; JavaScript under src is
+   * rejected by the application-source policy below.
    */
   {
     name: 'javascript/esm-only',
-    files: ['**/*.{js,mjs,jsx}'],
+    files: [javaScriptFiles],
     extends: [tseslint.configs.disableTypeChecked],
     rules: {
       'no-restricted-syntax': [
@@ -395,6 +444,26 @@ export default defineConfig(
           message: 'Do not use module.exports. Use ESM exports.',
         },
         { selector: "MemberExpression[object.name='exports']", message: 'Do not use exports.*. Use ESM exports.' },
+      ],
+    },
+  },
+
+  /**
+   * 11b) Application code is compiler-owned. JavaScript remains available for
+   * tooling/config files, but cannot silently bypass the strict TypeScript gate
+   * under src.
+   */
+  {
+    name: 'application/typescript-source-only',
+    files: [unsupportedJavaScriptSourceFiles],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Program',
+          message:
+            'First-party application source must use .ts, .mts, .cts, or .tsx so the strict compiler gate owns it.',
+        },
       ],
     },
   },

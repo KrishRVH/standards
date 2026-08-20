@@ -6,7 +6,7 @@ node = "22.23.0"
 
 [tasks."ts:install"]
 description = "Install Bun-managed TypeScript/JavaScript dependencies"
-wait_for = ["ts:lock:check"]
+depends = ["ts:lock:check"]
 run = "bun install --frozen-lockfile"
 
 [tasks."ts:lock"]
@@ -82,19 +82,27 @@ description = "Fail on unused dependencies, exports, and files"
 depends = ["ts:install"]
 run = "bun run knip"
 
+[tasks."ts:preflight"]
+description = "Run every non-mutation TypeScript/JavaScript gate before mutation testing"
+depends = ["ts:install"]
+run = "bun run standards:check"
+
 [tasks."ts:mutants"]
 description = "Run the full mutation sweep; a surviving mutant is a review finding"
-depends = ["ts:install"]
-wait_for = ["ts:test"]
+depends = ["ts:preflight"]
 # Runs outside package.json scripts because bunfig [run] bun = true would
 # alias node to bun, and the Stryker CLI is not yet Bun-clean.
-run = "node node_modules/@stryker-mutator/core/bin/stryker.js run --force"
+run = "node scripts/run-stryker.mjs full stryker.config.mjs"
 
 [tasks."ts:mutants:diff"]
 description = "Run the incremental mutation-testing inner loop"
+depends = ["ts:preflight"]
+run = "node scripts/run-stryker.mjs incremental stryker.config.mjs"
+
+[tasks."ts:mutants:cache:check"]
+description = "Validate Stryker incremental state before saving it in CI"
 depends = ["ts:install"]
-wait_for = ["ts:test"]
-run = "node node_modules/@stryker-mutator/core/bin/stryker.js run"
+run = "bun run scripts/check-stryker-cache.mjs reports/stryker-incremental.json"
 
 [tasks."ts:standards"]
 description = "Run the TypeScript/JavaScript standards workflow with autofixes"
@@ -103,5 +111,4 @@ run = "bun run standards"
 
 [tasks."ts:standards:check"]
 description = "Run the TypeScript/JavaScript standards CI gate"
-depends = ["ts:lock:check", "ts:install", "ts:mutants"]
-run = "bun run standards:check"
+depends = ["ts:mutants"]

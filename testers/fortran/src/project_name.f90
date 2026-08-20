@@ -1,6 +1,6 @@
 !> Core library module for the project.
 module project_name
-   use, intrinsic :: iso_fortran_env, only : int64
+   use, intrinsic :: iso_fortran_env, only : int32, int64
 
    implicit none
    private
@@ -20,14 +20,20 @@ module project_name
 contains
 
    !> Return the nth triangular number, or zero for non-positive input.
+   !>
+   !> The int64 result represents every value in the non-negative int32 input
+   !> domain. Convert before arithmetic so the intermediate product is also
+   !> representable.
    pure function triangular(n) result(value)
-      integer(int64), intent(in) :: n
+      integer(int32), intent(in) :: n
       integer(int64) :: value
+      integer(int64) :: wide_n
 
-      if (n <= 0_int64) then
+      if (n <= 0_int32) then
          value = 0_int64
       else
-         value = (n * (n + 1_int64)) / 2_int64
+         wide_n = int(n, int64)
+         value = (wide_n * (wide_n + 1_int64)) / 2_int64
       end if
    end function triangular
 
