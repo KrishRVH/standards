@@ -383,10 +383,14 @@ test('the mutation report gate distinguishes fresh full evidence from compatible
 
 test('the mutation task graph orders its preflight and pins the intended Stryker config', async () => {
   const tasks = await Bun.file(new URL('../.config/mise/conf.d/20-ts.toml', import.meta.url)).text();
+  const packageManifest = await Bun.file(new URL('../package.json', import.meta.url)).text();
   const runner = await Bun.file(new URL('../scripts/run-stryker.mjs', import.meta.url)).text();
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
+  expect(tasks).toContain('bun = "1.4.0"');
+  expect(tasks).toContain('node = "22.23.0"');
+  expect(packageManifest).toContain('"packageManager": "bun@1.4.0"');
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
   expect(section('ts:preflight')).toContain('depends = ["ts:install"]');
   expect(section('ts:mutants')).toContain('depends = ["ts:preflight"]');

@@ -19,9 +19,9 @@
  * - `coverageAnalysis`, `incrementalFile`, and `thresholds.high`/`low` pin
  *   Stryker's current defaults so an upstream change cannot silently move
  *   the reporting surface; only `break` is load-bearing.
- * - Stryker's own CLI is not yet Bun-clean (Babel CJS interop), so the
- *   ts:mutants tasks run it under the pinned Node while tests still run
- *   under Bun.
+ * - Stryker 9.6.1 still fails under Bun 1.4.0 at Babel generator interop, so
+ *   the ts:mutants tasks run its CLI under pinned Node while tests run under
+ *   Bun.
  * - Stryker core gets 30 seconds of absolute timeout deviation in addition to
  *   its measured-run factor, under the Bun runner's 60-second hard ceiling.
  *   Ordinary host load must not turn survivors into score-inflating timeouts.

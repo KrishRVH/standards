@@ -434,7 +434,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit Schema/limits;
   Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
   production resolver/connect-time SSRF review.
-- **Version:** Bun 1.3.14 Web APIs and Effect 3.22.1 adapters.
+- **Version:** Bun 1.4.0 Web APIs and Effect 3.22.1 adapters.
 
 ## EFF-026 — Bun process runtime
 
@@ -449,7 +449,7 @@ vocabulary, or repository-host branch protection.
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; ESLint partial; Biome partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
-- **Version:** `@effect/platform-bun` 0.91.0 with Effect 3.22.1, Bun 1.3.14.
+- **Version:** `@effect/platform-bun` 0.91.0 with Effect 3.22.1, Bun 1.4.0.
 
 ## EFF-027 — Narrow diagnostic suppressions
 
@@ -485,7 +485,7 @@ vocabulary, or repository-host branch protection.
   fixture; Unit version probes; Sem exact-version suite; Int —; CI frozen install
   and lock/drift checks; Manual source hierarchy review.
 - **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.0, LS 0.87.1,
-  TypeScript 6.0.3, Bun 1.3.14.
+  TypeScript 6.0.3, Bun 1.4.0.
 
 ## EFF-029 — Automatic mandatory quality gate
 

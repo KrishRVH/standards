@@ -15,18 +15,35 @@ function isYamlRecord(value: unknown): value is YamlRecord {
 }
 
 function collectStepUses(stepGroup: unknown, uses: WorkflowUse[]): boolean {
-  const pendingGroups: unknown[] = [stepGroup];
-  const visitedGroups = new WeakSet<object>();
+  const pendingGroups: { readonly entering: boolean; readonly steps: unknown }[] = [
+    { entering: true, steps: stepGroup },
+  ];
+  const activeGroups = new WeakSet<object>();
+  const completedGroups = new WeakSet<object>();
 
   while (pendingGroups.length > 0) {
-    const steps = pendingGroups.pop();
+    const pending = pendingGroups.pop();
+    if (pending === undefined) {
+      return false;
+    }
+    const { entering, steps } = pending;
     if (!Array.isArray(steps)) {
       return false;
     }
-    if (visitedGroups.has(steps)) {
+
+    if (!entering) {
+      activeGroups.delete(steps);
+      completedGroups.add(steps);
       continue;
     }
-    visitedGroups.add(steps);
+    if (completedGroups.has(steps)) {
+      continue;
+    }
+    if (activeGroups.has(steps)) {
+      return false;
+    }
+    activeGroups.add(steps);
+    pendingGroups.push({ entering: false, steps });
 
     for (const step of steps) {
       if (!isYamlRecord(step)) {
@@ -36,7 +53,7 @@ function collectStepUses(stepGroup: unknown, uses: WorkflowUse[]): boolean {
         uses.push({ container: step, reference: step['uses'] });
       }
       if (Object.hasOwn(step, 'parallel')) {
-        pendingGroups.push(step['parallel']);
+        pendingGroups.push({ entering: true, steps: step['parallel'] });
       }
     }
   }

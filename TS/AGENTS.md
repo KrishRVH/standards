@@ -2,9 +2,9 @@
 
 This fragment is tested with `effect` 3.22.1, `@effect/platform` 0.97.1,
 `@effect/platform-bun` 0.91.0, `@effect/language-service` 0.87.1,
-TypeScript 6.0.3, and Bun 1.3.14. Only those pinned declarations, sources, and
-behaviors are evidence for this profile; do not add unpinned APIs or silently
-upgrade the lock.
+TypeScript 6.0.3, Bun 1.4.0, and `@types/bun` 1.3.14. Only those pinned
+declarations, sources, and behaviors are evidence for this profile; do not add
+unpinned APIs or silently upgrade the lock.
 
 The formal mandatory rules, exceptions, exact-version scope, and enforcement
 status have one normative owner: [the enforcement map](docs/effect/enforcement.md).

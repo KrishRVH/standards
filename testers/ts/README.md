@@ -12,7 +12,8 @@ The tested dependency set is exact:
 | `effect`                   | 3.22.1  |
 | `@effect/language-service` | 0.87.1  |
 | TypeScript                 | 6.0.3   |
-| Bun / `@types/bun`         | 1.3.14  |
+| Bun                        | 1.4.0   |
+| `@types/bun`               | 1.3.14  |
 | `@effect/platform`         | 0.97.1  |
 | `@effect/platform-bun`     | 0.91.0  |
 
@@ -318,12 +319,11 @@ the conformance gate verifies that exclusion explicitly.
 ## Runtime note
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
-subprocesses resolve through Bun's PATH shim. A pinned tool that demonstrably
-requires real Node gets one narrow, tested runner override; do not add
-pnpm/yarn/npm/runtime fallback branches to the shared task fragment. The one
-current override is Stryker: its CLI is not yet Bun-clean (Babel CJS
-interop), so the `ts:mutants` tasks invoke it under the mise-pinned Node
-while mutated tests still run through `bun test`.
+subprocesses resolve through Bun's PATH shim. Stryker 9.6.1 is the sole
+exception: an exact Bun 1.4.0 probe still fails at Babel generator interop, so
+the `ts:mutants` tasks invoke its CLI under the mise-pinned Node while mutated
+tests run through `bun test`. Do not add package-manager or runtime fallback
+branches to the shared task fragment.
 
 `bunfig.toml` also pins install posture: new dependencies land exact, and
 `minimumReleaseAge` delays newly resolved versions for three days. OpenSSF
