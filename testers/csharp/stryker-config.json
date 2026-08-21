@@ -1,0 +1,16 @@
+{
+  "stryker-config": {
+    "coverage-analysis": "off",
+    "test-runner": "mtp",
+    "reporters": [
+      "cleartext",
+      "progress",
+      "json"
+    ],
+    "thresholds": {
+      "high": 100,
+      "low": 100,
+      "break": 100
+    }
+  }
+}

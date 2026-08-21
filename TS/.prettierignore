@@ -1,0 +1,3 @@
+# Stryker mutation-testing artifacts; regenerated on every ts:mutants run.
+.stryker-tmp/
+reports/

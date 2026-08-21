@@ -1,19 +1,36 @@
+# Agents add dependencies autonomously, so the supply-chain gate is strict:
+# vulnerabilities and unmaintained advisories deny (the pinned default), and
+# yanked crates are promoted to deny. Duplicate versions surface as warnings,
+# not failures; the handoff report carries them forward (AGENTS.md
+# dependencies).
+[advisories]
+unmaintained = "all"
+yanked = "deny"
+
+# Pre-emptively widened to the common permissive licenses agents drag in —
+# a deliberate posture choice, not a need of the current tree.
 [licenses]
+include-dev = true
 allow = [
+    "0BSD",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
     "ISC",
     "MIT",
     "MPL-2.0",
     "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Unlicense",
     "Zlib",
 ]
+# Pins cargo-deny's current default license-confidence bar against drift.
 confidence-threshold = 0.8
 
 [bans]
-highlight = "all"
 multiple-versions = "warn"
 wildcards = "deny"
 

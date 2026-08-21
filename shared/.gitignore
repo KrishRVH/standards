@@ -51,6 +51,10 @@ node_modules/
 # JavaScript / TypeScript
 *.tsbuildinfo
 .eslintcache
+**/.stryker-tmp/
+**/reports/.stryker-mutation.lock/
+**/reports/mutation/
+**/reports/stryker-incremental.json
 /.angular/
 /.astro/
 /.next/
@@ -62,13 +66,18 @@ node_modules/
 /.vite/
 
 # Python
+.basedpyright/
 .coverage
 .coverage.*
+.hypothesis/
+/.mutmut-run.lock/
+.mutmut-cache
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
 .venv/
 __pycache__/
+/mutants/
 *.py[codz]
 *.egg-info/
 /htmlcov/
@@ -99,6 +108,7 @@ mise.*.local.lock
 /.vs/
 /artifacts/
 **/TestResults/
+**/StrykerOutput/
 **/[Bb]in/[Dd]ebug/
 **/[Bb]in/[Rr]elease/
 **/[Oo]bj/
@@ -146,6 +156,8 @@ mise.*.local.lock
 **/.cargo-tools/
 /target/
 **/target/
+**/mutants.out/
+**/mutants.out.old/
 **/*.rs.bk
 
 # Lua

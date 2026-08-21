@@ -259,7 +259,3 @@ export function projectEncodingFailure(_failure: ParseResult.ParseError): Public
     retryDisposition: 'never',
   };
 }
-
-export function projectEncodingDiagnostic(_failure: ParseResult.ParseError): SafeFailureDiagnostic {
-  return { failureKind: 'protocol-failure', operation: 'endpoint-check' };
-}

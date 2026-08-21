@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
@@ -9,12 +10,34 @@ import regexp from 'eslint-plugin-regexp';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import { standardsPlugin } from './scripts/eslint-local-rules.mjs';
+
 /**
  * Flat config runs in ESM, so reconstruct __dirname for TS project service.
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const applicationSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
+const javaScriptFiles = '**/*.{cjs,js,jsx,mjs}';
+const sourceFiles = '**/*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}';
+const typeScriptFiles = '**/*.{cts,mts,ts,tsx}';
+const typeScriptSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
+const typeScriptTestFiles = 'tests/**/*.{cts,mts,ts,tsx}';
+const unsupportedJavaScriptSourceFiles = 'src/**/*.{cjs,js,jsx,mjs}';
+const moduleMutableBindingRestrictions = [
+  {
+    selector: "Program > VariableDeclaration[kind='let'], Program > VariableDeclaration[kind='var']",
+    message:
+      'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
+  },
+  {
+    selector:
+      "ExportNamedDeclaration > VariableDeclaration[kind='let'], ExportNamedDeclaration > VariableDeclaration[kind='var']",
+    message:
+      'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
+  },
+];
 
-// eslint-disable-next-line no-restricted-exports
+// eslint-disable-next-line no-restricted-exports -- ESLint flat config is consumed through a default export by contract.
 export default defineConfig(
   /**
    * 1) Global ignores (applies regardless of CLI globs)
@@ -28,6 +51,8 @@ export default defineConfig(
       '**/effect-diagnostics/fixtures/**',
       '**/node_modules/**',
       '**/out/**',
+      '**/reports/**',
+      '**/.stryker-tmp/**',
       '**/type-tests/**',
       '**/*.tsbuildinfo',
     ],
@@ -38,6 +63,28 @@ export default defineConfig(
    * 2) Core ESLint recommended rules (baseline correctness for JS).
    */
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
+
+  /**
+   * 2a) Project-local semantic rules for boundaries that cannot be expressed
+   * reliably as syntax selectors alone.
+   */
+  { name: 'base/local-rules', plugins: { standards: standardsPlugin } },
+
+  /**
+   * 2b) Exception protocol: every suppression is per-site, reasoned, and
+   * self-expiring. A disable without rule names is a silenced wall, not an
+   * exception; a disable without a `-- reason` is not reviewable; and block
+   * disables span unbounded code. Unused directives already fail below.
+   */
+  { ...comments.recommended, name: 'eslint-comments/recommended' },
+  {
+    name: 'base/exception-protocol',
+    rules: {
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/no-use': ['error', { allow: ['eslint-disable-next-line'] }],
+      '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
+    },
+  },
 
   /**
    * 3) RegExp correctness and complexity checks.
@@ -66,7 +113,7 @@ export default defineConfig(
    */
   {
     name: 'typescript/parse-only',
-    files: ['**/*.{ts,tsx}'],
+    files: [typeScriptFiles],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -84,7 +131,7 @@ export default defineConfig(
   {
     ...jsxA11y.configs.recommended,
     name: 'accessibility/recommended',
-    files: ['src/**/*.{jsx,tsx}'],
+    files: ['src/**/*.tsx'],
   },
 
   /**
@@ -96,7 +143,7 @@ export default defineConfig(
    */
   {
     name: 'imports/baseline',
-    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
+    files: [sourceFiles],
     rules: {
       'no-duplicate-imports': 'error',
       'no-restricted-exports': [
@@ -128,7 +175,7 @@ export default defineConfig(
    */
   {
     name: 'typescript/strict-typechecked',
-    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
+    files: [typeScriptSourceFiles, typeScriptTestFiles],
     ignores: ['**/*.d.ts'],
     extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
@@ -158,12 +205,21 @@ export default defineConfig(
         },
         { selector: 'TSImportEqualsDeclaration', message: 'Do not use import =. Use standard ES imports.' },
         { selector: 'TSExportAssignment', message: 'Do not use export =. Use ES exports.' },
+        /**
+         * Shared-mutable-state wall: ambient module-scope mutation is the TS
+         * analog of a global atomic. State lives on the owning service, layer,
+         * or root model; each message names the replacement, not just the ban.
+         */
+        ...moduleMutableBindingRestrictions,
       ],
+
+      'standards/no-global-mutation': 'error',
 
       // General correctness / maintainability rules
       'array-callback-return': 'error',
       eqeqeq: 'error',
       'no-debugger': 'error',
+      'no-eval': 'error',
       'no-else-return': 'error',
       'no-param-reassign': ['error', { props: false }],
       'no-sequences': 'error',
@@ -177,6 +233,17 @@ export default defineConfig(
       yoda: 'error',
 
       // TS hygiene / correctness
+      /**
+       * Casts are earned at validated boundaries only (EFF-030). A narrowing
+       * assertion outside a validated adapter is a per-site exception with a
+       * reasoned suppression; an object-literal assertion has a safe
+       * replacement in `satisfies`.
+       */
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' },
+      ],
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
       '@typescript-eslint/consistent-type-exports': ['error', { fixMixedExportsWithInlineTypeSpecifier: true }],
       '@typescript-eslint/consistent-type-imports': [
         'error',
@@ -198,13 +265,15 @@ export default defineConfig(
 
       /**
        * Controlled escape hatches:
-       * - allow @ts-expect-error only with a meaningful description
-       * - disallow other ts comment escapes
+       * - allow @ts-expect-error only with a `-- reason` in the same shape as
+       *   ESLint disable directives; the compiler expires it when the error
+       *   stops occurring, so stale suppressions cannot accumulate
+       * - disallow the non-expiring ts comment escapes entirely
        */
       '@typescript-eslint/ban-ts-comment': [
         'error',
         {
-          'ts-expect-error': 'allow-with-description',
+          'ts-expect-error': { descriptionFormat: '^ -- .+$' },
           'ts-ignore': true,
           'ts-nocheck': true,
           'ts-check': true,
@@ -236,6 +305,93 @@ export default defineConfig(
   },
 
   /**
+   * 8b) Production-only ambient-state wall for every supported application
+   * source extension. Unowned timers and cross-process or cross-thread shared
+   * memory are design smells in src; tests may hold a timer backstop, so the
+   * wall stops at the src boundary.
+   */
+  {
+    name: 'application/ambient-state-wall',
+    files: [applicationSourceFiles],
+    rules: {
+      'standards/no-ambient-runtime': 'error',
+      'standards/no-global-mutation': 'error',
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'setImmediate',
+          message:
+            'Unowned immediate work escapes structured ownership. Use Effect scheduling under the owning fiber, or a scoped signal-aware adapter.',
+        },
+        {
+          name: 'setInterval',
+          message:
+            'An unowned timer loop is ambient state. Use Effect.repeat/Schedule under an owner, or a scoped signal-aware adapter.',
+        },
+        {
+          name: 'setTimeout',
+          message:
+            'Unowned delayed work escapes interruption. Use Effect timeout/sleep under the owning fiber, or a signal-aware adapter.',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'cluster',
+              message: 'Multi-process shared state is out of profile: one Bun process, one runtime owner.',
+            },
+            {
+              name: 'node:cluster',
+              message: 'Multi-process shared state is out of profile: one Bun process, one runtime owner.',
+            },
+            {
+              name: 'worker_threads',
+              message:
+                'Cross-thread shared memory is out of profile. If a worker is genuinely needed, message-pass and justify it per site.',
+            },
+            {
+              name: 'node:worker_threads',
+              message:
+                'Cross-thread shared memory is out of profile. If a worker is genuinely needed, message-pass and justify it per site.',
+            },
+            {
+              name: 'timers',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'node:timers',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'timers/promises',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+            {
+              name: 'node:timers/promises',
+              message: 'Timer modules expose unowned scheduling. Use Effect scheduling under the owning fiber.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  /**
+   * 8c) Tests may assert invariants the test itself established, mirroring
+   * the production/test split of the panic-class rules. Production code is
+   * not a test fixture; nothing else relaxes here.
+   */
+  {
+    name: 'typescript/tests-assertion-exemptions',
+    files: [typeScriptTestFiles],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  /**
    * 9) d.ts: allow declare global/module while keeping erasable-syntax bans.
    */
   {
@@ -258,7 +414,7 @@ export default defineConfig(
    */
   {
     name: 'effect/ui-component-fiber-ownership',
-    files: ['src/**/*.{jsx,tsx}'],
+    files: ['src/**/*.tsx'],
     rules: {
       'no-restricted-properties': [
         'error',
@@ -271,12 +427,13 @@ export default defineConfig(
   },
 
   /**
-   * 11) JS files: disable type-aware TS rules for performance + correctness.
-   * Still enforce ESM-only without eslint-plugin-import.
+   * 11) JavaScript tooling files: disable type-aware TS rules because allowJs
+   * is deliberately false. Still enforce ESM-only; JavaScript under src is
+   * rejected by the application-source policy below.
    */
   {
     name: 'javascript/esm-only',
-    files: ['**/*.{js,mjs,jsx}'],
+    files: [javaScriptFiles],
     extends: [tseslint.configs.disableTypeChecked],
     rules: {
       'no-restricted-syntax': [
@@ -287,6 +444,26 @@ export default defineConfig(
           message: 'Do not use module.exports. Use ESM exports.',
         },
         { selector: "MemberExpression[object.name='exports']", message: 'Do not use exports.*. Use ESM exports.' },
+      ],
+    },
+  },
+
+  /**
+   * 11b) Application code is compiler-owned. JavaScript remains available for
+   * tooling/config files, but cannot silently bypass the strict TypeScript gate
+   * under src.
+   */
+  {
+    name: 'application/typescript-source-only',
+    files: [unsupportedJavaScriptSourceFiles],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Program',
+          message:
+            'First-party application source must use .ts, .mts, .cts, or .tsx so the strict compiler gate owns it.',
+        },
       ],
     },
   },
@@ -303,7 +480,11 @@ export default defineConfig(
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
   /**
-   * 14) Hygiene: fail if eslint-disable comments are unused.
+   * 14) Hygiene: fail on unused eslint-disable comments and on inline configs
+   * that change nothing — stale suppressions self-expire instead of piling up.
    */
-  { name: 'base/hygiene', linterOptions: { reportUnusedDisableDirectives: 'error' } },
+  {
+    name: 'base/hygiene',
+    linterOptions: { reportUnusedDisableDirectives: 'error', reportUnusedInlineConfigs: 'error' },
+  },
 );

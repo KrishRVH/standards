@@ -1,5 +1,5 @@
 module test_project_name
-   use, intrinsic :: iso_fortran_env, only : int64
+   use, intrinsic :: iso_fortran_env, only : int32, int64
    use project_name, only : counter_type, triangular
    use testdrive, only : check, error_type, new_unittest, unittest_type
 
@@ -20,13 +20,16 @@ contains
    subroutine test_triangular(error)
       type(error_type), allocatable, intent(out) :: error
 
-      call check(error, triangular(-1_int64), 0_int64)
+      call check(error, triangular(-1_int32), 0_int64)
       if (allocated(error)) return
 
-      call check(error, triangular(0_int64), 0_int64)
+      call check(error, triangular(0_int32), 0_int64)
       if (allocated(error)) return
 
-      call check(error, triangular(10_int64), 55_int64)
+      call check(error, triangular(10_int32), 55_int64)
+      if (allocated(error)) return
+
+      call check(error, triangular(huge(0_int32)), 2305843008139952128_int64)
    end subroutine test_triangular
 
    subroutine test_counter(error)

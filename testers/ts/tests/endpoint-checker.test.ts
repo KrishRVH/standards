@@ -204,6 +204,8 @@ test('allows a caller total deadline shorter than the theoretical attempt budget
 
 const invalidOrigins = [
   'http://example.com',
+  'https://user@example.com',
+  'https://:secret@example.com',
   'https://user:secret@example.com',
   'https://example.com/path',
   'https://example.com?query=secret',
@@ -284,6 +286,30 @@ test('returns a safe not-allowed outcome before invoking the adapter', async () 
   expect(JSON.stringify(results)).not.toContain('query');
   expect(JSON.stringify(results)).not.toContain(unsafePath);
 });
+
+const oneSidedTargetCredentials = [
+  { name: 'username', url: 'https://user@example.com/health' },
+  { name: 'password', url: 'https://:secret@example.com/health' },
+] as const;
+
+for (const credential of oneSidedTargetCredentials) {
+  test(`rejects a target with only a URL ${credential.name}`, async () => {
+    let attempts = 0;
+    const probe = Layer.succeed(EndpointProbe, {
+      head: () => {
+        attempts += 1;
+
+        return Effect.die('credentialed target reached adapter');
+      },
+    });
+    const results = await Effect.runPromise(
+      checkEndpoints(oneTarget(`${credential.name}-target`, credential.url)).pipe(Effect.provide(probe)),
+    );
+
+    expect(attempts).toBe(0);
+    expect(results).toEqual([{ _tag: 'EndpointNotAllowed', id: `${credential.name}-target` }]);
+  });
+}
 
 test('uses normalized origin authorization rather than the display ID', async () => {
   const seen: CheckedEndpointTarget[] = [];
@@ -427,6 +453,24 @@ test('does not retry a redirect rejection', async () => {
   if (Exit.isFailure(exit)) {
     expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('EndpointRedirectRejected');
   }
+});
+
+test('classifies an actual 503 response as retryable service unavailability', async () => {
+  let attempts = 0;
+  const probe = makeEndpointProbe(() => {
+    attempts += 1;
+
+    return Promise.resolve(new Response(null, { status: attempts === 1 ? 503 : 204 }));
+  });
+  const policy = await Effect.runPromise(
+    decodeCheckPolicy({ ...defaultCheckPolicy, retries: 1, retryDelayMilliseconds: 0 }),
+  );
+  const result = await Effect.runPromise(
+    checkEndpoint(probe, checkedTarget('primary-api', 'https://example.com'), policy),
+  );
+
+  expect(attempts).toBe(2);
+  expect(result).toEqual({ _tag: 'EndpointHealthy', id: 'primary-api', status: 204 });
 });
 
 test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal', async () => {

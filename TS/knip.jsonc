@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/main.{cts,mts,ts,tsx}", "scripts/*.mjs", "tests/**/*.test.ts"],
+  "includeEntryExports": true,
+  "project": ["src/**/*.{cts,mts,ts,tsx}", "scripts/**/*.mjs", "tests/**/*.ts"],
+  // Deliberate negative fixtures (Biome exclusion checks), not dead files.
+  "ignore": ["tests/fixtures/**"],
+  // Knip infers this package name from Stryker's `testRunner: "bun"`; the
+  // actual runner plugin, @hughescr/stryker-bun-runner, is declared and used.
+  "ignoreDependencies": ["@stryker-mutator/bun-runner"],
+  // tsconfig `types: ["bun-types"]` resolves through @types/bun.
+  "ignoreUnresolved": ["bun-types"],
+  // Contract exports (schemas, projection types) are used in-file by design.
+  "ignoreExportsUsedInFile": true,
+}

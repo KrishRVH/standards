@@ -45,6 +45,9 @@ generates API documentation with FORD.
   code.
 - Prefer small explicit modules over global state. Keep procedures pure or
   elemental when the contract is naturally side-effect-free.
+- Give arithmetic APIs domains whose full range is representable. The sample
+  `triangular` function widens its `int32` input before producing an `int64`
+  result.
 - Pin fpm Git dependencies by `tag` or `rev`; do not use wildcard registry
   versions or moving branches in reusable baselines.
 - Put public API documentation in FORD comments near the symbol being

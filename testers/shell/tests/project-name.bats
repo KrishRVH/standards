@@ -98,3 +98,24 @@ setup() {
   [[ "${status}" -eq 0 ]]
   [[ "${output}" = "No standalone shell scripts found for syntax checks." ]]
 }
+
+@test "rejects shell symlinks without changing their targets" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/shell-symlink"
+  local external="${BATS_TEST_TMPDIR}/external.sh"
+  local expected="${BATS_TEST_TMPDIR}/external.expected.sh"
+
+  mkdir -p "${workspace}/scripts"
+  printf '#!/usr/bin/env bash\nif true;then echo external;fi\n' > "${external}"
+  cp "${external}" "${expected}"
+  ln -s "${external}" "${workspace}/scripts/external.sh"
+  git init --quiet "${workspace}"
+  git -C "${workspace}" add scripts/external.sh
+
+  run bash -c 'cd "$1" && "$2" fmt' -- \
+    "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -ne 0 ]]
+  [[ "${output}" == *"scripts/external.sh: shell source symlinks are not supported."* ]]
+  cmp -s "${expected}" "${external}"
+}

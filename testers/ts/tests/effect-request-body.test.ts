@@ -182,7 +182,7 @@ test('interrupting a stalled read attempts cancellation and releases ownership',
 });
 
 test('cleanup rejection is observed safely without replacing the primary failure', async () => {
-  const cleanupDiagnostics: BodyCleanupFailureDiagnostic[] = [];
+  const cleanupObserved = Promise.withResolvers<BodyCleanupFailureDiagnostic>();
   const body = new ReadableStream<Uint8Array>(
     {
       cancel() {
@@ -199,20 +199,18 @@ test('cleanup rejection is observed safely without replacing the primary failure
     readBoundedBody(
       makeBodyRequest(body),
       makeOptions(3, (diagnostic) => {
-        cleanupDiagnostics.push(diagnostic);
+        cleanupObserved.resolve(diagnostic);
       }),
     ),
   );
-  await Promise.resolve();
+  const cleanupDiagnostic = await cleanupObserved.promise;
 
   expect(body.locked).toBe(false);
-  expect(cleanupDiagnostics).toEqual([
-    {
-      failureKind: 'request-body-cleanup-failure',
-      operation: 'cancel',
-    },
-  ]);
-  expect(JSON.stringify(cleanupDiagnostics)).not.toContain('unsafe-cleanup-detail');
+  expect(cleanupDiagnostic).toEqual({
+    failureKind: 'request-body-cleanup-failure',
+    operation: 'cancel',
+  });
+  expect(JSON.stringify(cleanupDiagnostic)).not.toContain('unsafe-cleanup-detail');
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
     expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));

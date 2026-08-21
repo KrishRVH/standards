@@ -18,5 +18,7 @@ formatting and static analysis, then validates their syntax with `zsh -n`.
 Project-owned shell files under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
 must use a recognized shebang to declare their dialect, including executable
 files without an extension. The same formatter, static-analysis, syntax, and
-policy checks cover the copyable `scripts/shell-standards.sh` runner. Error
+policy checks cover the copyable `scripts/shell-standards.sh` runner. Git
+discovery rejects tracked or unignored shell source symlinks; non-Git discovery
+ignores symlinks. Both modes keep checks on project-owned regular files. Error
 handling and strict mode remain local design decisions.

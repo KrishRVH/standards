@@ -112,7 +112,9 @@ Copy each language or tooling folder that the project needs:
   and helper scripts.
 - `C#/` — pinned .NET and Microsoft Testing Platform configuration, strict
   compiler and analyzer policy, central package management, locked restore,
-  application-boundary guidance, and Release build and test defaults.
+  application-boundary guidance, Release build and test defaults, a banned-API
+  wall, mutation testing, and the agent-driven doctrine shared with the Rust,
+  TS, and Python profiles ([research record](docs/research/agent-swarms.md)).
 - `C++/` — an idiomatic C++20 CMake library, CLI, and test template with Clang
   format and tidy configuration, sanitizer presets, and an opt-in GCC/MinGW
   portability lane.
@@ -153,15 +155,20 @@ Copy each language or tooling folder that the project needs:
   PHPStan, Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis,
   Composer audit, and Roave security advisories.
 - `Python/` — `pyproject` and uv-based configuration for Ruff, basedpyright,
-  Bandit, pytest/coverage, wheel and source builds, plus optional deeper mypy,
-  dependency, documentation, complexity, slots, and dead-code checks.
+  Bandit, pytest/coverage, deptry, Hypothesis property tests, mutmut mutation
+  testing, a banned-API wall, wheel and source builds, plus optional deeper
+  mypy, documentation, complexity, slots, and dead-code checks. Shares the
+  agent-driven doctrine and
+  [research record](docs/research/agent-swarms.md) with Rust, TS, and C#.
 - `Roc/` — an immutable new-compiler nightly with official checksum-backed
   host assets, native formatting, warning-failing checks, and top-level
   `expect` tests through the development backend. Its
   [decision record](docs/research/roc.md) explains the reviewed nightly and
   package-shape choices.
-- `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace, and
-  `cargo package` and `cargo-deny` dependency-policy defaults.
+- `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace,
+  `cargo package` and `cargo-deny` dependency-policy defaults, mutation
+  testing, and an agent-driven development doctrine grounded in the
+  [agent-swarm research record](docs/research/agent-swarms.md).
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
 - `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
@@ -169,8 +176,10 @@ Copy each language or tooling folder that the project needs:
   warnings and unproved checks treated as failures, and tiny executable tests.
 - `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
   Effect Schema boundaries and diagnostics, semantic and negative tests,
-  automatic CI, ESLint plus Prettier as Option A, and a separately tested
-  pinned Biome configuration as Option B.
+  mutation testing and knip gates, automatic CI, ESLint plus Prettier as
+  Option A, and a separately tested pinned Biome configuration as Option B.
+  Shares the Rust profile's agent-driven doctrine and the
+  [agent-swarm research record](docs/research/agent-swarms.md).
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
@@ -249,17 +258,25 @@ targeted local gates for routine catalog maintenance. Use the aggregate gate
 for releases, CI, and cross-cutting validation. Dispatch hosted runs on demand
 to control CI spending.
 
-The TypeScript application profile contains the copyable workflow for
-downstream projects. It runs automatically for pull requests and pushes to
-`main`, and it also supports manual dispatch. Both workflows use the same
-locked command surface and pin the locally tested mise `2026.7.15`. The lower
-configuration minimums remain compatibility floors.
+The Rust, TypeScript, C#, and Python profiles each contain a copyable
+workflow for downstream projects. Those run automatically for pull requests,
+merge-queue groups, and pushes to `main`, and also support manual dispatch.
+All the workflows use the same locked command surface and pin the locally
+tested mise `2026.7.15`. The lower configuration minimums remain
+compatibility floors.
 
-The downstream repository host settings must require the copied workflow's
-`quality` job before merge. The committed YAML does not configure branch
-protection. Expensive project-specific integration or deployment checks can
-remain in separate jobs, but they do not replace the fast, static,
-deterministic gate.
+The downstream repository host must protect merges with all of these settings:
+
+- require the copied workflow's `quality` job;
+- require review from Code Owners;
+- dismiss stale approvals when new commits are pushed; and
+- disallow bypass of the ruleset or branch protection.
+
+The latest-push approval option is useful defense in depth, but it does not
+replace stale-approval dismissal because that approver need not be the code
+owner. Committed YAML cannot configure these host settings. Expensive
+project-specific integration or deployment checks may remain separate, but
+they do not replace the fast, static, deterministic gate.
 
 `mise run sbom` writes an optional CycloneDX JSON SBOM under `sbom/`. Set
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
@@ -273,9 +290,9 @@ container. The task definitions remain in mise.
 
 The repository root requires mise `2026.7.0` or newer for its explicit
 per-project lockfile policy in the monorepo. This is a minimum version, not a
-pin on the mise executable. The root `.config/mise/mise.lock` pins the Biome
-alternative verifier, gitleaks, Python, and the root Markdown and Shell tools.
-`bun.lock` pins the Markdown JavaScript dependencies.
+pin on the mise executable. The root `.config/mise/mise.lock` pins actionlint,
+the Biome alternative verifier, gitleaks, Python, and the root Markdown and
+Shell tools. `bun.lock` pins the Markdown JavaScript dependencies.
 
 Before you hand off a change, check each surface that changed. For a changed
 profile, read its `tester` and `task_prefix` from `standards.manifest.toml` and
@@ -316,10 +333,15 @@ Dagger entrypoint for the representative Python fixture:
 mise run testers:standards:check:isolated
 ```
 
-The drift portion of the root gate runs `scripts/check-standards-drift.py`.
-This script keeps shared task fragments, aggregate task dispatch, fixture
-configurations, Dagger fragments, full-configuration shared files, and declared
-mirror files in sync. Undeclared fixture source and tests can remain small.
+The profile-contract portion of the root gate has three focused checkers.
+`scripts/check-standards-drift.py` keeps shared task fragments, aggregate task
+dispatch, fixture configurations, Dagger fragments, full-configuration shared
+files, and declared mirror files in sync. `scripts/check-ignore-contracts.py`
+exercises mutation-output ignore scope with Git's matcher.
+`scripts/check-profile-governance.mjs` validates downstream workflow YAML with
+actionlint, then parses it to enforce the workflow, Code Owners, host-setting,
+and pull-request contracts. Undeclared fixture source and tests can remain
+small.
 
 When adding or changing a profile:
 

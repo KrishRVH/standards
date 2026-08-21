@@ -12,11 +12,10 @@ changing architecture or domain language. Use this file for agent working rules.
 ## Design Target
 
 These standards primarily pursue ecosystem-idiomatic, almost systems-like
-strictness and elegance. A major secondary goal is dependable agentic
-development: an agent should be able to discover the intended workflow,
-understand contracts from nearby code, config, and tests, make a narrow change,
-and prove it through deterministic commands without relying on tribal
-knowledge.
+strictness and elegance. Agentic development is central: an agent should be
+able to discover the intended workflow, understand contracts from nearby code,
+config, and tests, make a narrow change, and prove it through deterministic
+commands without relying on tribal knowledge.
 
 ## Principles
 
@@ -59,7 +58,7 @@ scripts are the explicit exception because they install mise itself.
 - `mise run md:standards:check`: check the repository's Markdown and MDX.
 - `mise run standards:biome:check`: validate the optional Biome TypeScript
   template with the pinned stable CLI.
-- `mise run standards:drift`: manifest/drift check for profile fixtures.
+- `mise run standards:drift`: profile-contract and fixture-drift checks.
 - `mise run testers:standards`: run all tester mini projects through their
   standards workflows and available autofixes.
 - `mise run testers:standards:check`: run all tester mini projects through
@@ -72,6 +71,24 @@ scripts are the explicit exception because they install mise itself.
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing the relevant mise task itself. If install needs network, run it through
 mise and report that.
+
+## CI
+
+This repository's own CI is manual-only by budget constraint. The root
+`.github/workflows/quality.yml` triggers on `workflow_dispatch` and nothing
+else; do not add `push`, `pull_request`, `schedule`, or `merge_group` triggers
+to it. Gates run locally before push, and hosted runs are dispatched on
+demand.
+
+Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
+`Python/.github/`) ship automatic triggers for downstream copies only; they
+are inert here because GitHub executes workflows only from the root
+`.github/workflows/`. `scripts/check-profile-governance.mjs` validates workflow
+YAML with actionlint, then parses it to enforce automatic triggers, one
+`quality` job, hardened checkout, immutable action pins, CODEOWNERS, and related
+host-setting and pull-request guidance across all four templates.
+`testers/ts/tests/quality-workflow.test.ts` separately enforces the root
+workflow's manual-only contract and the TypeScript-specific workflow behavior.
 
 ## Editing
 

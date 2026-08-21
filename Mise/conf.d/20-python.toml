@@ -1,6 +1,6 @@
 [tools]
-python = "3.14.6"
-uv = "0.11.32"
+python = "3.14.7"
+uv = "0.12.5"
 
 [tasks."py:install"]
 description = "Install Python dependencies"
@@ -11,7 +11,7 @@ if [ ! -f pyproject.toml ]; then
   exit 0
 fi
 
-uv sync --locked
+uv sync --python "$(mise which python)" --locked
 """
 
 [tasks."py:install:deep"]
@@ -23,9 +23,9 @@ if [ ! -f pyproject.toml ]; then
 fi
 
 if [ -f uv.lock ]; then
-  uv sync --group deep --locked
+  uv sync --python "$(mise which python)" --group deep --locked
 else
-  uv sync --group deep
+  uv sync --python "$(mise which python)" --group deep
 fi
 """
 
@@ -59,6 +59,11 @@ description = "Run Ruff lint rules"
 depends = ["py:install"]
 run = "uv run ruff check ."
 
+[tasks."py:suppressions"]
+description = "Enforce reasoned, per-site Python suppressions"
+depends = ["py:install"]
+run = "uv run python -I scripts/check-suppressions.py"
+
 [tasks."py:type"]
 description = "Run strict Python type analysis"
 depends = ["py:install"]
@@ -71,13 +76,21 @@ run = "uv run --no-sync mypy"
 
 [tasks."py:deps"]
 description = "Check Python dependency hygiene"
-depends = ["py:install:deep"]
-run = "uv run --no-sync deptry ."
+depends = ["py:install"]
+run = "uv run deptry ."
 
 [tasks."py:docs"]
-description = "Report Python docstring coverage"
+description = "Require every counted Python object to have a docstring"
 depends = ["py:install:deep"]
-run = "uv run --no-sync interrogate --fail-under=0 ."
+run = """
+set -eu
+
+report="$(mktemp)"
+trap 'rm -f "$report"' EXIT
+uv run --no-sync interrogate --fail-under=100 --no-color --output "$report" .
+cat "$report"
+uv run --no-sync python -I scripts/check-interrogate-report.py "$report"
+"""
 
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
@@ -129,11 +142,11 @@ run = "uv run --no-sync vulture"
 
 [tasks."py:lint"]
 description = "Run default Python static analysis"
-depends = ["py:ruff", "py:type", "py:security"]
+depends = ["py:ruff", "py:suppressions", "py:type", "py:security"]
 
 [tasks."py:deep"]
 description = "Run optional dependency-sensitive Python analysis"
-depends = ["py:type:mypy", "py:deps", "py:docs", "py:complexity", "py:slots", "py:deadcode"]
+depends = ["py:type:mypy", "py:docs", "py:complexity", "py:slots", "py:deadcode"]
 
 [tasks."py:test"]
 description = "Run Python tests with branch coverage"
@@ -145,6 +158,18 @@ description = "Build Python source and wheel distributions"
 depends = ["py:install"]
 run = "uv build"
 
+[tasks."py:mutants"]
+description = "Run a fresh mutation sweep; a surviving mutant is a review finding"
+depends = ["py:install"]
+wait_for = ["py:test"]
+run = "uv run python -I scripts/run-mutation-transaction.py full"
+
+[tasks."py:mutants:incremental"]
+description = "Reuse valid cached mutmut results for the mutation-testing inner loop"
+depends = ["py:install"]
+wait_for = ["py:test"]
+run = "uv run python -I scripts/run-mutation-transaction.py incremental"
+
 [tasks."py:standards"]
 description = "Run the Python standards workflow with autofixes"
 depends = ["py:install"]
@@ -152,7 +177,7 @@ run = ["uv run ruff check --fix .", "uv run ruff format ."]
 
 [tasks."py:standards:check"]
 description = "Run the Python standards CI gate"
-depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit"]
+depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit", "py:deps", "py:mutants"]
 
 [tasks."py:standards:check:deep"]
 description = "Run the Python standards CI gate plus optional deep analysis"

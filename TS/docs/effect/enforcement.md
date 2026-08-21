@@ -20,8 +20,8 @@ boundary, port the matching tester suite shape before relying on that cell.
 
 ## Coverage summary
 
-This profile defines 29 mandatory rules. Twenty-five have at least one static
-compiler, language-service, linter, or negative-fixture check; 28 have an
+This profile defines 30 mandatory rules. Twenty-six have at least one static
+compiler, language-service, linter, or negative-fixture check; 29 have an
 executable unit, semantic, integration, or diagnostic contract. EFF-001 remains
 the only wholly non-blocking rule: the language service can advise against some
 ceremonial Effect use, but selective adoption is ultimately an architecture
@@ -58,7 +58,7 @@ vocabulary, or repository-host branch protection.
   owner and removal condition.
 - **Enforcement:** TS blocking; LS blocking; ESLint blocking; Biome blocking;
   Neg diagnostic fixture; Unit partial; Sem —; Int —; CI yes; Manual residual.
-- **Version:** TS 6.0.3, LS 0.87.1, Biome 2.5.5.
+- **Version:** TS 6.0.3, LS 0.87.2, Biome 2.5.5.
 
 ## EFF-003 — Accurate exported Effect contracts
 
@@ -73,7 +73,7 @@ vocabulary, or repository-host branch protection.
   policy with a test.
 - **Enforcement:** TS blocking; LS blocking; ESLint —; Biome —; Neg diagnostic
   fixture; Unit typed exits; Sem partial; Int —; CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.1, TS 6.0.3.
+- **Version:** Effect 3.22.1, LS 0.87.2, TS 6.0.3.
 
 ## EFF-004 — Lazy side effects
 
@@ -89,7 +89,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking; ESLint floating-Promise check;
   Biome partial; Neg diagnostic fixture; Unit —; Sem adapter test; Int —; CI
   yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.1.
+- **Version:** Effect 3.22.1, LS 0.87.2.
 
 ## EFF-005 — Expected failure, defect, and interruption
 
@@ -153,7 +153,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Explicit concrete identifiers and service types.
 - **Enforcement:** TS partial; LS blocking; ESLint —; Biome —; Neg diagnostic
   fixture; Unit —; Sem —; Int —; CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.1.
+- **Version:** Effect 3.22.1, LS 0.87.2.
 
 ## EFF-009 — Scoped layer construction
 
@@ -167,7 +167,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking; ESLint —; Biome —; Neg diagnostic
   fixture; Unit finalization (catalog); Sem lifecycle test (catalog); Int —;
   CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.1.
+- **Version:** Effect 3.22.1, LS 0.87.2.
 
 ## EFF-010 — Deliberate layer and runtime roots
 
@@ -183,7 +183,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for graph shapes; ESLint —; Biome —;
   Neg diagnostic fixture; Unit acquisition counts (catalog); Sem layer
   topology (catalog); Int —; CI yes; Manual hot-path review.
-- **Version:** Effect 3.22.1, LS 0.87.1.
+- **Version:** Effect 3.22.1, LS 0.87.2.
 
 ## EFF-011 — Named runtime edges
 
@@ -199,7 +199,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking; ESLint floating-Promise check; Biome
   partial; Neg diagnostic fixture; Unit adapter exits; Sem runtime disposal; Int
   host test; CI yes; Manual owner review.
-- **Version:** Effect 3.22.1; Bun edge also uses platform-bun 0.91.0.
+- **Version:** Effect 3.22.1; Bun edge also uses platform-bun 0.91.2.
 
 ## EFF-012 — Async cancellation contracts
 
@@ -349,7 +349,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS blocking; LS blocking in workflows; ESLint partial; Biome
   partial; Neg diagnostic fixture; Unit ParseError/policy/encoding; Sem boundary
   tests; Int —; CI yes; Manual schema-domain review.
-- **Version:** Effect Schema 3.22.1, LS 0.87.1.
+- **Version:** Effect Schema 3.22.1, LS 0.87.2.
 
 ## EFF-021 — Secret containment
 
@@ -364,7 +364,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
   ESLint partial; Biome partial; Neg diagnostic fixture; Unit redaction; Sem
   captured diagnostics (catalog); Int —; CI secret scan; Manual provider adapter review.
-- **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.1.
+- **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.2.
 
 ## EFF-022 — Exhaustive handling and one observer
 
@@ -434,7 +434,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit Schema/limits;
   Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
   production resolver/connect-time SSRF review.
-- **Version:** Bun 1.3.14 Web APIs and Effect 3.22.1 adapters.
+- **Version:** Bun 1.4.0 Web APIs and Effect 3.22.1 adapters.
 
 ## EFF-026 — Bun process runtime
 
@@ -449,7 +449,7 @@ vocabulary, or repository-host branch protection.
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; ESLint partial; Biome partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
-- **Version:** `@effect/platform-bun` 0.91.0 with Effect 3.22.1, Bun 1.3.14.
+- **Version:** `@effect/platform-bun` 0.91.2 with Effect 3.22.1, Bun 1.4.0.
 
 ## EFF-027 — Narrow diagnostic suppressions
 
@@ -465,7 +465,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS blocking for stale next-line suppression; ESLint —;
   Biome —; Neg exact diagnostic fixture; Unit harness; Sem —; Int —; CI yes;
   Manual reason/quick-fix review.
-- **Version:** LS 0.87.1; re-audit all names, severities, exits, and fixes on upgrade.
+- **Version:** LS 0.87.2; re-audit all names, severities, exits, and fixes on upgrade.
 
 ## EFF-028 — Exact Effect v3 dependency evidence
 
@@ -484,16 +484,17 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS exact dependency; ESLint —; Biome —; Neg exact
   fixture; Unit version probes; Sem exact-version suite; Int —; CI frozen install
   and lock/drift checks; Manual source hierarchy review.
-- **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.0, LS 0.87.1,
-  TypeScript 6.0.3, Bun 1.3.14.
+- **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.2, LS 0.87.2,
+  TypeScript 6.0.3, Bun 1.4.0.
 
 ## EFF-029 — Automatic mandatory quality gate
 
 - **Rule — MUST:** Commit a `quality` workflow that runs for pull requests,
-  pushes to `main`, and manual dispatch; installs with locked/frozen inputs; and
-  runs format, lint, TypeScript, Effect and expected diagnostics, deterministic
-  tests, audit, lock/drift checks, and the repository aggregate applicable to
-  the project.
+  merge-queue groups, pushes to `main`, and manual dispatch; installs with
+  locked/frozen inputs; and runs format, lint, TypeScript, Effect and expected
+  diagnostics, type-negative checks, deterministic and property tests, audit,
+  knip, the mutation sweep, lock/drift checks, and the repository aggregate
+  applicable to the project.
 - **Rationale:** A high-signal gate protects autonomous changes only when the
   repository runs it without relying on agent memory.
 - **Minimum / prohibited:** Immutable action revisions, locked install, the
@@ -508,3 +509,26 @@ vocabulary, or repository-host branch protection.
   protection and required-status configuration.
 - **Version:** Workflows pin checkout v7.0.1, mise-action v4.2.4, and the locally
   tested mise 2026.7.15; the TypeScript gate uses the dependency versions above.
+
+## EFF-030 — Constructive type modeling
+
+- **Rule — MUST:** Model variant state as a literal-discriminant tagged union
+  handled exhaustively, construct domain invariants instead of asserting them,
+  and keep narrowing type assertions out of application code outside validated
+  boundary adapters. Literal conformance uses `satisfies`, not an
+  object-literal assertion.
+- **Rationale:** A type that admits an illegal state moves the invariant into
+  runtime checks and review memory, where neither the compiler nor an
+  autonomous caller can see it.
+- **Minimum / prohibited:** `_tag` unions with `satisfies never` exhaustion,
+  branded or constructive domain types, guards that verify their claim /
+  boolean-plus-optional state bags, narrowing `as` in application code,
+  object-literal or non-null assertions.
+- **Exception:** A per-site lint suppression whose reason names the validation
+  that earns the cast and why a Schema decode (EFF-020) does not fit.
+- **Enforcement:** TS blocking for exhaustion; LS —; ESLint blocking for
+  unsafe/object-literal/non-null assertions and switch exhaustiveness; Biome
+  partial; Neg exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual
+  modeling review.
+- **Version:** TS 6.0.3, typescript-eslint 8.67.0; the modeling rule itself is
+  not version-specific.

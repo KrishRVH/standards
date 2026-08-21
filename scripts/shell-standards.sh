@@ -82,15 +82,41 @@ is_shell_file() {
   has_recognized_shell_shebang "$1"
 }
 
+reject_shell_symlinks() {
+  local file
+  local status=0
+
+  while IFS= read -r file; do
+    [ -L "${file}" ] || continue
+    if is_shell_file "${file}"; then
+      echo "${file}: shell source symlinks are not supported." >&2
+      status=1
+    fi
+  done < <(project_files)
+
+  return "${status}"
+}
+
 shell_files() {
   local file
   while IFS= read -r file; do
+    [ ! -L "${file}" ] || continue
     [ -f "${file}" ] || continue
     if is_shell_file "${file}"; then
       printf '%s\n' "${file}"
     fi
   done < <(project_files)
 }
+
+case "${SUBCOMMAND}" in
+  fmt | fmt-check | lint | syntax | policy | test) ;;
+  *)
+    echo "Unknown shell standards subcommand: ${SUBCOMMAND}" >&2
+    exit 2
+    ;;
+esac
+
+reject_shell_symlinks || exit 1
 
 dialect_for() {
   if shebang_dialect "$1"; then
@@ -292,7 +318,6 @@ case "${SUBCOMMAND}" in
     run_tests
     ;;
   *)
-    echo "Unknown shell standards subcommand: ${SUBCOMMAND}" >&2
     exit 2
     ;;
 esac

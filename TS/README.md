@@ -10,11 +10,12 @@ The tested dependency set is exact:
 | Package/runtime            | Version |
 | -------------------------- | ------- |
 | `effect`                   | 3.22.1  |
-| `@effect/language-service` | 0.87.1  |
+| `@effect/language-service` | 0.87.2  |
 | TypeScript                 | 6.0.3   |
-| Bun / `@types/bun`         | 1.3.14  |
+| Bun                        | 1.4.0   |
+| `@types/bun`               | 1.4.0   |
 | `@effect/platform`         | 0.97.1  |
-| `@effect/platform-bun`     | 0.91.0  |
+| `@effect/platform-bun`     | 0.91.2  |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version. Bun
@@ -97,6 +98,9 @@ The canonical endpoint checker is intentionally small:
   failures, target identity, normalized destination rejection, redirect
   classification, cancellation, attempts, non-retry, batch outcomes,
   concurrency, encoding, and redaction-safe projection behavior.
+- `tests/endpoint-properties.test.ts` holds the trust-boundary property
+  tests; a counterexample found by a run is pinned there as a deterministic
+  example.
 - The copyable profile includes the expected-diagnostic harness because it
   guards the configured language-service contract. The tester alone adds the
   larger fixture-owned semantic probes so the downstream seed remains readable.
@@ -118,7 +122,7 @@ correctness and ownership diagnostics are errors. Shape/style opportunities
 are editor suggestions. Outside-Effect native APIs and native boundary
 adapters remain allowed when their contract is explicit.
 
-The standalone command omits `--strict`: in language service 0.87.1, strict
+The standalone command omits `--strict`: in language service 0.87.2, strict
 only makes warnings affect the exit code; it does not promote messages or
 suggestions. The expected-diagnostic harness proves configured blockers fail
 and catches silently ignored diagnostic-name drift.
@@ -142,6 +146,10 @@ mise run ts:effect:diagnostics:check
 mise run ts:effect:overview
 mise run ts:test
 mise run ts:audit
+mise run ts:knip
+mise run ts:preflight
+mise run ts:mutants
+mise run ts:mutants:diff
 mise run ts:lock
 mise run ts:lock:check
 mise run ts:standards
@@ -152,29 +160,90 @@ mise run ts:standards:check
 service, live layer, and errors from the canonical fixture. Its output is
 generated and is not committed.
 
-`ts:standards` runs ESLint autofix before the final Prettier pass so a lint fix
-cannot leave formatting stale. `ts:standards:check` runs lint, TypeScript,
+`ts:standards` runs the out-of-band directive check and ESLint autofix before
+the final Prettier pass, so neither an exception bypass nor a lint fix can leave
+the tree green incorrectly. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
-unit/semantic/type-negative tests, and `bun audit --audit-level=low`.
+unit/semantic/type-negative tests, randomized fast-check property tests,
+`bun audit --audit-level=low`, knip, and the full Stryker mutation sweep.
+
+Application source is compiler-owned and uses `.cts`, `.mts`, `.ts`, or `.tsx`;
+`jsx: preserve` keeps TSX inside the strict type gate. ESLint state walls, knip,
+and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
+`.mjs` files under `src/` fail lint instead of silently escaping typechecking.
+The directive scanner still covers all eight JavaScript-like suffixes so
+tooling and configuration files cannot bypass the exception protocol.
+The audit gate covers dev-only subtrees too — Stryker's legacy
+`typed-rest-client` tree has already tripped it once (the `qs` override in
+`package.json` is the patch). The countersigned escape for an advisory with
+no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
+script, removed once the fix ships.
+
+`ts:knip` fails on declared dependencies, files, and unused exports from both
+entry and non-entry modules. The directive checker tokenizes comments outside
+ESLint, so an ESLint directive cannot disable the exception protocol itself.
+`ts:preflight` runs every non-mutation gate before Stryker can touch source.
+`ts:mutants` then audits whether the tests would notice wrong code in Stryker's
+isolated sandbox. Stryker runs only the test files that import `src/` directly,
+because every static mutant reruns that whole list; tooling and contract tests
+belong to the preflight gate, and a unit test must import source itself to
+count toward the score. Its `break`
+threshold is a coarse regression alarm pinned at the measured floor, not a
+per-mutant guarantee — survivors in changed code are dispositioned in
+review. Both mutation tasks pass `stryker.config.mjs` explicitly and acquire
+the project-scoped `reports/.stryker-mutation.lock` before replacing the
+machine report. The lock is held while Stryker and the report checker access
+the shared report and incremental state; a second run fails immediately
+instead of racing. The full task bypasses cached outcomes, requires
+`force=true` in the report, and requires at least one killed or surviving
+mutant with a positive completed-test count; timeouts alone are not fresh-test
+evidence. Because Stryker scores timeouts as detected, the report gate permits
+at most one percent (with a one-mutant minimum allowance); every remaining
+timeout needs investigation and a handoff explanation. Stryker core receives
+30 seconds of absolute timeout deviation under the Bun runner's 60-second hard
+child timeout. Mutation concurrency is fixed at two so Bun children and a
+parallel aggregate fixture retain CPU capacity; ordinary host load must not
+cheaply improve the score.
+`ts:mutants:diff` requires `force=false` and `incremental=true`; its evidence
+may be newly tested or compatibly reused from Stryker's incremental state. A
+stale lock fails closed: first verify that no mutation process is running,
+then remove `reports/.stryker-mutation.lock` manually and rerun. Property tests
+use `fast-check`; a counterexample
+found by a property run is pinned as a deterministic example test because
+fast-check keeps no regression corpus. On large projects, swap `ts:mutants`
+for `ts:mutants:diff` in the PR gate and move the full sweep to a scheduled
+job; the shipped workflow restores and saves only
+`reports/stryker-incremental.json`, fingerprints the tool and configuration
+inputs, and saves structurally usable state after successful or failed gates but not
+cancelled runs. Without that cache, a fresh CI checkout makes
+`ts:mutants:diff` a cold full sweep.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
-diagnostics, semantic tests, audit, then the aggregate gate. `AGENTS.md`
-contains the full verification and upgrade protocols.
+diagnostics, semantic tests, audit, knip, incremental mutants, then the
+aggregate gate. `AGENTS.md` contains the full verification and upgrade
+protocols.
 
 ## Automatic quality gate
 
 Copy `.github/workflows/quality.yml` with the profile. It runs the pinned,
 locked `mise run standards:check` gate for every pull request, every push to
-`main`, and manual dispatch. The mandatory job is named `quality`.
+`main`, merge-queue groups, and manual dispatch. The mandatory job is named
+`quality`.
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
 The workflow pins mise 2026.7.15. The configuration's 2026.6.12 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
-Repository host settings must require the `quality` job before merge. Committed
-workflow YAML cannot configure branch protection. Project-specific database,
-device, deployment, or other expensive integration checks may be separate
+`.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
+because source files can carry mutation classifications and diagnostic
+suppressions. Point the placeholder at a real human, require the `quality` job
+and Code Owner review, dismiss stale approvals on every new commit, and
+disallow protection bypass. The latest-push approval option is not a substitute
+for stale dismissal: its approver need not be the code owner. These host
+settings turn "loosening requires human countersign" from an instruction into
+a gate. Committed workflow YAML cannot configure them. Project-specific
+database, device, deployment, or other expensive checks may be separate
 required jobs, but they do not replace this static and deterministic gate.
 
 ## Tooling choices
@@ -182,6 +251,11 @@ required jobs, but they do not replace this static and deterministic gate.
 The committed default is Option A: type-aware ESLint plus Prettier. The config
 sets `@typescript-eslint/no-floating-promises` with `ignoreVoid: false`; writing
 `void runtime.runPromise(...)` is not accepted as background-task ownership.
+It also blocks narrowing and object-literal type assertions
+(`no-unsafe-type-assertion`, `consistent-type-assertions`): a value proves
+conformance with `satisfies`, and a cast is earned only inside a validated
+boundary adapter per EFF-030 and the
+[type discipline guide](docs/effect/type-discipline.md).
 
 `skipLibCheck` is false. This costs some feedback time but checks dependency
 declarations. Re-enable it only after measuring a material project-specific
@@ -208,22 +282,32 @@ alternative converges without making both formatter/linter stacks active in one
 generated project or forcing their different formatting/import repairs onto
 the same files.
 
-If a project chooses Option B, remove `@eslint/js`, `eslint`,
-`eslint-config-prettier`, `eslint-plugin-regexp`, `globals`, `prettier`, and
-`typescript-eslint`; add exact dev dependency
+If a project chooses Option B, remove `@eslint/js`,
+`@eslint-community/eslint-plugin-eslint-comments`, `eslint`,
+`eslint-config-prettier`, `eslint-plugin-jsx-a11y-x`, `eslint-plugin-regexp`,
+`globals`, `prettier`, and `typescript-eslint`; add exact dev dependency
 `"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
 service, TypeScript, Bun types, and the lock policy.
 
+Know what the switch costs: removing ESLint removes walls Biome cannot
+replace — the reasoned-disable exception protocol
+(`eslint-disable-next-line <rule> -- <reason>` with unused-directive
+expiry), the module-scope shared-mutable-state and semantic `globalThis` walls,
+the src-scoped ambient-state walls
+(`no-restricted-globals`, `no-restricted-imports`), and
+`no-unsafe-type-assertion` with `consistent-type-assertions`. Under Option B
+those revert from gates to review duties stated in `AGENTS.md`.
+
 Remap package scripts without changing mise task names:
 
-| Script            | Option B value                                                                                                                                     |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `format`          | `biome format --write .`                                                                                                                           |
-| `format:check`    | `biome format .`                                                                                                                                   |
-| `lint`            | `biome lint --error-on-warnings .`                                                                                                                 |
-| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                         |
-| `standards`       | `biome check --write --error-on-warnings .`                                                                                                        |
-| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit` |
+| Script            | Option B value                                                                                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`          | `biome format --write .`                                                                                                                                                                       |
+| `format:check`    | `biome format .`                                                                                                                                                                               |
+| `lint`            | `biome lint --error-on-warnings .`                                                                                                                                                             |
+| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                                                                     |
+| `standards`       | `biome check --write --error-on-warnings .`                                                                                                                                                    |
+| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run type-tests:check && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit && bun run knip` |
 
 Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
 The Biome baseline enables recommended stable rules, explicitly excludes the
@@ -238,9 +322,19 @@ the conformance gate verifies that exclusion explicitly.
 ## Runtime note
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
-subprocesses resolve through Bun's PATH shim. A pinned tool that demonstrably
-requires real Node gets one narrow, tested runner override; do not add
-pnpm/yarn/npm/runtime fallback branches to the shared task fragment.
+subprocesses resolve through Bun's PATH shim. Stryker 9.6.1 is the sole
+exception: an exact Bun 1.4.0 probe still fails at Babel generator interop, so
+the `ts:mutants` tasks invoke its CLI under the mise-pinned Node while mutated
+tests run through `bun test`. Do not add package-manager or runtime fallback
+branches to the shared task fragment.
+
+`bunfig.toml` also pins install posture: new dependencies land exact, and
+`minimumReleaseAge` delays newly resolved versions for three days. OpenSSF
+reports that most malicious packages are classified by OSV.dev within that
+window; the delay does not revalidate locked versions or guarantee registry
+removal. The emergency path for a critical patch younger than the window is a
+per-package entry in `minimumReleaseAgeExcludes` — a wall edit that
+requires human countersign and gets removed once the window passes.
 
 Long-running Bun programs use `BunRuntime.runMain`. Framework applications
 instead build one application-owned `ManagedRuntime`, dispose it at application

@@ -1,6 +1,6 @@
 # Effect language-service diagnostic inventory
 
-This inventory is specific to `@effect/language-service` 0.87.1 and the
+This inventory is specific to `@effect/language-service` 0.87.2 and the
 profile configuration in `TS/tsconfig.json`. Re-audit the installed source,
 editor behavior, standalone output, and every fix before changing that version.
 
@@ -72,7 +72,7 @@ diagnostics. The isolated invalid project proves 38 error locations and a
 nonzero standalone exit. It also keeps synchronous Schema use outside Effect
 valid.
 
-One pinned discrepancy is intentional evidence: 0.87.1 reports the
+One pinned discrepancy is intentional evidence: 0.87.2 reports the
 `missingEffectError` fixture under the name `missingEffectContext`. The
 harness preserves that observed name until a separately reviewed upgrade.
 

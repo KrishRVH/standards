@@ -1,3 +1,5 @@
+//! Example-based integration test for the public doubling API.
+
 use project_name::double;
 
 #[test]

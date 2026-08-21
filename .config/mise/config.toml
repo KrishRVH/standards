@@ -6,13 +6,17 @@ config_roots = ["testers/*"]
 lockfile = false
 
 [settings]
-jobs = 2
+# Sized for the maintainer's 24-core workstation, the only host where this
+# root gate runs end to end. Fixture tasks stay bounded below by their own
+# tool concurrency settings (for example the TypeScript Stryker workers).
+jobs = 8
 lockfile = true
 
 [tools]
+actionlint = "1.7.12"
 biome = "2.5.5"
 gitleaks = "8.30.1"
-python = "3.14.6"
+python = "3.14.7"
 
 [tasks.tasks]
 description = "List available project tasks"
@@ -27,8 +31,12 @@ description = "Validate the optional Biome TypeScript template"
 run = "scripts/check-biome-template.sh"
 
 [tasks."standards:drift"]
-description = "Check standards profile manifest and fixture drift"
-run = "scripts/check-standards-drift.py"
+description = "Check standards profile contracts and fixture drift"
+run = [
+  "scripts/check-standards-drift.py",
+  "scripts/check-ignore-contracts.py",
+  "scripts/check-profile-governance.mjs",
+]
 
 [tasks.secrets]
 description = "Scan the standards repository for secrets"
