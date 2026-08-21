@@ -28,7 +28,21 @@
  * - Two mutation workers leave capacity for Bun's child processes and for a
  *   second fixture gate in the repository aggregate; CPU-count concurrency
  *   oversubscribes the host and makes timeout outcomes load-dependent.
+ * - Stryker runs the whole `bun.testFiles` list for every static mutant, so
+ *   the list holds only test files that import application source directly.
+ *   Tooling and contract tests that exercise configuration, scripts, or
+ *   helpers cannot observe a source mutation and still run in the preflight
+ *   gate. A unit test must import `src/` itself to count; a test that reaches
+ *   source only through a helper drops its mutants to no-coverage, which the
+ *   score surfaces instead of hiding.
  */
+import { globSync, readFileSync } from 'node:fs';
+
+const sourceImport = /from\s+['"](?:\.\.\/)+src\//u;
+const testFiles = globSync('tests/**/*.test.{cts,mts,ts,tsx}')
+  .filter((file) => sourceImport.test(readFileSync(file, 'utf8')))
+  .sort();
+
 // eslint-disable-next-line no-restricted-exports -- Stryker loads its config through a default export by contract.
 export default {
   testRunner: 'bun',
@@ -43,5 +57,5 @@ export default {
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
   thresholds: { high: 80, low: 60, break: 66 },
   timeoutMS: 30000,
-  bun: { env: { STANDARDS_STRYKER_SANDBOX: '1' }, timeout: 60000 },
+  bun: { env: { STANDARDS_STRYKER_SANDBOX: '1' }, timeout: 60000, testFiles },
 };

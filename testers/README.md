@@ -13,7 +13,8 @@ MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:standards:check
 ```
 
 The root is an explicit mise monorepo with `testers/*` config roots,
-per-fixture lockfiles, and two top-level fixture jobs per scheduler. The native
+per-fixture lockfiles, and a scheduler width sized for the maintainer workstation
+in the root config. The native
 monorepo scheduler provides project-prefixed output and failure propagation
 while every fixture continues to own its configuration and tools. Run one
 fixture through the same root namespace with, for example:

@@ -606,6 +606,32 @@ run_gcc_warning_contracts() {
   run_warning_behavior_contracts "$scratch_dir" gcc
 }
 
+# Each group configures its own build directories and log files under the
+# shared scratch directory and never writes to the repository, so the groups
+# run concurrently. Every group keeps its own log; the logs replay in the
+# listed order after all groups finish, so diagnostics stay readable and one
+# failure never hides another group's result.
+run_groups_concurrently() {
+  local scratch_dir="$1"
+  shift
+  local group
+  local index
+  local status=0
+  local -a pids=()
+
+  for group in "$@"; do
+    "$group" "$scratch_dir" > "$scratch_dir/group-$group.log" 2>&1 &
+    pids+=("$!")
+  done
+
+  for index in "${!pids[@]}"; do
+    wait "${pids[$index]}" || status=1
+    cat "$scratch_dir/group-${*:index+1:1}.log"
+  done
+
+  ((status == 0)) || fail "one or more concurrent regression groups failed"
+}
+
 main() {
   require_tool cmake
   require_tool ninja
@@ -620,14 +646,15 @@ main() {
       printf '[INFO] clang: %s\n' "$(clang --version | head -n 1)"
       printf '[INFO] cmake: %s\n' "$(cmake --version | head -n 1)"
       run_posix_declaration_contract "$scratch_dir" clang
-      run_platform_contract_tests "$scratch_dir"
-      run_cmake_policy_tests "$scratch_dir"
-      run_clang_warning_tests "$scratch_dir"
-      run_clang_warning_contracts "$scratch_dir"
-      run_runtime_contract_tests "$scratch_dir"
-      run_sanitizer_detection_tests "$scratch_dir"
       run_format_tests "$scratch_dir"
-      run_analyzer_tests "$scratch_dir"
+      run_groups_concurrently "$scratch_dir" \
+        run_platform_contract_tests \
+        run_cmake_policy_tests \
+        run_clang_warning_tests \
+        run_clang_warning_contracts \
+        run_runtime_contract_tests \
+        run_sanitizer_detection_tests \
+        run_analyzer_tests
       ;;
     gcc)
       require_tool gcc

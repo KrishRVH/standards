@@ -184,7 +184,10 @@ entry and non-entry modules. The directive checker tokenizes comments outside
 ESLint, so an ESLint directive cannot disable the exception protocol itself.
 `ts:preflight` runs every non-mutation gate before Stryker can touch source.
 `ts:mutants` then audits whether the tests would notice wrong code in Stryker's
-isolated sandbox; its `break`
+isolated sandbox. Stryker runs only the test files that import `src/` directly,
+because every static mutant reruns that whole list; tooling and contract tests
+belong to the preflight gate, and a unit test must import source itself to
+count toward the score. Its `break`
 threshold is a coarse regression alarm pinned at the measured floor, not a
 per-mutant guarantee — survivors in changed code are dispositioned in
 review. Both mutation tasks pass `stryker.config.mjs` explicitly and acquire

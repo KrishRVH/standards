@@ -6,7 +6,10 @@ config_roots = ["testers/*"]
 lockfile = false
 
 [settings]
-jobs = 2
+# Sized for the maintainer's 24-core workstation, the only host where this
+# root gate runs end to end. Fixture tasks stay bounded below by their own
+# tool concurrency settings (for example the TypeScript Stryker workers).
+jobs = 8
 lockfile = true
 
 [tools]

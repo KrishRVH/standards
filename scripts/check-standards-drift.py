@@ -417,8 +417,9 @@ def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
         errors.append(f"{rel(config)} must set monorepo_root = true")
 
     settings = data.get("settings", {})
-    if not isinstance(settings, dict) or settings.get("jobs") != 2:
-        errors.append(f"{rel(config)} [settings] jobs must be 2")
+    jobs = settings.get("jobs") if isinstance(settings, dict) else None
+    if not isinstance(jobs, int) or isinstance(jobs, bool) or jobs < 1:
+        errors.append(f"{rel(config)} [settings] jobs must be a positive integer")
     if not isinstance(settings, dict) or settings.get("lockfile") is not True:
         errors.append(f"{rel(config)} [settings] lockfile must be true")
 
