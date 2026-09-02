@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "embeddedLanguageFormatting": "auto",
+  "endOfLine": "lf",
+  "htmlWhitespaceSensitivity": "css",
+  "jsxSingleQuote": false,
+  "printWidth": 120,
+  "proseWrap": "preserve",
+  "quoteProps": "as-needed",
+  "semi": true,
+  "singleAttributePerLine": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "useTabs": false,
+  "sortPackageJson": false,
+  "sortImports": {
+    "newlinesBetween": false,
+    "partitionByNewline": true
+  },
+  "ignorePatterns": [".stryker-tmp/", "reports/"]
+}

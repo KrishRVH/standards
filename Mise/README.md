@@ -82,10 +82,10 @@ relationships or a reviewed `run_windows` implementation.
 The JavaScript and TypeScript task files are intentionally Bun-only. If a
 project uses pnpm, Yarn, or npm, replace the matching task file with a
 project-specific one instead of keeping multiple unpinned package-manager
-branches in the shared standard. The JavaScript workflow uses Biome for
-formatting and linting and `tsc` only for strict `checkJs` analysis. The
-TypeScript Effect-first workflow exposes separate diagnostics and
-agent-oriented overview tasks.
+branches in the shared standard. The JavaScript workflow uses Oxfmt for
+formatting, Oxlint for linting, Knip for the declared dependency boundary, and
+`tsc` only for strict `checkJs` analysis. The TypeScript Effect-first workflow
+exposes separate diagnostics and agent-oriented overview tasks.
 
 The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
 compiler dependencies. Local link and typo checks use pinned mise tools. The

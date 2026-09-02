@@ -2,17 +2,18 @@
 # catch-all is deliberate: source-level mutation classifications and diagnostic
 # suppressions can live anywhere, so every change needs the named owner's review.
 # Enable the complete protected-branch checklist in README.md; CODEOWNERS alone
-# does not dismiss stale approvals or prevent bypass. eslint.config.* is unanchored on purpose:
-# ESLint 10 resolves the nearest config upward from each linted file, so a
-# nested config shadows the wall for its subtree. If the mise task fragment
+# does not dismiss stale approvals or prevent bypass. Linter config patterns
+# are unanchored because a nested config can shadow the wall for its subtree.
+# If the mise task fragment
 # (20-ts.toml) lives outside /.config/mise/, add its path here.
 * @OWNER
+.oxfmtrc.* @OWNER
+.oxlintrc.* @OWNER
 eslint.config.* @OWNER
 /.config/mise/ @OWNER
 /.github/ @OWNER
 /.prettierignore @OWNER
 /AGENTS.md @OWNER
-/biome.jsonc @OWNER
 /bunfig.toml @OWNER
 /effect-diagnostics/tsconfig.json @OWNER
 /knip.jsonc @OWNER

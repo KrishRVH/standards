@@ -28,11 +28,12 @@ alternative.
 ## Pinned baseline, not a freeze
 
 The exact versions above are an evidence anchor, not a commitment to stay on
-them. Pinning exists so every claim in this profile — diagnostic names,
-retry/timeout ordering, redirect behavior, runtime ownership — is proven
-against one reproducible dependency set, which is what gives an agent a
-trustworthy repair loop. Most rules in the enforcement map are architectural
-and survive version changes unchanged; each row records its version scope.
+them. Pinning proves version-sensitive executable behavior such as diagnostic
+names, retry/timeout ordering, redirect behavior, and runtime ownership against
+one reproducible dependency set. This gives an agent a trustworthy repair loop
+without claiming that tests prove every architectural obligation. Most rules
+in the enforcement map are architectural and survive version changes
+unchanged; each row records its version scope.
 
 Upgrading is a supported, ordinary workflow, not an exception. For a routine
 bump: change the declared version, run `mise run ts:lock`, run the full
@@ -154,21 +155,24 @@ mise run ts:lock
 mise run ts:lock:check
 mise run ts:standards
 mise run ts:standards:check
+mise run ts:lint:secondary
+mise run ts:standards:secondary
+mise run ts:standards:secondary:check
 ```
 
 `ts:effect:overview` is an orientation command; it should show the exported
 service, live layer, and errors from the canonical fixture. Its output is
 generated and is not committed.
 
-`ts:standards` runs the out-of-band directive check and ESLint autofix before
-the final Prettier pass, so neither an exception bypass nor a lint fix can leave
+`ts:standards` runs the out-of-band directive check and Oxlint autofix before
+the final Oxfmt pass, so neither an exception bypass nor a lint fix can leave
 the tree green incorrectly. `ts:standards:check` runs lint, TypeScript,
 Effect diagnostics, expected diagnostics, formatting, deterministic
 unit/semantic/type-negative tests, randomized fast-check property tests,
 `bun audit --audit-level=low`, knip, and the full Stryker mutation sweep.
 
 Application source is compiler-owned and uses `.cts`, `.mts`, `.ts`, or `.tsx`;
-`jsx: preserve` keeps TSX inside the strict type gate. ESLint state walls, knip,
+`jsx: preserve` keeps TSX inside the strict type gate. Oxlint state walls, knip,
 and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
 `.mjs` files under `src/` fail lint instead of silently escaping typechecking.
 The directive scanner still covers all eight JavaScript-like suffixes so
@@ -181,7 +185,7 @@ script, removed once the fix ships.
 
 `ts:knip` fails on declared dependencies, files, and unused exports from both
 entry and non-entry modules. The directive checker tokenizes comments outside
-ESLint, so an ESLint directive cannot disable the exception protocol itself.
+the linter, so a lint directive cannot disable the exception protocol itself.
 `ts:preflight` runs every non-mutation gate before Stryker can touch source.
 `ts:mutants` then audits whether the tests would notice wrong code in Stryker's
 isolated sandbox. Stryker runs only the test files that import `src/` directly,
@@ -248,14 +252,21 @@ required jobs, but they do not replace this static and deterministic gate.
 
 ## Tooling choices
 
-The committed default is Option A: type-aware ESLint plus Prettier. The config
-sets `@typescript-eslint/no-floating-promises` with `ignoreVoid: false`; writing
-`void runtime.runPromise(...)` is not accepted as background-task ownership.
-It also blocks narrowing and object-literal type assertions
-(`no-unsafe-type-assertion`, `consistent-type-assertions`): a value proves
-conformance with `satisfies`, and a cast is earned only inside a validated
-boundary adapter per EFF-030 and the
-[type discipline guide](docs/effect/type-discipline.md).
+The committed primary workflow is typed Oxlint plus Oxfmt. Oxlint uses the
+`oxlint-tsgolint` TypeScript 7 backend for type-aware lint rules while the
+project remains on TypeScript 6.0.3, the tested version supported by
+`@effect/language-service`. `tsc` stays authoritative for compilation and the
+Effect language service keeps its own diagnostics gate.
+
+The primary lint config keeps `typescript/no-floating-promises` at
+`ignoreVoid: false`; writing `void runtime.runPromise(...)` is not accepted as
+background-task ownership. It also blocks narrowing and object-literal type
+assertions (`no-unsafe-type-assertion`, `consistent-type-assertions`): a value
+proves conformance with `satisfies`, and a cast is earned only inside a
+validated boundary adapter per EFF-030 and the
+[type discipline guide](docs/effect/type-discipline.md). Project-local rules
+preserve the state, ambient-runtime, ESM-only, TypeScript-source-only, default
+export, and TypeScript emit-syntax walls that are part of this profile.
 
 `skipLibCheck` is false. This costs some feedback time but checks dependency
 declarations. Re-enable it only after measuring a material project-specific
@@ -266,58 +277,22 @@ application-profile choices. Browser, React Native, and published-library
 projects need their own runtime/module/declaration overlay rather than
 weakening this one.
 
-`biome.jsonc` is Option B for projects that deliberately replace both ESLint
-and Prettier with Biome 2.5.5. It uses the stable recommended preset plus two
-targeted agent-legibility rules (`noDefaultExport` and
-`noParameterProperties`), not the high-churn stable `all` preset. The catalog
-validates this alternative separately against pure TypeScript, Effect
-services/layers/errors, Schema boundaries, a Bun entrypoint, tests, config,
-and declaration inputs. It separately asserts that the representative
-generated file is excluded from Biome processing. Option B is not claimed to
-be rule-equivalent to the curated ESLint profile.
+ESLint plus Prettier remains a pinned secondary workflow for projects that need
+its ecosystem or editor compatibility. It shares the local semantic rules and
+the canonical `eslint-disable-next-line <rule> -- <reason>` exception syntax.
+Use `mise run ts:standards:secondary` and
+`mise run ts:standards:secondary:check` only after deliberately selecting that
+workflow. The catalog runs its repair and check loop on an isolated copy so
+formatter differences never rewrite the canonical Oxc fixture.
 
-The catalog checks Option B's linter against the canonical Option A source,
-then runs Biome's full repair and CI loop on an isolated copy. This proves the
-alternative converges without making both formatter/linter stacks active in one
-generated project or forcing their different formatting/import repairs onto
-the same files.
-
-If a project chooses Option B, remove `@eslint/js`,
-`@eslint-community/eslint-plugin-eslint-comments`, `eslint`,
-`eslint-config-prettier`, `eslint-plugin-jsx-a11y-x`, `eslint-plugin-regexp`,
-`globals`, `prettier`, and `typescript-eslint`; add exact dev dependency
-`"@biomejs/biome": "2.5.5"`. Keep Effect, platform packages, the language
-service, TypeScript, Bun types, and the lock policy.
-
-Know what the switch costs: removing ESLint removes walls Biome cannot
-replace — the reasoned-disable exception protocol
-(`eslint-disable-next-line <rule> -- <reason>` with unused-directive
-expiry), the module-scope shared-mutable-state and semantic `globalThis` walls,
-the src-scoped ambient-state walls
-(`no-restricted-globals`, `no-restricted-imports`), and
-`no-unsafe-type-assertion` with `consistent-type-assertions`. Under Option B
-those revert from gates to review duties stated in `AGENTS.md`.
-
-Remap package scripts without changing mise task names:
-
-| Script            | Option B value                                                                                                                                                                                 |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `format`          | `biome format --write .`                                                                                                                                                                       |
-| `format:check`    | `biome format .`                                                                                                                                                                               |
-| `lint`            | `biome lint --error-on-warnings .`                                                                                                                                                             |
-| `lint:fix`        | `biome lint --write --error-on-warnings .`                                                                                                                                                     |
-| `standards`       | `biome check --write --error-on-warnings .`                                                                                                                                                    |
-| `standards:check` | `biome ci --error-on-warnings . && bun run typecheck && bun run type-tests:check && bun run effect:check && bun run effect:diagnostics:check && bun run test && bun run audit && bun run knip` |
-
-Then run `mise run ts:lock`. Do not keep both formatter/linter stacks active.
-The Biome baseline enables recommended stable rules, explicitly excludes the
-semver-unstable nursery group, and leaves TypeScript and Effect diagnostics
-responsible for module resolution and Effect channel correctness. The broader
-`all` preset is not part of this profile because it produces framework-specific
-false positives and assertion/style churn without an additional actionable
-correctness finding on the representative fixture. Generated files are excluded
-from Biome's formatter, linter, and project analysis in this optional profile;
-the conformance gate verifies that exclusion explicitly.
+The catalog maintains and validates both lint-and-format workflows, but a
+copied profile's default gate runs only the primary workflow. The primary
+standards gate also owns type checks, tests, audits, knip, and mutation testing.
+Do not run both repair loops over one working tree. The root
+`mise run standards:eslint-prettier:check` task proves that the secondary
+workflow still accepts the canonical source, converges in scratch space, and
+then checks its own output. After any tool-version change, run
+`mise run ts:lock` and the relevant standards gate.
 
 ## Runtime note
 

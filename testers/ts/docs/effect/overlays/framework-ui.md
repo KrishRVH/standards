@@ -50,7 +50,7 @@ and two mounts must not construct duplicate application roots. Test the actual
 lease/controller rather than relying on production-only lifecycle assumptions.
 
 Component code should call the framework adapter or controller, not raw
-`runFork`; the default ESLint overlay rejects that property in component
+`runFork`; the lint overlay rejects that property in component
 JSX/TSX, while runtime adapters live in ordinary `.ts` modules. A transferred
 application's non-interruption failure is observed by the task owner exactly
 once. Navigation does not cancel application-owned work; runtime disposal does.

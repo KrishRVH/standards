@@ -10,13 +10,19 @@
     "effect:check": "effect-language-service diagnostics --project tsconfig.json --severity error,warning",
     "effect:diagnostics:check": "bun run scripts/check-effect-diagnostics.mjs",
     "effect:overview": "effect-language-service overview --project tsconfig.json",
-    "format": "prettier . --write --cache --list-different",
-    "format:check": "prettier . --check",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "format:secondary": "prettier . --write --cache --list-different",
+    "format:secondary:check": "prettier . --check",
     "knip": "knip",
-    "lint": "bun run directives:check && eslint . --max-warnings 0",
-    "lint:fix": "bun run directives:check && eslint . --fix --max-warnings 0",
+    "lint": "bun run directives:check && oxlint .",
+    "lint:fix": "bun run directives:check && oxlint --fix .",
+    "lint:secondary": "bun run directives:check && eslint . --max-warnings 0",
+    "lint:secondary:fix": "bun run directives:check && eslint . --fix --max-warnings 0",
     "standards": "bun run lint:fix && bun run format",
     "standards:check": "bun run lint && bun run typecheck && bun run type-tests:check && bun run effect:check && bun run effect:diagnostics:check && bun run format:check && bun run test && bun run audit && bun run knip",
+    "standards:secondary": "bun run lint:secondary:fix && bun run format:secondary",
+    "standards:secondary:check": "bun run lint:secondary && bun run format:secondary:check",
     "test": "bun test",
     "type-tests:check": "bun run scripts/check-type-tests.mjs",
     "typecheck": "tsc --pretty -p tsconfig.json"
@@ -40,12 +46,16 @@
     "fast-check": "4.9.0",
     "globals": "17.11.0",
     "knip": "6.32.2",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "7.0.2001",
     "prettier": "3.9.6",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0"
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "qs": "6.15.3"
+    "fast-uri": "3.1.6",
+    "qs": "6.16.0"
   }
 }

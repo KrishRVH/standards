@@ -44,7 +44,8 @@ export const defaultCheckPolicy: CheckPolicyInput = {
 };
 
 type PolicyNormalization =
-  { readonly _tag: 'Invalid'; readonly reason: string } | { readonly _tag: 'Valid'; readonly policy: CheckedPolicy };
+  | { readonly _tag: 'Invalid'; readonly reason: string }
+  | { readonly _tag: 'Valid'; readonly policy: CheckedPolicy };
 
 function normalizeAllowedOrigin(input: string): string | undefined {
   try {

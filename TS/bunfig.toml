@@ -8,8 +8,4 @@ exact = true
 # malicious packages are classified by OSV.dev within that window. Locked
 # versions are not revalidated, and registry removal is not guaranteed.
 minimumReleaseAge = 259200
-# User-countersigned exception for the Bun 1.4.0 type definitions and their
-# matching bun-types dependency, published on 2026-08-20. Remove both entries
-# after 2026-08-23T19:46:32Z.
-minimumReleaseAgeExcludes = ["@types/bun", "bun-types"]
 peer = false

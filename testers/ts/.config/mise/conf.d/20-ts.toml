@@ -42,6 +42,11 @@ description = "Lint TypeScript/JavaScript"
 depends = ["ts:install"]
 run = "bun run lint"
 
+[tasks."ts:lint:secondary"]
+description = "Lint TypeScript/JavaScript with the secondary ESLint profile"
+depends = ["ts:install"]
+run = "bun run lint:secondary"
+
 [tasks."ts:type"]
 description = "Run TypeScript type checks"
 depends = ["ts:install"]
@@ -108,6 +113,16 @@ run = "bun run scripts/check-stryker-cache.mjs reports/stryker-incremental.json"
 description = "Run the TypeScript/JavaScript standards workflow with autofixes"
 depends = ["ts:install"]
 run = "bun run standards"
+
+[tasks."ts:standards:secondary"]
+description = "Run the secondary ESLint and Prettier workflow with autofixes"
+depends = ["ts:install"]
+run = "bun run standards:secondary"
+
+[tasks."ts:standards:secondary:check"]
+description = "Check the secondary ESLint and Prettier workflow"
+depends = ["ts:install"]
+run = "bun run standards:secondary:check"
 
 [tasks."ts:standards:check"]
 description = "Run the TypeScript/JavaScript standards CI gate"

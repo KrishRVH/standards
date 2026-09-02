@@ -128,7 +128,10 @@ export class InvalidCheckPolicy extends Data.TaggedError('InvalidCheckPolicy')<{
 }> {}
 
 export type EndpointProbeFailure =
-  TransientProbeError | EndpointRejected | EndpointRedirectRejected | ProbeTransportError;
+  | TransientProbeError
+  | EndpointRejected
+  | EndpointRedirectRejected
+  | ProbeTransportError;
 
 export type EndpointLocalFailure = EndpointProbeFailure | EndpointNotAllowed | AttemptTimedOut;
 export type CheckFailure = ParseResult.ParseError | WorkflowDeadlineExceeded | InvalidCheckPolicy;

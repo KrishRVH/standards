@@ -1,20 +1,12 @@
 import { expect, test } from 'bun:test';
-import { fileURLToPath } from 'node:url';
 
-import { ESLint } from 'eslint';
+import { lintProbe } from './support/oxlint-probe.js';
 
 /**
- * Contract tests: the shared-mutable-state wall and the exception protocol
- * in eslint.config.mjs must actually fire. A mistyped esquery selector or a
- * dropped plugin rule would otherwise leave the gate green while the wall
- * silently stops existing.
- *
- * The probe file is virtual, so the override below grants it a default
- * project — parser plumbing only; every rule under test comes from the real
- * config.
+ * Contract tests: the shared state and source-policy rules in .oxlintrc.json
+ * must actually fire. A dropped native or local plugin rule would otherwise
+ * leave the gate green while the wall silently stops existing.
  */
-const PROBE_PATH = 'src/state-wall-probe.ts';
-const PROBE_GLOB = 'src/*';
 const applicationSourceExtensions = ['cts', 'mts', 'ts', 'tsx'] as const;
 const unsupportedApplicationSourceExtensions = ['cjs', 'js', 'jsx', 'mjs'] as const;
 const immediateTimerCases: readonly {
@@ -44,25 +36,6 @@ const immediateTimerCases: readonly {
   },
 ];
 
-async function lintProbe(source: string, probePath = PROBE_PATH): Promise<ESLint.LintResult['messages']> {
-  const needsTypeScriptProject = /\.(?:cts|mts|ts|tsx)$/u.test(probePath);
-  const eslint = new ESLint({
-    cwd: fileURLToPath(new URL('..', import.meta.url)),
-    overrideConfig: needsTypeScriptProject
-      ? [
-          {
-            files: [PROBE_GLOB],
-            languageOptions: {
-              parserOptions: { projectService: { allowDefaultProject: [PROBE_GLOB] } },
-            },
-          },
-        ]
-      : [],
-  });
-  const [result] = await eslint.lintText(source, { filePath: probePath });
-  return result?.messages ?? [];
-}
-
 for (const extension of applicationSourceExtensions) {
   test(`the application state walls cover .${extension} source`, async () => {
     const messages = await lintProbe(
@@ -73,7 +46,7 @@ for (const extension of applicationSourceExtensions) {
     expect(
       messages.some(
         ({ ruleId, severity, message }) =>
-          ruleId === 'no-restricted-syntax' &&
+          ruleId === 'standards/no-module-mutable-binding' &&
           severity === 2 &&
           message.includes('Module-scope mutable binding is ambient shared state'),
       ),
@@ -96,12 +69,12 @@ for (const extension of applicationSourceExtensions) {
 
 for (const extension of unsupportedApplicationSourceExtensions) {
   test(`the application source policy rejects .${extension} source before it can bypass typechecking`, async () => {
-    const messages = await lintProbe('export const value = 1;\n', `src/state-wall-probe.${extension}`);
+    const messages = await lintProbe('const value = 1;\nvoid value;\n', `src/state-wall-probe.${extension}`);
 
     expect(
       messages.some(
         ({ ruleId, severity, message }) =>
-          ruleId === 'no-restricted-syntax' &&
+          ruleId === 'standards/typescript-source-only' &&
           severity === 2 &&
           message.includes('First-party application source must use .ts, .mts, .cts, or .tsx'),
       ),
@@ -116,7 +89,7 @@ test('the state wall mechanically rejects module-scope mutable bindings', async 
   expect(
     messages.some(
       ({ ruleId, severity, message }) =>
-        ruleId === 'no-restricted-syntax' &&
+        ruleId === 'standards/no-module-mutable-binding' &&
         severity === 2 &&
         message.includes('Module-scope mutable binding is ambient shared state'),
     ),
@@ -129,7 +102,7 @@ test('the state wall mechanically rejects exported mutable bindings', async () =
   expect(
     messages.some(
       ({ ruleId, severity, message }) =>
-        ruleId === 'no-restricted-syntax' &&
+        ruleId === 'standards/no-module-mutable-binding' &&
         severity === 2 &&
         message.includes('Exported mutable binding is a global mutable singleton'),
     ),
@@ -382,12 +355,12 @@ const ambientStateBypasses: readonly {
   },
   {
     name: 'CommonJS worker loading',
-    ruleId: '@typescript-eslint/no-require-imports',
+    ruleId: 'typescript/no-require-imports',
     source: "const workers = require('worker_threads');\nvoid workers;\n",
   },
   {
     name: 'CommonJS cluster loading',
-    ruleId: '@typescript-eslint/no-require-imports',
+    ruleId: 'typescript/no-require-imports',
     source: "const cluster = require('node:cluster');\nvoid cluster;\n",
   },
 ];
@@ -437,22 +410,68 @@ test('the mutation rule respects a lexically shadowed Node global parameter', as
   expect(messages.some(({ ruleId }) => ruleId === 'standards/no-global-mutation')).toBe(false);
 });
 
-test('the exception protocol mechanically rejects reasonless disables', async () => {
-  const messages = await lintProbe('// eslint-disable-next-line no-restricted-syntax\nexport let counter = 0;\n');
+test('the ESM rule respects lexically shadowed CommonJS names', async () => {
+  const messages = await lintProbe(
+    'function use(require, module, exports) {\n  require();\n  module.exports = {};\n  exports.value = 1;\n}\nvoid use;\n',
+    'scripts/shadowed-commonjs.mjs',
+  );
+
+  expect(messages.some(({ ruleId }) => ruleId === 'standards/esm-only')).toBe(false);
+});
+
+test('typed Oxlint rejects floating promises even when they are explicitly voided', async () => {
+  const messages = await lintProbe('void Promise.resolve(1);\n');
+
+  expect(messages.some(({ ruleId, severity }) => ruleId === 'typescript/no-floating-promises' && severity === 2)).toBe(
+    true,
+  );
+});
+
+test('the primary linter does not grant browser or Node globals to unscoped JavaScript', async () => {
+  const messages = await lintProbe('void document;\nvoid process;\n', 'scripts/unscoped-globals.mjs');
+
+  expect(messages.filter(({ ruleId, severity }) => ruleId === 'no-undef' && severity === 2)).toHaveLength(2);
+});
+
+test('the primary linter rejects overwritten assignments that are never observed', async () => {
+  const messages = await lintProbe(
+    'function value(): number {\n  let result = 1;\n  result = 2;\n  return result;\n}\nvoid value;\n',
+  );
+
+  expect(messages.some(({ ruleId, severity }) => ruleId === 'no-useless-assignment' && severity === 2)).toBe(true);
+});
+
+test('typed Oxlint rejects conditions proven unnecessary', async () => {
+  const messages = await lintProbe(
+    "function value(input: string): string {\n  if (input === undefined) {\n    return '';\n  }\n  return input;\n}\nvoid value;\n",
+  );
 
   expect(
-    messages.some(
-      ({ ruleId, severity }) => ruleId === '@eslint-community/eslint-comments/require-description' && severity === 2,
-    ),
+    messages.some(({ ruleId, severity }) => ruleId === 'typescript/no-unnecessary-condition' && severity === 2),
   ).toBe(true);
 });
 
-test('the exception protocol mechanically rejects unlimited block disables', async () => {
-  const messages = await lintProbe('/* eslint-disable */\nexport const ok = 1;\n');
+const typeScriptEmitCases: readonly { readonly name: string; readonly source: string }[] = [
+  { name: 'enums', source: 'enum Status { Ready }\nvoid Status.Ready;\n' },
+  {
+    name: 'namespaces',
+    source: 'namespace RuntimeState { export const ready = true; }\nvoid RuntimeState.ready;\n',
+  },
+  {
+    name: 'parameter properties',
+    source: 'class Service { constructor(readonly value: number) {} }\nvoid Service;\n',
+  },
+  { name: 'import-equals declarations', source: "import Path = require('node:path');\nvoid Path;\n" },
+  { name: 'export assignments', source: 'const value = 1;\nexport = value;\n' },
+];
 
-  expect(
-    messages.some(
-      ({ ruleId, severity }) => ruleId === '@eslint-community/eslint-comments/no-unlimited-disable' && severity === 2,
-    ),
-  ).toBe(true);
-});
+for (const emitCase of typeScriptEmitCases) {
+  test(`the primary linter rejects ${emitCase.name}`, async () => {
+    const messages = await lintProbe(emitCase.source);
+
+    expect(
+      messages.some(({ ruleId, severity }) => ruleId === 'standards/no-typescript-emit-syntax' && severity === 2),
+      JSON.stringify(messages),
+    ).toBe(true);
+  });
+}

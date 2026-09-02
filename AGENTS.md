@@ -56,8 +56,8 @@ scripts are the explicit exception because they install mise itself.
   workflow and available autofixes.
 - `mise run md:standards`: format and lint the repository's Markdown and MDX.
 - `mise run md:standards:check`: check the repository's Markdown and MDX.
-- `mise run standards:biome:check`: validate the optional Biome TypeScript
-  template with the pinned stable CLI.
+- `mise run standards:eslint-prettier:check`: validate the TypeScript ESLint
+  and Prettier secondary workflow against the canonical Oxc fixture.
 - `mise run standards:drift`: profile-contract and fixture-drift checks.
 - `mise run testers:standards`: run all tester mini projects through their
   standards workflows and available autofixes.
@@ -65,8 +65,8 @@ scripts are the explicit exception because they install mise itself.
   their standards CI gates.
 - `mise run testers:standards:check:isolated`: run the representative Python
   fixture gate in Dagger.
-- `mise run standards:check`: root secret scan, Biome template validation,
-  drift, Markdown, and Shell checks, plus every fixture gate.
+- `mise run standards:check`: root secret scan, ESLint and Prettier secondary
+  validation, drift, Markdown, and Shell checks, plus every fixture gate.
 
 Do not call package managers, compilers, test runners, or Dagger directly unless
 fixing the relevant mise task itself. If install needs network, run it through

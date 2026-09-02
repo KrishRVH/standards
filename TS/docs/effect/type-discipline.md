@@ -32,7 +32,7 @@ many variants; a plain union type needs no ceremony.
 Handle every variant exhaustively. In a `switch`, the terminal arm returns
 `value satisfies never` — the pattern `src/endpoint-contracts.ts` uses — so
 adding a variant breaks compilation at every unhandled site;
-`@typescript-eslint/switch-exhaustiveness-check` and a negative type fixture
+`typescript/switch-exhaustiveness-check` and a negative type fixture
 guard the pattern. Inside Effect matching, `Match.exhaustive` is the
 equivalent terminal.
 
@@ -85,7 +85,7 @@ asserts safety. A type assertion comes last and must be earned by validation
 the compiler cannot see. In this profile that validation normally lives in a
 Schema decode adapter (EFF-020), so a narrowing `as` surviving in
 application code marks a modeling defect:
-`@typescript-eslint/no-unsafe-type-assertion` blocks it, and the exception
+`typescript/no-unsafe-type-assertion` blocks it, and the exception
 path is the standard per-site suppression whose reason names the validation
 that earns the cast.
 

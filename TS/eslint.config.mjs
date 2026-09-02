@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url';
 
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import eslint from '@eslint/js';
-import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
 import jsxA11y from 'eslint-plugin-jsx-a11y-x';
 import regexp from 'eslint-plugin-regexp';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -23,21 +23,8 @@ const typeScriptFiles = '**/*.{cts,mts,ts,tsx}';
 const typeScriptSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
 const typeScriptTestFiles = 'tests/**/*.{cts,mts,ts,tsx}';
 const unsupportedJavaScriptSourceFiles = 'src/**/*.{cjs,js,jsx,mjs}';
-const moduleMutableBindingRestrictions = [
-  {
-    selector: "Program > VariableDeclaration[kind='let'], Program > VariableDeclaration[kind='var']",
-    message:
-      'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
-  },
-  {
-    selector:
-      "ExportNamedDeclaration > VariableDeclaration[kind='let'], ExportNamedDeclaration > VariableDeclaration[kind='var']",
-    message:
-      'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
-  },
-];
 
-// eslint-disable-next-line no-restricted-exports -- ESLint flat config is consumed through a default export by contract.
+// eslint-disable-next-line standards/no-default-export -- ESLint flat config is consumed through a default export by contract.
 export default defineConfig(
   /**
    * 1) Global ignores (applies regardless of CLI globs)
@@ -146,18 +133,7 @@ export default defineConfig(
     files: [sourceFiles],
     rules: {
       'no-duplicate-imports': 'error',
-      'no-restricted-exports': [
-        'error',
-        {
-          restrictDefaultExports: {
-            direct: true,
-            named: true,
-            defaultFrom: true,
-            namedFrom: true,
-            namespaceFrom: true,
-          },
-        },
-      ],
+      'standards/no-default-export': 'error',
       'sort-imports': [
         'error',
         {
@@ -189,30 +165,8 @@ export default defineConfig(
        * Ban TS constructs that require special emit semantics or obscure module structure.
        * Aligns with `erasableSyntaxOnly` and transpiler-owned JavaScript output.
        */
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: 'TSEnumDeclaration',
-          message: 'Do not use TypeScript enums. Use as const objects + union types.',
-        },
-        {
-          selector: 'TSModuleDeclaration',
-          message: 'Ambient declarations (declare global/module/namespace) must live in *.d.ts files only.',
-        },
-        {
-          selector: 'TSParameterProperty',
-          message: 'Do not use parameter properties (constructor(public x: number)). Declare fields explicitly.',
-        },
-        { selector: 'TSImportEqualsDeclaration', message: 'Do not use import =. Use standard ES imports.' },
-        { selector: 'TSExportAssignment', message: 'Do not use export =. Use ES exports.' },
-        /**
-         * Shared-mutable-state wall: ambient module-scope mutation is the TS
-         * analog of a global atomic. State lives on the owning service, layer,
-         * or root model; each message names the replacement, not just the ban.
-         */
-        ...moduleMutableBindingRestrictions,
-      ],
-
+      'standards/no-module-mutable-binding': 'error',
+      'standards/no-typescript-emit-syntax': 'error',
       'standards/no-global-mutation': 'error',
 
       // General correctness / maintainability rules
@@ -398,13 +352,7 @@ export default defineConfig(
     name: 'typescript/dts-ambient-ok',
     files: ['**/*.d.ts'],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        { selector: 'TSEnumDeclaration', message: 'Do not use TypeScript enums. Use as const objects + union types.' },
-        { selector: 'TSParameterProperty', message: 'No parameter properties.' },
-        { selector: 'TSImportEqualsDeclaration', message: 'No import =.' },
-        { selector: 'TSExportAssignment', message: 'No export =.' },
-      ],
+      'standards/no-typescript-emit-syntax': ['error', { allowNamespaces: true }],
     },
   },
 
@@ -436,15 +384,7 @@ export default defineConfig(
     files: [javaScriptFiles],
     extends: [tseslint.configs.disableTypeChecked],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        { selector: "CallExpression[callee.name='require']", message: 'Do not use require(). Use ESM imports.' },
-        {
-          selector: "MemberExpression[object.name='module'][property.name='exports']",
-          message: 'Do not use module.exports. Use ESM exports.',
-        },
-        { selector: "MemberExpression[object.name='exports']", message: 'Do not use exports.*. Use ESM exports.' },
-      ],
+      'standards/esm-only': 'error',
     },
   },
 
@@ -457,14 +397,7 @@ export default defineConfig(
     name: 'application/typescript-source-only',
     files: [unsupportedJavaScriptSourceFiles],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: 'Program',
-          message:
-            'First-party application source must use .ts, .mts, .cts, or .tsx so the strict compiler gate owns it.',
-        },
-      ],
+      'standards/typescript-source-only': 'error',
     },
   },
 

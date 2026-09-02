@@ -1,8 +1,8 @@
 import { runMain } from '@effect/platform-bun/BunRuntime';
 import { Console, Effect } from 'effect';
 
-import { encodeEndpointResults, projectCheckFailure, projectEncodingFailure } from './endpoint-contracts.js';
 import { EndpointProbeLive, checkEndpoints } from './endpoint-checker.js';
+import { encodeEndpointResults, projectCheckFailure, projectEncodingFailure } from './endpoint-contracts.js';
 
 function parseTargetArgument(argument: string): { readonly id: string; readonly url: string } {
   const separator = argument.indexOf('=');

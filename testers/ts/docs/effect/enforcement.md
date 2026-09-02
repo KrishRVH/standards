@@ -7,10 +7,12 @@ rules. Stable IDs are never reused.
 
 Rule levels and the exception process are defined in the agent guide. In the
 entries below, **TS** means TypeScript, **LS** the pinned Effect language
-service, **Neg** an isolated negative fixture, **Sem** a deterministic semantic
-test, and **Int** an integration test. `Partial` is not presented as complete
-enforcement. `Manual` names the remaining prose-only review obligation; each
-row flags it explicitly and it is never claimed as mechanical enforcement.
+service, **Lint** the shared rule contract enforced by primary Oxlint and
+secondary ESLint, **Neg** an isolated negative fixture, **Sem** a deterministic
+semantic test, and **Int** an integration test. `Partial` is not presented as
+complete enforcement. `Manual` names the remaining prose-only review
+obligation; each row flags it explicitly and it is never claimed as mechanical
+enforcement.
 
 `(catalog)` marks an executable contract that lives in this catalog's tester
 fixture, not in the copyable profile. A fresh copy of the profile does not
@@ -42,7 +44,7 @@ vocabulary, or repository-host branch protection.
 - **Minimum / prohibited:** A pure function and trusted internal type / an
   `Effect.sync`, service, or Schema wrapper with no operational benefit.
 - **Exception:** Document the concrete operational capability the wrapper adds.
-- **Enforcement:** TS partial; LS advisory; ESLint —; Biome —; Neg —; Unit —;
+- **Enforcement:** TS partial; LS advisory; Lint —; Neg —; Unit —;
   Sem —; Int —; CI —; Manual yes.
 - **Version:** Project architecture rule; not Effect-version-specific.
 
@@ -56,9 +58,10 @@ vocabulary, or repository-host branch protection.
   narrowed Effect type that erases `E` or `R`.
 - **Exception:** One line in an adapter for a named untyped dependency, with an
   owner and removal condition.
-- **Enforcement:** TS blocking; LS blocking; ESLint blocking; Biome blocking;
+- **Enforcement:** TS blocking; LS blocking; Lint blocking;
   Neg diagnostic fixture; Unit partial; Sem —; Int —; CI yes; Manual residual.
-- **Version:** TS 6.0.3, LS 0.87.2, Biome 2.5.5.
+- **Version:** TS 6.0.3, LS 0.87.2, Oxlint 1.80.0,
+  oxlint-tsgolint 7.0.2001, typescript-eslint 8.67.0.
 
 ## EFF-003 — Accurate exported Effect contracts
 
@@ -71,7 +74,7 @@ vocabulary, or repository-host branch protection.
   hidden provisioning, or `orDie` used only to satisfy a narrower signature.
 - **Exception:** A documented impossible invariant or explicit startup-defect
   policy with a test.
-- **Enforcement:** TS blocking; LS blocking; ESLint —; Biome —; Neg diagnostic
+- **Enforcement:** TS blocking; LS blocking; Lint —; Neg diagnostic
   fixture; Unit typed exits; Sem partial; Int —; CI yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.2, TS 6.0.3.
 
@@ -86,9 +89,8 @@ vocabulary, or repository-host branch protection.
   lazy constructor / `Effect.succeed(io())` or `Effect.sync(() => promise)`.
 - **Exception:** A Promise intentionally treated as inert data, narrowly
   suppressed and tested.
-- **Enforcement:** TS partial; LS blocking; ESLint floating-Promise check;
-  Biome partial; Neg diagnostic fixture; Unit —; Sem adapter test; Int —; CI
-  yes; Manual residual.
+- **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
+  diagnostic fixture; Unit —; Sem adapter test; Int —; CI yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.2.
 
 ## EFF-005 — Expected failure, defect, and interruption
@@ -102,7 +104,7 @@ vocabulary, or repository-host branch protection.
   owner / broad Cause catch returning one generic typed error.
 - **Exception:** The outer sole observer may inspect full Cause when it
   preserves or rethrows unhandled defects and interruption.
-- **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg diagnostic
+- **Enforcement:** TS partial; LS partial; Lint —; Neg diagnostic
   fixture; Unit exact Cause tests; Sem finalizer/interruption tests (catalog);
   Int partial; CI yes; Manual residual.
 - **Version:** Effect 3.22.1.
@@ -119,7 +121,7 @@ vocabulary, or repository-host branch protection.
   URL details, prompts, credentials, or PII.
 - **Exception:** Restricted technical detail may remain `unknown` outside the
   public protocol and is redacted before observation.
-- **Enforcement:** TS exhaustive matches; LS —; ESLint partial; Biome partial;
+- **Enforcement:** TS exhaustive matches; LS —; Lint partial;
   Neg partial; Unit projection/redaction; Sem observation/redaction; Int —; CI
   yes; Manual vocabulary review.
 - **Version:** Project contract; tagged forms use Effect 3.22.1.
@@ -137,7 +139,7 @@ vocabulary, or repository-host branch protection.
   tags.
 - **Exception:** None for two distinct service identities in one process;
   internal identifiers may change when no external consumer observes them.
-- **Enforcement:** TS partial; LS partial; ESLint —; Biome —; Neg —;
+- **Enforcement:** TS partial; LS partial; Lint —; Neg —;
   Unit duplicate-key and wire tests (catalog); Sem context probe (catalog);
   Int —; CI yes; Manual scope review.
 - **Version:** Effect 3.22.1 Context behavior; compatibility is project-specific.
@@ -151,7 +153,7 @@ vocabulary, or repository-host branch protection.
 - **Minimum / prohibited:** One stable tag with a generic method / `Tag<A>` used
   as distinct runtime identities.
 - **Exception:** Explicit concrete identifiers and service types.
-- **Enforcement:** TS partial; LS blocking; ESLint —; Biome —; Neg diagnostic
+- **Enforcement:** TS partial; LS blocking; Lint —; Neg diagnostic
   fixture; Unit —; Sem —; Int —; CI yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.2.
 
@@ -164,7 +166,7 @@ vocabulary, or repository-host branch protection.
   Scope requirement inside `Layer.effect`.
 - **Exception:** An externally owned Scope with one owner, a lifetime test, and
   a narrow diagnostic suppression.
-- **Enforcement:** TS partial; LS blocking; ESLint —; Biome —; Neg diagnostic
+- **Enforcement:** TS partial; LS blocking; Lint —; Neg diagnostic
   fixture; Unit finalization (catalog); Sem lifecycle test (catalog); Int —;
   CI yes; Manual residual.
 - **Version:** Effect 3.22.1, LS 0.87.2.
@@ -180,7 +182,7 @@ vocabulary, or repository-host branch protection.
   runtime construction or dependent siblings in `mergeAll`.
 - **Exception:** A request/iteration that intentionally owns the complete
   acquire-use-release lifetime, with counts tested.
-- **Enforcement:** TS partial; LS blocking for graph shapes; ESLint —; Biome —;
+- **Enforcement:** TS partial; LS blocking for graph shapes; Lint —;
   Neg diagnostic fixture; Unit acquisition counts (catalog); Sem layer
   topology (catalog); Int —; CI yes; Manual hot-path review.
 - **Version:** Effect 3.22.1, LS 0.87.2.
@@ -196,9 +198,9 @@ vocabulary, or repository-host branch protection.
   inside services or `void runtime.runPromise(...)` fire-and-forget.
 - **Exception:** A test is a runtime edge; another adapter needs the same six
   ownership answers.
-- **Enforcement:** TS partial; LS blocking; ESLint floating-Promise check; Biome
-  partial; Neg diagnostic fixture; Unit adapter exits; Sem runtime disposal; Int
-  host test; CI yes; Manual owner review.
+- **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
+  diagnostic fixture; Unit adapter exits; Sem runtime disposal; Int host test;
+  CI yes; Manual owner review.
 - **Version:** Effect 3.22.1; Bun edge also uses platform-bun 0.91.2.
 
 ## EFF-012 — Async cancellation contracts
@@ -212,7 +214,7 @@ vocabulary, or repository-host branch protection.
   race winner tested / claiming cancellation because the wrapper returned.
 - **Exception:** Signal-ignorant work with an explicit continuing owner and
   independent publication guard.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit adapter
+- **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit adapter
   tests; Sem interruption/continuation tests; Int native API test (catalog);
   CI yes; Manual remote-commit analysis.
 - **Version:** Effect 3.22.1 and the pinned host API.
@@ -227,7 +229,7 @@ vocabulary, or repository-host branch protection.
   validating or planning from `timeout × attempts` folklore.
 - **Exception:** Long-lived streams use connection, idle, heartbeat, and shutdown
   policies instead of a request deadline.
-- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit policy decode;
+- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit policy decode;
   Sem `TestClock` ordering/sleep tests; Int —; CI yes; Manual provider budget
   ownership.
 - **Version:** Effect 3.22.1 timeout waits for loser termination/finalizers.
@@ -244,7 +246,7 @@ vocabulary, or repository-host branch protection.
   transport, service, workflow, and UI retrying the same logical operation.
 - **Exception:** None without changing the operation contract; hedging is a
   separate concurrent-duplication policy.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit classifier;
+- **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit classifier;
   Sem exact attempts/non-retry tests plus reconcile tests (catalog); Int —;
   CI yes; Manual cross-layer and provider audit.
 - **Version:** Effect 3.22.1: `{ times: n }` permits at most `n + 1` attempts.
@@ -259,7 +261,7 @@ vocabulary, or repository-host branch protection.
   a key inside the attempted mutation.
 - **Exception:** A proven naturally idempotent or commutative operation with no
   deduplication key requirement.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —;
+- **Enforcement:** TS partial; LS —; Lint —; Neg —;
   Unit adapter test (catalog); Sem mutation attempts (catalog); Int —;
   CI project-specific; Manual provider contract.
 - **Version:** Project/provider contract, not Effect-version-specific.
@@ -275,8 +277,8 @@ vocabulary, or repository-host branch protection.
   component/request daemon or transferred work with no failure observer.
 - **Exception:** Reviewed process-lifetime daemon with bounded cleanup and sole
   observer.
-- **Enforcement:** TS partial; LS —; ESLint blocks `runFork` in component
-  JSX/TSX; Biome partial; Neg —; Unit linter/controller (catalog); Sem task
+- **Enforcement:** TS partial; LS —; Lint blocks `runFork` in component
+  JSX/TSX; Neg —; Unit linter/controller (catalog); Sem task
   shutdown/failure/publication (catalog); Int —; CI yes; Manual framework
   lifecycle and owner review.
 - **Version:** Effect 3.22.1 ManagedRuntime and FiberSet behavior.
@@ -291,7 +293,7 @@ vocabulary, or repository-host branch protection.
 - **Minimum / prohibited:** Numeric concurrency and bounded storage / `unbounded`
   or omitted limits without a proven finite producer/resource bound.
 - **Exception:** Record the finite bound and resource analysis at the decision.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit limit decode;
+- **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit limit decode;
   Sem maximum-concurrency/order/sibling tests; Int —; CI yes; Manual capacity
   and overload review.
 - **Version:** Effect 3.22.1 collection semantics.
@@ -308,9 +310,9 @@ vocabulary, or repository-host branch protection.
   obligation.
 - **Exception:** A wider owner with an explicit lifecycle and count/finalizer
   tests.
-- **Enforcement:** TS partial; LS blocking for common Scope leak; ESLint —; Biome
-  —; Neg diagnostic fixture; Unit releases (catalog); Sem
-  success/failure/interruption (catalog); Int host resource (catalog); CI yes; Manual lifetime review.
+- **Enforcement:** TS partial; LS blocking for common Scope leak; Lint —; Neg
+  diagnostic fixture; Unit releases (catalog); Sem success/failure/interruption
+  (catalog); Int host resource (catalog); CI yes; Manual lifetime review.
 - **Version:** Effect 3.22.1 finalizer ordering and Cause behavior.
 
 ## EFF-019 — Shutdown policy for blocking close
@@ -329,7 +331,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** A reviewed zero-wait release is allowed only when unfinished
   cleanup is safe, waiting can be unbounded, and rejection is still observed
   without replacing the primary Exit.
-- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit close policy (catalog);
+- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit close policy (catalog);
   Sem slow/failing finalizer plus rejected/stalled body cancellation (catalog);
   Int process shutdown (catalog); CI yes; Manual criticality review.
 - **Version:** Effect 3.22.1 timeout/finalizer semantics.
@@ -346,9 +348,9 @@ vocabulary, or repository-host branch protection.
   `DurationInput` in policy.
 - **Exception:** Trusted internal values; sync/Either forms outside Effect when
   their throw/error contract is explicit and tested.
-- **Enforcement:** TS blocking; LS blocking in workflows; ESLint partial; Biome
-  partial; Neg diagnostic fixture; Unit ParseError/policy/encoding; Sem boundary
-  tests; Int —; CI yes; Manual schema-domain review.
+- **Enforcement:** TS blocking; LS blocking in workflows; Lint partial; Neg
+  diagnostic fixture; Unit ParseError/policy/encoding; Sem boundary tests; Int —;
+  CI yes; Manual schema-domain review.
 - **Version:** Effect Schema 3.22.1, LS 0.87.2.
 
 ## EFF-021 — Secret containment
@@ -362,7 +364,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Narrow non-Effect bootstrap/tooling adapter with no observable
   secret copy.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
-  ESLint partial; Biome partial; Neg diagnostic fixture; Unit redaction; Sem
+  Lint partial; Neg diagnostic fixture; Unit redaction; Sem
   captured diagnostics (catalog); Int —; CI secret scan; Manual provider adapter review.
 - **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.2.
 
@@ -382,8 +384,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Expected domain outcomes may intentionally be unlogged; the
   outer runtime owns defects and interruption. A best-effort cleanup observer
   may omit the raw error and receive only an allowlisted diagnostic.
-- **Enforcement:** TS exhaustive switch; LS partial; ESLint switch check; Biome
-  partial; Neg HTTP fixture; Unit status/projector; Sem
+- **Enforcement:** TS exhaustive switch; LS partial; Lint switch check; Neg HTTP fixture; Unit status/projector; Sem
   log-count/interruption/cleanup observation (catalog); Int —; CI yes; Manual server
   boundary severity/vocabulary.
 - **Version:** Effect 3.22.1, TS 6.0.3; HTTP vocabulary is application-specific.
@@ -398,7 +399,7 @@ vocabulary, or repository-host branch protection.
 - **Minimum / prohibited:** Assert the protected contract and unsafe sentinels /
   only checking success/failure shape.
 - **Exception:** None for an advertised behavior.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit review;
+- **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit review;
   Sem required; Int required where host behavior matters; CI runs tests; Manual
   assertion-quality review.
 - **Version:** Test-quality rule; exact runtime claims use pinned versions.
@@ -414,7 +415,7 @@ vocabulary, or repository-host branch protection.
   adjustment or wall-clock delay.
 - **Exception:** A bounded isolated subprocess test whose subject is OS process
   signaling or real host timing.
-- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit —; Sem test pattern;
+- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit —; Sem test pattern;
   Int subprocess exception; CI yes; Manual readiness review.
 - **Version:** Effect 3.22.1 TestClock.
 
@@ -431,7 +432,7 @@ vocabulary, or repository-host branch protection.
   passed to fetch or implicit stream ownership.
 - **Exception:** Explicit trusted finite source with its bound recorded; DNS/IP
   checks may live in a production network adapter.
-- **Enforcement:** TS partial; LS —; ESLint —; Biome —; Neg —; Unit Schema/limits;
+- **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit Schema/limits;
   Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
   production resolver/connect-time SSRF review.
 - **Version:** Bun 1.4.0 Web APIs and Effect 3.22.1 adapters.
@@ -447,7 +448,7 @@ vocabulary, or repository-host branch protection.
   main / bare `runPromise` or duplicate runtime error reporters.
 - **Exception:** Short one-shot CLI where OS signal integration is irrelevant,
   using another explicit scoped runtime edge.
-- **Enforcement:** TS partial; LS —; ESLint partial; Biome partial; Neg —; Unit —;
+- **Enforcement:** TS partial; LS —; Lint partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
 - **Version:** `@effect/platform-bun` 0.91.2 with Effect 3.22.1, Bun 1.4.0.
 
@@ -462,9 +463,9 @@ vocabulary, or repository-host branch protection.
   or file disable by convenience.
 - **Exception:** Generated/fixture overlay with an explicit owner; unused
   suppressions remain blocking.
-- **Enforcement:** TS —; LS blocking for stale next-line suppression; ESLint —;
-  Biome —; Neg exact diagnostic fixture; Unit harness; Sem —; Int —; CI yes;
-  Manual reason/quick-fix review.
+- **Enforcement:** TS —; LS blocking for stale next-line suppression; Lint —;
+  Neg exact diagnostic fixture; Unit harness; Sem —; Int —; CI yes; Manual
+  reason/quick-fix review.
 - **Version:** LS 0.87.2; re-audit all names, severities, exits, and fixes on upgrade.
 
 ## EFF-028 — Exact Effect v3 dependency evidence
@@ -481,7 +482,7 @@ vocabulary, or repository-host branch protection.
   unpinned generation or branch, or an unrelated lock refresh.
 - **Exception:** A separately scoped upgrade proposal updates the inventory,
   probes, diagnostics, locks, migration notes, and complete gate together.
-- **Enforcement:** TS partial; LS exact dependency; ESLint —; Biome —; Neg exact
+- **Enforcement:** TS partial; LS exact dependency; Lint —; Neg exact
   fixture; Unit version probes; Sem exact-version suite; Int —; CI frozen install
   and lock/drift checks; Manual source hierarchy review.
 - **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.2, LS 0.87.2,
@@ -504,7 +505,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Another CI provider may express the same event, locking, and
   required-check contract; unavailable audits follow an explicit documented
   availability policy rather than silently passing.
-- **Enforcement:** TS —; LS —; ESLint —; Biome —; Neg —; Unit workflow parser;
+- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit workflow parser;
   Sem event/command contract; Int hosted run; CI self-executes; Manual branch
   protection and required-status configuration.
 - **Version:** Workflows pin checkout v7.0.1, mise-action v4.2.4, and the locally
@@ -526,9 +527,8 @@ vocabulary, or repository-host branch protection.
   object-literal or non-null assertions.
 - **Exception:** A per-site lint suppression whose reason names the validation
   that earns the cast and why a Schema decode (EFF-020) does not fit.
-- **Enforcement:** TS blocking for exhaustion; LS —; ESLint blocking for
-  unsafe/object-literal/non-null assertions and switch exhaustiveness; Biome
-  partial; Neg exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual
-  modeling review.
-- **Version:** TS 6.0.3, typescript-eslint 8.67.0; the modeling rule itself is
-  not version-specific.
+- **Enforcement:** TS blocking for exhaustion; LS —; Lint blocking for
+  unsafe/object-literal/non-null assertions and switch exhaustiveness; Neg
+  exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual modeling review.
+- **Version:** TS 6.0.3, Oxlint 1.80.0, oxlint-tsgolint 7.0.2001,
+  typescript-eslint 8.67.0; the modeling rule itself is not version-specific.

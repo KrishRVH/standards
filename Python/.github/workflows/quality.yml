@@ -2,7 +2,7 @@ name: Quality
 
 # py:mutants deletes mutants/ before every mandatory sweep, so caching that
 # directory does not accelerate this gate. Large projects may add the explicit
-# py:mutants:incremental task as earlier, optional feedback, but it never
+# py:mutants:incremental task as an earlier optional check, but it never
 # substitutes for the required cold sweep in standards:check.
 on:
   pull_request:

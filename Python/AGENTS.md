@@ -19,7 +19,7 @@ a diagnostic an agent can ignore does not exist. The optional deep lane
 (`py:deep`) is the one sanctioned exception: opt-in analyzers whose findings
 gate only when the lane runs.
 
-Exceptions are per-site, reasoned, and self-expiring:
+Exceptions are per-site and reasoned. The accepted forms are:
 
 - Type suppressions are `# pyright: ignore[rule] -- reason`; basedpyright
   rejects an ignore without a rule name and fails the build when the ignore

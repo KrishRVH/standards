@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error",
+		"suspicious": "error"
+	},
+	"options": {
+		"denyWarnings": true
+	},
+	"env": {
+		"builtin": true,
+		"es2024": true
+	},
+	"rules": {
+		"no-duplicate-imports": "error"
+	}
+}

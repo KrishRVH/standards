@@ -327,7 +327,7 @@ Broad wildcard families are disabled. Under clang-tidy 22.1.8 they resolve to
 296 checks:
 102 `bugprone`, 41 `cert`, 128 analyzer, 19 `performance`, five `portability`,
 and one readability check. Many were C++, Objective-C, or platform-specific.
-Hard checks are now explicit and limited to top-level checks with seeded
+Hard checks are explicit and limited to top-level checks with seeded
 evidence. The additional analyzer-core names in the 25-check resolution are
 dependencies of those top-level path checks, not independent compliance
 claims. Plausible but unseeded bugprone and platform-API findings run in a

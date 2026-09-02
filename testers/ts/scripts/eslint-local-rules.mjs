@@ -18,6 +18,10 @@ const reflectMutationMethods = new Set([
 ]);
 const timerMethods = new Set(['setImmediate', 'setInterval', 'setTimeout']);
 
+function exportedName(node) {
+  return node.type === 'Identifier' ? node.name : String(node.value);
+}
+
 function unwrapExpression(node) {
   let current = node;
   while (
@@ -46,6 +50,15 @@ function variableFor(identifier, sourceCode) {
   return undefined;
 }
 
+function isUnboundIdentifier(node, name, sourceCode) {
+  if (node.type !== 'Identifier' || node.name !== name) {
+    return false;
+  }
+
+  const variable = variableFor(node, sourceCode);
+  return variable === undefined || variable.defs.length === 0;
+}
+
 function immutableBinding(identifier, sourceCode) {
   const variable = variableFor(identifier, sourceCode);
   if (variable === undefined || variable.defs.length !== 1) {
@@ -65,7 +78,6 @@ function directInitializer(identifier, sourceCode, seenVariables) {
   if (
     binding === undefined ||
     binding.definition.node.id.type !== 'Identifier' ||
-    binding.variable !== variableFor(identifier, sourceCode) ||
     seenVariables.has(binding.variable)
   ) {
     return undefined;
@@ -133,8 +145,7 @@ function isIntrinsic(node, name, sourceCode, seenVariables = new Set()) {
     return false;
   }
 
-  const variable = variableFor(expression, sourceCode);
-  if (expression.name === name && (variable === undefined || variable.defs.length === 0)) {
+  if (isUnboundIdentifier(expression, name, sourceCode)) {
     return true;
   }
 
@@ -421,10 +432,155 @@ const noAmbientRuntime = {
   },
 };
 
+const noDefaultExport = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: {
+      defaultExport: 'Use a named export so imports and refactors keep one stable symbol name.',
+    },
+  },
+  create(context) {
+    const report = (node) => context.report({ node, messageId: 'defaultExport' });
+
+    return {
+      ExportAllDeclaration(node) {
+        if (node.exported !== null && exportedName(node.exported) === 'default') {
+          report(node);
+        }
+      },
+      ExportDefaultDeclaration: report,
+      ExportNamedDeclaration(node) {
+        if (node.specifiers.some((specifier) => exportedName(specifier.exported) === 'default')) {
+          report(node);
+        }
+      },
+    };
+  },
+};
+
+const noModuleMutableBinding = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: {
+      module:
+        'Module-scope mutable binding is ambient shared state. Put the value on the owning service or root model, or use Ref inside Effect.',
+      exported:
+        'Exported mutable binding is a global mutable singleton. Export a constructor or provide the value as a layer instead.',
+    },
+  },
+  create(context) {
+    return {
+      VariableDeclaration(node) {
+        if (node.kind === 'const') {
+          return;
+        }
+
+        if (node.parent.type === 'Program') {
+          context.report({ node, messageId: 'module' });
+        } else if (node.parent.type === 'ExportNamedDeclaration' && node.parent.parent.type === 'Program') {
+          context.report({ node, messageId: 'exported' });
+        }
+      },
+    };
+  },
+};
+
+const noTypeScriptEmitSyntax = {
+  meta: {
+    type: 'problem',
+    schema: [
+      {
+        type: 'object',
+        properties: { allowNamespaces: { type: 'boolean' } },
+        additionalProperties: false,
+      },
+    ],
+    messages: {
+      enum: 'Do not use TypeScript enums. Use as const objects plus union types.',
+      exportAssignment: 'Do not use export =. Use ES exports.',
+      importEquals: 'Do not use import =. Use standard ES imports.',
+      namespace:
+        'Do not use TypeScript namespaces in application or test code. Put ambient declarations in *.d.ts files and use ES modules for runtime namespacing.',
+      parameterProperty: 'Do not use parameter properties. Declare fields explicitly.',
+    },
+  },
+  create(context) {
+    const allowNamespaces = context.options[0]?.allowNamespaces === true;
+    const report = (node, messageId) => context.report({ node, messageId });
+
+    return {
+      TSEnumDeclaration: (node) => report(node, 'enum'),
+      TSExportAssignment: (node) => report(node, 'exportAssignment'),
+      TSImportEqualsDeclaration: (node) => report(node, 'importEquals'),
+      TSModuleDeclaration(node) {
+        if (!allowNamespaces) {
+          report(node, 'namespace');
+        }
+      },
+      TSParameterProperty: (node) => report(node, 'parameterProperty'),
+    };
+  },
+};
+
+const esmOnly = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: { commonjs: 'Do not use CommonJS module syntax. Use ES imports and exports.' },
+  },
+  create(context) {
+    const { sourceCode } = context;
+    const report = (node) => context.report({ node, messageId: 'commonjs' });
+
+    return {
+      CallExpression(node) {
+        if (isUnboundIdentifier(node.callee, 'require', sourceCode)) {
+          report(node);
+        }
+      },
+      MemberExpression(node) {
+        if (
+          isUnboundIdentifier(node.object, 'exports', sourceCode) ||
+          (isUnboundIdentifier(node.object, 'module', sourceCode) && memberName(node, sourceCode) === 'exports')
+        ) {
+          report(node);
+        }
+      },
+    };
+  },
+};
+
+const typeScriptSourceOnly = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: {
+      source: 'First-party application source must use .ts, .mts, .cts, or .tsx so the strict compiler gate owns it.',
+    },
+  },
+  create(context) {
+    return {
+      Program(node) {
+        context.report({ node, messageId: 'source' });
+      },
+    };
+  },
+};
+
 export const standardsPlugin = {
   meta: { name: 'standards-local', version: '1.0.0' },
   rules: {
+    'esm-only': esmOnly,
     'no-ambient-runtime': noAmbientRuntime,
+    'no-default-export': noDefaultExport,
     'no-global-mutation': noGlobalMutation,
+    'no-module-mutable-binding': noModuleMutableBinding,
+    'no-typescript-emit-syntax': noTypeScriptEmitSyntax,
+    'typescript-source-only': typeScriptSourceOnly,
   },
 };
+
+// eslint-disable-next-line standards/no-default-export -- Oxlint loads local plugins through a default export.
+export default standardsPlugin;

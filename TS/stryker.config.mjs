@@ -43,7 +43,7 @@ const testFiles = globSync('tests/**/*.test.{cts,mts,ts,tsx}')
   .filter((file) => sourceImport.test(readFileSync(file, 'utf8')))
   .sort();
 
-// eslint-disable-next-line no-restricted-exports -- Stryker loads its config through a default export by contract.
+// eslint-disable-next-line standards/no-default-export -- Stryker loads its config through a default export by contract.
 export default {
   testRunner: 'bun',
   plugins: ['@hughescr/stryker-bun-runner'],

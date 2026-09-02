@@ -37,10 +37,15 @@ async function sourceFiles(target) {
 function directiveViolation(comment) {
   const isLineComment = comment.startsWith('//');
   const body = (isLineComment ? comment.slice(2) : comment.slice(2, -2)).trim();
+  const isOxlintDirective = /^oxlint-(?:disable(?:-line|-next-line)?|enable)(?=\s|$)/u.test(body);
   const isEslintDirective = isLineComment
     ? /^eslint-disable-(?:line|next-line)(?=\s|$)/u.test(body)
     : /^(?:eslint-(?:disable(?:-line|-next-line)?|enable|env)|exported|globals?)(?=\s|$)/u.test(body) ||
       /^eslint\s+[^\s,:]+(?:\s*,\s*[^\s,:]+)*\s*:/u.test(body);
+
+  if (isOxlintDirective) {
+    return 'use the shared // eslint-disable-next-line <rule>[, <rule>] -- <reason> form';
+  }
 
   if (isEslintDirective) {
     const match = isLineComment

@@ -4,8 +4,9 @@ Copy these files into a Bun-backed JavaScript project and replace
 `project-name`, source paths, and test commands with the real project shape.
 
 `package.json` is the executable source of truth for scripts and dependencies.
-The baseline combines Biome formatting and linting with strict TypeScript
-compiler analysis through `checkJs` in `jsconfig.json`. Use JSDoc where
+The baseline combines Oxfmt formatting and Oxlint linting with strict
+TypeScript compiler analysis through `checkJs` in `jsconfig.json`. Knip keeps
+imports inside the declared dependency boundary. Use JSDoc where
 exported boundaries or ambiguous structures need an explicit contract; rely on
 inference for implementation details. Do not add a parallel TypeScript source
 tree merely to make the checker happy.
@@ -19,9 +20,8 @@ explicit with `"type": "module"`. Use runtime-valid relative imports or
 Bun and disables automatic peer installation; declare every peer the project
 actually imports.
 
-Copy the shared `.gitignore` into the project before running Biome. The
-configuration deliberately reads the VCS ignore file and fails when that
-project boundary is missing.
+Copy the shared `.gitignore` into the project so generated files and local
+artifacts stay outside the standards workflow.
 
 The standards workflow is:
 
@@ -34,12 +34,13 @@ mise run js:lint
 mise run js:type
 mise run js:test
 mise run js:audit
+mise run js:knip
 mise run js:standards:check
 ```
 
-The default `standards` package script applies Biome's safe formatter, linter,
-and import-organizer fixes. `standards:check` runs Biome, `tsc` against
-`jsconfig.json`, Bun tests, and `bun audit --audit-level=low`.
+The default `standards` package script applies Oxlint fixes, then Oxfmt and its
+import organization. `standards:check` runs Oxlint, Oxfmt, `tsc` against
+`jsconfig.json`, Bun tests, `bun audit --audit-level=low`, and Knip.
 
 This profile is Bun-first. Do not add pnpm, Yarn, or npm fallback branches to
 the shared task file. Generate and commit `bun.lock` before relying on

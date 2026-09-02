@@ -54,6 +54,11 @@ description = "Audit JavaScript dependencies"
 depends = ["js:install"]
 run = "bun run audit"
 
+[tasks."js:knip"]
+description = "Check the declared JavaScript dependency boundary"
+depends = ["js:install"]
+run = "bun run knip"
+
 [tasks."js:standards"]
 description = "Run the JavaScript standards workflow with autofixes"
 depends = ["js:install"]

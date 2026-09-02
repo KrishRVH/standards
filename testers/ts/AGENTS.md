@@ -192,18 +192,18 @@ Use Schema at untrusted and protocol boundaries, not for every internal type.
 ## Hands-off development doctrine
 
 This profile assumes the agent is the author and the first adversary; humans
-audit reports rather than diffs. The machine owns every checkable rule —
-`eslint . --max-warnings 0` promotes every warning to a failure, and the gate
-adds type checks, Effect diagnostics, the dependency audit, knip, and
-mutation testing. A diagnostic an agent can ignore does not exist.
+audit reports rather than diffs. The machine owns every checkable rule:
+`oxlint .` rejects every warning, and the gate adds type checks, Effect
+diagnostics, the dependency audit, knip, and mutation testing. A diagnostic an
+agent can ignore does not exist.
 
 Exceptions are per-site, reasoned, and self-expiring:
 
-- ESLint: `// eslint-disable-next-line <rule> -- <reason>` is the only form.
-  Disables without rule names, without reasons, or in block form fail the
-  build, and unused directives fail via `reportUnusedDisableDirectives`. The
-  pre-lint token scanner is outside ESLint, so the exception rules cannot
-  suppress themselves.
+- Lint: `// eslint-disable-next-line <rule> -- <reason>` is the only form.
+  Oxlint honors this shared syntax. Disables without rule names, without
+  reasons, in block form, or with native `oxlint-*` directives fail the build;
+  unused directives fail too. The pre-lint token scanner is outside either
+  linter, so the exception rules cannot suppress themselves.
 - TypeScript: `// @ts-expect-error -- <reason>`; the compiler fails the
   build when the suppressed error stops occurring. `@ts-ignore` and
   `@ts-nocheck` are banned.

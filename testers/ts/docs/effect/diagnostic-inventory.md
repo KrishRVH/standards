@@ -7,6 +7,9 @@ editor behavior, standalone output, and every fix before changing that version.
 The pinned package source map is the evidence for diagnostic name, supported
 Effect generation, and `fixable` metadata. The repository's expected-
 diagnostic harness is the executable CI contract for blocking diagnostics.
+The table below catalogs explicitly configured rules. The harness also pins
+error diagnostics that version 0.87.2 enables by default; their emitted names
+and locations live in `scripts/check-effect-diagnostics.mjs`.
 
 ## Behavior key
 

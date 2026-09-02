@@ -3,7 +3,7 @@
   "entry": ["src/main.{cts,mts,ts,tsx}", "scripts/*.mjs", "tests/**/*.test.ts"],
   "includeEntryExports": true,
   "project": ["src/**/*.{cts,mts,ts,tsx}", "scripts/**/*.mjs", "tests/**/*.ts"],
-  // Deliberate negative fixtures (Biome exclusion checks), not dead files.
+  // Deliberate runtime and tooling fixtures, not dead files.
   "ignore": ["tests/fixtures/**"],
   // Knip infers this package name from Stryker's `testRunner: "bun"`; the
   // actual runner plugin, @hughescr/stryker-bun-runner, is declared and used.

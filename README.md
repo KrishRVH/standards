@@ -134,9 +134,9 @@ Copy each language or tooling folder that the project needs:
 - `Haskell/` — a Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
   errors in the local gate, named Haddock/source-distribution tasks, and
   optional freeze support.
-- `JS/` — Bun-backed JavaScript with first-class Biome formatting and linting,
-  strict compiler analysis through `checkJs` in `jsconfig.json`, dependency
-  auditing, and Bun tests.
+- `JS/` — Bun-backed JavaScript with Oxfmt formatting, Oxlint linting, strict
+  compiler analysis through `checkJs` in `jsconfig.json`, a Knip dependency
+  boundary, dependency auditing, and Bun tests.
 - `Kotlin/` — a Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
 - `Lua/` — a Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
@@ -175,9 +175,10 @@ Copy each language or tooling folder that the project needs:
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks treated as failures, and tiny executable tests.
 - `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
-  Effect Schema boundaries and diagnostics, semantic and negative tests,
-  mutation testing and knip gates, automatic CI, ESLint plus Prettier as
-  Option A, and a separately tested pinned Biome configuration as Option B.
+  typed Oxlint plus Oxfmt as the primary workflow, Effect Schema boundaries
+  and diagnostics, semantic and negative tests, mutation testing and knip
+  gates, automatic CI, and a separately validated ESLint plus Prettier
+  secondary workflow.
   Shares the Rust profile's agent-driven doctrine and the
   [agent-swarm research record](docs/research/agent-swarms.md).
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
@@ -291,8 +292,8 @@ container. The task definitions remain in mise.
 The repository root requires mise `2026.7.0` or newer for its explicit
 per-project lockfile policy in the monorepo. This is a minimum version, not a
 pin on the mise executable. The root `.config/mise/mise.lock` pins actionlint,
-the Biome alternative verifier, gitleaks, Python, and the root Markdown and
-Shell tools. `bun.lock` pins the Markdown JavaScript dependencies.
+gitleaks, Python, and the root Markdown and Shell tools. `bun.lock` pins the
+Markdown JavaScript dependencies.
 
 Before you hand off a change, check each surface that changed. For a changed
 profile, read its `tester` and `task_prefix` from `standards.manifest.toml` and
@@ -312,9 +313,9 @@ root check. For example, use `mise run md:standards:check` for Markdown.
 
 Use `mise run standards:check` for release or CI validation, when explicitly
 requested, and after changes to shared or aggregate infrastructure that can
-affect unrelated fixtures. The aggregate gate scans for secrets, checks the
-optional TypeScript Biome configuration, drift, Markdown, and Shell, and runs
-every tester fixture.
+affect unrelated fixtures. The aggregate gate scans for secrets, validates the
+TypeScript ESLint and Prettier secondary workflow, checks drift, Markdown, and
+Shell, and runs every tester fixture.
 
 The root mise configuration discovers fixture tasks through the explicit
 `testers/*` monorepo configuration roots. It schedules two top-level fixture

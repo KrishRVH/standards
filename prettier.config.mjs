@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-exports
 export default {
   embeddedLanguageFormatting: 'auto',
   endOfLine: 'lf',

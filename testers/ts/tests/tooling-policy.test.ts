@@ -111,6 +111,11 @@ const directiveCases: readonly {
   },
   {
     accepted: false,
+    name: 'native Oxlint exceptions',
+    source: '// oxlint-disable-next-line no-console -- bypass the shared exception protocol.\n',
+  },
+  {
+    accepted: false,
     name: 'block ESLint exceptions',
     source: '/* eslint-disable-next-line no-console -- too broad */\n',
   },
@@ -381,12 +386,11 @@ test('the mutation report gate distinguishes fresh full evidence from compatible
   }
 });
 
-test('the install age gate has only the countersigned Bun types exception', async () => {
+test('the install age gate has no expired exceptions', async () => {
   const config = await Bun.file(new URL('../bunfig.toml', import.meta.url)).text();
 
   expect(config).toContain('minimumReleaseAge = 259200');
-  expect(config).toContain('minimumReleaseAgeExcludes = ["@types/bun", "bun-types"]');
-  expect(config.match(/minimumReleaseAgeExcludes/gu)).toHaveLength(1);
+  expect(config).not.toContain('minimumReleaseAgeExcludes');
 });
 
 test('the mutation task graph orders its preflight and pins the intended Stryker config', async () => {

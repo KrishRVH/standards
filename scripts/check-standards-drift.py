@@ -456,7 +456,7 @@ def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
         standards_check = tasks.get("standards:check")
         expected_standards_check_depends = [
             "secrets",
-            "standards:biome:check",
+            "standards:eslint-prettier:check",
             "standards:drift",
             "md:standards:check",
             "shell:standards:check",

@@ -153,13 +153,16 @@ tester = "testers/js"
 task_prefix = "js"
 task_fragment = "20-js.toml"
 mirror = [
+  ".oxfmtrc.json",
+  ".oxlintrc.json",
   "README.md",
-  "biome.jsonc",
   "bunfig.toml",
   "jsconfig.json",
+  "knip.jsonc",
   "package.json",
   "src/math.js",
   "tests/math.test.js",
+  "tests/tooling-contract.test.js",
 ]
 required_tester_files = [".gitignore", "bun.lock"]
 
@@ -275,10 +278,11 @@ mirror = [
   ".github/CODEOWNERS",
   ".github/pull_request_template.md",
   ".github/workflows/quality.yml",
+  ".oxfmtrc.json",
+  ".oxlintrc.json",
   ".prettierignore",
   "AGENTS.md",
   "README.md",
-  "biome.jsonc",
   "bun.lock",
   "bunfig.toml",
   "docs/effect/adoption-and-functions.md",
@@ -346,8 +350,6 @@ mirror = [
   "stryker.config.mjs",
   "tests/endpoint-checker.test.ts",
   "tests/endpoint-properties.test.ts",
-  "tests/fixtures/biome/generated-client.generated.ts",
-  "tests/fixtures/biome/public-api.d.ts",
   "tests/support/test-clock.ts",
   "tsconfig.json",
   "type-tests/nonexhaustive-variant.ts",
@@ -376,6 +378,7 @@ required_tester_files = [
   "tests/support/client-api-boundary.ts",
   "tests/support/failure-observation.ts",
   "tests/support/operation-controller.ts",
+  "tests/support/oxlint-probe.ts",
   "tests/support/runtime-lease.ts",
   "tests/support/workflow-contract.ts",
   "tests/tooling-policy.test.ts",

@@ -2,6 +2,13 @@ import { expect, test } from 'bun:test';
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Ref, TestClock, TestContext } from 'effect';
 
 import {
+  type CheckedEndpointTarget,
+  EndpointProbe,
+  checkEndpoint,
+  checkEndpoints,
+  makeEndpointProbe,
+} from '../src/endpoint-checker.js';
+import {
   type EndpointHealthy,
   EndpointNotAllowed,
   EndpointRejected,
@@ -13,13 +20,6 @@ import {
   projectCheckFailure,
   projectDefectDiagnostic,
 } from '../src/endpoint-contracts.js';
-import {
-  type CheckedEndpointTarget,
-  EndpointProbe,
-  checkEndpoint,
-  checkEndpoints,
-  makeEndpointProbe,
-} from '../src/endpoint-checker.js';
 import { decodeCheckPolicy, defaultCheckPolicy } from '../src/endpoint-policy.js';
 import { waitForScheduledSleep } from './support/test-clock.js';
 

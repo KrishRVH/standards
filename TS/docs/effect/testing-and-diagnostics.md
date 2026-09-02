@@ -50,11 +50,11 @@ Do not put intentionally invalid HTTP/type examples in the normal compilation
 unit. Use an isolated negative TypeScript project and `@ts-expect-error` or a
 diagnostic harness so adding a residual route error fails until projected.
 
-For each LS rule, retain the pinned severity, exit behavior, editor/CI match,
-quick-fix meaning, and false-positive risk. Do not bulk-apply quick fixes. A
-narrow suppression names safety reason, owner/version, and removal condition;
-the harness rejects stale suppressions and diagnostic-name drift.
-The exact per-rule record lives in the
+For each explicitly configured LS rule, retain the pinned severity, exit
+behavior, editor/CI match, quick-fix meaning, and false-positive risk. Do not
+bulk-apply quick fixes. A narrow suppression names safety reason, owner/version,
+and removal condition; the harness rejects stale suppressions and
+diagnostic-name drift. The exact per-configured-rule record lives in the
 [0.87.2 diagnostic inventory](diagnostic-inventory.md).
 
 ## CI and documentation contracts
