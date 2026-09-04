@@ -15,7 +15,7 @@ internal static class StandardsVerifier
     private const string SlowCommentMessageEnd = "took too long to parse and was ignored.";
     private const string MissingIgnoreReason = "Ignored via code comment";
     private static readonly Regex StrykerDirectivePattern = new(
-        @"(?im)(?://|/\*)\s*Stryker\s+(?:disable|restore)\b[^\r\n]*",
+        @"(?im)(?://|/\*)\s*Stryker\s*(?:disable|restore)[^\r\n]*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant,
         TimeSpan.FromMilliseconds(200));
     private static readonly Regex AllowedStrykerDirective = new(
@@ -562,6 +562,17 @@ internal static class StandardsVerifier
         VerifyStrykerRun(survived, "ordinary output", true);
         VerifyStrykerRun(reasonedIgnored, "[03:00:00 ERR] unrelated tool error text", true);
         ExpectFailure(() => VerifyStrykerRun(rangedDirective, "ordinary output", true));
+        VerifyStrykerDirectivePolicy("Example.cs", "// Stryker  disable once Arithmetic: equivalent boundary");
+        foreach (string compactDirective in new[]
+        {
+            "// Stryker disableArithmetic: hidden range",
+            "// Strykerdisable Arithmetic: hidden range",
+            "// Stryker restoreArithmetic",
+            "/* Strykerdisable all: hidden range */",
+        })
+        {
+            ExpectFailure(() => VerifyStrykerDirectivePolicy("Example.cs", compactDirective));
+        }
         VerifyStrykerRun(empty, "ordinary output", false);
         VerifyNoContainingGitRef(
             mergeBase,

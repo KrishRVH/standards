@@ -105,7 +105,8 @@ const checkMarkdownFile = async (file) => {
   if (file.endsWith('.mdx')) {
     await compile(source, {
       remarkPlugins: [remarkFrontmatter, remarkGfm],
-      rehypePlugins: [[rehypeShiki, { theme: 'github-dark' }]],
+      // Load only encountered grammars; unknown fence labels remain plain text.
+      rehypePlugins: [[rehypeShiki, { theme: 'github-dark', langs: [], lazy: true, fallbackLanguage: 'text' }]],
     });
   }
 };

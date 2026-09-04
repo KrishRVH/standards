@@ -103,6 +103,43 @@ test('replaceWith waits for the previous finalizer before starting replacement w
   await controller.interruptAndWait();
 });
 
+test('owner interruption revokes a replacement waiting for the old finalizer', async () => {
+  const acquired = Promise.withResolvers<undefined>();
+  const finalizing = Promise.withResolvers<undefined>();
+  const release = Promise.withResolvers<undefined>();
+  let replacementStarted = false;
+  const published: string[] = [];
+  const { controller, failures } = makeController();
+  controller.start(
+    Effect.acquireRelease(
+      Effect.sync(() => acquired.resolve(undefined)),
+      () =>
+        Effect.promise(() => {
+          finalizing.resolve(undefined);
+          return release.promise;
+        }),
+    ).pipe(Effect.zipRight(Effect.never), Effect.scoped),
+    () => undefined,
+  );
+  await acquired.promise;
+  const replacement = controller.replaceWith(
+    Effect.sync(() => {
+      replacementStarted = true;
+      return 'stale replacement';
+    }),
+    (value) => published.push(value),
+  );
+  await finalizing.promise;
+  controller.interrupt();
+  release.resolve(undefined);
+  await replacement;
+  await controller.interruptAndWait();
+
+  expect(replacementStarted).toBe(false);
+  expect(published).toEqual([]);
+  expect(failures).toEqual([]);
+});
+
 test('a nearly completed old operation cannot publish after replacement revokes it', async () => {
   const oldStarted = Promise.withResolvers<undefined>();
   const oldCompletion = Promise.withResolvers<string>();
@@ -136,6 +173,44 @@ test('a nearly completed old operation cannot publish after replacement revokes 
   await controller.interruptAndWait();
 
   expect(published).not.toContain('old-result');
+});
+
+test('only the latest queued replacement starts and awaited interruption revokes it', async () => {
+  for (const cancel of [false, true]) {
+    const started = Promise.withResolvers<undefined>();
+    const finalizing = Promise.withResolvers<undefined>();
+    const release = Promise.withResolvers<undefined>();
+    const replacements: string[] = [];
+    const { controller, failures } = makeController();
+    controller.start(
+      Effect.acquireRelease(
+        Effect.sync(() => started.resolve(undefined)),
+        () =>
+          Effect.promise(() => {
+            finalizing.resolve(undefined);
+            return release.promise;
+          }),
+      ).pipe(Effect.zipRight(Effect.never), Effect.scoped),
+      () => undefined,
+    );
+    await started.promise;
+    const first = controller.replaceWith(
+      Effect.sync(() => replacements.push('first')),
+      () => undefined,
+    );
+    await finalizing.promise;
+    const latest = controller.replaceWith(
+      Effect.sync(() => replacements.push('latest')),
+      () => undefined,
+    );
+    const interrupted = cancel ? controller.interruptAndWait() : Promise.resolve();
+    release.resolve(undefined);
+    await Promise.all([first, latest, interrupted]);
+    await controller.interruptAndWait();
+
+    expect(replacements).toEqual(cancel ? [] : ['latest']);
+    expect(failures).toEqual([]);
+  }
 });
 
 test('the operation owner observes expected failures and defects but not interruption', async () => {

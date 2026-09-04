@@ -111,6 +111,31 @@ const directiveCases: readonly {
   },
   {
     accepted: false,
+    name: 'line comment with a ranged ESLint disable',
+    source: '// eslint-disable no-debugger\ndebugger;\n',
+  },
+  {
+    accepted: false,
+    name: 'block disable after template interpolation',
+    source: 'const label = `value ${1}`;\n/* eslint-disable no-debugger */\ndebugger;\n',
+  },
+  {
+    accepted: false,
+    name: 'classification after a backtick regex',
+    source: 'const pattern = /`/;\n// Stryker disable all\n',
+  },
+  {
+    accepted: false,
+    name: 'suppression in a JSX expression after backtick text',
+    source: 'const element = <p>`{/* eslint-disable no-debugger */}</p>;\n',
+  },
+  {
+    accepted: true,
+    name: 'directive-like template and JSX text',
+    source: 'const template = `value ${1}\n// @ts-ignore`;\nconst element = <p>/* eslint-disable */</p>;\n',
+  },
+  {
+    accepted: false,
     name: 'native Oxlint exceptions',
     source: '// oxlint-disable-next-line no-console -- bypass the shared exception protocol.\n',
   },
@@ -156,11 +181,15 @@ test('the out-of-band directive policy accepts only narrow reasoned exceptions',
 
   try {
     for (const directiveCase of directiveCases) {
-      const sourcePath = path.join(directory, `${directiveCase.name.replaceAll(' ', '-')}.ts`);
+      const sourcePath = path.join(directory, `${directiveCase.name.replaceAll(' ', '-')}.tsx`);
       await writeFile(sourcePath, directiveCase.source, 'utf8');
-      const result = await runScript('../scripts/check-directives.mjs', [sourcePath]);
+    }
+    const result = await runScript('../scripts/check-directives.mjs', [directory]);
+    expect(result.code).toBe(1);
 
-      expect(result.code, `${directiveCase.name}: ${result.stderr}`).toBe(directiveCase.accepted ? 0 : 1);
+    for (const directiveCase of directiveCases) {
+      const fileName = `${directiveCase.name.replaceAll(' ', '-')}.tsx:`;
+      expect(result.stderr.includes(fileName), `${directiveCase.name}: ${result.stderr}`).toBe(!directiveCase.accepted);
     }
   } finally {
     await rm(directory, { force: true, recursive: true });
@@ -400,19 +429,19 @@ test('the mutation task graph orders its preflight and pins the intended Stryker
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
-  expect(tasks).toContain('bun = "1.4.0"');
-  expect(tasks).toContain('node = "26.7.0"');
-  expect(packageManifest).toContain('"packageManager": "bun@1.4.0"');
+  expect(tasks).toContain('bun = "1.4.1"');
+  expect(tasks).not.toContain('node = ');
+  expect(packageManifest).toContain('"packageManager": "bun@1.4.1"');
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
   expect(section('ts:preflight')).toContain('depends = ["ts:install"]');
   expect(section('ts:mutants')).toContain('depends = ["ts:preflight"]');
-  expect(section('ts:mutants')).toContain('run = "node scripts/run-stryker.mjs full stryker.config.mjs"');
+  expect(section('ts:mutants')).toContain('run = "bun scripts/run-stryker.mjs full stryker.config.mjs"');
   expect(section('ts:mutants:diff')).toContain('depends = ["ts:preflight"]');
-  expect(section('ts:mutants:diff')).toContain('run = "node scripts/run-stryker.mjs incremental stryker.config.mjs"');
+  expect(section('ts:mutants:diff')).toContain('run = "bun scripts/run-stryker.mjs incremental stryker.config.mjs"');
   expect(section('ts:standards:check')).toContain('depends = ["ts:mutants"]');
   expect(runner).toContain("const lockDirectory = path.join(reportsDirectory, '.stryker-mutation.lock');");
   expect(runner).toContain("const strykerArguments = [strykerCli, 'run', configPath];");
-  expect(runner).toContain("await runNode([checker, mode, 'reports/mutation/mutation.json']);");
+  expect(runner).toContain("await runCommand([checker, mode, 'reports/mutation/mutation.json']);");
   expect(runner).toContain('remove reports/.stryker-mutation.lock manually and rerun');
 });
 

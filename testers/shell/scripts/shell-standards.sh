@@ -7,7 +7,7 @@ readonly -a SHFMT_FLAGS=(-i 2 -ci -sr)
 
 project_files() {
   if command -v git > /dev/null 2>&1 && git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    git ls-files -co --exclude-standard
+    git ls-files -coz --exclude-standard
   else
     find . \
       -type d \( -name .cache -o -name .elixir_ls -o -name .git \
@@ -22,7 +22,9 @@ project_files() {
       -o -name target -o -name vendor -o -name zig-cache \
       -o -name zig-out -o -name zig-pkg \
       -o -path '*/bin/Debug' -o -path '*/bin/Release' \) -prune \
-      -o -type f -print | sed 's#^./##'
+      -o -type f -print0 | while IFS= read -r -d '' file; do
+      printf '%s\0' "${file#./}"
+    done
   fi
 }
 
@@ -86,26 +88,26 @@ reject_shell_symlinks() {
   local file
   local status=0
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     [ -L "${file}" ] || continue
     if is_shell_file "${file}"; then
       echo "${file}: shell source symlinks are not supported." >&2
       status=1
     fi
-  done < <(project_files)
+  done < "${project_file_list}"
 
   return "${status}"
 }
 
 shell_files() {
   local file
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     [ ! -L "${file}" ] || continue
     [ -f "${file}" ] || continue
     if is_shell_file "${file}"; then
-      printf '%s\n' "${file}"
+      printf './%s\0' "${file}"
     fi
-  done < <(project_files)
+  done < "${project_file_list}"
 }
 
 case "${SUBCOMMAND}" in
@@ -115,6 +117,11 @@ case "${SUBCOMMAND}" in
     exit 2
     ;;
 esac
+
+project_file_list="$(mktemp)"
+readonly project_file_list
+trap 'rm -f -- "${project_file_list}"' EXIT
+project_files > "${project_file_list}"
 
 reject_shell_symlinks || exit 1
 
@@ -160,12 +167,12 @@ is_glue_script() {
 
 policy_files() {
   local file
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     [ -f "${file}" ] || continue
     if is_shell_file "${file}" || { is_glue_script "${file}" && [ -x "${file}" ] && ! has_shebang "${file}"; }; then
-      printf '%s\n' "${file}"
+      printf '%s\0' "${file}"
     fi
-  done < <(project_files)
+  done < "${project_file_list}"
 }
 
 run_shfmt() {
@@ -174,7 +181,7 @@ run_shfmt() {
   local count=0
   local file dialect
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     dialect="$(dialect_for "${file}")"
     if [ "${dialect}" = "zsh" ]; then
       continue
@@ -201,7 +208,7 @@ run_shellcheck() {
   local count=0
   local file dialect shell
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     dialect="$(dialect_for "${file}")"
     if [ "${dialect}" = "zsh" ]; then
       continue
@@ -224,7 +231,7 @@ run_syntax() {
   local count=0
   local file dialect
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     dialect="$(dialect_for "${file}")"
     case "${dialect}" in
       bash)
@@ -259,7 +266,7 @@ run_policy() {
   local status=0
   local file
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     is_glue_script "${file}" || continue
 
     if ! has_recognized_shell_shebang "${file}"; then
@@ -276,7 +283,7 @@ run_tests() {
   local count=0
   local file
 
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     case "${file}" in
       *.bats)
         files+=("${file}")

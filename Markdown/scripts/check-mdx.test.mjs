@@ -54,6 +54,15 @@ test('rejects malformed MDX', () => {
   expect(result.stderr).toContain('invalid.mdx');
 });
 
+test('accepts known, unknown, and unlabeled code fences across MDX files', () => {
+  const result = runChecker({
+    'javascript.mdx': '# Example\n\n```js\nconst value = 1;\n```\n',
+    'other.mdx': '# Example\n\n```rust\nfn main() {}\n```\n\n```unknown-language\nexample\n```\n\n```\nplain text\n```\n',
+  });
+
+  expect(result.exitCode).toBe(0);
+});
+
 test('rejects malformed and duplicate frontmatter', () => {
   const malformed = runChecker({ 'malformed.md': '---\ntitle: [broken\n---\n\n# Hello\n' });
   const nonMapping = runChecker({ 'non-mapping.md': '---\n- invalid\n---\n\n# Hello\n' });

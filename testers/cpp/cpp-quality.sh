@@ -70,10 +70,13 @@ note "Tool versions:"
 note "  clang-format: $(clang-format --version)"
 note "  clangd:       $(clangd --version | head -n 1)"
 note "Checking clang-format..."
+file_list="$(mktemp)"
+trap 'rm -f -- "$file_list"' EXIT
+list_files > "$file_list"
 files=()
 while IFS= read -r -d '' f; do
   files+=("$f")
-done < <(list_files)
+done < "$file_list"
 if ((${#files[@]} == 0)); then
   note "No source files found; skipping clang-format."
 else
@@ -82,10 +85,11 @@ fi
 
 note "Running clangd semantic checks..."
 if cdb_dir="$(detect_cdb_dir)"; then
+  list_semantic_files > "$file_list"
   semantic_files=()
   while IFS= read -r -d '' f; do
     semantic_files+=("$f")
-  done < <(list_semantic_files)
+  done < "$file_list"
   if ((${#semantic_files[@]} == 0)); then
     note "No C++ sources or headers found; skipping clangd."
   else

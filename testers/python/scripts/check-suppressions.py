@@ -43,7 +43,7 @@ PRUNED_ROOT_DIRECTORIES = frozenset(
 )
 FLAKE8_CONTROL = re.compile(r"^#\s*flake8\s*:\s*noqa\b", re.IGNORECASE)
 FORMAT_CONTROL = re.compile(r"^#\s*(?:fmt|yapf|autopep8|isort)\s*:", re.IGNORECASE)
-NO_MUTATE = re.compile(r"^#\s*pragma\s*:\s*no\s+mutate\b", re.IGNORECASE)
+NO_MUTATE = re.compile(r"^#\s*pragma\s*:\s*no\s+mutate", re.IGNORECASE)
 NO_MUTATE_VALID = re.compile(
     r"^#\s*pragma\s*:\s*no\s+mutate\s+--\s+(?P<reason>\S.*)$",
     re.IGNORECASE,
@@ -58,7 +58,8 @@ NOSEC_VALID = re.compile(
     r"^#\s*nosec\s+(?P<rules>B\d+(?:\s*,\s*B\d+)*)\s+--\s+(?P<reason>\S.*)$",
     re.IGNORECASE,
 )
-NO_COVER = re.compile(r"^#\s*pragma\s*:\s*no\s+(?:cover|branch)\b", re.IGNORECASE)
+# Detect Coverage's permissive spelling, then require our canonical form.
+NO_COVER = re.compile(r"^#\s*pragma[:\s]?\s*no\s*(?:cover|branch)", re.IGNORECASE)
 NO_COVER_VALID = re.compile(
     r"^#\s*pragma\s*:\s*no\s+(?:cover|branch)\s+--\s+(?P<reason>\S.*)$",
     re.IGNORECASE,
@@ -93,7 +94,7 @@ class PolicyDiscoveryError(Exception):
 
 def has_meaningful_reason(match: re.Match[str]) -> bool:
     """Return whether a matched reason contains an explanatory word or number."""
-    reason = match.group("reason")
+    reason: str = match.group("reason")
     return any(character.isalnum() for character in reason)
 
 
@@ -222,9 +223,21 @@ def file_violations(path: Path) -> list[str]:
         for token in tokens:
             if token.type != tokenize.COMMENT:
                 continue
-            violation = suppression_violation(token.string)
-            if violation is not None:
-                violations.append(f"{path}:{token.start[0]}:{token.start[1] + 1}: {violation}")
+            # mutmut finds the first "no mutate" anywhere in a pragma comment,
+            # including inside another directive's reason.
+            if "# pragma:" in token.string and "no mutate" in token.string:
+                prefix = token.string.partition("no mutate")[0]
+                if re.search(r"# pragma:\s+$", prefix) is None:
+                    violations.append(
+                        f"{path}:{token.start[0]}:{token.start[1] + 1}: "
+                        + "mutation exclusions must be '# pragma: no mutate -- reason'"
+                    )
+            # Ruff, Bandit, and formatters can recognize a directive after
+            # another comment fragment. Validate each suppression separately.
+            for fragment in token.string.split("#")[1:]:
+                violation = suppression_violation(f"#{fragment}".rstrip())
+                if violation is not None:
+                    violations.append(f"{path}:{token.start[0]}:{token.start[1] + 1}: {violation}")
     except (OSError, SyntaxError, tokenize.TokenError) as error:
         violations.append(f"{path}: cannot inspect comments: {error}")
     return violations

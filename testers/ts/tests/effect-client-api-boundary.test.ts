@@ -166,6 +166,68 @@ test('malformed successful JSON is a protocol failure', async () => {
   });
 });
 
+test('timeout and interruption abort response-body work after headers arrive', async () => {
+  for (const status of [200, 503]) {
+    for (const cancel of ['timeout', 'interrupt'] as const) {
+      const reading = Promise.withResolvers<undefined>();
+      let requestSignal: AbortSignal | undefined;
+      let bodyAborted = false;
+      const exit = await Effect.runPromise(
+        Effect.gen(function* () {
+          const fiber = yield* Effect.fork(
+            executeClientRequest({
+              ...defaultOptions,
+              fetch: (signal) => {
+                requestSignal = signal;
+                const body = new ReadableStream<Uint8Array>(
+                  {
+                    start(controller) {
+                      signal.addEventListener(
+                        'abort',
+                        () => {
+                          bodyAborted = true;
+                          controller.error(new DOMException('aborted', 'AbortError'));
+                        },
+                        { once: true },
+                      );
+                    },
+                    pull() {
+                      reading.resolve(undefined);
+                    },
+                  },
+                  { highWaterMark: 0 },
+                );
+                return Promise.resolve(new Response(body, { status }));
+              },
+            }),
+          );
+          yield* Effect.promise(() => reading.promise);
+          if (cancel === 'interrupt') {
+            return yield* Fiber.interrupt(fiber);
+          }
+          yield* waitForScheduledSleep(1_000);
+          yield* TestClock.adjust(Duration.seconds(1));
+          return yield* Fiber.await(fiber);
+        }).pipe(Effect.provide(TestContext.TestContext)),
+      );
+
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit)) {
+        if (cancel === 'interrupt') {
+          expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+        } else {
+          expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual({
+            _tag: 'RequestTimedOut',
+            retryDisposition: 'caller-may-retry',
+          });
+        }
+      }
+      expect(requestSignal?.aborted).toBe(true);
+      expect(bodyAborted).toBe(true);
+    }
+  }
+});
+
 test('a malformed error response is distinct from transport and service availability', async () => {
   const failure = await failureOf(
     executeClientRequest({

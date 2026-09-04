@@ -19,13 +19,10 @@ const routedGuides = [
   '../docs/effect/overlays/published-library.md',
 ] as const;
 
-test('the always-loaded guide remains compact and exposes all decision routes', async () => {
+test('the always-loaded guide remains compact and exposes all boundary routes', async () => {
   const guide = await readRelative('../AGENTS.md');
   const words = guide.match(/\S+/gu) ?? [];
-  const decisions = guide.match(/^## Decision \d+:/gmu) ?? [];
-
-  expect(words.length).toBeLessThanOrEqual(2_500);
-  expect(decisions).toHaveLength(18);
+  expect(words.length).toBeLessThanOrEqual(1_200);
 
   for (const path of routedGuides) {
     const linkedPath = path.slice(3);

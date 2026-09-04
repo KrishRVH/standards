@@ -12,8 +12,8 @@ The tested dependency set is exact:
 | `effect`                   | 3.22.1  |
 | `@effect/language-service` | 0.87.2  |
 | TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.0   |
-| `@types/bun`               | 1.4.0   |
+| Bun                        | 1.4.1   |
+| `@types/bun`               | 1.4.1   |
 | `@effect/platform`         | 0.97.1  |
 | `@effect/platform-bun`     | 0.91.2  |
 
@@ -52,6 +52,11 @@ together, so the profile lands on the new major with the same closed feedback
 loop it has today. Until then, do not mix majors: v4 APIs and documentation
 are not evidence for this v3 baseline.
 
+TypeScript remains at 6.0.3 because the current Effect language service and
+`typescript-eslint` parser reject TypeScript 7. Upgrade the compiler when those
+consumers support it and the full gate passes; do not add a second compiler to
+work around their version contracts.
+
 ## Integrating into an existing project
 
 The copy steps above assume a fresh application. For a project that already
@@ -72,7 +77,7 @@ has TypeScript tooling:
 
 This is a Bun application baseline, not one universal tsconfig for Bun servers,
 browser bundles, React Native, and published libraries. The always-loaded agent
-fragment is a compact routing and decision index. One normative enforcement map
+fragment routes agents to the checks and boundary guides needed for a change. One normative enforcement map
 owns every mandatory rule; routed guides hold rationale, exact-version notes,
 and boundary patterns. Bun CLI/server, browser/framework UI,
 published-library, and optional observability guidance are path-local overlays.
@@ -184,8 +189,10 @@ no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
 script, removed once the fix ships.
 
 `ts:knip` fails on declared dependencies, files, and unused exports from both
-entry and non-entry modules. The directive checker tokenizes comments outside
-the linter, so a lint directive cannot disable the exception protocol itself.
+entry and non-entry modules. The directive checker uses the existing TypeScript
+ESLint parser to identify comments outside the linter, including after template
+interpolation and inside JSX expressions. A lint directive cannot disable the
+exception protocol itself.
 `ts:preflight` runs every non-mutation gate before Stryker can touch source.
 `ts:mutants` then audits whether the tests would notice wrong code in Stryker's
 isolated sandbox. Stryker runs only the test files that import `src/` directly,
@@ -224,8 +231,8 @@ cancelled runs. Without that cache, a fresh CI checkout makes
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the
-aggregate gate. `AGENTS.md` contains the full verification and upgrade
-protocols.
+aggregate gate. `AGENTS.md` routes changes to the relevant boundary guides;
+this README owns the verification and upgrade workflow.
 
 ## Automatic quality gate
 
@@ -236,7 +243,7 @@ locked `mise run standards:check` gate for every pull request, every push to
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
-The workflow pins mise 2026.7.15. The configuration's 2026.6.12 minimum is the
+The workflow pins mise 2026.9.1. The configuration's 2026.6.12 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
 `.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
@@ -297,11 +304,10 @@ then checks its own output. After any tool-version change, run
 ## Runtime note
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
-subprocesses resolve through Bun's PATH shim. Stryker 9.6.1 is the sole
-exception: an exact Bun 1.4.0 probe still fails at Babel generator interop, so
-the `ts:mutants` tasks invoke its CLI under the mise-pinned Node while mutated
-tests run through `bun test`. Do not add package-manager or runtime fallback
-branches to the shared task fragment.
+subprocesses resolve through Bun's PATH shim. Mutation orchestration and tests
+also run under Bun. Stryker core 10.0.0 and Bun runner 1.3.8 pass the full
+fixture together; the runner's declared core peer range still names version 9.
+Keep this pairing covered by the full mutation gate when upgrading either tool.
 
 `bunfig.toml` also pins install posture: new dependencies land exact, and
 `minimumReleaseAge` delays newly resolved versions for three days. OpenSSF

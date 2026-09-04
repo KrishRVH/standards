@@ -60,8 +60,8 @@ vocabulary, or repository-host branch protection.
   owner and removal condition.
 - **Enforcement:** TS blocking; LS blocking; Lint blocking;
   Neg diagnostic fixture; Unit partial; Sem —; Int —; CI yes; Manual residual.
-- **Version:** TS 6.0.3, LS 0.87.2, Oxlint 1.80.0,
-  oxlint-tsgolint 7.0.2001, typescript-eslint 8.67.0.
+- **Version:** TS 6.0.3, LS 0.87.2, Oxlint 1.81.0,
+  oxlint-tsgolint 7.0.2001, typescript-eslint 8.69.0.
 
 ## EFF-003 — Accurate exported Effect contracts
 
@@ -435,7 +435,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit Schema/limits;
   Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
   production resolver/connect-time SSRF review.
-- **Version:** Bun 1.4.0 Web APIs and Effect 3.22.1 adapters.
+- **Version:** Bun 1.4.1 Web APIs and Effect 3.22.1 adapters.
 
 ## EFF-026 — Bun process runtime
 
@@ -450,7 +450,7 @@ vocabulary, or repository-host branch protection.
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; Lint partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
-- **Version:** `@effect/platform-bun` 0.91.2 with Effect 3.22.1, Bun 1.4.0.
+- **Version:** `@effect/platform-bun` 0.91.2 with Effect 3.22.1, Bun 1.4.1.
 
 ## EFF-027 — Narrow diagnostic suppressions
 
@@ -486,7 +486,7 @@ vocabulary, or repository-host branch protection.
   fixture; Unit version probes; Sem exact-version suite; Int —; CI frozen install
   and lock/drift checks; Manual source hierarchy review.
 - **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.2, LS 0.87.2,
-  TypeScript 6.0.3, Bun 1.4.0.
+  TypeScript 6.0.3, Bun 1.4.1.
 
 ## EFF-029 — Automatic mandatory quality gate
 
@@ -509,7 +509,7 @@ vocabulary, or repository-host branch protection.
   Sem event/command contract; Int hosted run; CI self-executes; Manual branch
   protection and required-status configuration.
 - **Version:** Workflows pin checkout v7.0.1, mise-action v4.2.4, and the locally
-  tested mise 2026.7.15; the TypeScript gate uses the dependency versions above.
+  tested mise 2026.9.1; the TypeScript gate uses the dependency versions above.
 
 ## EFF-030 — Constructive type modeling
 
@@ -530,5 +530,5 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS blocking for exhaustion; LS —; Lint blocking for
   unsafe/object-literal/non-null assertions and switch exhaustiveness; Neg
   exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual modeling review.
-- **Version:** TS 6.0.3, Oxlint 1.80.0, oxlint-tsgolint 7.0.2001,
-  typescript-eslint 8.67.0; the modeling rule itself is not version-specific.
+- **Version:** TS 6.0.3, Oxlint 1.81.0, oxlint-tsgolint 7.0.2001,
+  typescript-eslint 8.69.0; the modeling rule itself is not version-specific.

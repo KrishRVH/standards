@@ -2,7 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { argv, cwd, exit, stderr } from 'node:process';
 
-import ts from 'typescript';
+import tseslint from 'typescript-eslint';
 
 const sourceExtensions = new Set(['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx']);
 const ignoredDirectories = new Set([
@@ -39,7 +39,7 @@ function directiveViolation(comment) {
   const body = (isLineComment ? comment.slice(2) : comment.slice(2, -2)).trim();
   const isOxlintDirective = /^oxlint-(?:disable(?:-line|-next-line)?|enable)(?=\s|$)/u.test(body);
   const isEslintDirective = isLineComment
-    ? /^eslint-disable-(?:line|next-line)(?=\s|$)/u.test(body)
+    ? /^eslint-(?:disable(?:-line|-next-line)?|enable)(?=\s|$)/u.test(body)
     : /^(?:eslint-(?:disable(?:-line|-next-line)?|enable|env)|exported|globals?)(?=\s|$)/u.test(body) ||
       /^eslint\s+[^\s,:]+(?:\s*,\s*[^\s,:]+)*\s*:/u.test(body);
 
@@ -79,19 +79,19 @@ function directiveViolation(comment) {
 }
 
 function violationsFor(source, fileName) {
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.JSX, source);
-  const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
+  const { ast } = tseslint.parser.parseForESLint(source, {
+    comment: true,
+    filePath: fileName,
+    loc: true,
+    range: true,
+    sourceType: 'module',
+  });
   const violations = [];
 
-  for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
-    if (token !== ts.SyntaxKind.SingleLineCommentTrivia && token !== ts.SyntaxKind.MultiLineCommentTrivia) {
-      continue;
-    }
-
-    const violation = directiveViolation(scanner.getTokenText());
+  for (const comment of ast.comments) {
+    const violation = directiveViolation(source.slice(comment.range[0], comment.range[1]));
     if (violation !== undefined) {
-      const { line } = sourceFile.getLineAndCharacterOfPosition(scanner.getTokenPos());
-      violations.push(`${fileName}:${String(line + 1)}: ${violation}`);
+      violations.push(`${fileName}:${String(comment.loc.start.line)}: ${violation}`);
     }
   }
 

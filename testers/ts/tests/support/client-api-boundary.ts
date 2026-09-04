@@ -159,14 +159,18 @@ export const executeClientRequest = ({
   fetch,
   timeout,
 }: ClientRequestOptions): Effect.Effect<ProfileResponse, ClientApiFailure> =>
-  Effect.tryPromise({
-    catch: () => ({
-      _tag: 'TransportFailure' as const,
-      retryDisposition: callerRetryDisposition,
-    }),
-    try: (signal) => fetch(signal),
-  }).pipe(
-    Effect.flatMap((response) => (response.ok ? decodeSuccess(response) : decodeError(response))),
+  Effect.acquireUseRelease(
+    Effect.sync(() => new AbortController()),
+    (controller) =>
+      Effect.tryPromise({
+        catch: () => ({
+          _tag: 'TransportFailure' as const,
+          retryDisposition: callerRetryDisposition,
+        }),
+        try: () => fetch(controller.signal),
+      }).pipe(Effect.flatMap((response) => (response.ok ? decodeSuccess(response) : decodeError(response)))),
+    (controller) => Effect.sync(() => controller.abort()),
+  ).pipe(
     Effect.timeoutFail({
       duration: timeout,
       onTimeout: () => ({

@@ -1,8 +1,5 @@
 [tools]
-bun = "1.4.0"
-# Stryker 9.6.1 remains the sole Node-only tool: an exact Bun 1.4.0 probe fails
-# at Babel generator interop. Tests under mutation still run through bun test.
-node = "26.7.0"
+bun = "1.4.1"
 
 [tasks."ts:install"]
 description = "Install Bun-managed TypeScript/JavaScript dependencies"
@@ -95,14 +92,12 @@ run = "bun run standards:check"
 [tasks."ts:mutants"]
 description = "Run the full mutation sweep; a surviving mutant is a review finding"
 depends = ["ts:preflight"]
-# Run outside package.json scripts so bunfig [run] bun = true cannot replace
-# the required Node runtime with Bun for Stryker's CLI.
-run = "node scripts/run-stryker.mjs full stryker.config.mjs"
+run = "bun scripts/run-stryker.mjs full stryker.config.mjs"
 
 [tasks."ts:mutants:diff"]
 description = "Run the incremental mutation-testing inner loop"
 depends = ["ts:preflight"]
-run = "node scripts/run-stryker.mjs incremental stryker.config.mjs"
+run = "bun scripts/run-stryker.mjs incremental stryker.config.mjs"
 
 [tasks."ts:mutants:cache:check"]
 description = "Validate Stryker incremental state before saving it in CI"

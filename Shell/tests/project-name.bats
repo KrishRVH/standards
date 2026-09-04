@@ -17,6 +17,30 @@ setup() {
   [[ "${output}" = "Hello, standards!" ]]
 }
 
+@test "checks every filename in Git and non-Git projects" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/filename-discovery"
+  local mode name
+  local -a names=('ordinary.sh' 'space name.sh' 'é.sh' 'quote"file.sh' $'line\nbreak.sh')
+  for mode in plain git; do
+    for name in "${names[@]}"; do
+      mkdir -p "${workspace}/${mode}/scripts"
+      printf '#!/usr/bin/env bash\nif\n' > "${workspace}/${mode}/scripts/${name}"
+      if [ "${mode}" = git ]; then
+        git init --quiet "${workspace}/${mode}"
+        git -C "${workspace}/${mode}" add .
+      fi
+
+      run bash -c 'cd "$1" && "$2" syntax' -- \
+        "${workspace}/${mode}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+      [[ "${status}" -ne 0 ]]
+      [[ "${output}" != *"No standalone shell scripts"* ]]
+      rm -f "${workspace}/${mode}/scripts/${name}"
+    done
+  done
+}
+
 @test "rejects executable glue without a shebang" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/missing-shebang"
@@ -29,6 +53,36 @@ setup() {
 
   [[ "${status}" -ne 0 ]]
   [[ "${output}" == *"scripts/deploy: project glue scripts need a recognized shell shebang."* ]]
+}
+
+@test "checks root filenames beginning with a dash as paths" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/leading-dash"
+  local command
+  mkdir -p "${workspace}"
+  printf '#!/usr/bin/env bash\nprintf "hello\\n"\n' > "${workspace}/-leading.sh"
+  printf '#!/usr/bin/env bats\n@test "runs a root Bats file" { true; }\n' > "${workspace}/-leading.bats"
+
+  for command in fmt fmt-check lint syntax test; do
+    run bash -c 'cd "$1" && "$2" "$3"' -- \
+      "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh" "${command}"
+    [[ "${status}" -eq 0 ]]
+  done
+}
+
+@test "fails when Git cannot enumerate project files" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/broken-index"
+  mkdir -p "${workspace}/scripts"
+  printf '#!/usr/bin/env bash\nif\n' > "${workspace}/scripts/broken.sh"
+  git init --quiet "${workspace}"
+  printf 'corrupt' > "${workspace}/.git/index"
+
+  run bash -c 'cd "$1" && "$2" syntax' -- \
+    "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -ne 0 ]]
+  [[ "${output}" != *"No standalone shell scripts"* ]]
 }
 
 @test "accepts a shebang without a trailing newline" {
@@ -58,7 +112,7 @@ setup() {
   [[ "${status}" -eq 0 ]]
 }
 
-@test "skips zsh formatting because shfmt has no zsh parser" {
+@test "skips experimental zsh formatting" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/zsh-formatting"
   mkdir -p "${workspace}/scripts"

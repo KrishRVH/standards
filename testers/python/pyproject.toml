@@ -16,14 +16,14 @@ dependencies = []
 dev = [
   "bandit[toml]>=1.9.4",
   "basedpyright>=1.39.10",
-  "coverage[toml]>=7.15.4",
+  "coverage[toml]>=7.16.0",
   "deptry>=0.25.1",
   "hatchling>=1.32.0",
-  "hypothesis>=6.165.10",
+  "hypothesis>=6.167.1",
   "mutmut>=3.7.0",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "ruff>=0.16.4",
+  "ruff>=0.16.6",
 ]
 deep = [
   "interrogate>=1.7.0",
@@ -41,7 +41,7 @@ packages = ["src/project_name"]
 # that tree out of Ruff while still checking legitimate nested mutants/ names.
 extend-exclude = ["mutants/**"]
 line-length = 100
-required-version = ">=0.16.4"
+required-version = ">=0.16.6"
 show-fixes = true
 src = ["src", "tests"]
 target-version = "py314"

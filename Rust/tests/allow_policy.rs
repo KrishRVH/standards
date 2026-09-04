@@ -83,7 +83,13 @@ fn allow_violations_in_tokens(tokens: &TokenStream) -> usize {
         if attribute.delimiter() != Delimiter::Bracket {
             continue;
         }
-        if contains_macro_metavariable(&attribute.stream())
+        let attribute_tokens: Vec<_> = attribute.stream().into_iter().collect();
+        let fixed_doc_value = matches!(
+            attribute_tokens.as_slice(),
+            [TokenTree::Ident(name), TokenTree::Punct(equals), ..]
+                if ident_is_name(name, "doc") && equals.as_char() == '='
+        );
+        if (contains_macro_metavariable(&attribute.stream()) && !fixed_doc_value)
             || syn::parse2::<Meta>(attribute.stream()).is_ok_and(|meta| meta_contains_allow(&meta))
         {
             count = count.saturating_add(1);
@@ -504,6 +510,27 @@ fn cargo_workspace_inputs(
             ));
             continue;
         };
+        match fs::read_to_string(&canonical_manifest)
+            .and_then(|source| toml::from_str::<toml::Value>(&source).map_err(io::Error::other))
+        {
+            Ok(manifest) => {
+                let inherits_lints = manifest
+                    .get("lints")
+                    .and_then(|lints| lints.get("workspace"))
+                    .and_then(toml::Value::as_bool)
+                    == Some(true);
+                if !inherits_lints {
+                    violations.push(format!(
+                        "{} must declare [lints] workspace = true",
+                        canonical_manifest.display()
+                    ));
+                }
+            },
+            Err(error) => violations.push(format!(
+                "cannot inspect workspace lint inheritance in {}: {error}",
+                canonical_manifest.display()
+            )),
+        }
         inputs.package_roots.insert(package_root.to_path_buf());
         inputs.enumeration_roots.insert(package_root.to_path_buf());
         for target in &package.targets {
@@ -779,6 +806,74 @@ fn scan_source_file(
 }
 
 #[test]
+fn accepts_fixed_documentation_attributes_with_macro_values() {
+    let source = r#"
+        macro_rules! documented {
+            ($description:literal) => {
+                #[doc = $description]
+                pub struct Item;
+            };
+        }
+        documented!("A documented item.");
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        0
+    );
+}
+
+#[test]
+fn requires_lint_inheritance_for_root_and_nested_workspace_packages() {
+    let root = policy_fixture_root("workspace-lints").expect("fixture root should be creatable");
+    fs::create_dir_all(root.join("src")).expect("root sources should be creatable");
+    fs::create_dir_all(root.join("member/src")).expect("member sources should be creatable");
+    let root_manifest = r#"
+        [package]
+        name = "root-package"
+        version = "0.1.0"
+        edition = "2024"
+        [workspace]
+        members = ["member"]
+        [workspace.lints.rust]
+        unsafe_code = "forbid"
+        "#;
+    let member_manifest = r#"
+        [package]
+        name = "member-package"
+        version = "0.1.0"
+        edition = "2024"
+        "#;
+    fs::write(root.join("src/lib.rs"), "").expect("root source should be writable");
+    fs::write(root.join("member/src/lib.rs"), "").expect("member source should be writable");
+    fs::write(root.join("Cargo.toml"), root_manifest).expect("root manifest should be writable");
+    fs::write(root.join("member/Cargo.toml"), member_manifest)
+        .expect("member manifest should be writable");
+    write_fixture_lock(&root, &["member-package", "root-package"])
+        .expect("lock should be writable");
+
+    let violations = project_policy_violations(&root).expect("workspace should be readable");
+    assert_eq!(violations.len(), 2, "{violations:?}");
+    assert!(
+        violations
+            .iter()
+            .all(|violation| violation.contains("[lints] workspace = true"))
+    );
+
+    for (manifest, source) in [
+        ("Cargo.toml", root_manifest),
+        ("member/Cargo.toml", member_manifest),
+    ] {
+        fs::write(
+            root.join(manifest),
+            format!("{source}\n[lints]\nworkspace = true\n"),
+        )
+        .expect("lint inheritance should be writable");
+    }
+    let violations = project_policy_violations(&root).expect("workspace should be readable");
+    assert!(violations.is_empty(), "{violations:?}");
+}
+
+#[test]
 fn rejects_crate_inner_allow_with_a_reason() {
     let source = "#![allow(clippy::unwrap_used, reason = \"claimed exception\")]\nfn main() {}";
     assert_eq!(
@@ -933,6 +1028,9 @@ fn follows_all_cargo_custom_target_source_paths() {
             path = "src/benchmark.inc"
 
             [workspace]
+            [workspace.lints]
+            [lints]
+            workspace = true
         "#,
     )
     .expect("fixture manifest should be writable");
@@ -1045,6 +1143,9 @@ fn accepts_an_explicitly_disabled_cargo_build_script() {
             build = false
 
             [workspace]
+            [workspace.lints]
+            [lints]
+            workspace = true
         "#,
     )
     .expect("fixture manifest should be writable");
@@ -1130,6 +1231,7 @@ fn scans_internal_workspace_targets_without_scanning_external_path_dependencies(
             [workspace]
             resolver = "3"
             members = ["vendor/member"]
+            [workspace.lints]
         "#,
     )
     .expect("workspace manifest should be writable");
@@ -1147,6 +1249,9 @@ fn scans_internal_workspace_targets_without_scanning_external_path_dependencies(
 
                 [lib]
                 path = "compiler-input"
+
+                [lints]
+                workspace = true
             "#,
         ),
     )
@@ -1215,6 +1320,7 @@ fn scans_cfg_disabled_conventional_modules_in_root_pruned_workspace_members() {
             [workspace]
             resolver = "3"
             members = ["vendor/member"]
+            [workspace.lints]
         "#,
     )
     .expect("workspace manifest should be writable");
@@ -1225,6 +1331,9 @@ fn scans_cfg_disabled_conventional_modules_in_root_pruned_workspace_members() {
             name = "conventional-module-member"
             version = "0.1.0"
             edition = "2024"
+
+            [lints]
+            workspace = true
         "#,
     )
     .expect("member manifest should be writable");

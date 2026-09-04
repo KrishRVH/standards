@@ -610,7 +610,7 @@ install_or_update_rustup() {
   export PATH="$CARGO_HOME/bin:$PATH"
 
   if has rustup; then
-    retry_quiet rustup toolchain install stable --profile minimal || return 1
+    retry_quiet rustup toolchain install stable --profile minimal --no-update || return 1
     retry_quiet rustup default stable || return 1
     if [ "$BOOTSTRAP_RUSTUP_UPDATE" = "1" ]; then
       retry_quiet rustup update stable || return 1

@@ -16,11 +16,13 @@ export type OperationFailureObserver = (cause: Cause.Cause<unknown>) => void;
 
 export const makeOperationController = (observeFailure: OperationFailureObserver): OperationController => {
   let current: ActiveOperation | undefined;
+  let replacementToken: object | undefined;
 
   const start: OperationController['start'] = (operation, publish) => {
     if (current !== undefined) {
       throw new Error('An operation is already active. Use replaceWith for replacement.');
     }
+    replacementToken = undefined;
 
     const fiber = Effect.runFork(operation);
     let interruption: Promise<void> | undefined;
@@ -57,6 +59,7 @@ export const makeOperationController = (observeFailure: OperationFailureObserver
   };
 
   const interrupt = (): void => {
+    replacementToken = undefined;
     const active = current;
     if (active === undefined) {
       return;
@@ -68,7 +71,7 @@ export const makeOperationController = (observeFailure: OperationFailureObserver
     });
   };
 
-  const interruptAndWait = async (): Promise<void> => {
+  const stopActive = async (): Promise<void> => {
     const active = current;
     if (active === undefined) {
       return;
@@ -80,9 +83,18 @@ export const makeOperationController = (observeFailure: OperationFailureObserver
     }
   };
 
+  const interruptAndWait = (): Promise<void> => {
+    replacementToken = undefined;
+    return stopActive();
+  };
+
   const replaceWith: OperationController['replaceWith'] = async (operation, publish) => {
-    await interruptAndWait();
-    start(operation, publish);
+    const token = {};
+    replacementToken = token;
+    await stopActive();
+    if (replacementToken === token) {
+      start(operation, publish);
+    }
   };
 
   return { interrupt, interruptAndWait, replaceWith, start };

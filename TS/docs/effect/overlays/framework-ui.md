@@ -33,7 +33,8 @@ Use APIs whose host-visible timing is explicit:
   depends on complete release.
 - `replaceWith` revokes the prior publication, interrupts and waits for the old
   operation, then starts the replacement after required mutual exclusion is
-  restored.
+  restored. Cancellation also revokes replacements waiting on that release.
+  If replacements overlap, only the latest request may start.
 
 Names may differ, but one method must not ambiguously promise all three
 behaviors. Cancellation and result publication are separate controls. If a
@@ -52,7 +53,7 @@ lease/controller rather than relying on production-only lifecycle assumptions.
 Component code should call the framework adapter or controller, not raw
 `runFork`; the lint overlay rejects that property in component
 JSX/TSX, while runtime adapters live in ordinary `.ts` modules. A transferred
-application's non-interruption failure is observed by the task owner exactly
+task's non-interruption failure is observed by the task owner exactly
 once. Navigation does not cancel application-owned work; runtime disposal does.
 
 ## Deterministic contract tests

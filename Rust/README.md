@@ -8,8 +8,8 @@ the shared mise template:
 .config/mise/conf.d/20-rust.toml
 ```
 
-This baseline is optimized for agent-driven development: every rule a machine
-can check is denied by a lint or a gate, exceptions require a per-site
+This baseline gives agents executable lint and verification contracts.
+Lint exceptions require a per-site
 `#[expect(lint, reason = "...")]` that self-expires when it goes stale, and a
 mutation-testing gate audits whether the tests would notice wrong code.
 `AGENTS.md` holds the rules machines cannot check — design doctrine, semantic
@@ -22,10 +22,15 @@ shared memory. That is the right default for the applications this profile
 targets and the wrong one for general-purpose libraries, runtimes,
 concurrency primitives, drivers, and systems infrastructure — an `Rc` does
 not imply mutation, and a metrics counter does not need an actor. Projects
-of those shapes strip the `disallowed-types` wall and keep the rest;
-individual sites inside an application argue through a reasoned `#[expect]`.
+of those shapes adapt `disallowed-types`, the matching ownership doctrine in
+`AGENTS.md`, and the Mutex negative probe in `rust:policy` together;
+individual sites inside an application use a reasoned `#[expect]`.
 
 ## Tooling
+
+The mutation transaction runner requires Linux process-group tools
+(`setsid` and `ps`). Adapt and test that boundary before using the complete
+gate on another operating system.
 
 ```sh
 mise run rust:components
@@ -62,14 +67,17 @@ everywhere; tests are exempted from the unwrap/expect/panic/indexing lints
 only — state primitives and arithmetic in tests take a reasoned `#[expect]`.
 Release builds keep integer overflow checks.
 
-`rust:lint` also forces Clippy's bare-attribute rules on the command line, so
-they still cover a workspace member that accidentally omits
-`[lints] workspace = true`. Before the real lint run, `rust:policy` parses
+`rust:policy` requires every Cargo workspace member, including the root
+package, to declare `[lints] workspace = true`. Excluded packages and external
+dependencies are outside that inheritance check. `rust:lint` also forces
+Clippy's bare-attribute rules on the command line. Before the real lint run,
+`rust:policy` parses
 every first-party Rust source with Rust token and attribute parsers and rejects
 outer, crate-inner, multiline, and `cfg_attr`-nested `#[allow]` attributes,
 including raw `r#allow` spellings and literal attributes inside macro bodies.
 It also rejects direct, repeated, and `cfg_attr`-nested attribute-metavariable
-emission. Stable source tokenization cannot reconstruct arbitrary declarative-
+emission. Fixed `#[doc = $description]` attributes remain legal because only
+their documentation value is forwarded. Stable source tokenization cannot reconstruct arbitrary declarative-
 or procedural-macro output, so a macro that synthesizes an `allow` from split
 or generated tokens remains a prohibited reviewer-owned wall bypass rather
 than a supported exception. Comments and strings containing attribute-shaped

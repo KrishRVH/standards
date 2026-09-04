@@ -34,7 +34,7 @@ function assertMutant(mutant, description) {
   assertPosition(mutant.location.end, `${description}.location.end`);
   assert.ok(
     terminalMutantStatuses.has(mutant.status),
-    `${description}.status must be a terminal Stryker 9.6.1 status; received ${String(mutant.status)}.`,
+    `${description}.status must be a terminal Stryker 10.0.0 status; received ${String(mutant.status)}.`,
   );
 
   if (mutant.testsCompleted !== undefined) {
@@ -48,14 +48,14 @@ function assertMutant(mutant, description) {
 
 /**
  * Validate the required mutation-testing-report-schema fields emitted by
- * Stryker 9.6.1. Optional presentation metadata stays Stryker-owned.
+ * Stryker 10.0.0. Optional presentation metadata stays Stryker-owned.
  */
 export function validateStrykerReport(report, description) {
   assertRecord(report, `${description} must be a JSON object.`);
   assert.match(
     report.schemaVersion,
     /^([12])(\.(([1-9]\d*)|0)){0,2}$/u,
-    `${description}.schemaVersion is not compatible with the Stryker 9.6.1 report schema.`,
+    `${description}.schemaVersion is not compatible with the Stryker 10.0.0 report schema.`,
   );
   assertRecord(report.thresholds, `${description}.thresholds must be an object.`);
 

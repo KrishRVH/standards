@@ -45,12 +45,8 @@ MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run standards:check
 Use `mise run standards:check` inside any fixture when you want the same
 host-local gate used by the repository aggregate task.
 
-The fixtures cover C, C#, C++, Elixir, Fortran, GDScript, Go, Haskell, Kotlin,
-Lua, Markdown/MDX, Odin, PHP, Python, Roc, Rust, Shell, SPARK/Ada, TypeScript,
-and Zig.
-
-The fixture list comes from `standards.manifest.toml`, not a hand-maintained
-list. The root's `testers/*` discovery pattern contains no duplicate profile
+The fixture list comes from [`standards.manifest.toml`](../standards.manifest.toml).
+The root's `testers/*` discovery pattern contains no duplicate profile
 inventory; the drift checker proves that every discovered fixture is declared
 and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and

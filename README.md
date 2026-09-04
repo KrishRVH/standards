@@ -263,7 +263,7 @@ The Rust, TypeScript, C#, and Python profiles each contain a copyable
 workflow for downstream projects. Those run automatically for pull requests,
 merge-queue groups, and pushes to `main`, and also support manual dispatch.
 All the workflows use the same locked command surface and pin the locally
-tested mise `2026.7.15`. The lower configuration minimums remain
+tested mise `2026.9.1`. The lower configuration minimums remain
 compatibility floors.
 
 The downstream repository host must protect merges with all of these settings:
@@ -318,8 +318,8 @@ TypeScript ESLint and Prettier secondary workflow, checks drift, Markdown, and
 Shell, and runs every tester fixture.
 
 The root mise configuration discovers fixture tasks through the explicit
-`testers/*` monorepo configuration roots. It schedules two top-level fixture
-jobs at a time.
+`testers/*` monorepo configuration roots. Its `[settings].jobs` value bounds
+concurrent task execution; language tools also set their own concurrency.
 
 `[monorepo] lockfile = false` keeps each committed fixture lockfile beside its
 standalone configuration. The root runner uses one child mise process for the

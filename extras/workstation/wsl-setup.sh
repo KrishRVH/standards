@@ -1578,8 +1578,9 @@ Examples:
   mise exec -- node --version
 
 Notes:
-  Prefer checked-in mise configuration for reproducibility. Use just as the
-  primary human-facing task menu unless mise-specific task features are needed.
+  Prefer checked-in mise configuration for reproducibility. Projects adopting
+  this catalog use mise run as their task menu. Keep just for existing projects
+  that already use a justfile.
 DOC
       ;;
     starship)

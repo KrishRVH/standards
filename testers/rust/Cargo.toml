@@ -2,7 +2,7 @@
 name = "project-name"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.98.0"
+rust-version = "1.98.1"
 description = "A strict Rust project."
 license = "MIT OR Apache-2.0"
 publish = false
@@ -17,15 +17,15 @@ proptest = "1.11.0"
 proc-macro2 = "=1.0.107"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
-syn = { version = "=3.0.3", features = ["full"] }
+syn = { version = "=3.0.5", features = ["full"] }
 # Cargo permits explicit target source paths with arbitrary extensions; parse
 # manifests so the policy scanner still sees those compiler inputs.
-toml = "=1.1.4"
+toml = "=1.1.5"
 
 # The lint wall lives at workspace scope so growth cannot silently shed it:
 # every member crate (including this root package) opts in with
-# `[lints] workspace = true`, and a member without that opt-in is a review
-# finding. Profiles are only honored in this root manifest.
+# `[lints] workspace = true`; rust:policy rejects missing opt-ins. Profiles
+# are only honored in this root manifest.
 [workspace]
 
 # Agent-optimized posture: every rule a machine can check is denied here. The

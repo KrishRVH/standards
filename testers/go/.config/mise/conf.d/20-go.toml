@@ -2,53 +2,32 @@
 GOTOOLCHAIN = "local"
 
 [tools]
-go = "1.26.5"
+go = "1.27.1"
 gofumpt = "0.11.0"
-golangci-lint = "2.12.2"
+golangci-lint = "2.13.2"
 "go:github.com/KrishRVH/boringlint/cmd/boringlint" = { version = "v0.9.5", depends = "go" }
-"go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.6.0", depends = "go" }
+"go:golang.org/x/vuln/cmd/govulncheck" = { version = "1.7.0", depends = "go" }
 
 [tasks."go:install"]
 description = "Download Go module dependencies"
+wait_for = ["go:mod:check"]
 run = "go mod download"
 
+[tasks."go:tools:rebuild"]
+description = "Rebuild pinned Go analyzers after a compiler upgrade"
+run = "mise install --force go:github.com/KrishRVH/boringlint/cmd/boringlint go:golang.org/x/vuln/cmd/govulncheck"
+
 [tasks."go:fmt"]
-description = "Format Go source"
-run = """
-set -eu
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.go' |
-    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
-else
-  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
-    -o -type f -name '*.go' -print0 > "$tmp"
-fi
-if [ -s "$tmp" ]; then
-  xargs -0 gofumpt -w < "$tmp"
-fi
-"""
+description = "Format first-party Go source with native gofumpt exclusions"
+run = "gofumpt -w ."
 
 [tasks."go:fmt:check"]
-description = "Check Go formatting"
+description = "Check first-party Go formatting"
 run = """
 set -eu
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.go' |
-    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
-else
-  find . -type d \\( -name .git -o -name vendor -o -name .gstack \\) -prune \
-    -o -type f -name '*.go' -print0 > "$tmp"
-fi
-if [ ! -s "$tmp" ]; then
-  exit 0
-fi
-files="$(xargs -0 gofumpt -l < "$tmp")"
+files="$(gofumpt -l .)"
 if [ -n "$files" ]; then
-  printf '%s\n' "$files"
+  printf '%s\\n' "$files"
   exit 1
 fi
 """
@@ -58,8 +37,7 @@ description = "Tidy Go module files"
 run = "go mod tidy"
 
 [tasks."go:mod:check"]
-description = "Check Go module tidiness"
-depends = ["go:install"]
+description = "Check Go module tidiness before downloads can repair it"
 run = "go mod tidy -diff"
 
 [tasks."go:mod:verify"]

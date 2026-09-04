@@ -181,7 +181,7 @@ async function releaseLock() {
   await rm(lockDirectory, { recursive: true });
 }
 
-async function runNode(arguments_) {
+async function runCommand(arguments_) {
   assertNotInterrupted();
   const child = spawn(execPath, arguments_, { cwd: projectRoot, detached: true, stdio: 'inherit' });
   const completion = new Promise((resolve, reject) => {
@@ -255,8 +255,8 @@ try {
     strykerArguments.push('--force');
   }
 
-  await runNode(strykerArguments);
-  await runNode([checker, mode, 'reports/mutation/mutation.json']);
+  await runCommand(strykerArguments);
+  await runCommand([checker, mode, 'reports/mutation/mutation.json']);
 } catch (error) {
   stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   exitCode = 1;

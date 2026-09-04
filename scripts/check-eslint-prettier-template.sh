@@ -39,10 +39,15 @@ cp -R \
   "${PROFILE_ROOT}/type-tests" \
   "${SCRATCH_ROOT}/"
 
+mkdir -p "${SCRATCH_ROOT}/.config/mise/conf.d"
+cp "${PROJECT_ROOT}/Mise/config.toml" "${SCRATCH_ROOT}/.config/mise/config.toml"
+cp "${PROJECT_ROOT}/Mise/conf.d/20-ts.toml" "${SCRATCH_ROOT}/.config/mise/conf.d/20-ts.toml"
+cp "${PROJECT_ROOT}/testers/ts/.config/mise/mise.lock" "${SCRATCH_ROOT}/.config/mise/mise.lock"
+
 (
   cd "${SCRATCH_ROOT}"
-  bun install --frozen-lockfile
-  bun run lint:secondary
-  bun run standards:secondary
-  bun run standards:secondary:check
+  export MISE_TRUSTED_CONFIG_PATHS="${SCRATCH_ROOT}"
+  mise run ts:lint:secondary
+  mise run ts:standards:secondary
+  mise run ts:standards:secondary:check
 )

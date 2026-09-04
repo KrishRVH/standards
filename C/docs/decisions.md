@@ -99,8 +99,8 @@ pointer. Only when `argc` is greater than zero does it guarantee that
 - At initial hosted startup, `argv[i]` is a non-null string pointer whenever
   `0 <= i && i < argc`; a null check inside that loop does not validate a
   possible state under the declared contract.
-- `argv[0]` must not be evaluated unless `argc > 0`. Usage/error paths need a
-  fallback program name for `argc == 0`.
+- Use `argv[0]` as a program-name string only when `argc > 0`; use a fallback
+  otherwise. Reading the null pointer at `argv[0]` when `argc == 0` is valid.
 - A separately callable public parser does not automatically inherit `main`'s
   startup contract. Its pointer/count preconditions must be documented and
   validated at that public boundary.

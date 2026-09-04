@@ -28,10 +28,11 @@ description = "Format Haskell source"
 run = """
 set -eu
 tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+raw="$(mktemp)"
+trap 'rm -f "$tmp" "$raw"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' |
-    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' > "$raw"
+  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$tmp"
 else
   find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work -o -name vendor \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print0 > "$tmp"
@@ -46,10 +47,11 @@ description = "Check Haskell formatting"
 run = """
 set -eu
 tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+raw="$(mktemp)"
+trap 'rm -f "$tmp" "$raw"' EXIT
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' |
-    xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh > "$tmp"
+  git ls-files --cached --others --exclude-standard -z -- '*.hs' '*.lhs' > "$raw"
+  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$tmp"
 else
   find . -type d \\( -name .git -o -name dist-newstyle -o -name .stack-work -o -name vendor \\) -prune \
     -o -type f \\( -name '*.hs' -o -name '*.lhs' \\) -print0 > "$tmp"

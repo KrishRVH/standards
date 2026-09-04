@@ -2,6 +2,11 @@
 
 Research date: 2026-08-17 (America/Chicago)
 
+Status update, 2026-09-04: the [language standards audit](../audits/2026-09-04-language-standards.md)
+replaces fixed reviewer counts with review sized to the change's risk. The
+model choices and panel shape below preserve the original research decision;
+current profile agent guides own the working instructions.
+
 This record explains the durable decisions behind the agent-driven doctrine in
 the Rust, TypeScript, C#, and Python profiles: how work is assigned across
 expensive and cheap models, how verification fleets are shaped, and which
