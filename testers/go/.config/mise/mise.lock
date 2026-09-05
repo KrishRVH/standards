@@ -9,7 +9,7 @@ checksum = "sha256:63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168
 url = "https://dl.google.com/go/go1.27.1.linux-amd64.tar.gz"
 
 [[tools."go:github.com/KrishRVH/boringlint/cmd/boringlint"]]
-version = "v0.9.5"
+version = "1.0.0"
 backend = "go:github.com/KrishRVH/boringlint/cmd/boringlint"
 
 [[tools."go:golang.org/x/vuln/cmd/govulncheck"]]
