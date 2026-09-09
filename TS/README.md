@@ -41,8 +41,8 @@ bump: change the declared version, run `mise run ts:lock`, run the full
 [diagnostic inventory](docs/effect/diagnostic-inventory.md) whenever
 `@effect/language-service` changes, because diagnostic names and severities
 drift between releases. The executable contracts are the migration test: a
-green gate on the new lock is the evidence the new versions are safe, and a
-red gate points at exactly what changed. Downstream projects upgrade the same
+green gate verifies the maintained contracts on the new lock, and a
+red gate identifies remaining migration work. Downstream projects upgrade the same
 way and do not need this catalog's permission to move.
 
 A future Effect major (v4) is an intended path, not a foreclosed one. It is
@@ -64,9 +64,9 @@ has TypeScript tooling:
 
 - Merge `TS/AGENTS.md` into the project's existing agent guide instead of
   replacing it; it stays a routed fragment either way.
-- Adopt configuration additively. Where an existing setting conflicts with
-  this profile, prefer the stricter one and record any deliberate exception
-  next to it.
+- Review configuration against the project's contracts and risks. Where an
+  existing setting conflicts with this profile, choose the setting justified
+  by local evidence and record any deliberate exception next to it.
 - Never downgrade an existing dependency to match this profile's pins. Keep
   the project's newer version, run the full `ts:standards:check` gate against
   it, and treat any red result as the concrete migration work list. The pins
@@ -139,7 +139,7 @@ runtime/schema identifier.
 
 ## Developer API
 
-All project development goes through mise:
+Use mise tasks for project workflows:
 
 ```sh
 mise run ts:fmt

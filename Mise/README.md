@@ -7,9 +7,19 @@ The copyable configuration requires mise `2026.6.12` or newer. That is the
 first release supporting the checksum-backed HTTP lock metadata used by the
 Odin formatter; it is a minimum, not an executable pin.
 
-Every developer command goes through `mise run`. Dagger is optional; when a
-project keeps `conf.d/10-dagger.toml`, mise pins and invokes it, so developers
-should not call `dagger` directly.
+Use `mise run` for project workflows so a developer can build, format, or test
+without knowing the underlying toolchain. Dagger is optional; when a project
+keeps `conf.d/10-dagger.toml`, the isolated check task pins and invokes it.
+
+Run host utilities such as `git`, `rg`, and `tokei` directly. Native commands
+remain available for focused diagnosis. Use `mise exec -- <command>` when a
+specific invocation needs the project's pinned tool or environment and no
+suitable task exists. Final verification uses the project's mise gates.
+
+`mise run` supplies its own tool environment. Workstation setup keeps shell
+startup, prompts, history, navigation, and completions independent of mise.
+Interactive activation or shims require a concrete need for automatic tool
+selection; they are not part of the default workstation configuration.
 
 The command surface starts strict. Keep the language tasks that fit the project
 and relax or remove checks that do not match its risk, lifecycle, or team

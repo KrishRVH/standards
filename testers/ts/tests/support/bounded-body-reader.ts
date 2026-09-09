@@ -1,3 +1,5 @@
+import type { ReadableStreamDefaultReader } from 'node:stream/web';
+
 import { Data, Effect, Exit } from 'effect';
 
 export interface BodyRequest {
@@ -30,21 +32,8 @@ export class BodyReadFailed extends Data.TaggedError('BodyReadFailed') {}
 
 export type BoundedBodyFailure = InvalidDeclaredContentLength | DeclaredBodyTooLarge | BodyTooLarge | BodyReadFailed;
 
-type BodyReadResult =
-  | {
-      readonly done: false;
-      readonly value: Uint8Array;
-    }
-  | {
-      readonly done: true;
-      readonly value: Uint8Array | undefined;
-    };
-
-interface BodyReader {
-  readonly cancel: (reason?: unknown) => Promise<void>;
-  readonly read: () => Promise<BodyReadResult>;
-  readonly releaseLock: () => void;
-}
+type BodyReader = ReadableStreamDefaultReader<Uint8Array>;
+type BodyReadResult = Awaited<ReturnType<BodyReader['read']>>;
 
 const readChunk = (reader: BodyReader, signal: AbortSignal): Effect.Effect<BodyReadResult, BodyReadFailed> =>
   Effect.async<BodyReadResult, BodyReadFailed>((resume) => {
@@ -96,8 +85,8 @@ const releaseReader = (
   reader: BodyReader,
   exit: Exit.Exit<Uint8Array, BoundedBodyFailure>,
   observer: BoundedBodyOptions['observeCleanupFailure'],
-): Effect.Effect<void> => {
-  const cleanup = Effect.sync(() => {
+): Effect.Effect<void> =>
+  Effect.sync(() => {
     if (Exit.isFailure(exit)) {
       try {
         void reader.cancel('request-body-abandoned').catch(() => {
@@ -114,9 +103,6 @@ const releaseReader = (
       observeCleanupFailure(observer, 'release-lock');
     }
   });
-
-  return cleanup;
-};
 
 const readAll = (
   reader: BodyReader,

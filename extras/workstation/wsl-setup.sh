@@ -26,6 +26,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GIT_TIMEOUT=300          seconds before git network operations time out
 #   BOOTSTRAP_TLDR_TIMEOUT=120         seconds before tldr cache updates time out
 #   BOOTSTRAP_TMUX_PLUGIN_TIMEOUT=180  seconds before TPM operations time out
+#   TMUX_SESSIONIZER_ROOTS=a:b:c       colon-separated project roots for the session picker
 #   RETRY_MAX_ATTEMPTS=8               attempts for transient network operations
 
 if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -50,6 +51,23 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_GIT_TIMEOUT:=300}"
 : "${BOOTSTRAP_TLDR_TIMEOUT:=120}"
 : "${BOOTSTRAP_TMUX_PLUGIN_TIMEOUT:=180}"
+
+# Availability checks must see host installations, not inherited mise shims.
+remove_mise_shims_from_path() {
+  local shim_dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims"
+  local remaining="${PATH}:" entry filtered="" separator=""
+  while [[ "$remaining" == *:* ]]; do
+    entry="${remaining%%:*}"
+    remaining="${remaining#*:}"
+    if [[ "$entry" != "$shim_dir" ]]; then
+      filtered="${filtered}${separator}${entry}"
+      separator=:
+    fi
+  done
+  export PATH="$filtered"
+}
+
+remove_mise_shims_from_path
 
 has() { command -v "$1" > /dev/null 2>&1; }
 die() {
@@ -301,6 +319,16 @@ write_managed_file() {
     return 1
   fi
   rm -f "$tmp"
+}
+
+configure_zshenv() {
+  local path="$HOME/.zshenv"
+  if [[ -L "$path" || (-e "$path" && ! -f "$path") ]]; then
+    die "refusing to modify non-regular zsh environment file: $path"
+  fi
+  if ! grep -qxF 'skip_global_compinit=1' "$path" 2> /dev/null; then
+    printf '\n# Oh My Zsh initializes completion after user completion paths are set.\nskip_global_compinit=1\n' >> "$path"
+  fi
 }
 
 normalize_git_url() {
@@ -779,6 +807,7 @@ cargo_install_latest du-dust dust
 cargo_install_latest tealdeer tldr
 cargo_install_latest starship starship
 cargo_install_latest jj-cli jj
+cargo_install_latest tokei tokei
 cargo_install_latest sd sd
 cargo_install_latest ouch ouch
 cargo_install_latest hyperfine hyperfine
@@ -843,6 +872,12 @@ has ast-grep && generate_completion "$ZSH_COMPLETIONS_DIR/_ast-grep" ast-grep co
 has mlr && generate_completion "$ZSH_COMPLETIONS_DIR/_mlr" mlr completion zsh
 has jj && generate_completion "$ZSH_COMPLETIONS_DIR/_jj" jj util completion zsh
 has gh && generate_completion "$ZSH_COMPLETIONS_DIR/_gh" gh completion -s zsh
+# Docker Desktop's Linux completion symlink is unavailable while it is stopped.
+if has docker.exe; then
+  generate_completion "$ZSH_COMPLETIONS_DIR/_docker" docker.exe completion zsh
+elif has docker; then
+  generate_completion "$ZSH_COMPLETIONS_DIR/_docker" docker completion zsh
+fi
 
 TOOLHELP_MARKER="# >>> wsl-bootstrap managed toolhelp >>>"
 write_managed_file "$HOME/.local/bin/toolhelp" "$TOOLHELP_MARKER" 0755 << 'TOOLHELP_SCRIPT'
@@ -853,7 +888,7 @@ IFS=$'\n\t'
 
 readonly -a TOOLS=(
   rg fd fzf zoxide
-  bat eza delta difftastic
+  bat eza delta difftastic tokei
   jq yq mlr sd ast-grep
   hyperfine just watchexec shellcheck shfmt
   zsh atuin tldr mise starship cargo-binstall
@@ -870,7 +905,7 @@ readonly -a CATEGORIES=(
 
 declare -Ar CATEGORY=(
   [rg]=search [fd]=search [fzf]=search [zoxide]=search
-  [bat]=viewing [eza]=viewing [delta]=viewing [difftastic]=viewing
+  [bat]=viewing [eza]=viewing [delta]=viewing [difftastic]=viewing [tokei]=viewing
   [jq]=data [yq]=data [mlr]=data [sd]=data [ast-grep]=data
   [hyperfine]=workflow [just]=workflow [watchexec]=workflow [shellcheck]=workflow [shfmt]=workflow
   [zsh]=shell [atuin]=shell [tldr]=shell [mise]=shell [starship]=shell [cargo-binstall]=shell
@@ -890,6 +925,7 @@ declare -Ar SUMMARY=(
   [eza]='modern interactive directory listing'
   [delta]='readable syntax-aware pager for Git diffs'
   [difftastic]='structural syntax-tree diff for understanding code changes'
+  [tokei]='count source lines by language'
   [jq]='query and transform JSON'
   [yq]='query and edit YAML and related config formats'
   [mlr]='streaming named-field processing for CSV, TSV, and JSON'
@@ -986,7 +1022,8 @@ Fast decision map:
   Perform a simple textual replacement   sd
   Search or rewrite code structurally     ast-grep
   Benchmark commands                      hyperfine
-  Expose project commands                 just
+  Discover and run project workflows     mise tasks / mise run <task>
+  Run existing justfile recipes           just
   Rerun on file changes                   watchexec
   Validate and format shell               shellcheck + shfmt
   Manage language/tool versions           mise
@@ -1399,18 +1436,30 @@ Notes:
   a result. Hyperfine improves measurement mechanics, not experimental design.
 DOC
       ;;
-    just)
+    tokei)
       cat <<'DOC'
-JUST — explicit project command interface
+TOKEI — source size by language
 
 Purpose:
-  Put common development commands in a discoverable justfile with arguments,
-  dependencies, variables, recipes, and good errors—without pretending tasks
-  are timestamp-based build artifacts.
+  Count code, comments, and blank lines while respecting repository ignores.
+
+Examples:
+  tokei
+  tokei src tests
+  tokei --output json
+DOC
+      ;;
+    just)
+      cat <<'DOC'
+JUST — existing justfile recipes
+
+Purpose:
+  Run recipes in repositories that already use a justfile. This workstation
+  retains just for those projects; standards-based projects expose their
+  workflow through mise tasks.
 
 Use it when:
-  A repository has repeated test/lint/run/generate/release commands that should
-  be identical for humans, CI, and agents.
+  The repository documents a justfile as its command interface.
 
 Examples:
   just --list
@@ -1419,7 +1468,7 @@ Examples:
   just --choose          # interactive recipe selection when supported
 
 Keep make when:
-  You genuinely need an incremental dependency graph and artifact rebuild logic.
+  You need an incremental dependency graph and artifact rebuild logic.
 DOC
       ;;
     watchexec)
@@ -1496,16 +1545,15 @@ ZSH — interactive shell retained by this setup
 
 Purpose:
   Provide a configurable interactive environment with completion, autosuggest,
-  syntax highlighting, Atuin history, zoxide navigation, fzf bindings, mise,
-  and Starship.
+  syntax highlighting, Atuin history, zoxide navigation, fzf bindings,
+  and Starship. Project workflows use mise tasks.
 
 Use it when:
   Working interactively in WSL. This bootstrap intentionally installs no fish,
   Nushell, Oils/YSH, Xonsh, or PowerShell shell environment.
 
 Examples:
-  exec zsh
-  source ~/.zshrc
+  exec zsh              # replace the shell and clear old hooks
   sz                    # managed reload alias
   bindkey               # inspect active key bindings
 
@@ -1564,8 +1612,8 @@ DOC
 MISE — polyglot tool-version and environment manager
 
 Purpose:
-  Pin language/runtime/tool versions per project, activate them in Zsh, manage
-  environment variables, and optionally expose tasks through one coherent layer.
+  Pin project tool versions and environments, and expose project workflows
+  through tasks such as mise run build and mise run test.
 
 Use it when:
   Repositories require different Node, Python, Go, Java, or other tool versions.
@@ -1578,9 +1626,10 @@ Examples:
   mise exec -- node --version
 
 Notes:
-  Prefer checked-in mise configuration for reproducibility. Projects adopting
-  this catalog use mise run as their task menu. Keep just for existing projects
-  that already use a justfile.
+  Prefer checked-in mise configuration for reproducibility. mise run supplies
+  the task environment without shell activation. Use mise exec only when a
+  one-off command needs a project-pinned tool. Run host tools directly.
+  Keep just for existing projects that already use a justfile.
 DOC
       ;;
     starship)
@@ -2090,7 +2139,7 @@ _toolhelp() {
     'all:show the complete reference'
   )
   tools=(
-    rg fd fzf zoxide bat eza delta difftastic jq yq mlr sd ast-grep
+    rg fd fzf zoxide bat eza delta difftastic tokei jq yq mlr sd ast-grep
     hyperfine just watchexec shellcheck shfmt zsh atuin tldr mise starship
     cargo-binstall jj gh lazygit btop dust duf lnav xh ouch zstd trash age
     tmux herdr nvim dagger
@@ -2130,10 +2179,17 @@ write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 << 'ZSHRC'
 
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME=""
+# Updates run explicitly through this bootstrap.
+zstyle ':omz:update' mode disabled
 
 export EDITOR="nvim"
 export VISUAL="nvim"
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+typeset -U path fpath
+# Project workflows use mise run; shell tools use their installed binaries.
+# Drop shims inherited from a parent process without removing host PATH entries.
+path=("${(@)path:#${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}")
+path=("$HOME/.local/bin" "$HOME/.cargo/bin" $path)
+export PATH
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
@@ -2150,7 +2206,6 @@ source "$ZSH/oh-my-zsh.sh"
 
 [[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
 
-command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
@@ -2165,7 +2220,7 @@ command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
 alias cls=clear
-alias sz='source ~/.zshrc'
+alias sz='exec zsh'
 alias vi=nvim
 alias vim=nvim
 alias ..='cd ..'
@@ -2319,6 +2374,8 @@ HELP
 # <<< wsl-bootstrap managed zshrc <<<
 ZSHRC
 
+configure_zshenv
+
 ZSH_PATH="$(command -v zsh || true)"
 if [[ -n "$ZSH_PATH" ]]; then
   grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells > /dev/null
@@ -2431,27 +2488,34 @@ SESSIONIZER_MARKER="# >>> wsl-bootstrap managed tmux-sessionizer >>>"
 write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 << 'SESSIONIZER'
 #!/usr/bin/env bash
 set -euo pipefail
+IFS=$'\n\t'
 # >>> wsl-bootstrap managed tmux-sessionizer >>>
 
 roots_raw="${TMUX_SESSIONIZER_ROOTS:-$HOME/dev:$HOME/src:$HOME/projects:$HOME/Developer:$HOME/Code}"
 IFS=':' read -r -a roots <<< "$roots_raw"
 
-candidates=()
-for r in "${roots[@]}"; do
-  [[ -d "$r" ]] || continue
-  while IFS= read -r d; do candidates+=("$d"); done < <(
-    find "$r" -mindepth 1 -maxdepth 2 -type d \( -name .git -prune -o -print \) 2>/dev/null
-  )
-done
-
-mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | awk '!seen[$0]++')
-selected="$(printf '%s\n' "${candidates[@]}" | fzf --height=40% --reverse --prompt='session> ' || true)"
+selected="$(
+  for root in "${roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    fd --type d --min-depth 1 --max-depth 2 --hidden \
+      --exclude .git --exclude node_modules --exclude .venv . "$root"
+  done | sort -u | fzf --height=40% --reverse --prompt='session> ' || true
+)"
 [[ -n "$selected" ]] || exit 0
+selected="$(cd -- "$selected" && pwd -P)"
 
 name="$(basename "$selected" | tr -c '[:alnum:]_-' '_' | sed 's/^_*//; s/_*$//')"
 [[ -n "$name" ]] || name="session"
-tmux has-session -t "$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$selected"
-tmux switch-client -t "$name" 2>/dev/null || tmux attach -t "$name"
+# Distinguish repositories with the same basename in different roots.
+identity="$(printf '%s' "$selected" | cksum)"
+name="$name-${identity%% *}"
+
+tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$selected"
+if [[ -n "${TMUX:-}" ]]; then
+  tmux switch-client -t "=$name"
+else
+  tmux attach -t "=$name"
+fi
 
 # <<< wsl-bootstrap managed tmux-sessionizer <<<
 SESSIONIZER

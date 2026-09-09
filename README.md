@@ -8,10 +8,18 @@ Each template starts strict but stays close to its ecosystem. Use it as a
 high-signal baseline. Then narrow or remove rules that do not fit the project's
 risk, lifecycle, domain, or team tolerance.
 
-The copied baseline should also give agents enough local evidence to work
-without unwritten instructions. It favors conventional layouts, nearby
-contracts, explicit side effects, actionable failures, and deterministic
-commands.
+The baseline supports agent-driven delivery. The human owns product intent,
+constraints, and acceptance; agents perform bounded implementation and
+verification. A fresh agent entering a repository should discover its workflows
+and contracts locally, then return results backed by runnable evidence.
+Conventional layouts, explicit side effects, and actionable failures reduce the
+human's need to supervise implementation details.
+
+Every tool, rule, and abstraction must remove identifiable uncertainty,
+defects, or manual work at an acceptable runtime and maintenance cost. Fast
+terminal interactions and short feedback loops are part of that contract.
+Uniform project task names help agents switch contexts; wrapping ordinary host
+commands adds no such benefit.
 
 ## Adoption Model
 
@@ -218,9 +226,10 @@ with explicit project-specific task dependencies or narrower markers.
 
 The personal bootstrap scripts are at
 `extras/workstation/macbook-setup.sh` and
-`extras/workstation/wsl-setup.sh`. They install mise, so they are the explicit
-exception to the mise-only project command surface. Read the relevant script
-before you run it directly on the target machine.
+`extras/workstation/wsl-setup.sh`. Read the relevant script before you run it
+directly on the target machine. They install host tools through native
+installers and keep shell startup independent of mise. Project tasks work
+without interactive mise activation or shims.
 
 ### 6. Verify the copied baseline
 
@@ -235,7 +244,9 @@ before you run it directly on the target machine.
 
 ## Use Mise for Development and CI
 
-Developers and CI use the same command surface:
+Developers and CI use the same project workflow commands. Ordinary utilities
+such as `tokei`, `rg`, and `git` run directly; see [mise usage](Mise/README.md)
+for the boundary between project tasks and host tools.
 
 ```sh
 mise run install

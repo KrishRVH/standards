@@ -14,7 +14,7 @@ PREFERENCE** identifies a local design choice.
 
 ## Work and verification
 
-Use `mise run ...` for development. Run `mise run ts:effect:overview` when
+Use `mise run ...` for project workflows. Run `mise run ts:effect:overview` when
 orienting to services, layers, and errors. Select checks for the change:
 
 | Change                         | First checks                                     |

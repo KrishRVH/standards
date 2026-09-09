@@ -543,7 +543,7 @@ fn cargo_workspace_inputs(
                 if let Some(parent) = source.parent() {
                     inputs.enumeration_roots.insert(parent.to_path_buf());
                 }
-                inputs.target_sources.push(source);
+                inputs.target_sources.push(target.src_path.clone());
             }
         }
     }
@@ -733,7 +733,7 @@ fn add_cargo_target_path(
 fn scan_source_file(
     source_path: &Path,
     canonical_root: &Path,
-    visited: &mut BTreeSet<PathBuf>,
+    visited: &mut BTreeSet<(PathBuf, PathBuf)>,
     violations: &mut Vec<String>,
 ) -> io::Result<()> {
     let canonical_path = match fs::canonicalize(source_path) {
@@ -754,7 +754,14 @@ fn scan_source_file(
         ));
         return Ok(());
     }
-    if !visited.insert(canonical_path.clone()) {
+    let Some(parent) = source_path.parent() else {
+        violations.push(format!("{} has no source directory", source_path.display()));
+        return Ok(());
+    };
+    let include_directory = fs::canonicalize(parent)?;
+    // Rust resolves include! beside the source path used by the compiler. Two
+    // symlinks to one file can therefore consume different included files.
+    if !visited.insert((canonical_path.clone(), include_directory.clone())) {
         return Ok(());
     }
 
@@ -778,15 +785,8 @@ fn scan_source_file(
     for reference in source_references(&tokens) {
         match reference {
             SourceReference::LiteralInclude(relative_path) => {
-                let Some(parent) = canonical_path.parent() else {
-                    violations.push(format!(
-                        "{} has no parent for include!({relative_path:?})",
-                        canonical_path.display()
-                    ));
-                    continue;
-                };
                 scan_source_file(
-                    &parent.join(relative_path),
+                    &include_directory.join(relative_path),
                     canonical_root,
                     visited,
                     violations,
@@ -1067,6 +1067,86 @@ fn follows_all_cargo_custom_target_source_paths() {
             "custom target {source} was not scanned: {violations:?}"
         );
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn follows_includes_relative_to_each_symlinked_cargo_target() {
+    use std::os::unix::fs::symlink;
+
+    let root =
+        policy_fixture_root("symlink-include-context").expect("fixture root should be creatable");
+    for directory in ["first", "second", "shared"] {
+        fs::create_dir_all(root.join(directory)).expect("source directory should be creatable");
+    }
+    fs::write(
+        root.join("Cargo.toml"),
+        r#"
+            [package]
+            name = "symlink-include-context"
+            version = "0.1.0"
+            edition = "2024"
+
+            [[bin]]
+            name = "first"
+            path = "first/main.inc"
+
+            [[bin]]
+            name = "second"
+            path = "second/main.inc"
+
+            [workspace]
+            [workspace.lints]
+            [lints]
+            workspace = true
+        "#,
+    )
+    .expect("fixture manifest should be writable");
+    write_fixture_lock(&root, &["symlink-include-context"])
+        .expect("fixture lock should be writable");
+    fs::write(root.join("shared/main.inc"), "include!(\"payload.inc\");")
+        .expect("shared source should be writable");
+    fs::write(
+        root.join("shared/payload.inc"),
+        "compile_error!(\"include must use the source symlink directory\");",
+    )
+    .expect("unused canonical sibling should be writable");
+    for directory in ["first", "second"] {
+        symlink("../shared/main.inc", root.join(directory).join("main.inc"))
+            .expect("source symlink should be creatable");
+    }
+    fs::write(root.join("first/payload.inc"), "fn main() {}")
+        .expect("first included source should be writable");
+    fs::write(
+        root.join("second/payload.inc"),
+        "#[allow(dead_code)] fn main() {}",
+    )
+    .expect("second included source should be writable");
+
+    let output = Command::new(env!("CARGO"))
+        .args(["check", "--locked", "--manifest-path"])
+        .arg(root.join("Cargo.toml"))
+        .arg("--target-dir")
+        .arg(root.join("target"))
+        .output()
+        .expect("Cargo should validate the fixture's real include resolution");
+    assert!(
+        output.status.success(),
+        "the supported symlink layout must compile: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let violations = project_policy_violations(&root).expect("fixture should be readable");
+    assert_eq!(violations.len(), 1, "unexpected violations: {violations:?}");
+    assert!(violations[0].contains("second/payload.inc"));
+
+    fs::write(root.join("second/payload.inc"), "fn main() {}")
+        .expect("clean included source should be writable");
+    let violations = project_policy_violations(&root).expect("fixture should be readable");
+    assert!(
+        violations.is_empty(),
+        "unexpected violations: {violations:?}"
+    );
 }
 
 #[test]

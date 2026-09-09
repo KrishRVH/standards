@@ -1,6 +1,3 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier/flat';
@@ -12,11 +9,6 @@ import tseslint from 'typescript-eslint';
 
 import { standardsPlugin } from './scripts/eslint-local-rules.mjs';
 
-/**
- * Flat config runs in ESM, so reconstruct __dirname for TS project service.
- */
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const applicationSourceFiles = 'src/**/*.{cts,mts,ts,tsx}';
 const javaScriptFiles = '**/*.{cjs,js,jsx,mjs}';
 const sourceFiles = '**/*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}';
 const typeScriptFiles = '**/*.{cts,mts,ts,tsx}';
@@ -26,10 +18,6 @@ const unsupportedJavaScriptSourceFiles = 'src/**/*.{cjs,js,jsx,mjs}';
 
 // eslint-disable-next-line standards/no-default-export -- ESLint flat config is consumed through a default export by contract.
 export default defineConfig(
-  /**
-   * 1) Global ignores (applies regardless of CLI globs)
-   * Intent: never lint generated output, vendor deps, coverage, or TS incremental cache files.
-   */
   globalIgnores(
     [
       '**/build/**',
@@ -46,23 +34,12 @@ export default defineConfig(
     'base/global-ignores',
   ),
 
-  /**
-   * 2) Core ESLint recommended rules (baseline correctness for JS).
-   */
   { name: 'base/eslint/recommended', ...eslint.configs.recommended },
 
-  /**
-   * 2a) Project-local semantic rules for boundaries that cannot be expressed
-   * reliably as syntax selectors alone.
-   */
+  // Scope and alias tracking require semantic rules beyond syntax selectors.
   { name: 'base/local-rules', plugins: { standards: standardsPlugin } },
 
-  /**
-   * 2b) Exception protocol: every suppression is per-site, reasoned, and
-   * self-expiring. A disable without rule names is a silenced wall, not an
-   * exception; a disable without a `-- reason` is not reviewable; and block
-   * disables span unbounded code. Unused directives already fail below.
-   */
+  // Suppressions name the rule and reason, cover one line, and fail when stale.
   { ...comments.recommended, name: 'eslint-comments/recommended' },
   {
     name: 'base/exception-protocol',
@@ -73,16 +50,10 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 3) RegExp correctness and complexity checks.
-   * The recommended preset is intentionally used instead of the semver-unstable all preset.
-   */
+  // The recommended RegExp preset has a stable semver contract; the all preset does not.
   { ...regexp.configs['flat/recommended'], name: 'regexp/recommended' },
 
-  /**
-   * 4) Global language assumptions.
-   * Add browser, node, test-runner, or framework globals in project-specific overlays.
-   */
+  // Runtime and framework globals belong in project-specific overlays.
   {
     name: 'base/language',
     languageOptions: {
@@ -94,10 +65,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 5) Parse all TS/TSX files, including config files outside src/tests.
-   * Type-aware rules are scoped below so config files do not need to be in tsconfig.json.
-   */
+  // Parse config files outside src/tests without requiring a tsconfig entry.
   {
     name: 'typescript/parse-only',
     files: [typeScriptFiles],
@@ -111,23 +79,14 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 6) JSX/TSX accessibility baseline.
-   * The preset also enables JSX parsing without adding browser globals.
-   */
+  // This preset enables JSX parsing without adding browser globals.
   {
     ...jsxA11y.configs.recommended,
     name: 'accessibility/recommended',
     files: ['src/**/*.tsx'],
   },
 
-  /**
-   * 7) Import/export baseline using ESLint core rules only.
-   * This avoids eslint-plugin-import compatibility churn while preserving the key policies:
-   * - no duplicate imports
-   * - sorted import specifiers
-   * - no default exports
-   */
+  // Core import checks avoid an additional plugin compatibility dependency.
   {
     name: 'imports/baseline',
     files: [sourceFiles],
@@ -146,9 +105,6 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 8) TS/TSX: type-aware correctness and modern TypeScript idioms.
-   */
   {
     name: 'typescript/strict-typechecked',
     files: [typeScriptSourceFiles, typeScriptTestFiles],
@@ -157,19 +113,15 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
-      /**
-       * Ban TS constructs that require special emit semantics or obscure module structure.
-       * Aligns with `erasableSyntaxOnly` and transpiler-owned JavaScript output.
-       */
+      // Keep source syntax erasable so the transpiler owns JavaScript output.
       'standards/no-module-mutable-binding': 'error',
       'standards/no-typescript-emit-syntax': 'error',
       'standards/no-global-mutation': 'error',
 
-      // General correctness / maintainability rules
       'array-callback-return': 'error',
       eqeqeq: 'error',
       'no-debugger': 'error',
@@ -186,13 +138,8 @@ export default defineConfig(
       'prefer-const': 'error',
       yoda: 'error',
 
-      // TS hygiene / correctness
-      /**
-       * Casts are earned at validated boundaries only (EFF-030). A narrowing
-       * assertion outside a validated adapter is a per-site exception with a
-       * reasoned suppression; an object-literal assertion has a safe
-       * replacement in `satisfies`.
-       */
+      // EFF-030 permits narrowing casts only at validated boundaries with a
+      // reasoned per-site suppression. Object literals use `satisfies`.
       '@typescript-eslint/consistent-type-assertions': [
         'error',
         { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' },
@@ -217,13 +164,8 @@ export default defineConfig(
       '@typescript-eslint/prefer-readonly': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
 
-      /**
-       * Controlled escape hatches:
-       * - allow @ts-expect-error only with a `-- reason` in the same shape as
-       *   ESLint disable directives; the compiler expires it when the error
-       *   stops occurring, so stale suppressions cannot accumulate
-       * - disallow the non-expiring ts comment escapes entirely
-       */
+      // Type exceptions use the same reason format as lint exceptions; the
+      // compiler rejects @ts-expect-error when the expected error disappears.
       '@typescript-eslint/ban-ts-comment': [
         'error',
         {
@@ -239,10 +181,7 @@ export default defineConfig(
       '@typescript-eslint/only-throw-error': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
 
-      /**
-       * Very strict boolean coercion policy. Forces explicit checks.
-       * Tradeoff: more verbosity; upside: fewer truthiness bugs.
-       */
+      // Explicit checks distinguish absent values from zero, false, and empty strings.
       '@typescript-eslint/strict-boolean-expressions': [
         'error',
         {
@@ -258,15 +197,11 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 8b) Production-only ambient-state wall for every supported application
-   * source extension. Unowned timers and cross-process or cross-thread shared
-   * memory are design smells in src; tests may hold a timer backstop, so the
-   * wall stops at the src boundary.
-   */
+  // Application work needs explicit timer and process ownership. Tests may
+  // use host timers as backstops, so these restrictions stop at src.
   {
     name: 'application/ambient-state-wall',
-    files: [applicationSourceFiles],
+    files: [typeScriptSourceFiles],
     rules: {
       'standards/no-ambient-runtime': 'error',
       'standards/no-global-mutation': 'error',
@@ -332,11 +267,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 8c) Tests may assert invariants the test itself established, mirroring
-   * the production/test split of the panic-class rules. Production code is
-   * not a test fixture; nothing else relaxes here.
-   */
+  // Tests may assert invariants they establish themselves.
   {
     name: 'typescript/tests-assertion-exemptions',
     files: [typeScriptTestFiles],
@@ -345,9 +276,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 9) d.ts: allow declare global/module while keeping erasable-syntax bans.
-   */
+  // Declaration files may describe ambient globals and modules.
   {
     name: 'typescript/dts-ambient-ok',
     files: ['**/*.d.ts'],
@@ -356,10 +285,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 10) UI overlay: component files delegate fiber ownership to a tested framework
-   * controller. Runtime adapters should live in ordinary .ts modules.
-   */
+  // Components delegate fiber ownership to a tested controller in an ordinary .ts module.
   {
     name: 'effect/ui-component-fiber-ownership',
     files: ['src/**/*.tsx'],
@@ -374,11 +300,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 11) JavaScript tooling files: disable type-aware TS rules because allowJs
-   * is deliberately false. Still enforce ESM-only; JavaScript under src is
-   * rejected by the application-source policy below.
-   */
+  // JavaScript tooling stays ESM; allowJs is false, so type-aware rules do not apply.
   {
     name: 'javascript/esm-only',
     files: [javaScriptFiles],
@@ -388,11 +310,7 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 11b) Application code is compiler-owned. JavaScript remains available for
-   * tooling/config files, but cannot silently bypass the strict TypeScript gate
-   * under src.
-   */
+  // Application source must remain inside the strict TypeScript gate.
   {
     name: 'application/typescript-source-only',
     files: [unsupportedJavaScriptSourceFiles],
@@ -401,21 +319,11 @@ export default defineConfig(
     },
   },
 
-  /**
-   * 12) Prettier must come last to turn off conflicting formatting rules.
-   */
+  // Apply Prettier after lint presets, then restore the project's brace policy.
   { ...prettier, name: 'prettier/config' },
 
-  /**
-   * 13) Re-enable specific rules you want even if Prettier disables them.
-   * Here: always require braces for blocks.
-   */
   { name: 'base/prettier-overrides', rules: { curly: 'error' } },
 
-  /**
-   * 14) Hygiene: fail on unused eslint-disable comments and on inline configs
-   * that change nothing — stale suppressions self-expire instead of piling up.
-   */
   {
     name: 'base/hygiene',
     linterOptions: { reportUnusedDisableDirectives: 'error', reportUnusedInlineConfigs: 'error' },

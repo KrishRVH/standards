@@ -11,13 +11,15 @@ dagger/
   src/index.ts
 ```
 
-Do not call Dagger directly in day-to-day use. Dagger is pinned and invoked by
-mise:
+Use these project tasks for the standard isolated workflow; they select the
+pinned Dagger version:
 
 ```sh
 mise run dagger:develop
 mise run dagger:standards:check
 ```
+
+Direct Dagger commands remain available for focused diagnosis.
 
 The module starts from the official mise `v2026.6.12` image at an immutable
 multi-architecture digest. It enables strict lockfile mode, then runs `mise run

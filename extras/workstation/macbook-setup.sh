@@ -47,6 +47,21 @@ TMP_PATHS=()
 SUDO_KEEPALIVE_PID=""
 HOMEBREW_PREFIX=""
 
+# Availability checks must see host installations, not inherited mise shims.
+remove_mise_shims_from_path() {
+  local shim_dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims"
+  local remaining="${PATH}:" entry filtered="" separator=""
+  while [[ "$remaining" == *:* ]]; do
+    entry="${remaining%%:*}"
+    remaining="${remaining#*:}"
+    if [[ "$entry" != "$shim_dir" ]]; then
+      filtered="${filtered}${separator}${entry}"
+      separator=:
+    fi
+  done
+  export PATH="$filtered"
+}
+
 has() { command -v "$1" > /dev/null 2>&1; }
 msg() { printf '==> %s\n' "$*"; }
 ok() { printf 'ok: %s\n' "$*"; }
@@ -704,11 +719,13 @@ export EDITOR="nvim"
 export VISUAL="nvim"
 export CLICOLOR=1
 
-typeset -U path
+typeset -U path fpath
 path=("$HOME/.local/bin" "$HOME/.cargo/bin" $path)
 export PATH
 
-command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+# Project workflows use mise run; shell tools use their installed binaries.
+# Drop shims inherited from a parent process without removing host PATH entries.
+path=("${(@)path:#${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}")
 
 _colon_prepend_once() {
   local var="$1"
@@ -750,7 +767,7 @@ command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
 alias cls=clear
-alias sz='source ~/.zshrc'
+alias sz='exec zsh'
 alias ls='ls -G'
 alias ll='ls -alF'
 alias vi=nvim
@@ -1005,56 +1022,31 @@ set -euo pipefail
 IFS=$'\n\t'
 # >>> macbook-bootstrap managed tmux-sessionizer >>>
 
-has() { command -v "$1" >/dev/null 2>&1; }
-
 roots_raw="${TMUX_SESSIONIZER_ROOTS:-$HOME/dev:$HOME/src:$HOME/projects:$HOME/Developer:$HOME/Code}"
 IFS=':' read -r -a roots <<< "$roots_raw"
 
-tmp="$(mktemp "${TMPDIR:-/tmp}/tmux-sessionizer.XXXXXX")"
-trap 'rm -f "$tmp"' EXIT
-
-for r in "${roots[@]}"; do
-  [[ -d "$r" ]] || continue
-
-  if has fd; then
-    fd --type d --min-depth 1 --max-depth 2 --hidden \
-      --exclude .git \
-      --exclude Library \
-      --exclude Applications \
-      --exclude Movies \
-      --exclude Music \
-      --exclude Pictures \
-      --exclude Public \
-      --exclude .Trash \
-      . "$r" >>"$tmp" 2>/dev/null || true
-  else
-    prefix="${r%/}/"
-    find "$r" \( -name .git -o -name Library -o -name Applications -o -name Movies -o -name Music -o -name Pictures -o -name Public -o -name .Trash \) -prune -o -type d -print 2>/dev/null |
-      awk -v prefix="$prefix" '
-        $0 == substr(prefix, 1, length(prefix) - 1) { next }
-        index($0, prefix) == 1 {
-          rel = substr($0, length(prefix) + 1)
-          slash_count = gsub("/", "/", rel)
-          if (rel != "" && slash_count < 2) {
-            print $0
-          }
-        }
-      ' >>"$tmp" || true
-  fi
-done
-
 selected="$(
-  awk '!seen[$0]++' "$tmp" |
-    fzf --height=40% --reverse --prompt='session> ' || true
+  for root in "${roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    fd --type d --min-depth 1 --max-depth 2 --hidden \
+      --exclude .git --exclude node_modules --exclude .venv . "$root"
+  done | sort -u | fzf --height=40% --reverse --prompt='session> ' || true
 )"
-
 [[ -n "$selected" ]] || exit 0
+selected="$(cd -- "$selected" && pwd -P)"
 
 name="$(basename "$selected" | tr -c '[:alnum:]_-' '_' | sed 's/^_*//; s/_*$//')"
 [[ -n "$name" ]] || name="session"
+# Distinguish repositories with the same basename in different roots.
+identity="$(printf '%s' "$selected" | cksum)"
+name="$name-${identity%% *}"
 
-tmux has-session -t "$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$selected"
-tmux switch-client -t "$name" 2>/dev/null || tmux attach -t "$name"
+tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$selected"
+if [[ -n "${TMUX:-}" ]]; then
+  tmux switch-client -t "=$name"
+else
+  tmux attach -t "=$name"
+fi
 
 # <<< macbook-bootstrap managed tmux-sessionizer <<<
 SESSIONIZER
@@ -1210,7 +1202,7 @@ print_summary() {
 
   if [ "${#REQUIRED_FAILURES[@]}" -eq 0 ] && [ "${#OPTIONAL_FAILURES[@]}" -eq 0 ]; then
     printf 'All required and optional enabled steps completed.\n'
-    printf '\nOpen a new Ghostty tab/window, or run: source ~/.zshrc\n'
+    printf '\nOpen a new Ghostty tab/window, or run: exec zsh\n'
     return 0
   fi
 
@@ -1237,6 +1229,7 @@ print_summary() {
 }
 
 main() {
+  remove_mise_shims_from_path
   install_traps
   require_macos
   require_normal_user
@@ -1259,6 +1252,14 @@ main() {
     tmux
     fzf
     ripgrep
+    tokei
+    gh
+    git-delta
+    difftastic
+    hyperfine
+    ast-grep
+    shellcheck
+    shfmt
     jq
     tree
     fd

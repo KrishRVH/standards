@@ -56,8 +56,8 @@ An endpoint target has three distinct values:
 
 Decode configured origins as HTTPS origin-only values: valid URL, no
 credentials, no meaningful path, no query, no fragment. Normalize with the
-same `URL.origin` representation used for a target and deduplicate after
-normalization. Reject duplicate target IDs and reject unauthorized targets
+same `URL.origin` representation used for a target and reject duplicate origins
+after normalization. Reject duplicate target IDs and reject unauthorized targets
 before adapter invocation. Public results retain the logical ID, not arbitrary
 path/query detail.
 

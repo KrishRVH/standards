@@ -71,7 +71,7 @@ and the always-loaded TypeScript fragment under the measured word budget. The
 manifest keeps copied files byte-identical with the tester. Prose-only residuals
 stay explicitly marked `Manual` in the enforcement map.
 
-Run all development tools through mise. The local gate should include frozen
+Use mise tasks for project verification. The local gate should include frozen
 install, format, lint, TypeScript, Effect diagnostics, expected diagnostics,
 deterministic unit/semantic/negative tests, property tests, audit, knip,
 mutation testing, lock/drift checks, and the repository aggregate. Report every

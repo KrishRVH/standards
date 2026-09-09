@@ -42,8 +42,8 @@ readonly CDB="$BUILD_DIR/compile_commands.json"
 [[ -s "$CDB" ]] ||
   fail "mandatory analysis requires $CDB; run the clang-fast configure preset"
 
-clang_version="$($CLANG --version | head -n 1)"
-tidy_version="$($CLANG_TIDY --version 2>&1)"
+clang_version="$("$CLANG" --version | head -n 1)"
+tidy_version="$("$CLANG_TIDY" --version 2>&1)"
 clang_reported_version="$(awk '{for (i = 1; i < NF; i++) if ($i == "version") {print $(i + 1); exit}}' <<< "$clang_version")"
 tidy_reported_version="$(awk '$1 == "LLVM" && $2 == "version" {print $3; exit}' <<< "$tidy_version")"
 [[ "$clang_reported_version" == "$REQUIRED_VERSION" ]] ||
@@ -51,11 +51,11 @@ tidy_reported_version="$(awk '$1 == "LLVM" && $2 == "version" {print $3; exit}' 
 [[ "$tidy_reported_version" == "$REQUIRED_VERSION" ]] ||
   fail "clang-tidy $REQUIRED_VERSION is required; parsed version: ${tidy_reported_version:-<none>}"
 
-resource_dir="$($CLANG -print-resource-dir)"
+resource_dir="$("$CLANG" -print-resource-dir)"
 [[ -f "$resource_dir/include/stddef.h" ]] ||
   fail "Clang resource headers are missing from $resource_dir"
 
-$CLANG_TIDY --verify-config --config-file="$CONFIG" > /dev/null
+"$CLANG_TIDY" --verify-config --config-file="$CONFIG" > /dev/null
 
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/c-quality.XXXXXX")"
 trap 'rm -rf "$scratch_dir"' EXIT
@@ -96,7 +96,7 @@ if [[ "$PROFILE" == "hard" ]]; then
   readonly EXPECTED_CHECKS="$SOURCE_ROOT/standards-tests/analyzer/hard-checks.txt"
   [[ -f "$EXPECTED_CHECKS" ]] ||
     fail "resolved-check contract is missing: $EXPECTED_CHECKS"
-  $CLANG_TIDY --config-file="$CONFIG" --list-checks |
+  "$CLANG_TIDY" --config-file="$CONFIG" --list-checks |
     sed -n 's/^    //p' > "$scratch_dir/resolved-checks.txt"
   if ! cmp -s "$EXPECTED_CHECKS" "$scratch_dir/resolved-checks.txt"; then
     diff -u "$EXPECTED_CHECKS" "$scratch_dir/resolved-checks.txt" >&2 || true

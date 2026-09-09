@@ -42,8 +42,6 @@ def validate_report(path: Path) -> None:
         fail("Interrogate TOTAL row does not match the pinned summary columns.")
 
     cells = [cell.strip() for cell in match.group(0).split("|")]
-    if len(cells) != 7:
-        fail("Interrogate TOTAL row does not contain the pinned number of columns.")
     _, _, total_text, missing_text, covered_text, percentage_text, _ = cells
     total = int(total_text)
     missing = int(missing_text)

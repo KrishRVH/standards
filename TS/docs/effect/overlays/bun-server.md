@@ -74,8 +74,8 @@ rejection, cancellation that never settles, and host request abort.
 ## Destination policy and SSRF boundary
 
 Decode policy origins as HTTPS URLs with no credentials, path beyond `/`,
-query, or fragment. Store their canonical `URL.origin` values and deduplicate
-after normalization. For each target, keep the caller's stable target ID
+query, or fragment. Store their canonical `URL.origin` values and reject
+duplicates after normalization. For each target, keep the caller's stable target ID
 separate from the transport URL and derive a safe origin for authorization and
 diagnostics. Reject credentials, an unauthorized origin, excess target count,
 and excess concurrency before native I/O.

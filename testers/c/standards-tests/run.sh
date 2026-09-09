@@ -225,6 +225,7 @@ run_sanitizer_detection_tests() {
 run_format_tests() {
   local scratch_dir="$1"
   local fixture_root="$ROOT/standards-tests/format"
+  local source_dir="$scratch_dir/format source"
 
   note "clang-format golden layout and idempotence"
   clang-format --style="file:$ROOT/.clang-format" --assume-filename=representative.c \
@@ -238,6 +239,13 @@ run_format_tests() {
   expect_failure_containing "wrong clang-format version" "clang-format 22.1.8 is required" \
     "$scratch_dir/wrong-format-version.log" \
     env C_CLANG_FORMAT=/usr/bin/true "$ROOT/c-format.sh" check "$ROOT"
+
+  note "clang-format override accepts an executable path with spaces"
+  mkdir "$source_dir"
+  cp "$ROOT/.clang-format" "$source_dir/.clang-format"
+  cp "$scratch_dir/formatted.c" "$source_dir/example.c"
+  ln -s "$(command -v clang-format)" "$scratch_dir/clang format"
+  C_CLANG_FORMAT="$scratch_dir/clang format" "$ROOT/c-format.sh" check "$source_dir"
 }
 
 run_analyzer_tests() {
@@ -253,6 +261,15 @@ run_analyzer_tests() {
   configure_analyzer_fixture "$positive_build" \
     "$analyzer_root/fixtures/cohesive-diagnostic.c"
   C_QUALITY_SHOW_CHECKS=0 "$ROOT/c-quality.sh" hard "$ROOT" "$positive_build"
+
+  note "Analyzer overrides accept executable paths with spaces"
+  ln -s "$(command -v clang)" "$scratch_dir/clang compiler"
+  ln -s "$(command -v clang-tidy)" "$scratch_dir/clang tidy"
+  ln -s "$(command -v run-clang-tidy)" "$scratch_dir/run clang tidy"
+  C_CLANG="$scratch_dir/clang compiler" \
+    C_CLANG_TIDY="$scratch_dir/clang tidy" \
+    C_RUN_CLANG_TIDY="$scratch_dir/run clang tidy" \
+    C_QUALITY_SHOW_CHECKS=0 "$ROOT/c-quality.sh" hard "$ROOT" "$positive_build"
 
   while IFS='|' read -r fixture expected; do
     local build_dir="$scratch_dir/analyzer-${fixture// /-}"

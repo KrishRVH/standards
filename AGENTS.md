@@ -11,19 +11,24 @@ changing architecture or domain language. Use this file for agent working rules.
 
 ## Design Target
 
-These standards primarily pursue ecosystem-idiomatic, almost systems-like
-strictness and elegance. Agentic development is central: an agent should be
-able to discover the intended workflow, understand contracts from nearby code,
-config, and tests, make a narrow change, and prove it through deterministic
-commands without relying on tribal knowledge.
+Optimize for agent-driven delivery: the human owns product intent, constraints,
+and acceptance; agents discover, implement, diagnose, and verify bounded work.
+A fresh agent should find the repository's workflows, contracts, and current
+state from local files, then produce evidence the human can judge without
+reconstructing every implementation detail.
+
+Keep ecosystem-idiomatic, systems-like strictness where it prevents concrete
+failures. Judge each tool, rule, and abstraction by the uncertainty, defects, or
+manual work it removes, including its runtime and maintenance cost. Remove
+ceremony that cannot justify that cost.
 
 ## Principles
 
 - Complexity is the enemy. Prefer obvious files, direct data flow, and boring,
   strict, portable defaults over clever local machinery. See
   [grugbrain.dev](https://grugbrain.dev/).
-- `mise run ...` is the developer API; package managers, compilers, test
-  runners, and Dagger stay behind mise tasks.
+- `mise run ...` is the default entry point for project workflows such as
+  build, format, test, and CI. Keep the underlying toolchain in those tasks.
 - Prefer executable config as source of truth; docs should point at it, not
   duplicate it.
 - Design for agent legibility: conventional layouts, precise names and types,
@@ -46,8 +51,9 @@ commands without relying on tribal knowledge.
 
 ## Commands
 
-Repository development goes through mise. The standalone workstation bootstrap
-scripts are the explicit exception because they install mise itself.
+Use mise tasks for repository workflows and their reproducible checks.
+On entry, read the applicable agent guide and inspect `mise run tasks` and task
+definitions. Use the existing workflow and its arguments before adding a task.
 
 - `mise run tasks`: list tasks.
 - `mise run lock`: refresh the root mise lockfile after tool-version changes.
@@ -68,9 +74,19 @@ scripts are the explicit exception because they install mise itself.
 - `mise run standards:check`: root secret scan, ESLint and Prettier secondary
   validation, drift, Markdown, and Shell checks, plus every fixture gate.
 
-Do not call package managers, compilers, test runners, or Dagger directly unless
-fixing the relevant mise task itself. If install needs network, run it through
-mise and report that.
+Run ordinary utilities such as `git`, `rg`, and `tokei`, and standalone scripts,
+directly. Use native commands for focused diagnosis; run the relevant mise gate for final project
+verification. Use `mise exec -- <command>` only when that invocation needs a
+project-pinned tool or environment and no suitable task exists. If project
+installation needs network, run the install task and report that.
+
+Workstation tools and shell configuration follow host conventions. Keep prompt,
+history, navigation, and completion setup independent of mise. Shell activation
+and shims are optional choices for a concrete tool-version need, never a
+prerequisite for `mise run`. Measure startup and repeated prompt latency when
+changing shell integration. For workstation changes, read
+`extras/workstation/README.md` and test the generated configuration, including
+startup from a parent environment with stale shims.
 
 ## CI
 

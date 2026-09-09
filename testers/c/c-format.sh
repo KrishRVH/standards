@@ -17,7 +17,7 @@ fail() {
 command -v "$FORMATTER" > /dev/null 2>&1 ||
   fail "required formatter is unavailable: $FORMATTER"
 
-version="$($FORMATTER --version 2>&1)"
+version="$("$FORMATTER" --version 2>&1)"
 reported_version="$(awk '$1 == "clang-format" && $2 == "version" {print $3; exit}' <<< "$version")"
 [[ "$reported_version" == "$REQUIRED_VERSION" ]] ||
   fail "clang-format $REQUIRED_VERSION is required; parsed version: ${reported_version:-<none>}"

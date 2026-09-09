@@ -23,14 +23,6 @@ set(PROJECT_TEST_SOURCES
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-function(project_require_cxx_standard target scope)
-  set_target_properties(${target} PROPERTIES
-    CXX_EXTENSIONS OFF
-  )
-
-  target_compile_features(${target} ${scope} cxx_std_20)
-endfunction()
-
 function(project_apply_common target)
   get_target_property(_type ${target} TYPE)
   if(_type STREQUAL "STATIC_LIBRARY" OR _type STREQUAL "SHARED_LIBRARY" OR
@@ -45,8 +37,11 @@ function(project_apply_common target)
     set(_feature_scope PRIVATE)
   endif()
 
-  project_require_cxx_standard(${target} ${_feature_scope})
-  set_target_properties(${target} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+  target_compile_features(${target} ${_feature_scope} cxx_std_20)
+  set_target_properties(${target} PROPERTIES
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES OFF
+  )
 
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4 /permissive- /EHsc /Zc:__cplusplus)
@@ -76,9 +71,8 @@ function(project_apply_common target)
         -fno-omit-frame-pointer
         -fno-sanitize-recover=all
       )
-      get_target_property(_target_type ${target} TYPE)
-      if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
-         _target_type STREQUAL "MODULE_LIBRARY")
+      if(_type STREQUAL "EXECUTABLE" OR _type STREQUAL "SHARED_LIBRARY" OR
+         _type STREQUAL "MODULE_LIBRARY")
         target_link_options(${target} PRIVATE
           -fsanitize=address,undefined
           -fno-sanitize-recover=all
@@ -88,8 +82,7 @@ function(project_apply_common target)
   endif()
 
   if(WIN32 AND NOT MSVC AND PROJECT_MINGW_STATIC)
-    get_target_property(_target_type ${target} TYPE)
-    if(_target_type STREQUAL "EXECUTABLE")
+    if(_type STREQUAL "EXECUTABLE")
       target_link_options(${target} PRIVATE -static)
     endif()
   endif()

@@ -5,11 +5,16 @@ changing architecture or domain language. Use this file for agent working rules.
 
 ## Design Target
 
-Prioritize ecosystem-idiomatic, systems-like strictness and elegance. Agentic
-development is central: an agent should be able to discover the intended
-workflow, understand contracts from nearby code, config, and tests, make a
-narrow change, and prove it through deterministic commands without relying on
-tribal knowledge.
+Optimize for agent-driven delivery: the human owns product intent, constraints,
+and acceptance; agents discover, implement, diagnose, and verify bounded work.
+A fresh agent should find the repository's workflows, contracts, and current
+state from local files, then produce evidence the human can judge without
+reconstructing every implementation detail.
+
+Keep ecosystem-idiomatic strictness where it prevents concrete failures. Judge
+each tool, rule, and abstraction by the uncertainty, defects, or manual work it
+removes, including its runtime and maintenance cost. Remove ceremony that
+cannot justify that cost.
 
 ## Principles
 
@@ -34,7 +39,10 @@ tribal knowledge.
 
 ## Commands
 
-Everything a developer does goes through mise.
+Use `mise run ...` as the default entry point for project workflows such as
+build, format, test, and CI. Tasks hide the project-specific toolchain.
+On entry, read the applicable agent guide and inspect `mise run tasks` and task
+definitions. Use the existing workflow and its arguments before adding a task.
 
 - `mise run tasks`: list available tasks.
 - `mise run install`: install pinned tools.
@@ -50,8 +58,16 @@ Everything a developer does goes through mise.
 - `mise run dagger:standards:check`: optional isolated CI gate when Dagger is
   configured.
 
-Do not call package managers, compilers, test runners, or Dagger directly
-unless working on the mise task itself.
+Run ordinary utilities such as `git`, `rg`, and `tokei`, and standalone scripts,
+directly. Use native commands for focused diagnosis; run the relevant mise gate for final project
+verification. Use `mise exec -- <command>` only when that invocation needs a
+project-pinned tool or environment and no suitable task exists.
+
+Workstation tools and shell configuration follow host conventions. Keep prompt,
+history, navigation, and completion setup independent of mise. Shell activation
+and shims are optional choices for a concrete tool-version need, never a
+prerequisite for `mise run`. Measure startup and repeated prompt latency when
+changing shell integration.
 
 ## Editing
 
