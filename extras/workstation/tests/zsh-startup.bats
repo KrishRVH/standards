@@ -40,6 +40,12 @@ TOOL
     body { print }
   ' "$script" > "$fixture/startup.zsh"
   [[ -s "$fixture/startup.zsh" ]]
+  mkdir -p "$fixture/.config/shell"
+  awk '
+    /<< .SHELLENV./ { body = 1; next }
+    body && /^SHELLENV$/ { exit }
+    body { print }
+  ' "$script" > "$fixture/.config/shell/env.sh"
 
   local -a extra_env=()
   case "$layout" in
@@ -164,4 +170,125 @@ TOOL
   [[ "$output" == *"refusing to overwrite unmanaged file"* ]]
   cmp -s "$fixture/.zshrc" "$fixture/expected"
   [[ ! -e "$fixture/.zshenv" ]]
+}
+
+# Standard system installation paths are intentionally visible to these shell
+# fixtures. Assertions check ordering and preservation, not an exact full PATH.
+@test "generated environment preserves caller toolchains across agent shells" {
+  local script shell fixture="$BATS_TEST_TMPDIR/environment"
+  mkdir -p "$fixture/.config/shell" "$fixture/.cargo/bin" "$fixture/project tools" "$fixture/mise/shims" "$fixture/literal[*]"
+  printf '#!/bin/sh\nprintf "project\\n"\n' > "$fixture/project tools/node"
+  printf '#!/bin/sh\nprintf "host\\n"\n' > "$fixture/.cargo/bin/node"
+  chmod +x "$fixture/project tools/node" "$fixture/.cargo/bin/node"
+  for script in wsl-setup.sh macbook-setup.sh; do
+    awk '
+      /<< .SHELLENV./ { body = 1; next }
+      body && /^SHELLENV$/ { exit }
+      body { print }
+    ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/.config/shell/env.sh"
+    # shellcheck disable=SC2016 # Expanded when the child reads .zshenv.
+    printf '%s\n' '. "$HOME/.config/shell/env.sh"' > "$fixture/.zshenv"
+    for shell in /bin/sh /bin/bash /bin/zsh; do
+      # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
+      run env -i HOME="$fixture" MISE_DATA_DIR="$fixture/mise" JAVA_HOME="$fixture/project-java" \
+        PATH=":$fixture/project tools::$fixture/mise/shims:/usr/bin:$fixture/literal[*]:$fixture/mise/shims:/bin:/mnt/c/Windows Tools:$fixture/.cargo/bin:" \
+        "$shell" -c '
+          . "$HOME/.config/shell/env.sh"
+          first=$PATH
+          . "$HOME/.config/shell/env.sh"
+          [ "$PATH" = "$first" ] || exit 1
+          case "$PATH" in ":$HOME/project tools::"*) ;; *) exit 2 ;; esac
+          case "$PATH" in *"/mnt/c/Windows Tools:") ;; *) exit 3 ;; esac
+          case "$PATH" in *"/mise/shims"*) exit 4 ;; esac
+          case "$PATH" in *"$HOME/.cargo/bin:"*"/usr/bin:"*) ;; *) exit 5 ;; esac
+          [ "$(node)" = project ] || exit 6
+          [ "$JAVA_HOME" = "$HOME/project-java" ] || exit 7
+          case "$PATH" in *":$HOME/literal[*]:"*) ;; *) exit 8 ;; esac
+        '
+      [[ "$status" -eq 0 ]]
+    done
+  done
+}
+
+@test "environment loaders converge and preserve existing startup files" {
+  local script fixture="$BATS_TEST_TMPDIR/loaders"
+  for script in wsl-setup.sh macbook-setup.sh; do
+    mkdir -p "$fixture"
+    printf '%s\n' 'export USER_SETTING=preserved' > "$fixture/.bash_profile"
+    chmod 0600 "$fixture/.bash_profile"
+    awk '
+      /^configure_shell_environment\(\) \{/ { body = 1 }
+      body { print }
+      body && /^\}/ { exit }
+    ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/configure.sh"
+    # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -e -c '
+      source "$HOME/configure.sh"
+      write_managed_file() { mkdir -p "${1%/*}"; cat > "$1"; }
+      die() { echo "$*" >&2; exit 1; }
+      fatal() { die "$@"; }
+      configure_shell_environment
+      configure_shell_environment
+      [[ ! -e "$HOME/.profile" ]] || exit 1
+      for file in .zshenv .zprofile .bash_profile .bashrc; do
+        [[ "$(grep -c "config/shell/env.sh" "$HOME/$file")" == 1 ]] || exit 2
+      done
+      source "$HOME/.bash_profile"
+      [[ "$USER_SETTING" == preserved ]] || exit 3
+      rm "$HOME/.zprofile"
+      ln -s "$HOME/.bash_profile" "$HOME/.zprofile"
+      if (configure_shell_environment); then exit 4; fi
+      [[ -L "$HOME/.zprofile" ]] || exit 5
+    '
+    [[ "$status" -eq 0 ]]
+    [[ "$(stat -c '%a' "$fixture/.bash_profile" 2> /dev/null || stat -f '%Lp' "$fixture/.bash_profile")" == 600 ]]
+    rm "$fixture/.zprofile"
+  done
+}
+
+@test "macOS environment retains Homebrew manual paths and caller prefixes" {
+  local fixture="$BATS_TEST_TMPDIR/homebrew"
+  mkdir -p "$fixture/brew/bin" "$fixture/brew/sbin"
+  awk '
+    /<< .SHELLENV./ { body = 1; next }
+    body && /^SHELLENV$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../macbook-setup.sh" > "$fixture/env.sh"
+  # shellcheck disable=SC2016 # The isolated shell expands the fixture variables.
+  run env -i HOME="$fixture" PATH="$fixture/project:/usr/bin:/bin" \
+    HOMEBREW_PREFIX="$fixture/brew" MANPATH=/custom/man: INFOPATH=/custom/info: \
+    sh -c '
+      . "$HOME/env.sh"
+      first=$MANPATH
+      . "$HOME/env.sh"
+      [ "$MANPATH" = "$first" ] || exit 1
+      # Native Homebrew wins on macOS; the fixture prefix is used on Linux.
+      [ "$MANPATH" = "$HOMEBREW_PREFIX/share/man:/custom/man:" ] || exit 2
+      [ "$INFOPATH" = "$HOMEBREW_PREFIX/share/info:/custom/info:" ] || exit 3
+      case "$PATH" in "$HOME/project:"*"$HOMEBREW_PREFIX/bin:"*"/usr/bin:"*) ;; *) exit 4 ;; esac
+    '
+  [[ "$status" -eq 0 ]]
+}
+
+@test "native fallbacks precede Ubuntu and macOS system search paths" {
+  local script layout fixture="$BATS_TEST_TMPDIR/system-path"
+  mkdir -p "$fixture/.cargo/bin"
+  for script in wsl-setup.sh macbook-setup.sh; do
+    awk '
+      /<< .SHELLENV./ { body = 1; next }
+      body && /^SHELLENV$/ { exit }
+      body { print }
+    ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/env.sh"
+    for layout in \
+      '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/mnt/c/Windows' \
+      '/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin'; do
+      # shellcheck disable=SC2016 # The isolated shell expands the fixture variables.
+      run env -i HOME="$fixture" PATH="$fixture/project:$layout:$fixture/.cargo/bin" \
+        sh -c '
+          . "$HOME/env.sh"
+          case "$PATH" in "$HOME/project:"*"$HOME/.cargo/bin:"*"/usr/local/bin:"*) ;; *) exit 1 ;; esac
+        '
+      [[ "$status" -eq 0 ]]
+    done
+  done
 }

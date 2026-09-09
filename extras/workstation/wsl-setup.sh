@@ -321,6 +321,82 @@ write_managed_file() {
   rm -f "$tmp"
 }
 
+configure_shell_environment() {
+  local file profile="$HOME/.profile"
+  # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
+  local loader='[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"'
+  [[ ! -e "$HOME/.bash_profile" && ! -L "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
+  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+    if [[ -L "$file" || (-e "$file" && ! -f "$file") ]]; then
+      die "refusing to modify non-regular shell startup file: $file"
+    fi
+  done
+  write_managed_file "$HOME/.config/shell/env.sh" '# >>> wsl-bootstrap managed shell environment >>>' 0644 << 'SHELLENV' || return 1
+# >>> wsl-bootstrap managed shell environment >>>
+# Shared host environment for zsh, Bash, and login shells. Builtins only.
+# Keep caller-selected tools ahead of native host fallbacks and system tools.
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export GOPATH="${GOPATH:-$HOME/go}"
+
+if [ -d /usr/lib/jvm/default-java ]; then
+    export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/default-java}"
+fi
+if [ -d "$HOME/Android/Sdk" ]; then
+    export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+    export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+fi
+
+_host_shims="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims"
+_host_rest="${PATH-}:"
+_host_path=:
+_host_tail=:
+# Insert fallbacks before the system search path, retaining any caller prefix.
+# On WSL this also avoids searching Windows directories for native tools.
+while [ -n "$_host_rest" ]; do
+    _host_entry="${_host_rest%%:*}"
+    _host_rest="${_host_rest#*:}"
+    [ "$_host_entry" != "$_host_shims" ] || continue
+    case "$_host_entry" in
+        /usr/local/bin | /usr/local/sbin | /usr/bin | /usr/sbin | /bin | /sbin | /System/* | /mnt/[a-z]/*)
+            _host_tail=":$_host_entry:$_host_rest"
+            break ;;
+        *) _host_path="$_host_path$_host_entry:" ;;
+    esac
+done
+while case "$_host_tail" in *:"$_host_shims":*) true ;; *) false ;; esac; do
+    _host_tail="${_host_tail%%:"$_host_shims":*}:${_host_tail#*:"$_host_shims":}"
+done
+
+for _host_dir in \
+    "$HOME/.local/bin" "${CARGO_HOME:-$HOME/.cargo}/bin" "$BUN_INSTALL/bin" \
+    "${FNM_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/fnm}/aliases/default/bin" \
+    "$HOME/.opencode/bin" "$HOME/.config/herd-lite/bin" "$HOME/bin" \
+    /usr/local/go/bin "$GOPATH/bin" \
+    "${JAVA_HOME:+$JAVA_HOME/bin}" "${ANDROID_HOME:+$ANDROID_HOME/platform-tools}" \
+    "${ANDROID_HOME:+$ANDROID_HOME/emulator}" "${ANDROID_HOME:+$ANDROID_HOME/cmdline-tools/latest/bin}"; do
+    [ -d "$_host_dir" ] || continue
+    while case "$_host_tail" in *:"$_host_dir":*) true ;; *) false ;; esac; do
+        _host_tail="${_host_tail%%:"$_host_dir":*}:${_host_tail#*:"$_host_dir":}"
+    done
+    case "$_host_path" in
+        *:"$_host_dir":*) ;;
+        *) _host_path="$_host_path$_host_dir:" ;;
+    esac
+done
+_host_path="$_host_path${_host_tail#:}"
+PATH="${_host_path#:}"
+export PATH="${PATH%:}"
+unset _host_shims _host_path _host_tail _host_rest _host_entry _host_dir
+SHELLENV
+  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+    if ! grep -qxF "$loader" "$file" 2> /dev/null; then
+      printf '\n%s\n' "$loader" >> "$file" || return 1
+    fi
+  done
+}
+
 configure_zshenv() {
   local path="$HOME/.zshenv"
   if [[ -L "$path" || (-e "$path" && ! -f "$path") ]]; then
@@ -2182,14 +2258,8 @@ ZSH_THEME=""
 # Updates run explicitly through this bootstrap.
 zstyle ':omz:update' mode disabled
 
-export EDITOR="nvim"
-export VISUAL="nvim"
-typeset -U path fpath
-# Project workflows use mise run; shell tools use their installed binaries.
-# Drop shims inherited from a parent process without removing host PATH entries.
-path=("${(@)path:#${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}")
-path=("$HOME/.local/bin" "$HOME/.cargo/bin" $path)
-export PATH
+[[ ! -r "$HOME/.config/shell/env.sh" ]] || source "$HOME/.config/shell/env.sh"
+typeset -U fpath
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
@@ -2203,8 +2273,6 @@ ZSH_COMPLETIONS_DIR="$HOME/.local/share/wsl-bootstrap/zsh/site-functions"
 
 plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 source "$ZSH/oh-my-zsh.sh"
-
-[[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
 
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
@@ -2374,6 +2442,7 @@ HELP
 # <<< wsl-bootstrap managed zshrc <<<
 ZSHRC
 
+configure_shell_environment
 configure_zshenv
 
 ZSH_PATH="$(command -v zsh || true)"

@@ -698,6 +698,95 @@ check_dagger_container_runtime() {
   return 1
 }
 
+configure_shell_environment() {
+  local file profile="$HOME/.profile"
+  # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
+  local loader='[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"'
+  [[ ! -e "$HOME/.bash_profile" && ! -L "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
+  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+    if [[ -L "$file" || (-e "$file" && ! -f "$file") ]]; then
+      fatal "refusing to modify non-regular shell startup file: $file"
+    fi
+  done
+  write_managed_file "$HOME/.config/shell/env.sh" '# >>> macbook-bootstrap managed shell environment >>>' 0644 << 'SHELLENV' || return 1
+# >>> macbook-bootstrap managed shell environment >>>
+# Shared host environment for zsh, Bash, and login shells. Builtins only.
+# Keep caller-selected tools ahead of native host fallbacks and system tools.
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export GOPATH="${GOPATH:-$HOME/go}"
+
+# Homebrew's standard locations need no shellenv subprocess at startup.
+if [ -x /opt/homebrew/bin/brew ]; then
+    export HOMEBREW_PREFIX=/opt/homebrew
+elif [ -x /usr/local/bin/brew ]; then
+    export HOMEBREW_PREFIX=/usr/local
+fi
+if [ -n "${HOMEBREW_PREFIX:-}" ]; then
+    export HOMEBREW_CELLAR="$HOMEBREW_PREFIX/Cellar"
+    export HOMEBREW_REPOSITORY="$HOMEBREW_PREFIX/Homebrew"
+    [ "$HOMEBREW_PREFIX" != /opt/homebrew ] || export HOMEBREW_REPOSITORY="$HOMEBREW_PREFIX"
+    case ":${MANPATH-}:" in
+        *:"$HOMEBREW_PREFIX/share/man":*) ;;
+        *) export MANPATH="$HOMEBREW_PREFIX/share/man:${MANPATH-}" ;;
+    esac
+    case ":${INFOPATH-}:" in
+        *:"$HOMEBREW_PREFIX/share/info":*) ;;
+        *) export INFOPATH="$HOMEBREW_PREFIX/share/info:${INFOPATH-}" ;;
+    esac
+fi
+
+_host_shims="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims"
+_host_rest="${PATH-}:"
+_host_path=:
+_host_tail=:
+# Insert fallbacks before the system search path, retaining any caller prefix.
+# On WSL this also avoids searching Windows directories for native tools.
+while [ -n "$_host_rest" ]; do
+    _host_entry="${_host_rest%%:*}"
+    _host_rest="${_host_rest#*:}"
+    [ "$_host_entry" != "$_host_shims" ] || continue
+    case "$_host_entry" in
+        /usr/local/bin | /usr/local/sbin | /usr/bin | /usr/sbin | /bin | /sbin | /System/* | /mnt/[a-z]/*)
+            _host_tail=":$_host_entry:$_host_rest"
+            break ;;
+        *) _host_path="$_host_path$_host_entry:" ;;
+    esac
+done
+while case "$_host_tail" in *:"$_host_shims":*) true ;; *) false ;; esac; do
+    _host_tail="${_host_tail%%:"$_host_shims":*}:${_host_tail#*:"$_host_shims":}"
+done
+
+for _host_dir in \
+    "$HOME/.local/bin" "${CARGO_HOME:-$HOME/.cargo}/bin" "$BUN_INSTALL/bin" \
+    "${FNM_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/fnm}/aliases/default/bin" \
+    "$HOME/.opencode/bin" "$HOME/.config/herd-lite/bin" "$HOME/bin" \
+    "${HOMEBREW_PREFIX:+$HOMEBREW_PREFIX/bin}" "${HOMEBREW_PREFIX:+$HOMEBREW_PREFIX/sbin}" \
+    /usr/local/go/bin "$GOPATH/bin" \
+    "${JAVA_HOME:+$JAVA_HOME/bin}" "${ANDROID_HOME:+$ANDROID_HOME/platform-tools}" \
+    "${ANDROID_HOME:+$ANDROID_HOME/emulator}" "${ANDROID_HOME:+$ANDROID_HOME/cmdline-tools/latest/bin}"; do
+    [ -d "$_host_dir" ] || continue
+    while case "$_host_tail" in *:"$_host_dir":*) true ;; *) false ;; esac; do
+        _host_tail="${_host_tail%%:"$_host_dir":*}:${_host_tail#*:"$_host_dir":}"
+    done
+    case "$_host_path" in
+        *:"$_host_dir":*) ;;
+        *) _host_path="$_host_path$_host_dir:" ;;
+    esac
+done
+_host_path="$_host_path${_host_tail#:}"
+PATH="${_host_path#:}"
+export PATH="${PATH%:}"
+unset _host_shims _host_path _host_tail _host_rest _host_entry _host_dir
+SHELLENV
+  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+    if ! grep -qxF "$loader" "$file" 2> /dev/null; then
+      printf '\n%s\n' "$loader" >> "$file" || return 1
+    fi
+  done
+}
+
 write_zsh_config() {
   local zsh_config_marker zsh_loader_begin zsh_loader_end
   zsh_config_marker="# >>> macbook-bootstrap managed zsh config >>>"
@@ -707,25 +796,10 @@ write_zsh_config() {
   write_managed_file "$HOME/.config/macos-bootstrap/zshrc.zsh" "$zsh_config_marker" 0644 << 'ZSHCONFIG' || return 1
 # >>> macbook-bootstrap managed zsh config >>>
 
-# Homebrew first. Prefer native Apple Silicon Homebrew when both native and
-# Intel/Rosetta installs exist.
-if [[ -x /opt/homebrew/bin/brew ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -x /usr/local/bin/brew ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
-
-export EDITOR="nvim"
-export VISUAL="nvim"
+[[ ! -r "$HOME/.config/shell/env.sh" ]] || source "$HOME/.config/shell/env.sh"
 export CLICOLOR=1
-
-typeset -U path fpath
-path=("$HOME/.local/bin" "$HOME/.cargo/bin" $path)
-export PATH
-
-# Project workflows use mise run; shell tools use their installed binaries.
-# Drop shims inherited from a parent process without removing host PATH entries.
-path=("${(@)path:#${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims}")
+typeset -U fpath
+[[ -z "${HOMEBREW_PREFIX:-}" ]] || fpath=("$HOMEBREW_PREFIX/share/zsh/site-functions" "${fpath[@]}")
 
 _colon_prepend_once() {
   local var="$1"
@@ -757,8 +831,6 @@ if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
   [[ -r "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]] &&
     source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
 fi
-
-[[ -f "${CARGO_HOME:-$HOME/.cargo}/env" ]] && source "${CARGO_HOME:-$HOME/.cargo}/env"
 
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 command -v zoxide  >/dev/null 2>&1 && eval "$(zoxide init zsh)"
@@ -899,11 +971,12 @@ fi
 # <<< macbook-bootstrap managed zsh config <<<
 ZSHCONFIG
 
-  put_managed_block "$HOME/.zshrc" "$zsh_loader_begin" "$zsh_loader_end" 0644 << 'ZSHLOADER'
+  put_managed_block "$HOME/.zshrc" "$zsh_loader_begin" "$zsh_loader_end" 0644 << 'ZSHLOADER' || return 1
 # >>> macbook-bootstrap managed zsh loader >>>
 [[ -r "$HOME/.config/macos-bootstrap/zshrc.zsh" ]] && source "$HOME/.config/macos-bootstrap/zshrc.zsh"
 # <<< macbook-bootstrap managed zsh loader <<<
 ZSHLOADER
+  configure_shell_environment
 }
 
 write_tmux_config() {

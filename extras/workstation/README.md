@@ -19,9 +19,12 @@ Keep those tasks as the default project interface across languages.
 Run ordinary tools directly: `git`, `gh`, `rg`, `fd`, `tokei`, and `ls`.
 Prompt, history, navigation, and completion integrations also invoke their
 installed binaries directly. The scripts install host tools with native
-package managers or upstream installers. Interactive shell setup removes
-inherited mise shims while preserving other host paths, including Windows
-paths on WSL. It does not activate mise or run it from prompt hooks.
+package managers or upstream installers. A small shared environment file
+supplies native host paths to zsh scripts, interactive shells, and login
+shells. It removes inherited mise shims, keeps caller-selected toolchains
+ahead of host fallbacks, and places those fallbacks before system and Windows
+directories. Windows paths remain available on WSL. It does not activate mise
+or run it from prompt hooks.
 
 Use `mise exec -- <command>` for a specific invocation that needs a project's
 pinned tool or environment and has no suitable task. Automatic interactive
@@ -47,7 +50,9 @@ Run `mise run shell:standards:check` from the catalog root. The workstation
 tests execute both generated zsh configurations with fake host binaries and
 inherited mise shims. They cover direct utility dispatch, initialization,
 reload, retained paths with spaces, and default or customized mise data paths.
-They also check single completion initialization, disabled startup updates,
+They also exercise the shared environment in POSIX sh, Bash, and zsh, including
+project tool precedence, preserved Java settings, empty PATH entries, and
+idempotent startup loaders. They check single completion initialization, disabled startup updates,
 and distinct tmux sessions for repositories with the same basename. They do
 not execute either machine installer.
 
@@ -60,3 +65,15 @@ and repeated prompts, both at home and inside a representative repository.
 Verify command resolution and project task execution from a fresh shell.
 Parser checks and fake binaries cannot establish real startup performance or
 prove a complete installation on the other operating system.
+
+## Routine maintenance
+
+Use each host tool's package manager or native updater. Keep project toolchain
+pins and stateful application upgrades in their repositories. Back up data
+before a tool upgrade that migrates a database, such as shell history.
+
+Run Ubuntu package maintenance during a live WSL session. Schedule WSL platform
+updates from Windows after saving work and stopping active agents: updating WSL
+can interrupt the running distro. These setup scripts do not update or restart
+WSL. Keep cache cleanup limited to package-manager caches and known disposable
+build output; retain project data, model files, and rollback evidence.
