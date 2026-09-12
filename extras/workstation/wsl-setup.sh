@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 # WSL/Ubuntu developer bootstrap (minimal output, idempotent where practical).
 # - apt base tools plus a curated modern CLI baseline
 # - verified upstream GitHub-release binaries where Ubuntu packages are stale/wrong
 # - rustup + cargo-binstall-backed Rust CLI tools
-# - Oh My Zsh + plugins + managed .zshrc (Zsh remains the only interactive shell)
+# - native Zsh + two focused plugins + cached integrations + compact Starship
 # - managed `toolhelp` command, completions, Git defaults, tmux helpers
 # - optional LazyVim starter config (only if ~/.config/nvim is missing)
 #
 # Tunables:
+#   BOOTSTRAP_CONFIGURE_ONLY=1         regenerate configs without installing/updating tools
 #   BOOTSTRAP_APT_UPGRADE=0            skip apt upgrade
 #   BOOTSTRAP_CARGO_UPGRADE=0          skip cargo package update checks
 #   BOOTSTRAP_GITHUB_UPGRADE=0         skip GitHub-release updates when a binary exists
@@ -18,6 +19,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
 #   BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS=1 remove old cargo installs no longer selected
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
+#   BOOTSTRAP_NVIM_SYNC=0              defer initial Neovim plugin installation
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
 #   BOOTSTRAP_APT_BUSY_TIMEOUT=120     seconds to wait for existing apt/dpkg work
 #   BOOTSTRAP_APT_LOCK_TIMEOUT=120     seconds apt-get waits on dpkg locks
@@ -26,6 +28,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GIT_TIMEOUT=300          seconds before git network operations time out
 #   BOOTSTRAP_TLDR_TIMEOUT=120         seconds before tldr cache updates time out
 #   BOOTSTRAP_TMUX_PLUGIN_TIMEOUT=180  seconds before TPM operations time out
+#   WSL_KEEP_WINDOWS_PATH=1           retain Windows directories in the shell PATH
 #   TMUX_SESSIONIZER_ROOTS=a:b:c       colon-separated project roots for the session picker
 #   RETRY_MAX_ATTEMPTS=8               attempts for transient network operations
 
@@ -36,6 +39,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+: "${BOOTSTRAP_CONFIGURE_ONLY:=0}"
 : "${BOOTSTRAP_APT_UPGRADE:=1}"
 : "${BOOTSTRAP_CARGO_UPGRADE:=1}"
 : "${BOOTSTRAP_GITHUB_UPGRADE:=1}"
@@ -44,6 +48,7 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_GITHUB_API_VERSION:=2026-03-10}"
 : "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
 : "${BOOTSTRAP_TMUX_PLUGIN_UPDATE:=1}"
+: "${BOOTSTRAP_NVIM_SYNC:=1}"
 : "${BOOTSTRAP_APT_BUSY_TIMEOUT:=120}"
 : "${BOOTSTRAP_APT_LOCK_TIMEOUT:=120}"
 : "${BOOTSTRAP_CURL_CONNECT_TIMEOUT:=10}"
@@ -69,7 +74,7 @@ remove_mise_shims_from_path() {
 
 remove_mise_shims_from_path
 
-has() { command -v "$1" > /dev/null 2>&1; }
+has() { command -v "$1" >/dev/null 2>&1; }
 die() {
   echo "error: $*" >&2
   exit 1
@@ -84,10 +89,16 @@ BOOTSTRAP_SCRATCH="$(mktemp -d)"
 SUDO_KEEPALIVE_PID=""
 
 cleanup() {
-  [[ -z "$SUDO_KEEPALIVE_PID" ]] || kill "$SUDO_KEEPALIVE_PID" 2> /dev/null || true
+  [[ -z "$SUDO_KEEPALIVE_PID" ]] || kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   rm -rf -- "$BOOTSTRAP_SCRATCH" || true
 }
 trap cleanup EXIT
+trap 'status=$?; printf "error: setup failed at line %s (exit %s); fix the cause and rerun.\n" "$LINENO" "$status" >&2' ERR
+
+# One writer per home; the lock is released automatically on exit.
+mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/wsl-bootstrap"
+exec 9>"${XDG_STATE_HOME:-$HOME/.local/state}/wsl-bootstrap/setup.lock"
+flock -n 9 || die "another bootstrap is already running"
 
 # Safe to call in a command substitution: the parent already owns the root, so
 # nothing has to be recorded back in the caller's shell.
@@ -97,9 +108,10 @@ make_tmpfile() { mktemp -p "$BOOTSTRAP_SCRATCH"; }
 check_wsl_ubuntu() {
   local distro_id
 
-  grep -qi microsoft /proc/sys/kernel/osrelease 2> /dev/null ||
+  grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null ||
     die "this bootstrap must run inside WSL"
   [[ -r /etc/os-release ]] || die "cannot identify the WSL distribution"
+  # shellcheck disable=SC1091
   distro_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
   [[ "$distro_id" == ubuntu ]] ||
     die "this bootstrap requires Ubuntu under WSL; found ${distro_id:-unknown}"
@@ -153,7 +165,7 @@ retry_quiet() {
   tmp="$(make_tmpfile)"
 
   while true; do
-    if "$@" > "$tmp" 2>&1; then
+    if "$@" >"$tmp" 2>&1; then
       rm -f "$tmp"
       return 0
     else
@@ -168,7 +180,7 @@ retry_quiet() {
     fi
 
     warn "attempt $attempt/$max_attempts failed; retrying in ${delay}s: $(command_string "$@")"
-    : > "$tmp"
+    : >"$tmp"
     sleep "$delay"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
@@ -184,11 +196,16 @@ curl_fetch() {
 
 ensure_sudo() {
   sudo -v
-  # Keep sudo alive while we run (cargo builds can take a while).
-  while true; do
-    sudo -n true || exit 0
-    sleep 60
-  done 2> /dev/null &
+  # Keep credentials alive without leaking a sleeper, log pipe, or setup lock.
+  (
+    sudo_sleep_pid=""
+    trap '[[ -z "$sudo_sleep_pid" ]] || kill "$sudo_sleep_pid" 2>/dev/null || true; exit 0' TERM INT
+    while sudo -n true; do
+      sleep 60 &
+      sudo_sleep_pid=$!
+      wait "$sudo_sleep_pid" || true
+    done
+  ) >/dev/null 2>&1 9>&- &
   SUDO_KEEPALIVE_PID=$!
 }
 
@@ -200,10 +217,10 @@ apt_lock_holders() {
   )
   local pids
 
-  pids="$({ sudo -n fuser "${lock_paths[@]}" 2> /dev/null || true; } | tr ' ' '\n' | awk '/^[0-9]+$/ && !seen[$0]++')"
+  pids="$({ sudo -n fuser "${lock_paths[@]}" 2>/dev/null || true; } | tr ' ' '\n' | awk '/^[0-9]+$/ && !seen[$0]++')"
   [[ -n "$pids" ]] || return 0
 
-  ps -o pid=,ppid=,stat=,comm=,args= -p "$(printf '%s\n' "$pids" | paste -sd, -)" 2> /dev/null || true
+  ps -o pid=,ppid=,stat=,comm=,args= -p "$(printf '%s\n' "$pids" | paste -sd, -)" 2>/dev/null || true
 }
 
 wait_for_apt_idle() {
@@ -242,7 +259,7 @@ apt_get() {
     -o APT::Color=0 \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
-    "$@" < /dev/null
+    "$@" </dev/null
 }
 
 atomic_install_file() {
@@ -265,8 +282,12 @@ atomic_install_file() {
     return 1
   fi
 
+  if [[ -f "$path" ]] && cmp -s "$src" "$path"; then
+    chmod "$mode" "$path"
+    return 0
+  fi
   tmp="$(mktemp "$dir/.${base}.tmp.XXXXXX")"
-  cat "$src" > "$tmp" || {
+  cat "$src" >"$tmp" || {
     rm -f "$tmp"
     return 1
   }
@@ -287,7 +308,7 @@ write_managed_file() {
 
   local tmp
   tmp="$(make_tmpfile)"
-  cat > "$tmp"
+  cat >"$tmp"
 
   # Markers may start with '-' (e.g., Lua comments "-- ...").
   # Always terminate grep options so the marker is treated as a pattern.
@@ -326,73 +347,71 @@ configure_shell_environment() {
   # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
   local loader='[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"'
   [[ ! -e "$HOME/.bash_profile" && ! -L "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
-  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+  for file in "$HOME/.zshenv" "$profile" "$HOME/.bashrc"; do
     if [[ -L "$file" || (-e "$file" && ! -f "$file") ]]; then
       die "refusing to modify non-regular shell startup file: $file"
     fi
   done
-  write_managed_file "$HOME/.config/shell/env.sh" '# >>> wsl-bootstrap managed shell environment >>>' 0644 << 'SHELLENV' || return 1
+  write_managed_file "$HOME/.config/shell/env.sh" '# >>> wsl-bootstrap managed shell environment >>>' 0644 <<'SHELLENV' || return 1
 # >>> wsl-bootstrap managed shell environment >>>
-# Shared host environment for zsh, Bash, and login shells. Builtins only.
-# Keep caller-selected tools ahead of native host fallbacks and system tools.
+# Shared by interactive shells and agent commands. No subprocesses or output.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 export GOPATH="${GOPATH:-$HOME/go}"
+export LESS="${LESS:--FRX}"
 
-if [ -d /usr/lib/jvm/default-java ]; then
-    export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/default-java}"
-fi
-if [ -d "$HOME/Android/Sdk" ]; then
-    export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
-    export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-fi
-
-_host_shims="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims"
+# Preserve caller-selected toolchains (e.g. a venv or mise exec). Insert native
+# fallbacks before system paths, and deduplicate without spawning utilities.
+_host_prefix=
+_host_tail=
 _host_rest="${PATH-}:"
-_host_path=:
-_host_tail=:
-# Insert fallbacks before the system search path, retaining any caller prefix.
-# On WSL this also avoids searching Windows directories for native tools.
+_host_system=0
 while [ -n "$_host_rest" ]; do
     _host_entry="${_host_rest%%:*}"
     _host_rest="${_host_rest#*:}"
-    [ "$_host_entry" != "$_host_shims" ] || continue
+    [ -n "$_host_entry" ] || continue
+    [ "$_host_entry" != "${MISE_DATA_DIR:-$XDG_DATA_HOME/mise}/shims" ] || continue
     case "$_host_entry" in
-        /usr/local/bin | /usr/local/sbin | /usr/bin | /usr/sbin | /bin | /sbin | /System/* | /mnt/[a-z]/*)
-            _host_tail=":$_host_entry:$_host_rest"
-            break ;;
-        *) _host_path="$_host_path$_host_entry:" ;;
+        /usr/* | /bin | /sbin | /snap/bin) _host_system=1 ;;
     esac
+    # The Windows PATH is appended after the Linux system PATH. Preserve an
+    # explicitly prepended venv/toolchain even when it lives on a mounted drive.
+    case "$_host_entry" in
+        /mnt/[a-z]/*)
+            if [ "$_host_system" = 1 ] && [ "${WSL_KEEP_WINDOWS_PATH:-0}" != 1 ]; then
+                continue
+            fi ;;
+    esac
+    if [ "$_host_system" = 0 ]; then
+        _host_prefix="${_host_prefix}${_host_entry}:"
+    else
+        _host_tail="${_host_tail}${_host_entry}:"
+    fi
 done
-while case "$_host_tail" in *:"$_host_shims":*) true ;; *) false ;; esac; do
-    _host_tail="${_host_tail%%:"$_host_shims":*}:${_host_tail#*:"$_host_shims":}"
-done
-
-for _host_dir in \
-    "$HOME/.local/bin" "${CARGO_HOME:-$HOME/.cargo}/bin" "$BUN_INSTALL/bin" \
-    "${FNM_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/fnm}/aliases/default/bin" \
-    "$HOME/.opencode/bin" "$HOME/.config/herd-lite/bin" "$HOME/bin" \
-    /usr/local/go/bin "$GOPATH/bin" \
-    "${JAVA_HOME:+$JAVA_HOME/bin}" "${ANDROID_HOME:+$ANDROID_HOME/platform-tools}" \
-    "${ANDROID_HOME:+$ANDROID_HOME/emulator}" "${ANDROID_HOME:+$ANDROID_HOME/cmdline-tools/latest/bin}"; do
-    [ -d "$_host_dir" ] || continue
-    while case "$_host_tail" in *:"$_host_dir":*) true ;; *) false ;; esac; do
-        _host_tail="${_host_tail%%:"$_host_dir":*}:${_host_tail#*:"$_host_dir":}"
-    done
+_host_rest="${_host_prefix}$HOME/.local/bin:${CARGO_HOME:-$HOME/.cargo}/bin:$HOME/.local/share/wsl-bootstrap/runtimes/node/bin:$BUN_INSTALL/bin:$GOPATH/bin:${_host_tail}"
+_host_path=:
+while [ -n "$_host_rest" ]; do
+    _host_entry="${_host_rest%%:*}"
+    _host_rest="${_host_rest#*:}"
+    [ -n "$_host_entry" ] || continue
     case "$_host_path" in
-        *:"$_host_dir":*) ;;
-        *) _host_path="$_host_path$_host_dir:" ;;
+        *:"$_host_entry":*) ;;
+        *) _host_path="${_host_path}${_host_entry}:" ;;
     esac
 done
-_host_path="$_host_path${_host_tail#:}"
 PATH="${_host_path#:}"
 export PATH="${PATH%:}"
-unset _host_shims _host_path _host_tail _host_rest _host_entry _host_dir
+unset _host_prefix _host_tail _host_rest _host_entry _host_system _host_path
+# <<< wsl-bootstrap managed shell environment <<<
 SHELLENV
-  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
-    if ! grep -qxF "$loader" "$file" 2> /dev/null; then
-      printf '\n%s\n' "$loader" >> "$file" || return 1
+  for file in "$HOME/.zshenv" "$profile" "$HOME/.bashrc"; do
+    if ! grep -qxF "$loader" "$file" 2>/dev/null; then
+      printf '\n%s\n' "$loader" >>"$file" || return 1
     fi
   done
 }
@@ -402,8 +421,8 @@ configure_zshenv() {
   if [[ -L "$path" || (-e "$path" && ! -f "$path") ]]; then
     die "refusing to modify non-regular zsh environment file: $path"
   fi
-  if ! grep -qxF 'skip_global_compinit=1' "$path" 2> /dev/null; then
-    printf '\n# Oh My Zsh initializes completion after user completion paths are set.\nskip_global_compinit=1\n' >> "$path"
+  if ! grep -qxF 'skip_global_compinit=1' "$path" 2>/dev/null; then
+    printf '\n# User completion initializes once, after custom paths are set.\nskip_global_compinit=1\n' >>"$path"
   fi
 }
 
@@ -426,7 +445,7 @@ git_repo() {
   }
 
   if [[ -d "$dest/.git" ]]; then
-    remote="$(git -C "$dest" config --get remote.origin.url 2> /dev/null || true)"
+    remote="$(git -C "$dest" config --get remote.origin.url 2>/dev/null || true)"
     normalized_url="$(normalize_git_url "$url")"
     normalized_remote="$(normalize_git_url "$remote")"
 
@@ -435,12 +454,15 @@ git_repo() {
       return 1
     fi
 
-    if [[ "$BOOTSTRAP_GIT_UPDATE" = "1" ]]; then
+    if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && "$BOOTSTRAP_GIT_UPDATE" = "1" ]]; then
       retry_quiet run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git -C "$dest" pull --ff-only
     fi
     return 0
   fi
 
+  if [[ "$BOOTSTRAP_CONFIGURE_ONLY" == "1" ]]; then
+    die "missing managed repository $dest; run the full bootstrap first"
+  fi
   if [[ -e "$dest" ]]; then
     warn "refusing to clone into existing unmanaged path: $dest"
     return 1
@@ -493,21 +515,21 @@ extract_release_asset() {
 
   mkdir -p "$dest"
   case "$asset_name" in
-    *.tar.gz | *.tgz)
-      tar -tzf "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
-      tar --extract --gzip --file="$archive" --directory="$dest" --no-same-owner --no-same-permissions
-      ;;
-    *.tar.xz | *.txz)
-      tar -tJf "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
-      tar --extract --xz --file="$archive" --directory="$dest" --no-same-owner --no-same-permissions
-      ;;
-    *.zip)
-      unzip -Z1 "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
-      unzip -q "$archive" -d "$dest"
-      ;;
-    *)
-      cp -- "$archive" "$dest/$raw_name"
-      ;;
+  *.tar.gz | *.tgz)
+    tar -tzf "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
+    tar --extract --gzip --file="$archive" --directory="$dest" --no-same-owner --no-same-permissions
+    ;;
+  *.tar.xz | *.txz)
+    tar -tJf "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
+    tar --extract --xz --file="$archive" --directory="$dest" --no-same-owner --no-same-permissions
+    ;;
+  *.zip)
+    unzip -Z1 "$archive" | archive_members_are_safe || die "unsafe paths in $asset_name"
+    unzip -q "$archive" -d "$dest"
+    ;;
+  *)
+    cp -- "$archive" "$dest/$raw_name"
+    ;;
   esac
 }
 
@@ -547,7 +569,7 @@ install_github_release_binary() {
   # re-uploaded asset or a home directory copied between architectures still
   # reinstalls instead of being accepted on the release tag alone.
   if [[ -f "$state_file" && -x "$target" ]]; then
-    IFS=$'\t' read -r saved_tag saved_asset saved_digest saved_hash < "$state_file" || true
+    IFS=$'\t' read -r saved_tag saved_asset saved_digest saved_hash <"$state_file" || true
     current_hash="$(sha256sum "$target" | awk '{print $1}')"
     if [[ "$saved_tag" == "$release_tag" && "$saved_asset" == "$asset_name" &&
       "$saved_digest" == "$asset_digest" && "$saved_hash" == "$current_hash" ]]; then
@@ -572,7 +594,7 @@ install_github_release_binary() {
   candidate="${candidates[0]}"
 
   atomic_install_file "$candidate" "$target" 0755
-  hash -r 2> /dev/null || true
+  hash -r 2>/dev/null || true
   has "$bin" || {
     rm -rf "$tmpdir" || true
     die "installed $repo but '$bin' is not on PATH"
@@ -581,7 +603,7 @@ install_github_release_binary() {
   mkdir -p "$state_dir"
   installed_hash="$(sha256sum "$target" | awk '{print $1}')"
   tmp_state="$(make_tmpfile)"
-  printf '%s\t%s\t%s\t%s\n' "$release_tag" "$asset_name" "$asset_digest" "$installed_hash" > "$tmp_state"
+  printf '%s\t%s\t%s\t%s\n' "$release_tag" "$asset_name" "$asset_digest" "$installed_hash" >"$tmp_state"
   atomic_install_file "$tmp_state" "$state_file" 0600
   rm -f "$tmp_state"
   rm -rf "$tmpdir" || true
@@ -616,6 +638,9 @@ cargo_install_latest() {
 }
 
 install_or_update_mise() {
+  if has mise && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
+    return 0
+  fi
   local tmpdir installer
 
   mkdir -p "$HOME/.local/bin"
@@ -625,13 +650,16 @@ install_or_update_mise() {
   curl_fetch https://mise.run -o "$installer"
   MISE_QUIET=1 sh "$installer"
   rm -rf "$tmpdir" || true
-  hash -r 2> /dev/null || true
+  hash -r 2>/dev/null || true
 
   has mise || die "mise installer completed, but mise is not on PATH"
   mise --version
 }
 
 install_or_update_dagger() {
+  if has dagger && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
+    return 0
+  fi
   local tmpdir installer
 
   mkdir -p "$HOME/.local/bin"
@@ -641,7 +669,7 @@ install_or_update_dagger() {
   curl_fetch https://dl.dagger.io/dagger/install.sh -o "$installer"
   retry_quiet env BIN_DIR="$HOME/.local/bin" sh "$installer"
   rm -rf "$tmpdir" || true
-  hash -r 2> /dev/null || true
+  hash -r 2>/dev/null || true
 
   has dagger || die "Dagger installer completed, but dagger is not on PATH"
   dagger version
@@ -650,11 +678,11 @@ install_or_update_dagger() {
 check_dagger_container_runtime() {
   has dagger || die "dagger is not available"
 
-  if has docker && docker info > /dev/null 2>&1; then
+  if has docker && docker info >/dev/null 2>&1; then
     return 0
   fi
 
-  if has podman && podman info > /dev/null 2>&1; then
+  if has podman && podman info >/dev/null 2>&1; then
     return 0
   fi
 
@@ -663,53 +691,67 @@ check_dagger_container_runtime() {
 }
 
 check_wsl_ubuntu
-ensure_sudo
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
+  ensure_sudo
 
-# --- apt base ---------------------------------------------------------------
+  # --- apt base ---------------------------------------------------------------
 
-msg "apt: update"
-apt_get update
+  msg "apt: update"
+  apt_get update
 
-if [[ "$BOOTSTRAP_APT_UPGRADE" = "1" ]]; then
-  msg "apt: upgrade"
-  apt_get upgrade
-fi
-
-BASE_PKGS=(
-  ca-certificates curl wget git gnupg
-  unzip zip xz-utils zstd file less man-db rsync openssh-client
-  build-essential pkg-config autoconf bison re2c
-  libssl-dev libsqlite3-dev libncurses-dev libicu-dev
-  libcurl4-openssl-dev libreadline-dev libxml2-dev libzip-dev libsodium-dev
-  libpq-dev libonig-dev libgd-dev gettext zlib1g-dev
-  tmux zsh fzf ripgrep jq bc tree fd-find bat wl-clipboard
-  btop shellcheck lnav age trash-cli
-)
-
-msg "apt: install base packages"
-apt_get install "${BASE_PKGS[@]}"
-
-mkdir -p "$HOME/.local/bin"
-export PATH="$HOME/.local/bin:$PATH"
-if has fdfind && ! has fd; then
-  if [[ -e "$HOME/.local/bin/fd" || -L "$HOME/.local/bin/fd" ]]; then
-    warn "refusing to replace existing non-command path: $HOME/.local/bin/fd"
-  else
-    ln -s "$(command -v fdfind)" "$HOME/.local/bin/fd"
+  if [[ "$BOOTSTRAP_APT_UPGRADE" = "1" ]]; then
+    msg "apt: upgrade"
+    apt_get upgrade
   fi
-fi
-if has batcat && ! has bat; then
-  if [[ -e "$HOME/.local/bin/bat" || -L "$HOME/.local/bin/bat" ]]; then
-    warn "refusing to replace existing non-command path: $HOME/.local/bin/bat"
-  else
-    ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
-  fi
-fi
 
-# --- curated upstream release binaries -------------------------------------
-# Ubuntu either ships old versions of these or, in yq's case, a different tool.
-release_arch="$(dpkg --print-architecture)"
-case "$release_arch" in
+  BASE_PKGS=(
+    ca-certificates curl wget git gnupg
+    unzip zip xz-utils zstd file less man-db rsync openssh-client
+    build-essential pkg-config autoconf bison re2c
+    libssl-dev libsqlite3-dev libncurses-dev libicu-dev
+    libcurl4-openssl-dev libreadline-dev libxml2-dev libzip-dev libsodium-dev
+    libpq-dev libonig-dev libgd-dev gettext zlib1g-dev
+    tmux zsh fzf ripgrep jq bc tree fd-find bat wl-clipboard
+    btop shellcheck lnav age trash-cli
+    python3 python3-venv pipx sqlite3 dnsutils iproute2 psmisc
+    strace time locales lsof
+  )
+
+  msg "apt: install base packages"
+  apt_get install "${BASE_PKGS[@]}"
+
+  # Raise watcher ceilings for concurrent editors, agents, and large workspaces.
+  # Preserve higher administrator settings; these ceilings allocate no memory upfront.
+  watch_limit=$(sysctl -n fs.inotify.max_user_watches)
+  instance_limit=$(sysctl -n fs.inotify.max_user_instances)
+  ((watch_limit >= 1048576)) || watch_limit=1048576
+  ((instance_limit >= 1024)) || instance_limit=1024
+  printf '# Managed by wsl-setup.sh\nfs.inotify.max_user_watches = %s\nfs.inotify.max_user_instances = %s\n' \
+    "$watch_limit" "$instance_limit" >"$BOOTSTRAP_SCRATCH/90-wsl-dev.conf"
+  sudo install -m 0644 "$BOOTSTRAP_SCRATCH/90-wsl-dev.conf" /etc/sysctl.d/90-wsl-dev.conf
+  sudo sysctl --quiet -p /etc/sysctl.d/90-wsl-dev.conf
+
+  mkdir -p "$HOME/.local/bin"
+  export PATH="$HOME/.local/bin:$PATH"
+  if has fdfind && ! has fd; then
+    if [[ -e "$HOME/.local/bin/fd" || -L "$HOME/.local/bin/fd" ]]; then
+      warn "refusing to replace existing non-command path: $HOME/.local/bin/fd"
+    else
+      ln -s "$(command -v fdfind)" "$HOME/.local/bin/fd"
+    fi
+  fi
+  if has batcat && ! has bat; then
+    if [[ -e "$HOME/.local/bin/bat" || -L "$HOME/.local/bin/bat" ]]; then
+      warn "refusing to replace existing non-command path: $HOME/.local/bin/bat"
+    else
+      ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
+    fi
+  fi
+
+  # --- curated upstream release binaries -------------------------------------
+  # Ubuntu either ships old versions of these or, in yq's case, a different tool.
+  release_arch="$(dpkg --print-architecture)"
+  case "$release_arch" in
   amd64)
     release_go_arch="amd64"
     release_uname_arch="x86_64"
@@ -723,196 +765,211 @@ case "$release_arch" in
   *)
     die "unsupported architecture for upstream CLI releases: $release_arch"
     ;;
-esac
+  esac
 
-install_github_release_binary mikefarah/yq yq "^yq_linux_${release_go_arch}$"
-install_github_release_binary mvdan/sh shfmt "^shfmt_v[^/]+_linux_${release_go_arch}$"
-install_github_release_binary jesseduffield/lazygit lazygit "^lazygit_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
-install_github_release_binary muesli/duf duf "^duf_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
-install_github_release_binary johnkerl/miller mlr "^miller-[^/]+-linux-${release_go_arch}\\.tar\\.gz$" mlr
-install_github_release_binary cli/cli gh "^gh_[^/]+_linux_${release_go_arch}\\.tar\\.gz$" gh
-# Herdr publishes bare Linux binaries; use its official GitHub release assets.
-install_github_release_binary herdrdev/herdr herdr "^herdr-linux-${release_herdr_arch}$"
+  install_github_release_binary mikefarah/yq yq "^yq_linux_${release_go_arch}$"
+  install_github_release_binary mvdan/sh shfmt "^shfmt_v[^/]+_linux_${release_go_arch}$"
+  install_github_release_binary jesseduffield/lazygit lazygit "^lazygit_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
+  install_github_release_binary muesli/duf duf "^duf_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
+  install_github_release_binary johnkerl/miller mlr "^miller-[^/]+-linux-${release_go_arch}\\.tar\\.gz$" mlr
+  install_github_release_binary cli/cli gh "^gh_[^/]+_linux_${release_go_arch}\\.tar\\.gz$" gh
+  # Herdr publishes bare Linux binaries; use its official GitHub release assets.
+  install_github_release_binary herdrdev/herdr herdr "^herdr-linux-${release_herdr_arch}$"
 
-# --- mise + dagger -----------------------------------------------------------
+  # --- mise + dagger -----------------------------------------------------------
 
-msg "mise: install/update"
-install_or_update_mise
+  msg "mise: install/update"
+  install_or_update_mise
 
-msg "dagger: install/update"
-install_or_update_dagger
-check_dagger_container_runtime
+  msg "dagger: install/update"
+  install_or_update_dagger
+  check_dagger_container_runtime
 
-# --- neovim (latest stable) -------------------------------------------------
-# Install upstream Neovim release tarballs so we are not stuck on Ubuntu's
-# older neovim package and so arm64 works with the artifacts upstream ships.
-version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
-  [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" == "$1" ]]
-}
+  # --- neovim (latest stable) -------------------------------------------------
+  # Install upstream Neovim release tarballs so we are not stuck on Ubuntu's
+  # older neovim package and so arm64 works with the artifacts upstream ships.
+  version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
+    [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" == "$1" ]]
+  }
 
-install_latest_neovim() {
-  local min_version="$1"
-  local latest_json latest_tag latest_version current arch asset_arch asset_dir
-  local asset_name asset_count asset_url asset_digest tmpdir downloaded_version installed_version
+  install_latest_neovim() {
+    local min_version="$1"
+    local latest_json latest_tag latest_version current arch asset_arch asset_dir
+    local asset_name asset_count asset_url asset_digest tmpdir downloaded_version installed_version
 
-  if has nvim && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
-    return 0
-  fi
-
-  latest_json="$(github_api_fetch https://api.github.com/repos/neovim/neovim/releases/latest)"
-  latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
-  [[ "$latest_tag" == v* ]] || die "could not resolve latest Neovim release tag"
-  latest_version="${latest_tag#v}"
-  version_ge "$min_version" "$latest_version" || die "latest Neovim $latest_version is older than required $min_version"
-
-  if has nvim; then
-    current="$(nvim --version 2> /dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
-    if [[ "$current" == "$latest_version" ]]; then
+    if has nvim && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
       return 0
     fi
-  fi
 
-  msg "neovim: installing/upgrading $latest_tag"
+    latest_json="$(github_api_fetch https://api.github.com/repos/neovim/neovim/releases/latest)"
+    latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
+    [[ "$latest_tag" == v* ]] || die "could not resolve latest Neovim release tag"
+    latest_version="${latest_tag#v}"
+    version_ge "$min_version" "$latest_version" || die "latest Neovim $latest_version is older than required $min_version"
 
-  arch="$(dpkg --print-architecture)"
-  case "$arch" in
+    if has nvim; then
+      current="$(nvim --version 2>/dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
+      if [[ "$current" == "$latest_version" ]]; then
+        return 0
+      fi
+    fi
+
+    msg "neovim: installing/upgrading $latest_tag"
+
+    arch="$(dpkg --print-architecture)"
+    case "$arch" in
     amd64) asset_arch="x86_64" ;;
     arm64) asset_arch="arm64" ;;
     *) die "unsupported dpkg arch for nvim: $arch" ;;
-  esac
+    esac
 
-  asset_dir="nvim-linux-$asset_arch"
-  asset_name="$asset_dir.tar.gz"
-  asset_count="$(printf '%s\n' "$latest_json" | jq --arg name "$asset_name" '[.assets[] | select(.name == $name)] | length')"
-  [[ "$asset_count" == "1" ]] || die "Neovim $latest_tag: expected one $asset_name asset, found $asset_count"
-  asset_url="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url')"
-  asset_digest="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | (.digest // "")')"
+    asset_dir="nvim-linux-$asset_arch"
+    asset_name="$asset_dir.tar.gz"
+    asset_count="$(printf '%s\n' "$latest_json" | jq --arg name "$asset_name" '[.assets[] | select(.name == $name)] | length')"
+    [[ "$asset_count" == "1" ]] || die "Neovim $latest_tag: expected one $asset_name asset, found $asset_count"
+    asset_url="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url')"
+    asset_digest="$(printf '%s\n' "$latest_json" | jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | (.digest // "")')"
 
-  tmpdir="$(make_tmpdir)"
-  curl_fetch "$asset_url" -o "$tmpdir/$asset_name"
-  verify_sha256_digest "$tmpdir/$asset_name" "$asset_digest"
-  extract_release_asset "$tmpdir/$asset_name" "$asset_name" "$tmpdir"
-  [[ -x "$tmpdir/$asset_dir/bin/nvim" ]] || die "downloaded Neovim archive did not contain $asset_dir/bin/nvim"
-  downloaded_version="$(
-    "$tmpdir/$asset_dir/bin/nvim" --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
-  )"
-  [[ "$downloaded_version" == "$latest_version" ]] ||
-    die "downloaded Neovim reports version $downloaded_version, expected $latest_version"
+    tmpdir="$(make_tmpdir)"
+    curl_fetch "$asset_url" -o "$tmpdir/$asset_name"
+    verify_sha256_digest "$tmpdir/$asset_name" "$asset_digest"
+    extract_release_asset "$tmpdir/$asset_name" "$asset_name" "$tmpdir"
+    [[ -x "$tmpdir/$asset_dir/bin/nvim" ]] || die "downloaded Neovim archive did not contain $asset_dir/bin/nvim"
+    downloaded_version="$(
+      "$tmpdir/$asset_dir/bin/nvim" --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
+    )"
+    [[ "$downloaded_version" == "$latest_version" ]] ||
+      die "downloaded Neovim reports version $downloaded_version, expected $latest_version"
 
-  sudo install -d -m 0755 /opt /usr/local/bin
-  sudo rm -rf "/opt/${asset_dir}.new" "/opt/${asset_dir}.previous"
-  sudo mv "$tmpdir/$asset_dir" "/opt/${asset_dir}.new"
-  if [[ -e "/opt/$asset_dir" || -L "/opt/$asset_dir" ]]; then
-    sudo mv -T "/opt/$asset_dir" "/opt/${asset_dir}.previous"
-  fi
-  sudo mv -T "/opt/${asset_dir}.new" "/opt/$asset_dir"
-  sudo ln -sfn "/opt/$asset_dir/bin/nvim" /usr/local/bin/nvim
-  hash -r 2> /dev/null || true
-  installed_version="$(
-    /usr/local/bin/nvim --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
-  )"
-  [[ "$installed_version" == "$latest_version" ]] ||
-    die "installed Neovim reports version $installed_version, expected $latest_version"
+    sudo install -d -m 0755 /opt /usr/local/bin
+    sudo rm -rf "/opt/${asset_dir}.new" "/opt/${asset_dir}.previous"
+    sudo mv "$tmpdir/$asset_dir" "/opt/${asset_dir}.new"
+    if [[ -e "/opt/$asset_dir" || -L "/opt/$asset_dir" ]]; then
+      sudo mv -T "/opt/$asset_dir" "/opt/${asset_dir}.previous"
+    fi
+    sudo mv -T "/opt/${asset_dir}.new" "/opt/$asset_dir"
+    sudo ln -sfn "/opt/$asset_dir/bin/nvim" /usr/local/bin/nvim
+    hash -r 2>/dev/null || true
+    installed_version="$(
+      /usr/local/bin/nvim --version | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }'
+    )"
+    [[ "$installed_version" == "$latest_version" ]] ||
+      die "installed Neovim reports version $installed_version, expected $latest_version"
 
-  # Remove Ubuntu's package only after its replacement is active and verified.
-  if dpkg -s neovim-runtime > /dev/null 2>&1 || dpkg -s neovim > /dev/null 2>&1; then
-    apt_get remove neovim neovim-runtime || true
-    apt_get autoremove || true
-    hash -r 2> /dev/null || true
-  fi
+    # Remove Ubuntu's package only after its replacement is active and verified.
+    if dpkg -s neovim-runtime >/dev/null 2>&1 || dpkg -s neovim >/dev/null 2>&1; then
+      apt_get remove neovim neovim-runtime || true
+      apt_get autoremove || true
+      hash -r 2>/dev/null || true
+    fi
 
-  /usr/local/bin/nvim --version | head -n 2
-  sudo rm -rf "/opt/${asset_dir}.previous"
-  rm -rf "$tmpdir" || true
-}
+    /usr/local/bin/nvim --version | head -n 2
+    sudo rm -rf "/opt/${asset_dir}.previous"
+    rm -rf "$tmpdir" || true
+  }
 
-install_latest_neovim "0.11.0"
+  install_latest_neovim "0.11.0"
 
-# --- rustup + cargo tools ---------------------------------------------------
+  # --- rustup + cargo tools ---------------------------------------------------
 
-export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
-export PATH="$HOME/.local/bin:$CARGO_HOME/bin:$PATH"
+  export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+  export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
+  export PATH="$HOME/.local/bin:$CARGO_HOME/bin:$PATH"
 
-if ! has rustup; then
-  msg "rust: installing rustup (stable toolchain)"
+  if ! has rustup; then
+    msg "rust: installing rustup (stable toolchain)"
 
-  arch="$(uname -m)"
-  case "$arch" in
+    arch="$(uname -m)"
+    case "$arch" in
     x86_64) target="x86_64-unknown-linux-gnu" ;;
     aarch64 | arm64) target="aarch64-unknown-linux-gnu" ;;
     *) die "unsupported architecture: $arch" ;;
-  esac
+    esac
 
-  url="https://static.rust-lang.org/rustup/dist/${target}/rustup-init"
-  tmpdir="$(make_tmpdir)"
-  # rustup-init selects its behavior from argv[0].
-  installer="$tmpdir/rustup-init"
-  curl_fetch "$url" -o "$installer"
-  chmod +x "$installer"
-  "$installer" -y --profile minimal --default-toolchain stable --no-modify-path
-  rm -rf "$tmpdir" || true
-else
-  msg "rust: updating stable toolchain"
-  retry_quiet rustup update stable
-  retry_quiet rustup default stable
-fi
+    url="https://static.rust-lang.org/rustup/dist/${target}/rustup-init"
+    tmpdir="$(make_tmpdir)"
+    # rustup-init selects its behavior from argv[0].
+    installer="$tmpdir/rustup-init"
+    curl_fetch "$url" -o "$installer"
+    chmod +x "$installer"
+    "$installer" -y --profile minimal --default-toolchain stable --no-modify-path
+    rm -rf "$tmpdir" || true
+  else
+    msg "rust: updating stable toolchain"
+    retry_quiet rustup update stable
+    retry_quiet rustup default stable
+  fi
 
-if [[ -f "$CARGO_HOME/env" ]]; then
-  # shellcheck disable=SC1090,SC1091
-  source "$CARGO_HOME/env"
-fi
-export PATH="$CARGO_HOME/bin:$PATH"
+  if [[ -f "$CARGO_HOME/env" ]]; then
+    # shellcheck disable=SC1090,SC1091
+    source "$CARGO_HOME/env"
+  fi
+  export PATH="$CARGO_HOME/bin:$PATH"
 
-cargo_binstall_arch="$(uname -m)"
-case "$cargo_binstall_arch" in
+  cargo_binstall_arch="$(uname -m)"
+  case "$cargo_binstall_arch" in
   x86_64) cargo_binstall_target="x86_64" ;;
   aarch64 | arm64) cargo_binstall_target="aarch64" ;;
   *) die "unsupported architecture for cargo-binstall: $cargo_binstall_arch" ;;
-esac
-install_github_release_binary cargo-bins/cargo-binstall cargo-binstall \
-  "^cargo-binstall-${cargo_binstall_target}-unknown-linux-musl\\.tgz$" cargo-binstall
+  esac
+  install_github_release_binary cargo-bins/cargo-binstall cargo-binstall \
+    "^cargo-binstall-${cargo_binstall_target}-unknown-linux-musl\\.tgz$" cargo-binstall
 
-cargo_install_latest zoxide zoxide
-cargo_install_latest atuin atuin
-cargo_install_latest eza eza
-cargo_install_latest git-delta delta
-cargo_install_latest difftastic difft
-cargo_install_latest xh xh
-cargo_install_latest du-dust dust
-cargo_install_latest tealdeer tldr
-cargo_install_latest starship starship
-cargo_install_latest jj-cli jj
-cargo_install_latest tokei tokei
-cargo_install_latest sd sd
-cargo_install_latest ouch ouch
-cargo_install_latest hyperfine hyperfine
-cargo_install_latest just just
-cargo_install_latest watchexec-cli watchexec
-cargo_install_latest ast-grep ast-grep
+  cargo_install_latest uv uv
+  cargo_install_latest zoxide zoxide
+  cargo_install_latest atuin atuin
+  cargo_install_latest eza eza
+  cargo_install_latest git-delta delta
+  cargo_install_latest difftastic difft
+  cargo_install_latest xh xh
+  cargo_install_latest du-dust dust
+  cargo_install_latest tealdeer tldr
+  cargo_install_latest starship starship
+  cargo_install_latest jj-cli jj
+  cargo_install_latest tokei tokei
+  cargo_install_latest sd sd
+  cargo_install_latest ouch ouch
+  cargo_install_latest hyperfine hyperfine
+  cargo_install_latest just just
+  cargo_install_latest watchexec-cli watchexec
+  cargo_install_latest ast-grep ast-grep
+  cargo_install_latest tree-sitter-cli tree-sitter
 
-if [[ "$BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS" == "1" ]]; then
-  installed_cargo_crates="$(cargo install --list 2> /dev/null || true)"
-  for superseded_crate in procs bottom broot frawk; do
-    if grep -qE "^${superseded_crate} v" <<< "$installed_cargo_crates"; then
-      msg "cargo: uninstall superseded $superseded_crate"
-      cargo uninstall "$superseded_crate" || warn "could not uninstall $superseded_crate"
-    fi
-  done
-fi
+  if [[ "$BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS" == "1" ]]; then
+    installed_cargo_crates="$(cargo install --list 2>/dev/null || true)"
+    for superseded_crate in procs bottom broot frawk; do
+      if grep -qE "^${superseded_crate} v" <<<"$installed_cargo_crates"; then
+        msg "cargo: uninstall superseded $superseded_crate"
+        cargo uninstall "$superseded_crate" || warn "could not uninstall $superseded_crate"
+      fi
+    done
+  fi
 
-if has tldr; then
-  run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u > /dev/null 2>&1 || true
-fi
+  if has tldr; then
+    run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u >/dev/null 2>&1 || true
+  fi
+
+  # A global Node LTS baseline also works in noninteractive agent sessions.
+  msg "runtimes: Node LTS and Python tooling"
+  mise use --global node@lts
+  mkdir -p "$HOME/.local/share/wsl-bootstrap/runtimes"
+  ln -sfn "$(mise where node@lts)" "$HOME/.local/share/wsl-bootstrap/runtimes/node"
+  rustup component add rustfmt clippy
+
+fi # installation phase
+export PATH="$HOME/.local/bin:${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 
 # --- Git defaults, completions, and toolhelp --------------------------------
 
 git_config_default() {
   local key="$1"
   local value="$2"
-  git config --global --get "$key" > /dev/null 2>&1 || git config --global "$key" "$value"
+  git config --global --get "$key" >/dev/null 2>&1 || git config --global "$key" "$value"
 }
 
+git_config_default init.defaultBranch main
+git_config_default fetch.prune true
+git_config_default push.autoSetupRemote true
 git_config_default core.pager delta
 git_config_default interactive.diffFilter 'delta --color-only'
 git_config_default delta.navigate true
@@ -933,7 +990,7 @@ generate_completion() {
   local tmp
 
   tmp="$(make_tmpfile)"
-  if "$@" > "$tmp" 2> /dev/null && [[ -s "$tmp" ]]; then
+  if "$@" >"$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
     atomic_install_file "$tmp" "$path" 0644
   else
     warn "could not generate completion: $(command_string "$@")"
@@ -956,7 +1013,7 @@ elif has docker; then
 fi
 
 TOOLHELP_MARKER="# >>> wsl-bootstrap managed toolhelp >>>"
-write_managed_file "$HOME/.local/bin/toolhelp" "$TOOLHELP_MARKER" 0755 << 'TOOLHELP_SCRIPT'
+write_managed_file "$HOME/.local/bin/toolhelp" "$TOOLHELP_MARKER" 0755 <<'TOOLHELP_SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
@@ -2201,7 +2258,7 @@ main "$@"
 TOOLHELP_SCRIPT
 
 TOOLHELP_COMPLETION_MARKER="# >>> wsl-bootstrap managed _toolhelp >>>"
-write_managed_file "$ZSH_COMPLETIONS_DIR/_toolhelp" "$TOOLHELP_COMPLETION_MARKER" 0644 << 'TOOLHELP_COMPLETION'
+write_managed_file "$ZSH_COMPLETIONS_DIR/_toolhelp" "$TOOLHELP_COMPLETION_MARKER" 0644 <<'TOOLHELP_COMPLETION'
 #compdef toolhelp
 # >>> wsl-bootstrap managed _toolhelp >>>
 
@@ -2238,54 +2295,195 @@ TOOLHELP_COMPLETION
 
 bash -n "$HOME/.local/bin/toolhelp"
 
-# --- zsh (oh-my-zsh + plugins + zshrc) -------------------------------------
+# Keep common Windows entry points without scanning its entire PATH. Symlinks
+# are resolved directly by WSL interoperability; they are not shell wrappers.
+for windows_command in wsl.exe cmd.exe powershell.exe explorer.exe clip.exe notepad.exe code cursor; do
+  windows_target="$(command -v "$windows_command" || true)"
+  windows_link="$HOME/.local/bin/$windows_command"
+  if [[ "$windows_target" == /mnt/[a-z]/* && ! -e "$windows_link" && ! -L "$windows_link" ]]; then
+    ln -s "$windows_target" "$windows_link"
+  fi
+done
 
-OH_MY_ZSH_DIR="$HOME/.oh-my-zsh"
-ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$OH_MY_ZSH_DIR/custom}"
-ZSH_CUSTOM_PLUGINS_DIR="$ZSH_CUSTOM_DIR/plugins"
+# --- native zsh, cached integrations, and Starship ---------------------------
 
-git_repo https://github.com/ohmyzsh/ohmyzsh.git "$OH_MY_ZSH_DIR"
-mkdir -p "$ZSH_CUSTOM_PLUGINS_DIR"
-git_repo https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM_PLUGINS_DIR/zsh-autosuggestions"
-git_repo https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM_PLUGINS_DIR/zsh-syntax-highlighting"
+ZSH_PLUGIN_DIR="$HOME/.local/share/wsl-bootstrap/zsh/plugins"
+mkdir -p "$ZSH_PLUGIN_DIR"
+git_repo https://github.com/zsh-users/zsh-autosuggestions "$ZSH_PLUGIN_DIR/zsh-autosuggestions"
+git_repo https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting"
 
-ZSHRC_MARKER="# >>> wsl-bootstrap managed zshrc >>>"
-write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 << 'ZSHRC'
-# >>> wsl-bootstrap managed zshrc >>>
+write_managed_file "$HOME/.local/bin/wsl-shell-refresh" '# >>> wsl-bootstrap managed shell refresh >>>' 0755 <<'REFRESH'
+#!/usr/bin/env bash
+set -euo pipefail
+# >>> wsl-bootstrap managed shell refresh >>>
+# Refresh after manually upgrading an integrated tool. No work on shell startup.
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+mkdir -p "$cache"
+chmod 700 "$cache"
+exec 8> "$cache/refresh.lock"
+flock 8
+scratch=$(mktemp -d "$cache/.refresh.XXXXXX")
+trap 'rm -rf -- "$scratch"' EXIT
+emit() {
+  local name=$1
+  shift
+  if command -v "$1" >/dev/null 2>&1; then
+    "$@" > "$scratch/$name.zsh"
+    zsh -n "$scratch/$name.zsh"
+    chmod 600 "$scratch/$name.zsh"
+    mv -f "$scratch/$name.zsh" "$cache/$name.zsh"
+  fi
+}
+emit starship starship init zsh --print-full-init
+emit zoxide zoxide init zsh
+emit atuin atuin init zsh --disable-up-arrow --disable-ai
+# Suppress the generation-time PATH snapshot; the emitted shell code captures
+# the caller's PATH when it is sourced. Never bake this installer's PATH in.
+emit mise env __MISE_ORIG_PATH=bootstrap-generation mise activate zsh
+emit fzf fzf --zsh
+# Installed completion definitions can change while the directory stays the same.
+rm -f -- "$cache/zcompdump" "$cache/zcompdump.zwc"
+REFRESH
+# Interactive activation selects real runtime directories. Disable the shim
+# boundary and automatic command installation introduced by recent mise versions.
+mise settings set activate_shims false
+mise settings set not_found_auto_install false
 
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME=""
-# Updates run explicitly through this bootstrap.
-zstyle ':omz:update' mode disabled
+write_managed_file "$HOME/.config/starship.toml" '# >>> wsl-bootstrap managed starship >>>' 0644 <<'STARSHIP'
+# >>> wsl-bootstrap managed starship >>>
+"$schema" = 'https://starship.rs/config-schema.json'
+add_newline = false
+scan_timeout = 10
+command_timeout = 150
+follow_symlinks = false
+format = '$username$hostname$directory$git_branch$git_commit$git_state$python$cmd_duration$jobs$line_break$character'
 
-[[ ! -r "$HOME/.config/shell/env.sh" ]] || source "$HOME/.config/shell/env.sh"
-typeset -U fpath
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:---height=40% --layout=reverse --border}"
-export FZF_CTRL_T_OPTS="${FZF_CTRL_T_OPTS:---preview 'bat --color=always --style=numbers --line-range=:500 {} 2>/dev/null'}"
-export FZF_ALT_C_OPTS="${FZF_ALT_C_OPTS:---preview 'eza --tree --level=2 --color=always {} 2>/dev/null'}"
-unset GOROOT GOTOOLDIR
+[directory]
+style = 'bold cyan'
+truncation_length = 4
+truncate_to_repo = true
+read_only = ' ro'
 
-ZSH_COMPLETIONS_DIR="$HOME/.local/share/wsl-bootstrap/zsh/site-functions"
-[[ -d "$ZSH_COMPLETIONS_DIR" ]] && fpath=("$ZSH_COMPLETIONS_DIR" $fpath)
+[git_branch]
+format = '[$branch]($style) '
+style = 'purple'
+truncation_length = 32
 
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
-source "$ZSH/oh-my-zsh.sh"
+[git_commit]
+only_detached = true
+format = '[@$hash]($style) '
 
-command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+[git_state]
+format = '[\($state( $progress_current/$progress_total)\)]($style) '
 
-if [[ -t 0 ]]; then
-  [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
-  [[ -f /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
+# Branch and operation state are cheap. Worktree scans belong in `git status`.
+[git_status]
+disabled = true
+
+[python]
+format = '[$virtualenv]($style) '
+style = 'yellow'
+detect_extensions = []
+detect_files = []
+detect_folders = []
+
+[cmd_duration]
+min_time = 2000
+format = '[$duration]($style) '
+
+[jobs]
+symbol = '+'
+
+[character]
+success_symbol = '[❯](bold green)'
+error_symbol = '[❯](bold red)'
+vimcmd_symbol = '[❮](bold purple)'
+STARSHIP
+
+# Atuin stays local unless explicitly configured by the user.
+if [[ ! -e "$HOME/.config/atuin/config.toml" ]]; then
+  mkdir -p "$HOME/.config/atuin"
+  cat >"$HOME/.config/atuin/config.toml" <<'ATUIN'
+auto_sync = false
+update_check = false
+search_mode = "fuzzy"
+style = "compact"
+inline_height = 16
+show_help = false
+enter_accept = false
+ATUIN
 fi
 
-# Initialize Atuin after fzf so Atuin deliberately owns Ctrl-R.
-command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
+"$HOME/.local/bin/wsl-shell-refresh"
 
-setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
+ZSHRC_MARKER="# >>> wsl-bootstrap managed zshrc >>>"
+write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 <<'ZSHRC'
+# >>> wsl-bootstrap managed zshrc >>>
+[[ -o interactive ]] || return
+
+# ~/.zshenv provides the environment to every Zsh, including agent commands.
+typeset -U path fpath
+zmodload zsh/datetime
+zmodload zsh/complist
+bindkey -e
+KEYTIMEOUT=10
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS INTERACTIVE_COMMENTS
+setopt NO_BEEP NO_FLOW_CONTROL
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt EXTENDED_HISTORY SHARE_HISTORY HIST_IGNORE_DUPS HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_SAVE_NO_DUPS HIST_EXPIRE_DUPS_FIRST
+
+_zsh_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+fpath=("$HOME/.local/share/wsl-bootstrap/zsh/site-functions" $fpath)
+autoload -Uz compinit
+# Keep the security audit; use the validated dump for the next 24 hours.
+if [[ -f "$_zsh_cache/zcompdump" && -n "$_zsh_cache"/zcompdump(#qN.mh-24) ]]; then
+  compinit -C -d "$_zsh_cache/zcompdump"
+else
+  compinit -i -d "$_zsh_cache/zcompdump"
+fi
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$_zsh_cache/completion"
+zstyle ':completion:*:descriptions' format '%F{cyan}%d%f'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:---height=40% --layout=reverse --border=rounded --info=inline}"
+export FZF_CTRL_T_OPTS="${FZF_CTRL_T_OPTS:---preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null'}"
+export FZF_ALT_C_OPTS="${FZF_ALT_C_OPTS:---preview 'eza --tree --level=2 --color=always {} 2>/dev/null'}"
+
+# Generated once by the bootstrap, not eval'd from subprocesses on each launch.
+# Atuin follows fzf so Ctrl-R searches Atuin; Up retains normal shell history.
+for _zsh_integration in mise zoxide fzf atuin starship; do
+  # Line-editor integrations require a terminal, including in `zsh -ic` calls.
+  if [[ $_zsh_integration == (fzf|atuin) && ( ! -t 0 || ! -t 1 ) ]]; then
+    continue
+  fi
+  [[ ! -r "$_zsh_cache/$_zsh_integration.zsh" ]] || source "$_zsh_cache/$_zsh_integration.zsh"
+done
+# No right-side modules: avoid a second Starship process for every prompt.
+RPROMPT=
+(( $+commands[starship] )) || PROMPT='%F{cyan}%~%f %(?.%F{green}.%F{red})❯%f '
+unset _zsh_integration _zsh_cache
+
+ZSH_AUTOSUGGEST_STRATEGY=(history)
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=200
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+alias g=git
+alias gst='git status --short --branch'
+alias ga='git add'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate -20'
 
 alias cls=clear
 alias sz='exec zsh'
@@ -2378,10 +2576,10 @@ alias gpom="git pull origin main"
 alias dcb="docker compose build"
 alias dcu="docker compose up"
 alias dcd="docker compose down"
-alias dnp="docker network prune -f"
-alias dsp="docker system prune -a -f --volumes"
+alias dnp="docker network prune"
+alias dsp="docker system prune"
 alias dre="dcd && dcb && dcu"
-alias dres="dcd && dsp && dcb --no-cache && dcu"
+alias dres="dcd && dcb --no-cache && dcu"
 alias dex="docker compose exec web sh"
 
 alias ta='tmux attach -t'
@@ -2439,18 +2637,31 @@ CLI toolkit:
 Type 'man tmux' for authoritative documentation.
 HELP
 }
+# Personal customizations survive bootstrap reruns.
+[[ ! -r "$HOME/.config/zsh/local.zsh" ]] || source "$HOME/.config/zsh/local.zsh"
+# Highlighting must see all widgets and user bindings.
+source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 # <<< wsl-bootstrap managed zshrc <<<
 ZSHRC
 
+mkdir -p "$HOME/.local/state/zsh" "$HOME/.cache/zsh" "$HOME/.config/zsh" "$HOME/src"
+chmod 700 "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
+touch "$HOME/.local/state/zsh/history"
+chmod 600 "$HOME/.local/state/zsh/history"
 configure_shell_environment
 configure_zshenv
+# Migrate the previous bootstrap's redundant login loader, preserving user code.
+if [[ -f "$HOME/.zprofile" && ! -L "$HOME/.zprofile" ]]; then
+  # shellcheck disable=SC2016
+  sed -i '\@^\[ ! -r "$HOME/.config/shell/env.sh" \] || \. "$HOME/.config/shell/env.sh"$@d' "$HOME/.zprofile"
+fi
 
 ZSH_PATH="$(command -v zsh || true)"
-if [[ -n "$ZSH_PATH" ]]; then
-  grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells > /dev/null
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -n "$ZSH_PATH" ]]; then
+  grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
   current_shell="$(getent passwd "$USER" | cut -d: -f7 || true)"
   if [[ "$current_shell" != "$ZSH_PATH" ]]; then
-    sudo chsh -s "$ZSH_PATH" "$USER" > /dev/null 2>&1 || true
+    sudo chsh -s "$ZSH_PATH" "$USER"
   fi
 fi
 
@@ -2463,7 +2674,7 @@ git_repo https://github.com/tmux-plugins/tpm "$TPM_DIR"
 
 TMUX_CONF_MARKER="# >>> wsl-bootstrap managed tmux.conf >>>"
 mkdir -p "$HOME/.config/tmux"
-write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 << 'TMUXCONF'
+write_managed_file "$HOME/.config/tmux/tmux.conf" "$TMUX_CONF_MARKER" 0644 <<'TMUXCONF'
 # >>> wsl-bootstrap managed tmux.conf >>>
 
 # Plugin Manager (TPM)
@@ -2484,6 +2695,7 @@ set -as terminal-features ",xterm*:RGB"
 if-shell 'infocmp -x tmux-256color >/dev/null 2>&1' 'set -g default-terminal "tmux-256color"' 'set -g default-terminal "screen-256color"'
 
 # General.
+set -g default-shell /usr/bin/zsh
 set -g mouse on
 set -g base-index 1
 set -g pane-base-index 1
@@ -2547,14 +2759,14 @@ run '~/.tmux/plugins/tpm/tpm'
 TMUXCONF
 
 TMUX_SHIM_MARKER="# >>> wsl-bootstrap managed ~/.tmux.conf >>>"
-write_managed_file "$HOME/.tmux.conf" "$TMUX_SHIM_MARKER" 0644 << 'TMUXSHIM'
+write_managed_file "$HOME/.tmux.conf" "$TMUX_SHIM_MARKER" 0644 <<'TMUXSHIM'
 # >>> wsl-bootstrap managed ~/.tmux.conf >>>
 source-file ~/.config/tmux/tmux.conf
 # <<< wsl-bootstrap managed ~/.tmux.conf <<<
 TMUXSHIM
 
 SESSIONIZER_MARKER="# >>> wsl-bootstrap managed tmux-sessionizer >>>"
-write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 << 'SESSIONIZER'
+write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 <<'SESSIONIZER'
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
@@ -2590,7 +2802,7 @@ fi
 SESSIONIZER
 
 CHT_MARKER="# >>> wsl-bootstrap managed tmux-cht >>>"
-write_managed_file "$HOME/.local/bin/tmux-cht" "$CHT_MARKER" 0755 << 'CHT'
+write_managed_file "$HOME/.local/bin/tmux-cht" "$CHT_MARKER" 0755 <<'CHT'
 #!/usr/bin/env bash
 set -euo pipefail
 # >>> wsl-bootstrap managed tmux-cht >>>
@@ -2613,13 +2825,13 @@ CHT
 bash -n "$HOME/.local/bin/tmux-sessionizer"
 bash -n "$HOME/.local/bin/tmux-cht"
 
-if [[ -x "$TPM_DIR/bin/install_plugins" ]]; then
-  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" > /dev/null 2>&1 ||
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -x "$TPM_DIR/bin/install_plugins" ]]; then
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 ||
     warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
 fi
 
-if [[ "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" && -x "$TPM_DIR/bin/update_plugins" ]]; then
-  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all > /dev/null 2>&1 ||
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && "$BOOTSTRAP_TMUX_PLUGIN_UPDATE" = "1" && -x "$TPM_DIR/bin/update_plugins" ]]; then
+  run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 ||
     warn "TPM plugin update failed; open tmux and press Prefix + U after networking is available"
 fi
 
@@ -2628,14 +2840,14 @@ fi
 NVIM_DIR="$HOME/.config/nvim"
 NVIM_MARKER_FILE="$NVIM_DIR/.wsl-bootstrap-managed"
 
-if [[ "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && "$BOOTSTRAP_INSTALL_LAZYVIM" = "1" && ! -d "$NVIM_DIR" ]]; then
   tmpdir="$(make_tmpdir)"
   clonedir="$tmpdir/nvim"
   retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" env GIT_TERMINAL_PROMPT=0 git clone --depth=1 --quiet https://github.com/LazyVim/starter "$clonedir"
   mkdir -p "$(dirname "$NVIM_DIR")"
   mv "$clonedir" "$NVIM_DIR"
   rm -rf "$NVIM_DIR/.git" || true
-  printf 'managed by wsl-setup.sh\n' > "$NVIM_MARKER_FILE"
+  printf 'managed by wsl-setup.sh\n' >"$NVIM_MARKER_FILE"
   rm -rf "$tmpdir" || true
 fi
 
@@ -2645,7 +2857,7 @@ fi
 if [[ -f "$NVIM_MARKER_FILE" ]]; then
   NVIM_TMUX_NAV_MARKER="-- >>> wsl-bootstrap managed nvim tmux-navigator >>>"
   mkdir -p "$NVIM_DIR/lua/plugins"
-  write_managed_file "$NVIM_DIR/lua/plugins/tmux-navigator.lua" "$NVIM_TMUX_NAV_MARKER" 0644 << 'NVIMTMUX'
+  write_managed_file "$NVIM_DIR/lua/plugins/tmux-navigator.lua" "$NVIM_TMUX_NAV_MARKER" 0644 <<'NVIMTMUX'
 -- >>> wsl-bootstrap managed nvim tmux-navigator >>>
 
 return {
@@ -2681,4 +2893,76 @@ return {
 NVIMTMUX
 fi
 
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && "$BOOTSTRAP_NVIM_SYNC" == "1" && -f "$NVIM_MARKER_FILE" ]]; then
+  msg "neovim: synchronize plugins"
+  retry_quiet run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" nvim --headless '+Lazy! sync' +qa
+fi
+
+write_managed_file "$HOME/.local/share/wsl-bootstrap/README.md" '<!-- wsl-bootstrap managed guide -->' 0644 <<'GUIDE'
+<!-- wsl-bootstrap managed guide -->
+# WSL developer environment
+
+The source of truth is `~/wsl-setup.sh`. It generates the managed shell,
+Starship, tmux, completion and helper files. Personal shell additions belong
+in `~/.config/zsh/local.zsh`, which the bootstrap never overwrites.
+
+## Daily use
+
+- Open a new terminal or run `exec zsh -l` to load the setup.
+- Keep repositories under `~/src` on the Linux filesystem.
+- `Ctrl-R`: local Atuin history search; Up: normal history; Right: accept a suggestion.
+- `Ctrl-T`: fuzzy file picker; `Alt-C`: fuzzy directory picker; `z`: directory jumping.
+- `gst`: Git status; `lg`: LazyGit; `fedit`: fuzzy edit; `tm`: attach/create tmux.
+- `toolhelp`: installed tool reference; `tmux_help`: key bindings.
+
+## Maintenance
+
+```sh
+bash ~/wsl-setup.sh                         # install/update tools and regenerate configs
+BOOTSTRAP_CONFIGURE_ONLY=1 bash ~/wsl-setup.sh  # regenerate without package/network updates
+wsl-shell-refresh                          # refresh cached init after a manual tool upgrade
+```
+
+`~/.zshenv` supplies a quiet environment to `zsh -c` and `zsh -lc`.
+`.profile` supplies the same native tool paths to Bash login sessions.
+Interactive aliases and prompt hooks live only in `.zshrc`.
+The bootstrap uses native Zsh completion with a daily security audit, two
+focused plugins, and cached upstream initialization scripts. It does not
+install Oh My Zsh or run update checks when a shell starts.
+
+Cargo/Rust use rustup, and standalone CLIs execute directly from native
+binaries. Mise manages Node LTS and switches runtime directories interactively.
+`activate_shims` and `not_found_auto_install` are disabled. A direct Node
+runtime path also works in noninteractive sessions. For project-specific
+mise environments in scripts, explicitly use `mise exec -- COMMAND`.
+
+The inherited Windows PATH is trimmed after the Linux system paths to avoid
+expensive Windows directory scans. Direct launchers preserve common Windows
+commands and detected Code/Cursor launchers. Set `WSL_KEEP_WINDOWS_PATH=1`
+before shell startup to retain the full inherited Windows PATH.
+
+Starship shows directory, branch/detached commit, Git operation, active Python
+venv, slow-command duration and job count. A green/red prompt shows success or
+failure. Worktree status scans and unused runtime/version modules are omitted.
+The prompt uses ordinary Unicode and does not require a Nerd Font.
+To customize a managed setting permanently, edit its template in the script.
+For a separate prompt config, set `STARSHIP_CONFIG` in `~/.config/zsh/local.zsh`.
+
+Inotify ceilings support concurrent editors and agents. The bootstrap preserves
+higher existing limits and leaves WSL memory/network defaults in place.
+Dagger requires a running Docker/Podman-compatible engine; installing the CLI
+does not install an engine. Git identity and service logins remain user choices.
+
+## References
+
+- https://mise.jdx.dev/dev-tools/shims.html
+- https://starship.rs/config/
+- https://zsh.sourceforge.io/Doc/Release/Completion-System.html
+- https://learn.microsoft.com/en-us/windows/wsl/filesystems
+GUIDE
+
+# Syntax checks validate exactly the files generated by this run.
+bash -n "$HOME/.local/bin/toolhelp" "$HOME/.local/bin/wsl-shell-refresh"
+zsh -n "$HOME/.zshrc"
+sh -n "$HOME/.config/shell/env.sh"
 echo "done — run toolhelp for the managed CLI reference"
