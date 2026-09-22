@@ -28,9 +28,9 @@ individual sites inside an application use a reasoned `#[expect]`.
 
 ## Tooling
 
-The mutation transaction runner requires Linux process-group tools
-(`setsid` and `ps`). Adapt and test that boundary before using the complete
-gate on another operating system.
+The mutation transaction runner uses `setsid` and process-group signals on
+Linux. Adapt and test that boundary before using the complete gate on another
+operating system.
 
 ```sh
 mise run rust:components

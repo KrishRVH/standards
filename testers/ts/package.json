@@ -54,6 +54,9 @@
     "typescript-eslint": "8.69.0"
   },
   "overrides": {
+    "@hughescr/stryker-bun-runner": {
+      "smol-toml": "1.7.1"
+    },
     "brace-expansion": "5.0.9",
     "fast-uri": "3.1.6",
     "qs": "6.16.0"

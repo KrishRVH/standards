@@ -304,37 +304,37 @@ ensure_homebrew() {
 }
 
 brew_install_formulae() {
-  local formula failed update_failed outdated_output
-  has brew || {
-    warn "brew is not available; skipping Homebrew formula installation"
+  local brew_cmd formula failed update_failed outdated_output
+  brew_cmd="$(detect_brew)" || {
+    warn "an accepted Homebrew installation is not available; skipping formula installation"
     return 1
   }
 
   failed=""
   update_failed=0
 
-  if ! retry_quiet brew update; then
+  if ! retry_quiet "$brew_cmd" update; then
     warn "brew update failed; attempting formula installation with existing metadata"
     update_failed=1
   fi
 
   for formula in "$@"; do
-    if brew list --formula "$formula" > /dev/null 2>&1; then
+    if "$brew_cmd" list --formula "$formula" > /dev/null 2>&1; then
       if [ "$BOOTSTRAP_BREW_UPGRADE" = "1" ]; then
-        outdated_output="$(brew outdated --quiet --formula "$formula" 2> /dev/null || true)"
+        outdated_output="$("$brew_cmd" outdated --quiet --formula "$formula" 2> /dev/null || true)"
         if [ -n "$outdated_output" ]; then
           msg "homebrew: upgrade $formula"
-          retry_quiet brew upgrade "$formula" || failed="$failed $formula"
+          retry_quiet "$brew_cmd" upgrade "$formula" || failed="$failed $formula"
         fi
       fi
     else
       msg "homebrew: install $formula"
-      retry_quiet brew install "$formula" || failed="$failed $formula"
+      retry_quiet "$brew_cmd" install "$formula" || failed="$failed $formula"
     fi
   done
 
   if [ "$BOOTSTRAP_BREW_CLEANUP" = "1" ]; then
-    brew cleanup > /dev/null 2>&1 || warn "brew cleanup failed; continuing"
+    "$brew_cmd" cleanup > /dev/null 2>&1 || warn "brew cleanup failed; continuing"
   fi
 
   if [ "$update_failed" -ne 0 ] || [ -n "$failed" ]; then

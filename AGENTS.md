@@ -83,8 +83,10 @@ installation needs network, run the install task and report that.
 Workstation tools and shell configuration follow host conventions. Keep prompt,
 history, navigation, and completion setup independent of mise. Shell activation
 and shims are optional choices for a concrete tool-version need, never a
-prerequisite for `mise run`. Measure startup and repeated prompt latency when
-changing shell integration. For workstation changes, read
+prerequisite for `mise run`. The WSL bootstrap chooses cached interactive mise
+activation for runtime selection, with shims disabled; macOS keeps native
+runtime paths without activation. Measure startup and repeated prompt latency
+when changing shell integration. For workstation changes, read
 `extras/workstation/README.md` and test the generated configuration, including
 startup from a parent environment with stale shims.
 

@@ -182,9 +182,12 @@ and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
 `.mjs` files under `src/` fail lint instead of silently escaping typechecking.
 The directive scanner still covers all eight JavaScript-like suffixes so
 tooling and configuration files cannot bypass the exception protocol.
-The audit gate covers dev-only subtrees too — Stryker's legacy
-`typed-rest-client` tree has already tripped it once (the `qs` override in
-`package.json` is the patch). The countersigned escape for an advisory with
+The audit gate also covers development dependencies. The `qs` override in
+`package.json` patches Stryker's transitive `typed-rest-client` dependency tree.
+The runner-scoped `smol-toml` override fixes
+[GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2)
+until the runner updates its pinned dependency.
+The countersigned escape for an advisory with
 no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
 script, removed once the fix ships.
 

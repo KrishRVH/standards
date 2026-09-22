@@ -16,10 +16,12 @@ remain available for focused diagnosis. Use `mise exec -- <command>` when a
 specific invocation needs the project's pinned tool or environment and no
 suitable task exists. Final verification uses the project's mise gates.
 
-`mise run` supplies its own tool environment. Workstation setup keeps shell
-startup, prompts, history, navigation, and completions independent of mise.
-Interactive activation or shims require a concrete need for automatic tool
-selection; they are not part of the default workstation configuration.
+`mise run` supplies its own tool environment. Interactive activation and shims
+are optional choices for automatic tool selection. The WSL bootstrap enables
+cached interactive activation with shims disabled; macOS keeps native runtime
+paths without activation. Prompt, history, navigation, and completion tools run
+directly. See the [workstation guide](../extras/workstation/README.md) for shell
+defaults and latency checks.
 
 The command surface starts strict. Keep the language tasks that fit the project
 and relax or remove checks that do not match its risk, lifecycle, or team

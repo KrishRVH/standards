@@ -123,9 +123,8 @@ function(project_apply_common target)
       -fno-omit-frame-pointer
       -fno-sanitize-recover=all
     )
-    get_target_property(_target_type ${target} TYPE)
-    if(_target_type STREQUAL "EXECUTABLE" OR _target_type STREQUAL "SHARED_LIBRARY" OR
-       _target_type STREQUAL "MODULE_LIBRARY")
+    if(_type STREQUAL "EXECUTABLE" OR _type STREQUAL "SHARED_LIBRARY" OR
+       _type STREQUAL "MODULE_LIBRARY")
       target_link_options(${target} PRIVATE
         -fsanitize=address,undefined
         -fno-sanitize-recover=all

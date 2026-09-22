@@ -87,18 +87,18 @@ select = [
 # stale. The list is examples, not the rule: routing around it through an
 # equivalent API violates the doctrine, not just the lint.
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
+"datetime.date.today".msg = "Ambient clock. Inject a clock."
 "datetime.datetime.now".msg = "Ambient clock. Inject a clock; tz-aware now(tz) at the composition root only."
 "datetime.datetime.utcnow".msg = "Naive UTC time. Use datetime.now(timezone.utc) at the composition root."
-"datetime.date.today".msg = "Ambient clock. Inject a clock."
-"time.time".msg = "Ambient clock. Inject a clock."
-"random.random".msg = "Ambient global RNG. Take a random.Random instance as a parameter."
-"random.randint".msg = "Ambient global RNG. Inject random.Random."
-"random.choice".msg = "Ambient global RNG. Inject random.Random."
-"random.seed".msg = "Seeding the process-global RNG is shared mutable state. Inject random.Random(seed)."
+"os._exit".msg = "Bypasses finally, atexit, and coverage. Raise SystemExit or return an exit code."
 "os.environ".msg = "Ambient config. Read the environment at the composition root; pass values explicitly."
 "os.putenv".msg = "Mutates process-global state invisible to os.environ."
-"os._exit".msg = "Bypasses finally, atexit, and coverage. Raise SystemExit or return an exit code."
 "pickle".msg = "Arbitrary code execution on load. Use json or an explicit schema."
+"random.choice".msg = "Ambient global RNG. Inject random.Random."
+"random.randint".msg = "Ambient global RNG. Inject random.Random."
+"random.random".msg = "Ambient global RNG. Take a random.Random instance as a parameter."
+"random.seed".msg = "Seeding the process-global RNG is shared mutable state. Inject random.Random(seed)."
+"time.time".msg = "Ambient clock. Inject a clock."
 
 [tool.ruff.lint.isort]
 known-first-party = ["project_name"]

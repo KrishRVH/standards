@@ -1,22 +1,5 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "oxc", "unicorn"],
-  "jsPlugins": [
-    "eslint-plugin-regexp",
-    {
-      "name": "standards",
-      "specifier": "./scripts/eslint-local-rules.mjs"
-    }
-  ],
-  "categories": {
-    "correctness": "off"
-  },
-  "options": {
-    "denyWarnings": true,
-    "reportUnusedDisableDirectives": "error",
-    "respectEslintDisableDirectives": true,
-    "typeAware": true
-  },
   "env": {
     "builtin": true,
     "es2024": true
@@ -33,8 +16,26 @@
     "**/type-tests/**",
     "**/*.tsbuildinfo"
   ],
+  "plugins": ["import", "oxc", "unicorn"],
+  "jsPlugins": [
+    "eslint-plugin-regexp",
+    {
+      "name": "standards",
+      "specifier": "./scripts/eslint-local-rules.mjs"
+    }
+  ],
+  "options": {
+    "typeAware": true,
+    "respectEslintDisableDirectives": true,
+    "reportUnusedDisableDirectives": "error",
+    "denyWarnings": true
+  },
+  "categories": {
+    "correctness": "off"
+  },
   "rules": {
     "constructor-super": "error",
+    "curly": "error",
     "for-direction": "error",
     "getter-return": "error",
     "no-async-promise-executor": "error",
@@ -87,13 +88,13 @@
     "no-useless-catch": "error",
     "no-useless-escape": "error",
     "no-with": "error",
-    "preserve-caught-error": "error",
+    "prefer-regex-literals": "error",
     "prefer-rest-params": "error",
     "prefer-spread": "error",
+    "preserve-caught-error": "error",
     "require-yield": "error",
     "use-isnan": "error",
     "valid-typeof": "error",
-    "prefer-regex-literals": "error",
     "regexp/confusing-quantifier": "warn",
     "regexp/control-character-escape": "error",
     "regexp/match-any": "error",
@@ -153,12 +154,12 @@
     "regexp/simplify-set-operations": "error",
     "regexp/sort-flags": "error",
     "regexp/strict": "error",
-    "regexp/use-ignore-case": "error",
-    "curly": "error"
+    "regexp/use-ignore-case": "error"
   },
   "overrides": [
     {
       "files": ["src/**/*.tsx"],
+      "plugins": ["jsx-a11y"],
       "rules": {
         "jsx-a11y/alt-text": "error",
         "jsx-a11y/anchor-ambiguous-text": "off",
@@ -246,8 +247,7 @@
         "jsx-a11y/role-supports-aria-props": "error",
         "jsx-a11y/scope": "error",
         "jsx-a11y/tabindex-no-positive": "error"
-      },
-      "plugins": ["jsx-a11y"]
+      }
     },
     {
       "files": ["**/*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}"],
@@ -258,6 +258,7 @@
     },
     {
       "files": ["src/**/*.{cts,mts,ts,tsx}", "tests/**/*.{cts,mts,ts,tsx}"],
+      "plugins": ["typescript"],
       "rules": {
         "no-redeclare": "off",
         "no-undef": "off",
@@ -452,8 +453,7 @@
         ],
         "standards/no-module-mutable-binding": "error",
         "standards/no-typescript-emit-syntax": "error"
-      },
-      "plugins": ["typescript"]
+      }
     },
     {
       "files": ["src/**/*.{cts,mts,ts,tsx}"],
@@ -518,10 +518,10 @@
     },
     {
       "files": ["tests/**/*.{cts,mts,ts,tsx}"],
+      "plugins": ["typescript"],
       "rules": {
         "typescript/no-non-null-assertion": "off"
-      },
-      "plugins": ["typescript"]
+      }
     },
     {
       "files": ["**/*.d.ts"],
@@ -549,6 +549,7 @@
     },
     {
       "files": ["**/*.{cjs,js,jsx,mjs}"],
+      "plugins": ["typescript"],
       "rules": {
         "standards/esm-only": "error",
         "no-undef": "error",
@@ -609,8 +610,7 @@
         "typescript/switch-exhaustiveness-check": "off",
         "typescript/unbound-method": "off",
         "typescript/use-unknown-in-catch-callback-variable": "off"
-      },
-      "plugins": ["typescript"]
+      }
     },
     {
       "files": ["src/**/*.{cjs,js,jsx,mjs}"],

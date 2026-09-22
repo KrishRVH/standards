@@ -677,8 +677,9 @@ test('bounds endpoint probes to the configured concurrency', async () => {
       yield* Deferred.await(twoStarted);
       const maximumBeforeRelease = maximum;
       yield* Deferred.succeed(release, undefined);
+      const results = yield* Fiber.join(fiber);
 
-      return { maximum, maximumBeforeRelease, results: yield* Fiber.join(fiber) };
+      return { maximum, maximumBeforeRelease, results };
     }),
   );
 

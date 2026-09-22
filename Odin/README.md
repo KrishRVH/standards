@@ -16,7 +16,7 @@ The standards workflow is:
 ```sh
 mise run odin:standards
 mise run odin:fmt:check
-mise run odin:fmt:update
+mise run --skip-tools odin:fmt:update
 mise run odin:lint
 mise run odin:test
 mise run odin:test:optimized
@@ -33,8 +33,9 @@ compiler style validation because `odinfmt` has no check-only mode.
 The formatter channel is mutable by design. The committed fixture lock records
 the reviewed nightly asset and GitHub-published checksum, so replacement fails
 closed, but it cannot preserve an asset after OLS rotates the nightly release.
-After reviewing a replacement, run `mise run odin:fmt:update` to update its
-checksum and force-reinstall it. Relocking alone can leave a warm machine on
+After reviewing a replacement, run `mise run --skip-tools odin:fmt:update` to
+refresh its checksum before mise attempts installation, then force-reinstall
+the formatter. Relocking alone can leave a warm machine on
 the old cached binary. The formatting adapter requires a POSIX shell; native
 Windows remains unverified.
 

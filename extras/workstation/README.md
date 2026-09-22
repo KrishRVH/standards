@@ -19,24 +19,43 @@ Keep those tasks as the default project interface across languages.
 Run ordinary tools directly: `git`, `gh`, `rg`, `fd`, `tokei`, and `ls`.
 Prompt, history, navigation, and completion integrations also invoke their
 installed binaries directly. The scripts install host tools with native
-package managers or upstream installers. A small shared environment file
-supplies native host paths to zsh scripts, interactive shells, and login
-shells. It removes inherited mise shims, keeps caller-selected toolchains
-ahead of host fallbacks, and places those fallbacks before system and Windows
-directories. Windows paths remain available on WSL. It does not activate mise
-or run it from prompt hooks.
+package managers or upstream installers. A shared environment file supplies
+host paths to zsh scripts, interactive shells, and login shells. It removes
+inherited mise shims, keeps caller-selected toolchains ahead of host fallbacks,
+and places those fallbacks before system directories.
+
+The WSL bootstrap installs Node LTS through mise and exposes its runtime
+directory to noninteractive sessions. Interactive zsh sources cached mise
+activation to switch runtime directories; `activate_shims` and
+`not_found_auto_install` are disabled. Its single zsh environment loader lives
+in `.zshenv`, which covers both login and non-login shells; `.zprofile` needs
+no additional loader. The macOS bootstrap uses native runtime paths without
+mise activation.
+
+WSL removes empty PATH entries and trims inherited Windows directories after
+the Linux system paths. Explicitly prepended toolchains on mounted drives
+retain their precedence. Direct launchers preserve detected common Windows
+commands and Code/Cursor. Set `WSL_KEEP_WINDOWS_PATH=1` before shell startup to
+retain the full inherited Windows PATH.
 
 Use `mise exec -- <command>` for a specific invocation that needs a project's
-pinned tool or environment and has no suitable task. Automatic interactive
-tool switching is a separate, deliberate choice with a measured latency cost.
+pinned tool or environment and has no suitable task. Project tasks supply their
+own environment regardless of interactive activation.
 
 ## Keep the workstation responsive
 
 Keep environment setup, completion paths, plugin loading, key bindings, and
 prompt initialization in a clear order. Initialize completion once after its
-paths are configured. Run installation, updates, network checks, and completion
-generation during setup, never on every prompt or shell startup. Keep native
-shell initialization commands only where the integration requires them.
+paths are configured. Run installation, updates, network checks, and tool
+completion generation during setup, never on every prompt or shell startup.
+Keep native shell initialization commands only where the integration requires
+them.
+
+WSL uses native zsh completion and repeats its security audit when the cached
+dump is at least 24 hours old. Setup generates cached initialization scripts
+for mise, zoxide, fzf, Atuin, and Starship. Run `wsl-shell-refresh` after manually
+upgrading an integrated tool, then open a new terminal. The refresh command
+validates and replaces those scripts and invalidates the completion dump.
 
 Select tools for identifiable work: repository discovery, code search,
 structural edits, diffs, verification, or session management. A new framework,
@@ -52,7 +71,9 @@ inherited mise shims. They cover direct utility dispatch, initialization,
 reload, retained paths with spaces, and default or customized mise data paths.
 They also exercise the shared environment in POSIX sh, Bash, and zsh, including
 project tool precedence, preserved Java settings, empty PATH entries, and
-idempotent startup loaders. They check single completion initialization, disabled startup updates,
+idempotent startup loaders. WSL cases cover Windows PATH trimming and opt-in
+retention, cached integrations, and one `.zshenv` loader. They check single
+completion initialization, disabled startup updates,
 and distinct tmux sessions for repositories with the same basename. They do
 not execute either machine installer.
 

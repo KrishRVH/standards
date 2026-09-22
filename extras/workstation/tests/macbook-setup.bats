@@ -105,3 +105,43 @@ BLOCK
     done
   done
 }
+
+@test "Homebrew formula installation respects the nonstandard-prefix opt-in" {
+  local fixture="${BATS_TEST_TMPDIR}/homebrew" allow
+  mkdir -p "$fixture/bin"
+  cat > "$fixture/bin/brew" << 'BREW'
+#!/usr/bin/env bash
+printf '%s\n' "$1" >> "$BREW_CALLS"
+case "$1" in
+  shellenv) printf '%s\n' 'export HOMEBREW_PREFIX="$BREW_FIXTURE_PREFIX"' ;;
+  --prefix) printf '%s\n' "$BREW_FIXTURE_PREFIX" ;;
+  list) exit 1 ;;
+esac
+BREW
+  chmod +x "$fixture/bin/brew"
+
+  for allow in 0 1; do
+    # shellcheck disable=SC2016 # The isolated Bash expands the fixture variables.
+    run env BREW_FIXTURE_PREFIX="$fixture" BREW_CALLS="$fixture/calls-$allow" bash -c '
+      source "$1"
+      export PATH="$BREW_FIXTURE_PREFIX/bin:$PATH"
+      ensure_xcode_command_line_tools() { return 0; }
+      expected_brew_path() { printf "%s\n" "$BREW_FIXTURE_PREFIX/missing/bin/brew"; }
+      BOOTSTRAP_INSTALL_HOMEBREW=0
+      BOOTSTRAP_ALLOW_NONSTANDARD_BREW="$2"
+      BOOTSTRAP_BREW_CLEANUP=0
+      step_required "Homebrew availability" ensure_homebrew
+      brew_install_formulae example
+    ' -- "$MACBOOK_SETUP_SCRIPT" "$allow"
+
+    if [ "$allow" -eq 0 ]; then
+      [[ "$status" -ne 0 ]]
+      [[ "$output" = *"ignoring it for standardization"* ]]
+      [[ ! -e "$fixture/calls-$allow" ]]
+    else
+      [[ "$status" -eq 0 ]]
+      grep -qx update "$fixture/calls-$allow"
+      grep -qx install "$fixture/calls-$allow"
+    fi
+  done
+}

@@ -28,7 +28,7 @@ esac
 TMUX
   chmod +x "$fixture/bin/fzf" "$fixture/bin/tmux"
   awk '
-    /<< '\''SESSIONIZER'\''/ { body = 1; next }
+    /<<[[:space:]]*'\''SESSIONIZER'\''/ { body = 1; next }
     body && /^SESSIONIZER$/ { exit }
     body { print }
   ' "$script" > "$fixture/sessionizer.sh"

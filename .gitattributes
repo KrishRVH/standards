@@ -35,9 +35,6 @@
 *.leex text
 *.erl text
 *.hrl text
-*.fs text
-*.fsi text
-*.fsx text
 *.f90 text
 *.F90 text
 *.gd text
@@ -51,7 +48,6 @@
 *.kt text
 *.kts text
 *.razor text
-*.vb text
 *.xaml text
 *.js text
 *.jsx text
@@ -113,7 +109,6 @@ pylock.*.toml text linguist-generated=true
 *.tres text
 *.tscn text
 *.uid text
-*.vbproj text
 *.vcxproj text
 *.vcxproj.filters text
 *.vsct text

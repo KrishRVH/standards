@@ -1,5 +1,3 @@
-disable:
-  - class-definitions-order
 excluded_directories:
   - .cache
   - .git
@@ -8,3 +6,5 @@ excluded_directories:
   - addons
 max-file-lines: 500
 max-line-length: 100
+disable:
+  - class-definitions-order

@@ -42,6 +42,6 @@ The default `standards` package script applies Oxlint fixes, then Oxfmt and its
 import organization. `standards:check` runs Oxlint, Oxfmt, `tsc` against
 `jsconfig.json`, Bun tests, `bun audit --audit-level=low`, and Knip.
 
-This profile is Bun-first. Do not add pnpm, Yarn, or npm fallback branches to
-the shared task file. Generate and commit `bun.lock` before relying on
+Do not add pnpm, Yarn, or npm fallback branches to the shared task file.
+Generate and commit `bun.lock` before relying on
 `js:standards:check`; the CI gate fails when the lockfile is missing.

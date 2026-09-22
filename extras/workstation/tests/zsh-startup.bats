@@ -2,8 +2,8 @@
 # shellcheck disable=SC2154 # Bats supplies BATS_TEST_TMPDIR and BATS_TEST_DIRNAME.
 
 # Exercise the generated shell code without running either machine installer.
-check_zsh_startup() {
-  local script="$1" delimiter="$2" layout="$3"
+check_macos_startup() {
+  local script="$BATS_TEST_DIRNAME/../macbook-setup.sh" layout="$1"
   local fixture="${BATS_TEST_TMPDIR}/shell" data_dir tool
   mkdir -p "$fixture/.cargo/bin" "$fixture/.oh-my-zsh" "$fixture/Windows Tools"
   cat > "$fixture/.oh-my-zsh/oh-my-zsh.sh" << 'OMZ'
@@ -34,15 +34,15 @@ TOOL
   done
   cp "$data_dir/shims/mise" "$data_dir/shims/git"
 
-  awk -v delimiter="$delimiter" '
-    $0 ~ "<< ." delimiter "." { body = 1; next }
-    body && $0 == delimiter { exit }
+  awk '
+    /<<[[:space:]]*.ZSHCONFIG./ { body = 1; next }
+    body && /^ZSHCONFIG$/ { exit }
     body { print }
   ' "$script" > "$fixture/startup.zsh"
   [[ -s "$fixture/startup.zsh" ]]
   mkdir -p "$fixture/.config/shell"
   awk '
-    /<< .SHELLENV./ { body = 1; next }
+    /<<[[:space:]]*.SHELLENV./ { body = 1; next }
     body && /^SHELLENV$/ { exit }
     body { print }
   ' "$script" > "$fixture/.config/shell/env.sh"
@@ -70,17 +70,96 @@ TOOL
   [[ "$(< "$fixture/calls")" = $'starship\nzoxide\natuin\nstarship\nzoxide\natuin\ntokei\nmise' ]]
 }
 
-@test "WSL shell invokes host tools directly with inherited mise shims" {
+check_wsl_cached_startup() {
+  local script="$BATS_TEST_DIRNAME/../wsl-setup.sh"
+  local fixture="$BATS_TEST_TMPDIR/wsl" layout="$1" data_dir tool
+  case "$layout" in
+    default) data_dir="$fixture/.local/share/mise" ;;
+    xdg) data_dir="$fixture/data/mise" ;;
+    custom) data_dir="$fixture/custom mise" ;;
+    *) return 2 ;;
+  esac
+  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.cache/zsh" \
+    "$fixture/.local/state/zsh" "$data_dir/shims" "$fixture/Project Tools"
+  for tool in mise starship zoxide atuin fzf tokei; do
+    cat > "$fixture/.local/bin/$tool" << 'TOOL'
+#!/bin/sh
+tool=${0##*/}
+printf '%s %s\n' "$tool" "$*" >> "$WORKSTATION_CALLS"
+case "$tool $*" in
+  'mise activate zsh')
+    cat <<'INIT'
+_fixture_mise_hook() { mise hook-env; }
+precmd_functions=(${precmd_functions:#_fixture_mise_hook} _fixture_mise_hook)
+print -r -- 'cached mise' >> "$WORKSTATION_CALLS"
+INIT
+    ;;
+  'starship init zsh --print-full-init'|'zoxide init zsh'|'atuin init zsh --disable-up-arrow --disable-ai'|'fzf --zsh')
+    printf 'print -r -- "cached %s" >> "$WORKSTATION_CALLS"\n' "$tool"
+    ;;
+esac
+TOOL
+    cat > "$data_dir/shims/$tool" << 'SHIM'
+#!/bin/sh
+printf 'unexpected shim: %s\n' "$0" >> "$WORKSTATION_CALLS"
+exit 99
+SHIM
+    chmod +x "$fixture/.local/bin/$tool" "$data_dir/shims/$tool"
+  done
+  for tool in zsh-autosuggestions zsh-syntax-highlighting; do
+    mkdir -p "$fixture/.local/share/wsl-bootstrap/zsh/plugins/$tool"
+    : > "$fixture/.local/share/wsl-bootstrap/zsh/plugins/$tool/$tool.zsh"
+  done
+  for tool in SHELLENV REFRESH ZSHRC; do
+    awk -v delimiter="$tool" '
+      $0 ~ "<<[[:space:]]*." delimiter "." { body = 1; next }
+      body && $0 == delimiter { exit }
+      body { print }
+    ' "$script" > "$fixture/$tool"
+    [[ -s "$fixture/$tool" ]]
+  done
+  cp "$fixture/SHELLENV" "$fixture/.config/shell/env.sh"
+  local -a extra_env=()
+  case "$layout" in
+    xdg) extra_env+=("XDG_DATA_HOME=$fixture/data") ;;
+    custom) extra_env+=("MISE_DATA_DIR=$data_dir") ;;
+    *) ;;
+  esac
+  # shellcheck disable=SC2016 # Parameters belong to the generated environment.
+  run env -i HOME="$fixture" PATH="$fixture/.local/bin:/usr/bin:/bin" \
+    WORKSTATION_CALLS="$fixture/calls" bash "$fixture/REFRESH"
+  [[ "$status" -eq 0 ]]
+  [[ "$(< "$fixture/calls")" == *"mise activate zsh"* ]]
+  : > "$fixture/calls"
+  # shellcheck disable=SC2016 # The child zsh expands its own parameters.
+  run env -i HOME="$fixture" TERM=xterm-256color \
+    PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
+    WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
+    zsh -f -i -c '
+      source "$HOME/.config/shell/env.sh"
+      source "$HOME/ZSHRC"
+      source "$HOME/ZSHRC"
+      [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
+      [[ ":$PATH:" != *":$1/shims:"* ]] || exit 2
+      for hook in $precmd_functions; do "$hook"; done
+      tokei
+      mise run build
+    ' -- "$data_dir"
+  [[ "$status" -eq 0 ]]
+  [[ "$(< "$fixture/calls")" == $'cached mise\ncached zoxide\ncached starship\ncached mise\ncached zoxide\ncached starship\nmise hook-env\ntokei \nmise run build' ]]
+}
+
+@test "WSL shell loads cached integrations and invokes host tools with inherited mise shims" {
   local layout
   for layout in default xdg custom; do
-    check_zsh_startup "$BATS_TEST_DIRNAME/../wsl-setup.sh" ZSHRC "$layout"
+    check_wsl_cached_startup "$layout"
   done
 }
 
 @test "macOS shell invokes host tools directly with inherited mise shims" {
   local layout
   for layout in default xdg custom; do
-    check_zsh_startup "$BATS_TEST_DIRNAME/../macbook-setup.sh" ZSHCONFIG "$layout"
+    check_macos_startup "$layout"
   done
 }
 
@@ -182,7 +261,7 @@ TOOL
   chmod +x "$fixture/project tools/node" "$fixture/.cargo/bin/node"
   for script in wsl-setup.sh macbook-setup.sh; do
     awk '
-      /<< .SHELLENV./ { body = 1; next }
+      /<<[[:space:]]*.SHELLENV./ { body = 1; next }
       body && /^SHELLENV$/ { exit }
       body { print }
     ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/.config/shell/env.sh"
@@ -197,14 +276,20 @@ TOOL
           first=$PATH
           . "$HOME/.config/shell/env.sh"
           [ "$PATH" = "$first" ] || exit 1
-          case "$PATH" in ":$HOME/project tools::"*) ;; *) exit 2 ;; esac
-          case "$PATH" in *"/mnt/c/Windows Tools:") ;; *) exit 3 ;; esac
+          if [ "$1" = wsl-setup.sh ]; then
+            case "$PATH" in "$HOME/project tools:"*) ;; *) exit 2 ;; esac
+            case "$PATH" in :*|*::*|*:) exit 3 ;; esac
+            case "$PATH" in *"/mnt/c/Windows Tools"*) exit 3 ;; esac
+          else
+            case "$PATH" in ":$HOME/project tools::"*) ;; *) exit 2 ;; esac
+            case "$PATH" in *"/mnt/c/Windows Tools:") ;; *) exit 3 ;; esac
+          fi
           case "$PATH" in *"/mise/shims"*) exit 4 ;; esac
           case "$PATH" in *"$HOME/.cargo/bin:"*"/usr/bin:"*) ;; *) exit 5 ;; esac
           [ "$(node)" = project ] || exit 6
           [ "$JAVA_HOME" = "$HOME/project-java" ] || exit 7
           case "$PATH" in *":$HOME/literal[*]:"*) ;; *) exit 8 ;; esac
-        '
+        ' -- "$script"
       [[ "$status" -eq 0 ]]
     done
   done
@@ -230,19 +315,52 @@ TOOL
       configure_shell_environment
       configure_shell_environment
       [[ ! -e "$HOME/.profile" ]] || exit 1
-      for file in .zshenv .zprofile .bash_profile .bashrc; do
+      for file in .zshenv .bash_profile .bashrc; do
         [[ "$(grep -c "config/shell/env.sh" "$HOME/$file")" == 1 ]] || exit 2
       done
       source "$HOME/.bash_profile"
       [[ "$USER_SETTING" == preserved ]] || exit 3
-      rm "$HOME/.zprofile"
-      ln -s "$HOME/.bash_profile" "$HOME/.zprofile"
+      loader=.zshenv
+      if [[ "$1" = macbook-setup.sh ]]; then
+        [[ "$(grep -c "config/shell/env.sh" "$HOME/.zprofile")" == 1 ]] || exit 2
+        loader=.zprofile
+      else
+        [[ ! -e "$HOME/.zprofile" ]] || exit 2
+      fi
+      rm "$HOME/$loader"
+      ln -s "$HOME/.bash_profile" "$HOME/$loader"
       if (configure_shell_environment); then exit 4; fi
-      [[ -L "$HOME/.zprofile" ]] || exit 5
-    '
+      [[ -L "$HOME/$loader" ]] || exit 5
+    ' -- "$script"
     [[ "$status" -eq 0 ]]
     [[ "$(stat -c '%a' "$fixture/.bash_profile" 2> /dev/null || stat -f '%Lp' "$fixture/.bash_profile")" == 600 ]]
-    rm "$fixture/.zprofile"
+    rm -f "$fixture/.zshenv" "$fixture/.zprofile"
+  done
+}
+
+@test "WSL Windows PATH trimming preserves prepended toolchains and honors the opt-in" {
+  local fixture="$BATS_TEST_TMPDIR/windows-path" keep shell
+  mkdir -p "$fixture"
+  awk '
+    /<<[[:space:]]*.SHELLENV./ { body = 1; next }
+    body && /^SHELLENV$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/env.sh"
+  for keep in 0 1; do
+    for shell in /bin/sh /bin/bash /bin/zsh; do
+      # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
+      run env -i HOME="$fixture" WSL_KEEP_WINDOWS_PATH="$keep" \
+        PATH='/mnt/c/Project Tools:/usr/bin:/bin:/mnt/c/Windows Tools' \
+        "$shell" -c '
+          . "$HOME/env.sh"
+          case "$PATH" in "/mnt/c/Project Tools:"*) ;; *) exit 1 ;; esac
+          case ":$PATH:" in
+            *":/mnt/c/Windows Tools:"*) [ "$WSL_KEEP_WINDOWS_PATH" = 1 ] || exit 2 ;;
+            *) [ "$WSL_KEEP_WINDOWS_PATH" = 0 ] || exit 3 ;;
+          esac
+        '
+      [[ "$status" -eq 0 ]]
+    done
   done
 }
 
@@ -250,7 +368,7 @@ TOOL
   local fixture="$BATS_TEST_TMPDIR/homebrew"
   mkdir -p "$fixture/brew/bin" "$fixture/brew/sbin"
   awk '
-    /<< .SHELLENV./ { body = 1; next }
+    /<<[[:space:]]*.SHELLENV./ { body = 1; next }
     body && /^SHELLENV$/ { exit }
     body { print }
   ' "$BATS_TEST_DIRNAME/../macbook-setup.sh" > "$fixture/env.sh"
@@ -275,7 +393,7 @@ TOOL
   mkdir -p "$fixture/.cargo/bin"
   for script in wsl-setup.sh macbook-setup.sh; do
     awk '
-      /<< .SHELLENV./ { body = 1; next }
+      /<<[[:space:]]*.SHELLENV./ { body = 1; next }
       body && /^SHELLENV$/ { exit }
       body { print }
     ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/env.sh"

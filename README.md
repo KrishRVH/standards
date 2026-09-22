@@ -228,8 +228,10 @@ The personal bootstrap scripts are at
 `extras/workstation/macbook-setup.sh` and
 `extras/workstation/wsl-setup.sh`. Read the relevant script before you run it
 directly on the target machine. They install host tools through native
-installers and keep shell startup independent of mise. Project tasks work
-without interactive mise activation or shims.
+installers. WSL also provisions Node through mise and enables cached interactive
+runtime switching; macOS keeps native runtime paths without mise activation.
+Project tasks work without interactive activation or shims. See the
+[workstation guide](extras/workstation/README.md) for shell defaults and maintenance.
 
 ### 6. Verify the copied baseline
 
