@@ -8,8 +8,8 @@ release cadence, and operational risk justify a smaller gate.
 
 Applications and CLI tools should commit `mix.lock`; `elixir:install` enforces
 an existing lock while allowing reusable libraries to omit one. Add
-Phoenix/Ecto formatter imports and Sobelow tuning only for projects with that
-web surface. Boundary and other architecture checks should wait until real
+Phoenix/Ecto formatter imports and a Sobelow overlay only for projects with
+that web surface. Boundary and other architecture checks should wait until real
 module boundaries exist.
 
 The standards workflow is:
@@ -23,5 +23,4 @@ mise run elixir:standards:check
 ```
 
 `elixir:standards:check` includes Dialyzer, dependency audits, docs, and
-coverage. Add Sobelow in a Phoenix/web overlay when the project has that
-surface.
+coverage.

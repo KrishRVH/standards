@@ -36,8 +36,8 @@ Project-owned shell files under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
 must use a recognized shebang to declare their dialect, including executable
 files without an extension. Discovery captures one NUL-delimited file list,
 preserving Unicode, quotes, spaces, and newlines in filenames. A Git or find
-failure stops the gate before checks run. The same formatter, static-analysis, syntax, and
-policy checks cover the copyable `scripts/shell-standards.sh` runner. Git
-discovery rejects tracked or unignored shell source symlinks; non-Git discovery
-ignores symlinks. Both modes keep checks on project-owned regular files. Error
-handling and strict mode remain local design decisions.
+failure stops the gate before checks run. The same formatter, static-analysis,
+syntax, and policy checks cover the copyable `scripts/shell-standards.sh`
+runner. Git discovery rejects tracked or unignored shell source symlinks;
+non-Git discovery ignores symlinks. Both modes keep checks on project-owned
+regular files. Error handling and strict mode remain local design decisions.

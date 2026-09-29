@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2> /dev/null || nproc 2> /dev/null || echo 4)}"
 readonly SRC_ROOT="${1:-.}"
-readonly BUILD_HINT="${2:-}"
-readonly CDB="compile_commands.json"
+readonly BUILD_DIR="${2:-$SRC_ROOT/build/clang}"
+readonly CDB="$BUILD_DIR/compile_commands.json"
 
 note() { printf '\033[0;34m[INFO]\033[0m %s\n' "$*"; }
 fail() {
@@ -12,24 +11,8 @@ fail() {
   exit 1
 }
 
-for tool in clang-format clangd; do
-  command -v "$tool" > /dev/null 2>&1 || fail "Missing tool: $tool"
-done
-
-list_files() {
-  if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    git -C "$SRC_ROOT" ls-files --cached --others --exclude-standard -z -- \
-      '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.inl' '*.ipp' '*.tpp' \
-      ':(exclude)build/**' ':(exclude)build-*/**' |
-      while IFS= read -r -d '' file; do
-        [[ -f "$SRC_ROOT/$file" ]] || continue
-        printf '%s/%s\0' "$SRC_ROOT" "$file"
-      done
-  else
-    find "$SRC_ROOT" -type d \( -name .git -o -name build -o -name 'build-*' -o -name vendor \) -prune \
-      -o -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.hxx' -o -name '*.inl' -o -name '*.ipp' -o -name '*.tpp' \) -print0
-  fi
-}
+command -v clangd > /dev/null 2>&1 || fail "Missing tool: clangd"
+[[ -f "$CDB" ]] || fail "No $CDB found; configure a C++ build before running semantic checks."
 
 list_semantic_files() {
   if command -v git > /dev/null 2>&1 && git -C "$SRC_ROOT" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
@@ -47,59 +30,17 @@ list_semantic_files() {
   fi
 }
 
-detect_cdb_dir() {
-  if [[ -n "$BUILD_HINT" && -f "$BUILD_HINT/$CDB" ]]; then
-    printf '%s\n' "$BUILD_HINT"
-    return 0
-  fi
+semantic_files=()
+while IFS= read -r -d '' file; do
+  semantic_files+=("$file")
+done < <(list_semantic_files)
+((${#semantic_files[@]} > 0)) || fail "No C++ sources or headers found under $SRC_ROOT."
 
-  if [[ -f "$SRC_ROOT/$CDB" ]]; then
-    printf '%s\n' "$SRC_ROOT"
-    return 0
-  fi
+note "clangd: $(clangd --version | head -n 1)"
+note "Running clangd semantic checks on ${#semantic_files[@]} files..."
+for source in "${semantic_files[@]}"; do
+  clangd --background-index=false --clang-tidy --enable-config --log=error \
+    --compile-commands-dir="$BUILD_DIR" --check="$source"
+done
 
-  if [[ -f "$SRC_ROOT/build/$CDB" ]]; then
-    printf '%s\n' "$SRC_ROOT/build"
-    return 0
-  fi
-
-  return 1
-}
-
-note "Tool versions:"
-note "  clang-format: $(clang-format --version)"
-note "  clangd:       $(clangd --version | head -n 1)"
-note "Checking clang-format..."
-file_list="$(mktemp)"
-trap 'rm -f -- "$file_list"' EXIT
-list_files > "$file_list"
-files=()
-while IFS= read -r -d '' f; do
-  files+=("$f")
-done < "$file_list"
-if ((${#files[@]} == 0)); then
-  note "No source files found; skipping clang-format."
-else
-  printf '%s\0' "${files[@]}" | xargs -0 -P "$JOBS" clang-format --dry-run --Werror
-fi
-
-note "Running clangd semantic checks..."
-if cdb_dir="$(detect_cdb_dir)"; then
-  list_semantic_files > "$file_list"
-  semantic_files=()
-  while IFS= read -r -d '' f; do
-    semantic_files+=("$f")
-  done < "$file_list"
-  if ((${#semantic_files[@]} == 0)); then
-    note "No C++ sources or headers found; skipping clangd."
-  else
-    for source in "${semantic_files[@]}"; do
-      clangd --background-index=false --clang-tidy --enable-config --log=error \
-        --compile-commands-dir="$cdb_dir" --check="$source"
-    done
-  fi
-else
-  fail "No $CDB found; configure a C++ build before running semantic checks."
-fi
-
-note "All quality checks passed (hard checks)."
+note "All semantic checks passed."

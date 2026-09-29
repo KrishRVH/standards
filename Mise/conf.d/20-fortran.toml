@@ -9,18 +9,6 @@ FPM_FC = "gfortran"
 "conda:ford" = "7.0.13"
 python = "3.14.6"
 
-[tasks."fortran:install"]
-description = "Install pinned Fortran project tooling"
-run = """
-set -eu
-fpm --version
-gfortran --version | sed -n '1p'
-findent --version
-fortls --version
-ford --version
-python --version
-"""
-
 [tasks."fortran:manifest"]
 description = "Check Fortran manifest and source policy"
 run = """
@@ -138,6 +126,8 @@ depends = ["fortran:manifest"]
 wait_for = ["fortran:lint"]
 run = """
 set -eu
+# fpm builds the test-drive dev-dependency with these flags, and its source
+# trips unused-function and maybe-uninitialized, so only those stay warnings.
 strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -Wno-error=unused-function -Wno-error=maybe-uninitialized -pedantic -fcheck=all -fbacktrace"
 fpm test --compiler gfortran --profile debug --flag "$strict_flags"
 """

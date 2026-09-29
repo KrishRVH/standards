@@ -89,7 +89,8 @@ cleanup() {
   if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
     kill "$SUDO_KEEPALIVE_PID" 2> /dev/null || true
   fi
-  for p in "${TMP_PATHS[@]}"; do
+  # Bash before 4.4, including macOS /bin/bash, rejects an empty "${a[@]}" under set -u.
+  for p in ${TMP_PATHS[@]+"${TMP_PATHS[@]}"}; do
     if [ -n "$p" ]; then
       rm -rf "$p" 2> /dev/null || true
     fi
@@ -1029,9 +1030,7 @@ bind -n M-H previous-window
 bind -n M-L next-window
 
 # Split panes in the current directory.
-unbind %
 bind | split-window -h -c "#{pane_current_path}"
-unbind '"'
 bind - split-window -v -c "#{pane_current_path}"
 bind % split-window -h -c "#{pane_current_path}"
 bind '"' split-window -v -c "#{pane_current_path}"

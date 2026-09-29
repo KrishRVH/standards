@@ -4,7 +4,7 @@ const SCRIPT_ROOTS: Array[String] = ["res://src", "res://tests"]
 
 
 func _init() -> void:
-	call_deferred("_run")
+	_run.call_deferred()
 
 
 func _run() -> void:
@@ -21,7 +21,7 @@ func _run() -> void:
 
 	for failure: String in failures:
 		push_error(failure)
-	quit(1 if not failures.is_empty() else 0)
+	quit(0 if failures.is_empty() else 1)
 
 
 func _collect_script_paths(

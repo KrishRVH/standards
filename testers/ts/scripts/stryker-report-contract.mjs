@@ -10,7 +10,7 @@ export const terminalMutantStatuses = new Set([
   'Timeout',
 ]);
 
-function assertRecord(value, message) {
+export function assertRecord(value, message) {
   assert.equal(typeof value, 'object', message);
   assert.notEqual(value, null, message);
   assert.equal(Array.isArray(value), false, message);

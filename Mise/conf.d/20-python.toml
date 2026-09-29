@@ -4,30 +4,13 @@ uv = "0.12.9"
 
 [tasks."py:install"]
 description = "Install Python dependencies"
-wait_for = ["py:lock:check"]
-run = """
-if [ ! -f pyproject.toml ]; then
-  echo "No pyproject.toml found."
-  exit 0
-fi
-
-uv sync --python "$(mise which python)" --locked
-"""
+depends = ["py:lock:check"]
+run = 'uv sync --python "$(mise which python)" --locked'
 
 [tasks."py:install:deep"]
 description = "Install Python dependencies including optional deep analyzers"
-run = """
-if [ ! -f pyproject.toml ]; then
-  echo "No pyproject.toml found."
-  exit 0
-fi
-
-if [ -f uv.lock ]; then
-  uv sync --python "$(mise which python)" --group deep --locked
-else
-  uv sync --python "$(mise which python)" --group deep
-fi
-"""
+depends = ["py:lock:check"]
+run = 'uv sync --python "$(mise which python)" --group deep --locked'
 
 [tasks."py:lock"]
 description = "Refresh the uv lockfile"
@@ -95,40 +78,17 @@ uv run --no-sync python -I scripts/check-interrogate-report.py "$report"
 [tasks."py:complexity"]
 description = "Check Python complexity budgets"
 depends = ["py:install:deep"]
-run = """
-paths=""
-[ -d src ] && paths="$paths src"
-[ -d tests ] && paths="$paths tests"
-
-if [ -z "$paths" ]; then
-  echo "No src or tests directories found; skipping xenon."
-else
-  uv run --no-sync xenon --max-absolute B --max-modules A --max-average A $paths
-fi
-"""
+run = "uv run --no-sync xenon --max-absolute B --max-modules A --max-average A src tests"
 
 [tasks."py:slots"]
 description = "Check dataclass slot coverage"
 depends = ["py:install:deep"]
-run = """
-if [ ! -d src ]; then
-  echo "No src directory found; skipping slotscheck."
-  exit 0
-fi
-
-uv run --no-sync slotscheck src
-"""
+run = "uv run --no-sync slotscheck src"
 
 [tasks."py:security"]
 description = "Run Python security analysis"
 depends = ["py:install"]
-run = """
-if [ -d src ]; then
-  uv run bandit -c pyproject.toml -r src
-else
-  echo "No src directory found; skipping bandit."
-fi
-"""
+run = "uv run bandit -c pyproject.toml -r src"
 
 [tasks."py:audit"]
 description = "Audit Python dependencies"
@@ -177,7 +137,7 @@ run = ["uv run ruff check --fix .", "uv run ruff format ."]
 
 [tasks."py:standards:check"]
 description = "Run the Python standards CI gate"
-depends = ["py:lock:check", "py:fmt:check", "py:lint", "py:test", "py:build", "py:audit", "py:deps", "py:mutants"]
+depends = ["py:fmt:check", "py:lint", "py:test", "py:build", "py:audit", "py:deps", "py:mutants"]
 
 [tasks."py:standards:check:deep"]
 description = "Run the Python standards CI gate plus optional deep analysis"

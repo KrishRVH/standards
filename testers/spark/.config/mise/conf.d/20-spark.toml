@@ -39,7 +39,7 @@ if [ ! -f "${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}" ]; then
   exit 1
 fi
 
-if awk '
+awk '
   /^\\[\\[depends-on\\]\\]/ { in_deps = 1; next }
   /^\\[/ { in_deps = 0 }
   in_deps && /^[[:space:]]*[[:alnum:]_][[:alnum:]_-]*[[:space:]]*=/ {
@@ -51,11 +51,7 @@ if awk '
     }
   }
   END { exit bad }
-' alire.toml; then
-  :
-else
-  exit 1
-fi
+' alire.toml
 
 missing_spark_mode="$(
   find . -type d \\( -path './.git' -o -path './alire' -o -path './build' -o -path './config' -o -path './obj' \\) -prune \

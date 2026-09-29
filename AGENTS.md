@@ -39,9 +39,11 @@ ceremony that cannot justify that cost.
 - Say no to abstractions, frameworks, services, config layers, and docs that do
   not remove real complexity.
 - Respect Chesterton fences. Understand why code exists before deleting or
-  replacing it.
-- By default, do not add backwards-compatibility fallback code/versioning unless
-  the repo is Production-critical or the user specifically requests it.
+  replacing it; once it serves no current contract, delete it.
+- Keep the catalog current. When a template, task, fixture, or doc is
+  superseded, delete the old one with its tests and references in the same
+  change; git holds the history. Add no compatibility fallbacks or versioned
+  copies.
 - Add structure after the shape is visible. Small duplication beats premature
   indirection.
 - Copyable files need neutral names, conventional `src`/`tests`, no machine
@@ -54,11 +56,11 @@ ceremony that cannot justify that cost.
 ## Commands
 
 Use mise tasks for repository workflows and their reproducible checks.
-On entry, read the applicable agent guide and inspect `mise run tasks` and task
+On entry, read the applicable agent guide and inspect `mise tasks` and task
 definitions. Use the existing workflow and its arguments before adding a task.
 
-- `mise run tasks`: list tasks.
-- `mise run lock`: refresh the root mise lockfile after tool-version changes.
+- `mise tasks`: list tasks.
+- `mise lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run secrets`: scan the standards repository for secrets.
 - `mise run standards`: root Markdown and Shell plus all-fixture standards
   workflow and available autofixes.

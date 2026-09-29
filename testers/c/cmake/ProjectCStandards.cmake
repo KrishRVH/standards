@@ -128,8 +128,6 @@ function(project_exclude_c_standards_directory directory reason)
   endif()
   set_property(DIRECTORY "${directory}"
     PROPERTY PROJECT_C_STANDARDS_EXTERNAL TRUE)
-  set_property(DIRECTORY "${directory}"
-    PROPERTY PROJECT_C_STANDARDS_EXTERNAL_REASON "${_reason}")
   message(STATUS "C standards external-directory exception: ${directory} (${_reason})")
 endfunction()
 

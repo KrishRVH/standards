@@ -28,7 +28,7 @@ Roc earns a place here through a few unusually thoughtful choices:
 - The compiler targets low-level outputs instead of inheriting the runtime and
   data-model compromises of a higher-level virtual machine.
 
-The most interesting part to me is Roc's
+Its most distinctive feature is the
 [application and platform architecture](https://www.roc-lang.org/platforms).
 Every application chooses exactly one platform, and that platform supplies the
 application's I/O primitives, memory-management strategy, and host integration.

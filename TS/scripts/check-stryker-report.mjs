@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { argv, stdout } from 'node:process';
 
-import { validateStrykerReport } from './stryker-report-contract.mjs';
+import { assertRecord, validateStrykerReport } from './stryker-report-contract.mjs';
 
 const mode = argv[2];
 const reportPath = argv[3] ?? 'reports/mutation/mutation.json';
@@ -15,18 +15,16 @@ assert.ok(
 const report = JSON.parse(await readFile(reportPath, 'utf8'));
 
 const mutants = validateStrykerReport(report, 'Stryker report');
-assert.equal(typeof report.config, 'object', 'Stryker report.config must be an object.');
-assert.notEqual(report.config, null, 'Stryker report.config must be an object.');
-assert.equal(Array.isArray(report.config), false, 'Stryker report.config must be an object.');
-assert.equal(report.config?.inPlace, false, 'Stryker must execute in its isolated sandbox.');
+assertRecord(report.config, 'Stryker report.config must be an object.');
+assert.equal(report.config.inPlace, false, 'Stryker must execute in its isolated sandbox.');
 assert.equal(
-  report.config?.jsonReporter?.fileName,
+  report.config.jsonReporter?.fileName,
   'reports/mutation/mutation.json',
   'Stryker used an unexpected machine-report path.',
 );
 assert.equal(report.config.concurrency, 2, 'Stryker must use exactly two mutation workers.');
 assert.equal(report.config.timeoutMS, 30000, 'Stryker core must use 30 seconds of absolute timeout deviation.');
-assert.equal(report.config?.bun?.timeout, 60000, 'The Bun test runner must use a 60-second hard child timeout.');
+assert.equal(report.config.bun?.timeout, 60000, 'The Bun test runner must use a 60-second hard child timeout.');
 assert.ok(mutants.length > 0, 'Stryker report contains no mutants.');
 
 const timeoutCount = mutants.filter((mutant) => mutant.status === 'Timeout').length;

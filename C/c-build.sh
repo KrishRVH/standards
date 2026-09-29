@@ -53,55 +53,57 @@ require_every_compile_command_flag() {
   fi
 }
 
+# Loads the reviewed warning flags for one compiler and build type, the common
+# contract plus the family contract, into the array named by the third argument.
+load_warning_contract() {
+  local compiler_id="$1"
+  local build_type="$2"
+  local -n contract_flags="$3"
+  local family_contract="gcc-debug-flags.txt"
+  local contract_file
+  local flag
+
+  if [[ "$compiler_id" == "Clang" ]]; then
+    family_contract="clang-flags.txt"
+  elif [[ "$build_type" == "Release" || "$build_type" == "RelWithDebInfo" ]]; then
+    family_contract="gcc-release-flags.txt"
+  fi
+  contract_flags=()
+  for contract_file in common-flags.txt "$family_contract"; do
+    while IFS= read -r flag; do
+      [[ -n "$flag" && "$flag" != \#* ]] || continue
+      contract_flags+=("$flag")
+    done < "$ROOT/standards-tests/compiler/$contract_file"
+  done
+  ((${#contract_flags[@]} > 0)) || fail "the reviewed warning contract is empty"
+}
+
 require_warning_contract() {
   local compile_database="$1"
   local compiler_id="$2"
   local build_type="$3"
-  local contract_file
   local flag
+  local -a required_flags=()
 
-  while IFS= read -r flag; do
-    [[ -n "$flag" && "$flag" != \#* ]] || continue
+  load_warning_contract "$compiler_id" "$build_type" required_flags
+  for flag in "${required_flags[@]}"; do
     require_every_compile_command_flag "$compile_database" "$flag"
-  done < "$ROOT/standards-tests/compiler/common-flags.txt"
-
-  if [[ "$compiler_id" == "Clang" ]]; then
-    contract_file="$ROOT/standards-tests/compiler/clang-flags.txt"
-  elif [[ "$build_type" == "Release" || "$build_type" == "RelWithDebInfo" ]]; then
-    contract_file="$ROOT/standards-tests/compiler/gcc-release-flags.txt"
-  else
-    contract_file="$ROOT/standards-tests/compiler/gcc-debug-flags.txt"
-  fi
-  while IFS= read -r flag; do
-    [[ -n "$flag" && "$flag" != \#* ]] || continue
-    require_every_compile_command_flag "$compile_database" "$flag"
-  done < "$contract_file"
+  done
 }
 
 reject_unreviewed_diagnostic_flags() {
   local compile_database="$1"
   local compiler_id="$2"
   local build_type="$3"
-  local contract_file
   local flag
+  local -a reviewed_flags=()
   local -a observed_flags=()
   local -A allowed_flags=()
 
-  while IFS= read -r flag; do
-    [[ -n "$flag" && "$flag" != \#* ]] || continue
+  load_warning_contract "$compiler_id" "$build_type" reviewed_flags
+  for flag in "${reviewed_flags[@]}"; do
     allowed_flags["$flag"]=1
-  done < "$ROOT/standards-tests/compiler/common-flags.txt"
-  if [[ "$compiler_id" == "Clang" ]]; then
-    contract_file="$ROOT/standards-tests/compiler/clang-flags.txt"
-  elif [[ "$build_type" == "Release" || "$build_type" == "RelWithDebInfo" ]]; then
-    contract_file="$ROOT/standards-tests/compiler/gcc-release-flags.txt"
-  else
-    contract_file="$ROOT/standards-tests/compiler/gcc-debug-flags.txt"
-  fi
-  while IFS= read -r flag; do
-    [[ -n "$flag" && "$flag" != \#* ]] || continue
-    allowed_flags["$flag"]=1
-  done < "$contract_file"
+  done
 
   mapfile -t observed_flags < <(
     grep -F '"command"' "$compile_database" |
@@ -291,6 +293,9 @@ run_package_consumer() {
 }
 
 run_native() {
+  local clang_version
+  local clang_reported_version
+
   require_tool clang
   clang_version="$(clang --version | head -n 1)"
   clang_reported_version="$(awk '{for (i = 1; i < NF; i++) if ($i == "version") {print $(i + 1); exit}}' <<< "$clang_version")"
@@ -304,6 +309,9 @@ run_native() {
 }
 
 run_portability() {
+  local gcc_version
+  local gcc_reported_version
+
   require_tool gcc
   gcc_version="$(gcc --version | head -n 1)"
   gcc_reported_version="${gcc_version##* }"
@@ -335,6 +343,10 @@ run_mingw() {
 }
 
 main() {
+  local cmake_version
+  local cmake_reported_version
+  local ninja_version
+
   require_tool cmake
   require_tool ninja
   cmake_version="$(cmake --version | head -n 1)"

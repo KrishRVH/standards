@@ -87,6 +87,23 @@ analysis_file_count() {
   printf '%s\n' "$selected_count"
 }
 
+# Runs the selected profile over every C translation unit in the database and
+# sets translation_units; fails on any finding or an ambiguous database.
+run_analysis() {
+  local log_file="$scratch_dir/$PROFILE.log"
+  local analysis_status=0
+
+  "$RUN_CLANG_TIDY" -quiet -j "$JOBS" \
+    -clang-tidy-binary "$(command -v "$CLANG_TIDY")" \
+    -config-file "$CONFIG" -p "$BUILD_DIR" \
+    -source-filter '(?s:.*[.]c$)' \
+    -extra-arg-before="-resource-dir=$resource_dir" 2>&1 |
+    tee "$log_file" || analysis_status=$?
+  translation_units="$(analysis_file_count "$log_file")"
+  ((analysis_status == 0)) ||
+    fail "$PROFILE analysis failed after inspecting $translation_units translation units"
+}
+
 printf '[INFO] analysis profile: %s\n' "$PROFILE"
 printf '[INFO] clang: %s\n' "$clang_version"
 printf '[INFO] clang-tidy: LLVM %s\n' "$REQUIRED_VERSION"
@@ -107,16 +124,7 @@ if [[ "$PROFILE" == "hard" ]]; then
     sed 's/^/  /' "$EXPECTED_CHECKS"
   fi
 
-  analysis_status=0
-  "$RUN_CLANG_TIDY" -quiet -j "$JOBS" \
-    -clang-tidy-binary "$(command -v "$CLANG_TIDY")" \
-    -config-file "$CONFIG" -p "$BUILD_DIR" \
-    -source-filter '(?s:.*[.]c$)' \
-    -extra-arg-before="-resource-dir=$resource_dir" 2>&1 |
-    tee "$scratch_dir/hard.log" || analysis_status=$?
-  translation_units="$(analysis_file_count "$scratch_dir/hard.log")"
-  ((analysis_status == 0)) ||
-    fail "hard analysis failed after inspecting $translation_units translation units"
+  run_analysis
   printf '[PASS] hard analysis inspected %s translation units\n' "$translation_units"
 else
   readonly BASELINE="$SOURCE_ROOT/.clang-tidy-advisory-baseline"
@@ -124,16 +132,7 @@ else
   baseline_count="$(sed -n '/^[0-9][0-9]*$/p' "$BASELINE")"
   [[ "$baseline_count" =~ ^[0-9]+$ ]] || fail "invalid advisory baseline: $BASELINE"
 
-  analysis_status=0
-  "$RUN_CLANG_TIDY" -quiet -j "$JOBS" \
-    -clang-tidy-binary "$(command -v "$CLANG_TIDY")" \
-    -config-file "$CONFIG" -p "$BUILD_DIR" \
-    -source-filter '(?s:.*[.]c$)' \
-    -extra-arg-before="-resource-dir=$resource_dir" 2>&1 |
-    tee "$scratch_dir/advisory.log" || analysis_status=$?
-  translation_units="$(analysis_file_count "$scratch_dir/advisory.log")"
-  ((analysis_status == 0)) ||
-    fail "advisory analysis failed after inspecting $translation_units translation units"
+  run_analysis
   finding_count="$(grep -c 'warning:.*\[[^][]*\]$' "$scratch_dir/advisory.log" || true)"
   if ((finding_count > baseline_count)); then
     fail "advisory findings increased from $baseline_count to $finding_count; review, then repair or explicitly update the baseline"

@@ -1,7 +1,5 @@
 # C99 Contract Decisions
 
-Status: accepted contract evidence for the C standards template, 2026-08-03.
-
 This record separates the language contract from operating-system and C-library
 contracts. It is not a claim of ISO, POSIX, CERT, MISRA, or CWE conformance. The
 public C99 source used below is WG14 N1256, the committee draft incorporating
@@ -232,7 +230,7 @@ unless the caller explicitly selects `PROJECT_ALLOW_UNVERIFIED_COMPILER=ON`,
 which disables the strict warning policy and creates no support claim. MSVC,
 clang-cl, AppleClang, and CompCert are not strict profiles because this template
 does not continuously configure, build, and run them. Microsoft documents C11
-and C17 `/std:c*` modes but no selectable strict C99 mode; `/W4` alone was not
+and C17 `/std:c*` modes but no selectable strict C99 mode; `/W4` alone is not
 evidence of this project's language contract.
 
 The warning regression first asserts the exact flag tokens in each CMake
@@ -273,8 +271,8 @@ guessing from source paths. After `add_subdirectory`, the narrow
 `project_exclude_c_standards_directory(path, reason)` marker can exempt a
 reviewed third-party directory after it is added. The reason is mandatory and
 reported at configure time; a directory cannot exempt itself, and the
-exception cannot exempt one owned target. This is the concrete reason the
-minimum remains 3.20 rather than being lowered or raised.
+exception cannot exempt one owned target. This target property sets the CMake
+minimum at 3.20.
 
 Before a named stage builds, `c-build.sh` verifies the configured compiler path,
 family and version, build type, platform name and exact feature-macro set,
@@ -326,7 +324,7 @@ a translation unit whose declared profile exposes those calls.
 Broad wildcard families are disabled. Under clang-tidy 22.1.8 they resolve to
 296 checks:
 102 `bugprone`, 41 `cert`, 128 analyzer, 19 `performance`, five `portability`,
-and one readability check. Many were C++, Objective-C, or platform-specific.
+and one readability check. Many are C++, Objective-C, or platform-specific.
 Hard checks are explicit and limited to top-level checks with seeded
 evidence. The additional analyzer-core names in the 25-check resolution are
 dependencies of those top-level path checks, not independent compliance
@@ -345,9 +343,9 @@ advisory and cannot expose declarations absent from the compiler profile.
 visible. The checker does not decide the repair: required results are handled
 at the operation or ownership boundary, while one cohesive best-effort fatal
 diagnostic may use a check-specific, reasoned suppression. The hard analyzer
-caught the seeded double free, use after free, path leak, null dereference,
+catches the seeded double free, use after free, path leak, null dereference,
 uninitialized return, invalid shift, mismatched cleanup as an unclosed stream,
-and header defect. It did not reliably prove generic allocation multiplication
+and header defect. It does not reliably prove generic allocation multiplication
 overflow or conditional signed overflow; behavior helpers and UBSan own those
 claims.
 

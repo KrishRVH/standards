@@ -23,9 +23,9 @@ fixture through the same root namespace with, for example:
 mise run //testers/python:standards:check
 ```
 
-The root aggregate keeps one small nested mise wrapper because mise `2026.7.x`
-executes monorepo path wildcards but its validator does not resolve those paths
-inside `depends` or structured `run` entries. The wrapper also preserves the
+The root aggregate keeps one small nested mise wrapper because the root's
+minimum mise, `2026.7.0`, executes monorepo path wildcards but does not resolve
+those paths inside `depends` or structured `run` entries. The wrapper also preserves the
 required `GOROOT` and `GOTOOLDIR` sanitization.
 
 For an isolated check, run one representative fixture in its Dagger reference
@@ -52,7 +52,7 @@ and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and
 tests are intentionally fixture-owned.
 
-Minimal fixture `config.toml` files define no `lock` task. After changing a
+Fixture configurations define no `lock` task. After changing a
 pinned tool version or fixture mise config, refresh the affected lockfile from
 that fixture directory with mise's native command:
 

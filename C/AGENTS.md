@@ -42,7 +42,8 @@ For a standards correction:
 11. Compare behavior, generated output, and performance when the change can
     affect them.
 
-Record this evidence for every nontrivial source correction:
+Record this evidence in the commit message for every nontrivial source
+correction:
 
 ```text
 Diagnostic or failure:
@@ -214,7 +215,7 @@ fprintf(stderr, "fatal: %s\n", path); // NOLINT(cert-err33-c): best effort;
 For compiler false positives, prefer a target-scoped flag adjustment or a
 small adapter. If a pragma is unavoidable, name the exact diagnostic, bound it
 to the smallest region, restore the state immediately, and include a reason
-and tracking identifier when practical. `NOLINT`, wildcard `NOLINT`, file-wide
+and tracking identifier when practical. Bare or wildcard `NOLINT`, file-wide
 suppressions, and global warning disables are prohibited.
 
 Enforcement: direct positive/negative ignored-result fixtures and review.

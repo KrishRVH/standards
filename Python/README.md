@@ -58,12 +58,11 @@ root-level `.py` and `.pyi` modules as well as packages, tests, and scripts;
 it prunes ignored dependency and generated trees without excluding a nested
 first-party `mutants/` or `vendor/` package. Python-named file symlinks remain
 in scope; non-pruned first-party directory symlinks fail because the toolchain
-does not consume and package them consistently. Named dependency/cache trees
-remain deliberately outside this policy. The scanner also rejects broad mypy file
-configuration, permitting only the documented two-rule Hypothesis exception.
-The scanner also checks directives following earlier comment fragments and
-the alternate spellings recognized by Coverage. Mutmut exclusions hidden in
-another directive's reason fail too. Ruff security rules and Bandit run
+does not consume and package them consistently. Named dependency and cache
+trees stay outside this policy. The scanner rejects broad mypy file
+configuration except the documented two-rule Hypothesis exception. It also
+checks directives that follow an earlier comment fragment, Coverage's alternate
+spellings, and mutmut exclusions hidden in another directive's reason. Ruff security rules and Bandit run
 independently: a Ruff `noqa` does not suppress Bandit's finding; a deliberate
 exception must satisfy each tool's reasoned form. The
 banned-API wall covers ambient clocks, RNGs, environment reads, and `pickle`

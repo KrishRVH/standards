@@ -2,15 +2,17 @@
 # vulnerabilities and unmaintained advisories deny (the pinned default), and
 # yanked crates are promoted to deny. Duplicate versions surface as warnings,
 # not failures; the handoff report carries them forward (AGENTS.md
-# dependencies).
+# dependencies and review).
 [advisories]
 unmaintained = "all"
 yanked = "deny"
 
 # Pre-emptively widened to the common permissive licenses agents drag in —
-# a deliberate posture choice, not a need of the current tree.
+# a deliberate posture choice, not a need of the current tree, so entries the
+# tree does not use yet are expected.
 [licenses]
 include-dev = true
+unused-allowed-license = "allow"
 allow = [
     "0BSD",
     "Apache-2.0",

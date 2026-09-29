@@ -429,9 +429,10 @@ test('the mutation task graph orders its preflight and pins the intended Stryker
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
-  expect(tasks).toContain('bun = "1.4.1"');
+  const miseBun = /^bun = "([^"]+)"$/mu.exec(tasks)?.[1];
+  expect(miseBun).toBeDefined();
   expect(tasks).not.toContain('node = ');
-  expect(packageManifest).toContain('"packageManager": "bun@1.4.1"');
+  expect(packageManifest).toContain(`"packageManager": "bun@${String(miseBun)}"`);
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
   expect(section('ts:preflight')).toContain('depends = ["ts:install"]');
   expect(section('ts:mutants')).toContain('depends = ["ts:preflight"]');

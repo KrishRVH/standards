@@ -71,7 +71,8 @@ The root files maintain the catalog. The small standalone projects under
 `testers/` prove each language template through the documented mise layout.
 Each fixture commits `.config/mise/mise.lock` for deterministic Linux tool
 resolution. `standards.manifest.toml` maps profiles to their canonical
-templates, tester fixtures, task fragments, and exact mirror files.
+templates, tester fixtures, task fragments, exact mirror files, and the shared
+files a fixture copies.
 
 Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/` govern
 this repository; they are not project defaults.
@@ -133,7 +134,7 @@ Copy each language or tooling folder that the project needs:
 - `C++/` — an idiomatic C++20 CMake library, CLI, and test template with Clang
   format and tidy configuration, sanitizer presets, and an opt-in GCC/MinGW
   portability lane.
-- `Elixir/` — a Mix baseline with formatter, Credo, optional Dialyzer, xref
+- `Elixir/` — a Mix baseline with formatter, Credo, Dialyzer, xref
   cycle checks, docs, coverage, dependency audits, and project-specific
   Phoenix/Sobelow overlays.
 - `Fortran/` — an fpm baseline with free-form source, implicit typing and
@@ -342,8 +343,8 @@ concurrent task execution; language tools also set their own concurrency.
 
 `[monorepo] lockfile = false` keeps each committed fixture lockfile beside its
 standalone configuration. The root runner uses one child mise process for the
-path wildcard because the current stable validator does not resolve monorepo
-paths in native task relationships. That child still uses mise's scheduler and
+path wildcard because the root's minimum mise, `2026.7.0`, does not resolve
+monorepo paths in native task relationships. That child still uses mise's scheduler and
 project-attributed output.
 
 To run an optional isolated proof outside the hosted runner, use the existing
@@ -356,12 +357,13 @@ mise run testers:standards:check:isolated
 The profile-contract portion of the root gate has three focused checkers.
 `scripts/check-standards-drift.py` keeps shared task fragments, aggregate task
 dispatch, fixture configurations, Dagger fragments, full-configuration shared
-files, and declared mirror files in sync. `scripts/check-ignore-contracts.py`
+files, and declared mirror files in sync, and runs the `hygiene` task against
+seeded clean and dirty trees. `scripts/check-ignore-contracts.py`
 exercises mutation-output ignore scope with Git's matcher.
 `scripts/check-profile-governance.mjs` validates downstream workflow YAML with
 actionlint, then parses it to enforce the workflow, Code Owners, host-setting,
-and pull-request contracts. Undeclared fixture source and tests can remain
-small.
+and pull-request contracts. Fixture source and tests outside the declared
+mirrors stay small.
 
 When adding or changing a profile:
 

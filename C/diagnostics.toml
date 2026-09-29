@@ -1,6 +1,3 @@
-schema = 1
-policy_version = "2026-08-03"
-
 [severity]
 hard = "The invoked gate fails on a demonstrated correctness, safety, build-contract, supported-portability, or deterministic-presentation violation."
 ratcheted-advisory = "A context-sensitive finding is reviewed and may not increase beyond the explicit baseline; it is never an autonomous rewrite order."
@@ -161,7 +158,7 @@ exact = ["PROJECT_WERROR=ON", "-Werror"]
 rationale = "A reviewed warning matrix is enforceable only when findings cannot pass unnoticed."
 repair = "Fix the represented defect or document a narrow exception; do not remove Werror."
 exception = "Dependencies are not compiled under this private warning policy."
-fixture = "standards-tests/compiler common-flags.txt, warning-cases.tsv, and behavior-contracts.txt"
+fixture = "standards-tests/compiler common-flags.txt, warning-cases.tsv, and run.sh run_warning_behavior_contracts"
 version = "Clang 22.1.8; GCC 15.2.0"
 
 [[rule]]
@@ -358,7 +355,7 @@ rationale = "Broad families resolve 296 checks, including C++, Objective-C, OS-s
 repair = "Evaluate and name one check with a repair class and fixture before enabling it."
 exception = "No wildcard becomes hard; an exact pinned resolution is still required."
 fixture = "standards-tests/analyzer/hard-checks.txt"
-version = "Observed with clang-tidy 22.1.8"
+version = "clang-tidy 22.1.8"
 
 [[rule]]
 id = "C-DISABLED-NOISE-001"

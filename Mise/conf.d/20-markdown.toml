@@ -5,7 +5,7 @@ typos = "1.48.0"
 
 [tasks."md:install"]
 description = "Install Bun-managed Markdown/MDX dependencies"
-wait_for = ["md:lock:check"]
+depends = ["md:lock:check"]
 run = "bun install --frozen-lockfile"
 
 [tasks."md:lock"]
@@ -80,7 +80,7 @@ run = "bun run standards"
 
 [tasks."md:standards:check"]
 description = "Run the Markdown/MDX standards CI gate"
-depends = ["md:lock:check", "md:install", "md:links", "md:typos"]
+depends = ["md:install", "md:links", "md:typos"]
 run = "bun run standards:check"
 
 [tasks."md:standards:check:deep"]

@@ -13,8 +13,8 @@ Lint exceptions require a per-site
 `#[expect(lint, reason = "...")]` that self-expires when it goes stale, and a
 mutation-testing gate audits whether the tests would notice wrong code.
 `AGENTS.md` holds the rules machines cannot check — design doctrine, semantic
-verification, and the adversarial self-review loop. Relax or remove checks
-that do not fit the project.
+verification, and independent review. Relax or remove checks that do not fit
+the project.
 
 The shared-mutable-state wall encodes a specific architecture: single-owner
 application state, pure `(state, event)` transitions, message passing over

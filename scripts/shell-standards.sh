@@ -280,20 +280,18 @@ run_policy() {
 
 run_tests() {
   local files=()
-  local count=0
   local file
 
   while IFS= read -r -d '' file; do
     case "${file}" in
       *.bats)
         files+=("${file}")
-        count=$((count + 1))
         ;;
       *) ;;
     esac
   done < <(shell_files)
 
-  if [ "${count}" -eq 0 ]; then
+  if [ "${#files[@]}" -eq 0 ]; then
     echo "No Bats tests found."
     return 0
   fi

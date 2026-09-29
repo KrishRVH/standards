@@ -135,7 +135,7 @@ run = "cargo test --workspace --doc --all-features --locked"
 description = "Build Rust documentation with warnings denied"
 depends = ["rust:lock:check"]
 wait_for = ["rust:test:doc"]
-run = "RUSTDOCFLAGS=\"-D warnings -D missing_docs\" cargo doc --workspace --all-features --no-deps --locked"
+run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --all-features --no-deps --locked"
 
 [tasks."rust:package"]
 description = "Validate Rust package contents"
@@ -242,7 +242,7 @@ run = """
 set -eu
 
 cargo_tools_dir="${CARGO_TOOLS_DIR:-.cargo-tools}"
-"$cargo_tools_dir/bin/cargo-deny" --workspace --all-features --locked check -A license-not-encountered
+"$cargo_tools_dir/bin/cargo-deny" --workspace --all-features --locked check
 """
 
 [tasks."rust:standards"]

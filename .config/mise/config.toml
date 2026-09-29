@@ -6,7 +6,7 @@ config_roots = ["testers/*"]
 lockfile = false
 
 [settings]
-# Sized for the maintainer's 24-core workstation, the only host where this
+# Sized for the maintainer's 32-thread workstation, the only host where this
 # root gate runs end to end. Fixture tasks stay bounded below by their own
 # tool concurrency settings (for example the TypeScript Stryker workers).
 jobs = 8
@@ -16,14 +16,6 @@ lockfile = true
 actionlint = "1.7.12"
 gitleaks = "8.30.1"
 python = "3.14.7"
-
-[tasks.tasks]
-description = "List available project tasks"
-run = "mise tasks"
-
-[tasks.lock]
-description = "Refresh the root mise lockfile after tool-version changes"
-run = "mise lock"
 
 [tasks."standards:eslint-prettier:check"]
 description = "Validate the secondary ESLint and Prettier TypeScript profile"

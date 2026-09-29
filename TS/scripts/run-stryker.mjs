@@ -152,7 +152,7 @@ async function acquireLock() {
   try {
     await mkdir(lockDirectory);
   } catch (error) {
-    if (error?.code !== 'EEXIST') {
+    if (errorCode(error) !== 'EEXIST') {
       throw error;
     }
 

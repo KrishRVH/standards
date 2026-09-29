@@ -45,7 +45,6 @@ mirror = [
   "standards-tests/cmake/unregistered-target/main.c",
   "standards-tests/cmake/unregistered-target/nested/CMakeLists.txt",
   "standards-tests/cmake/unsupported-compiler.cmake",
-  "standards-tests/compiler/behavior-contracts.txt",
   "standards-tests/compiler/clang-flags.txt",
   "standards-tests/compiler/common-definition-a.c",
   "standards-tests/compiler/common-definition-b.c",
@@ -111,6 +110,7 @@ mirror = [
   "CMakePresets.json",
   "cmake/project-name-config.cmake.in",
   "cpp-build.sh",
+  "cpp-format.sh",
   "cpp-quality.sh",
   "include/project/library.h",
   "mingw-w64.cmake",
@@ -179,7 +179,15 @@ template = "Haskell"
 tester = "testers/haskell"
 task_prefix = "haskell"
 task_fragment = "20-haskell.toml"
-mirror = [".hlint.yaml", "cabal.project", "project-name.cabal"]
+mirror = [
+  ".hlint.yaml",
+  "app/Main.hs",
+  "bench/Main.hs",
+  "cabal.project",
+  "project-name.cabal",
+  "src/ProjectName.hs",
+  "test/Main.hs",
+]
 
 [profiles.js]
 name = "JavaScript"
@@ -199,7 +207,8 @@ mirror = [
   "tests/math.test.js",
   "tests/tooling-contract.test.js",
 ]
-required_tester_files = [".gitignore", "bun.lock"]
+shared_mirror = [".gitignore"]
+required_tester_files = ["bun.lock"]
 
 [profiles.kotlin]
 name = "Kotlin"

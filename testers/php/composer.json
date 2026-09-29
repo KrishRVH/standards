@@ -44,16 +44,14 @@
     "sort-packages": true
   },
   "scripts": {
-    "analyze": "@phpstan",
     "composer:audit": "composer audit --locked --abandoned=report --format=summary",
     "composer:normalize": "composer normalize",
     "composer:validate": "composer validate --strict",
     "dependency-analyser": "composer-dependency-analyser",
-    "deps": "@dependency-analyser",
     "lint": [
-      "@style",
-      "@analyze",
-      "@smell"
+      "@phpcs",
+      "@phpstan",
+      "@phpmd"
     ],
     "normalize:check": "composer normalize --dry-run --diff",
     "phpcbf": "phpcbf",
@@ -62,7 +60,6 @@
     "phpstan": "php -d disable_functions=proc_open vendor/bin/phpstan analyse --memory-limit=512M",
     "rector": "rector process",
     "rector:check": "rector process --dry-run",
-    "smell": "@phpmd",
     "standards": [
       "@composer:normalize",
       "@rector",
@@ -75,19 +72,16 @@
       "@rector:check",
       "@lint",
       "@test",
-      "@deps",
+      "@dependency-analyser",
       "@composer:audit"
     ],
-    "style": "@phpcs",
     "test": "phpunit"
   },
   "scripts-descriptions": {
-    "analyze": "Run static analysis (PHPStan).",
     "composer:audit": "Run Composer vulnerability and abandoned-package audit.",
     "composer:normalize": "Normalize composer.json.",
     "composer:validate": "Validate composer.json strictly.",
     "dependency-analyser": "Analyze dependency usage correctness (shipmonk/composer-dependency-analyser).",
-    "deps": "Run dependency usage analysis.",
     "lint": "Run lint suite (style, static analysis, and maintainability smell checks).",
     "normalize:check": "Verify composer.json is normalized (dry-run + diff).",
     "phpcbf": "Auto-fix coding standard violations (PHPCBF).",
@@ -96,10 +90,8 @@
     "phpstan": "Run PHPStan analysis.",
     "rector": "Apply Rector automated refactorings.",
     "rector:check": "Check for pending Rector refactorings without modifying files.",
-    "smell": "Run maintainability smell checks.",
     "standards": "Run the local standards workflow with autofixes.",
     "standards:check": "Run the standards CI gate.",
-    "style": "Run style checks (PHPCS).",
     "test": "Run unit tests (PHPUnit)."
   }
 }

@@ -123,6 +123,14 @@ function staticString(node, sourceCode, seenVariables = new Set()) {
   return undefined;
 }
 
+function propertyKeyName(property, sourceCode) {
+  return property.computed
+    ? staticString(property.key, sourceCode)
+    : property.key.type === 'Identifier'
+      ? property.key.name
+      : String(property.key.value);
+}
+
 function memberName(member, sourceCode, seenVariables = new Set()) {
   return member.computed
     ? staticString(member.property, sourceCode, seenVariables)
@@ -219,12 +227,7 @@ function destructuredMember(identifier, sourceCode, seenVariables) {
     return undefined;
   }
 
-  const name = property.computed
-    ? staticString(property.key, sourceCode)
-    : property.key.type === 'Identifier'
-      ? property.key.name
-      : String(property.key.value);
-
+  const name = propertyKeyName(property, sourceCode);
   return name === undefined ? undefined : { name, owner: binding.definition.node.init };
 }
 
@@ -287,15 +290,7 @@ function mutationTarget(call, sourceCode) {
 
 function objectPatternContainsTimer(pattern, sourceCode) {
   return pattern.properties.some(
-    (property) =>
-      property.type === 'Property' &&
-      timerMethods.has(
-        property.computed
-          ? staticString(property.key, sourceCode)
-          : property.key.type === 'Identifier'
-            ? property.key.name
-            : String(property.key.value),
-      ),
+    (property) => property.type === 'Property' && timerMethods.has(propertyKeyName(property, sourceCode)),
   );
 }
 
@@ -386,26 +381,19 @@ const noAmbientRuntime = {
   },
   create(context) {
     const { sourceCode } = context;
+    const reportTimerAlias = (node, pattern, value) => {
+      if (
+        pattern.type === 'ObjectPattern' &&
+        objectPatternContainsTimer(pattern, sourceCode) &&
+        isAmbientGlobal(value, sourceCode)
+      ) {
+        context.report({ node, messageId: 'timer' });
+      }
+    };
 
     return {
-      AssignmentExpression(node) {
-        if (
-          node.left.type === 'ObjectPattern' &&
-          objectPatternContainsTimer(node.left, sourceCode) &&
-          isAmbientGlobal(node.right, sourceCode)
-        ) {
-          context.report({ node, messageId: 'timer' });
-        }
-      },
-      AssignmentPattern(node) {
-        if (
-          node.left.type === 'ObjectPattern' &&
-          objectPatternContainsTimer(node.left, sourceCode) &&
-          isAmbientGlobal(node.right, sourceCode)
-        ) {
-          context.report({ node, messageId: 'timer' });
-        }
-      },
+      AssignmentExpression: (node) => reportTimerAlias(node, node.left, node.right),
+      AssignmentPattern: (node) => reportTimerAlias(node, node.left, node.right),
       ImportExpression(node) {
         const source = staticString(node.source, sourceCode);
         if (source !== undefined && timerModules.has(source)) {
@@ -419,15 +407,7 @@ const noAmbientRuntime = {
           context.report({ node, messageId: 'timer' });
         }
       },
-      VariableDeclarator(node) {
-        if (
-          node.id.type === 'ObjectPattern' &&
-          objectPatternContainsTimer(node.id, sourceCode) &&
-          isAmbientGlobal(node.init, sourceCode)
-        ) {
-          context.report({ node, messageId: 'timer' });
-        }
-      },
+      VariableDeclarator: (node) => reportTimerAlias(node, node.id, node.init),
     };
   },
 };

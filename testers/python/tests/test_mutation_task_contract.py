@@ -31,8 +31,6 @@ def test_mandatory_mutation_gate_uses_the_shared_full_transaction() -> None:
     run = task_run("py:mutants")
 
     assert run == "uv run python -I scripts/run-mutation-transaction.py full"
-    assert "rm " not in run
-    assert "mutmut run" not in run
     depends = task("py:standards:check").get("depends")
     assert isinstance(depends, list)
     assert "py:mutants" in depends
@@ -43,5 +41,3 @@ def test_incremental_mutation_task_uses_the_same_transaction_boundary() -> None:
     run = task_run("py:mutants:incremental")
 
     assert run == "uv run python -I scripts/run-mutation-transaction.py incremental"
-    assert "rm " not in run
-    assert "mutmut run" not in run

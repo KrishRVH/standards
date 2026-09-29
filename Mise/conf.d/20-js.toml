@@ -3,7 +3,7 @@ bun = "1.4.0"
 
 [tasks."js:install"]
 description = "Install Bun-managed JavaScript dependencies"
-wait_for = ["js:lock:check"]
+depends = ["js:lock:check"]
 run = "bun install --frozen-lockfile"
 
 [tasks."js:lock"]
@@ -66,5 +66,5 @@ run = "bun run standards"
 
 [tasks."js:standards:check"]
 description = "Run the JavaScript standards CI gate"
-depends = ["js:lock:check", "js:install"]
+depends = ["js:install"]
 run = "bun run standards:check"

@@ -21,14 +21,6 @@ description = "Run shell static analysis, syntax checks, and shebang policy"
 wait_for = ["shell:fmt:check"]
 run = "scripts/shell-standards.sh lint"
 
-[tasks."shell:syntax"]
-description = "Run shell parser checks"
-run = "scripts/shell-standards.sh syntax"
-
-[tasks."shell:policy"]
-description = "Check shell glue-script shebang policy"
-run = "scripts/shell-standards.sh policy"
-
 [tasks."shell:test"]
 description = "Run Bats shell tests"
 wait_for = ["shell:fmt:check"]

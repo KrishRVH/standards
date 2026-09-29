@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files", "shared_mirror"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_MARKER_CASES = {
@@ -186,15 +186,14 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             if not isinstance(item, str) or not is_relative_path(item):
                 errors.append(f"{profile_id}: mirror entries must be normalized relative paths: {item!r}")
 
-        required_tester_files = profile.get("required_tester_files", [])
-        if not isinstance(required_tester_files, list):
-            errors.append(f"{profile_id}: required_tester_files must be a list")
-        else:
-            for item in required_tester_files:
+        for key in ("required_tester_files", "shared_mirror"):
+            entries = profile.get(key, [])
+            if not isinstance(entries, list):
+                errors.append(f"{profile_id}: {key} must be a list")
+                continue
+            for item in entries:
                 if not isinstance(item, str) or not is_relative_path(item):
-                    errors.append(
-                        f"{profile_id}: required_tester_files entries must be normalized relative paths: {item!r}"
-                    )
+                    errors.append(f"{profile_id}: {key} entries must be normalized relative paths: {item!r}")
 
         dagger = profile.get("dagger", False)
         if not isinstance(dagger, bool):
@@ -214,15 +213,9 @@ def check_tester_inventory(profiles: dict[str, dict[str, object]]) -> list[str]:
         if not fixture_config.is_file():
             errors.append(f"{profile_id}: missing fixture config {rel(fixture_config)}")
 
-    actual = {
-        config.parents[2]: config
-        for config in (ROOT / "testers").glob("*/.config/mise/config.toml")
-    }
-    for tester, config in sorted(actual.items(), key=lambda item: rel(item[0])):
-        if tester not in declared:
-            errors.append(f"{rel(tester)}: tester fixture is not declared in standards.manifest.toml")
-        elif config != tester / ".config" / "mise" / "config.toml":
-            errors.append(f"{rel(config)}: unexpected tester config location")
+    discovered = {config.parents[2] for config in (ROOT / "testers").glob("*/.config/mise/config.toml")}
+    for tester in sorted(discovered - set(declared), key=rel):
+        errors.append(f"{rel(tester)}: tester fixture is not declared in standards.manifest.toml")
 
     return errors
 
@@ -727,6 +720,10 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
                 right = tester / str(item)
                 errors.extend(compare_file(profile_id, "mirror", left, right))
         if has_tester:
+            for item in profile.get("shared_mirror", []):
+                errors.extend(
+                    compare_file(profile_id, "shared mirror", ROOT / "shared" / str(item), tester / str(item))
+                )
             for item in profile.get("required_tester_files", []):
                 required = tester / str(item)
                 if not required.is_file():

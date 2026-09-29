@@ -40,7 +40,7 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
 eval "$(luarocks --tree .lua_modules path)"
-luacheck --exclude-files '.lua_modules/**' --exclude-files '.lua-language-server/**' -- .
+luacheck .
 
 if ! lua-language-server --check=. --check_format=json --check_out_path="$tmp" --checklevel=Warning --logpath=.lua-language-server/log; then
   cat "$tmp"

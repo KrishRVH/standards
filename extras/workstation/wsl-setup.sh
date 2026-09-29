@@ -17,7 +17,6 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GITHUB_UPGRADE=0         skip GitHub-release updates when a binary exists
 #   BOOTSTRAP_GITHUB_API_VERSION=...   override the GitHub REST API version header
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
-#   BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS=1 remove old cargo installs no longer selected
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
 #   BOOTSTRAP_NVIM_SYNC=0              defer initial Neovim plugin installation
 #   BOOTSTRAP_TMUX_PLUGIN_UPDATE=0     skip TPM plugin updates
@@ -44,7 +43,6 @@ export DEBIAN_FRONTEND=noninteractive
 : "${BOOTSTRAP_CARGO_UPGRADE:=1}"
 : "${BOOTSTRAP_GITHUB_UPGRADE:=1}"
 : "${BOOTSTRAP_GIT_UPDATE:=1}"
-: "${BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS:=0}"
 : "${BOOTSTRAP_GITHUB_API_VERSION:=2026-03-10}"
 : "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
 : "${BOOTSTRAP_TMUX_PLUGIN_UPDATE:=1}"
@@ -934,16 +932,6 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   cargo_install_latest watchexec-cli watchexec
   cargo_install_latest ast-grep ast-grep
   cargo_install_latest tree-sitter-cli tree-sitter
-
-  if [[ "$BOOTSTRAP_PRUNE_SUPERSEDED_TOOLS" == "1" ]]; then
-    installed_cargo_crates="$(cargo install --list 2> /dev/null || true)"
-    for superseded_crate in procs bottom broot frawk; do
-      if grep -qE "^${superseded_crate} v" <<< "$installed_cargo_crates"; then
-        msg "cargo: uninstall superseded $superseded_crate"
-        cargo uninstall "$superseded_crate" || warn "could not uninstall $superseded_crate"
-      fi
-    done
-  fi
 
   if has tldr; then
     run_with_timeout "$BOOTSTRAP_TLDR_TIMEOUT" tldr -u > /dev/null 2>&1 || true
@@ -2293,8 +2281,6 @@ _toolhelp "$@"
 # <<< wsl-bootstrap managed _toolhelp <<<
 TOOLHELP_COMPLETION
 
-bash -n "$HOME/.local/bin/toolhelp"
-
 # Keep common Windows entry points without scanning its entire PATH. Symlinks
 # are resolved directly by WSL interoperability; they are not shell wrappers.
 for windows_command in wsl.exe cmd.exe powershell.exe explorer.exe clip.exe notepad.exe code cursor; do
@@ -2344,8 +2330,8 @@ emit fzf fzf --zsh
 # Installed completion definitions can change while the directory stays the same.
 rm -f -- "$cache/zcompdump" "$cache/zcompdump.zwc"
 REFRESH
-# Interactive activation selects real runtime directories. Disable the shim
-# boundary and automatic command installation introduced by recent mise versions.
+# Interactive activation selects real runtime directories, so disable mise's
+# shim boundary and automatic command installation.
 mise settings set activate_shims false
 mise settings set not_found_auto_install false
 
@@ -2650,11 +2636,6 @@ touch "$HOME/.local/state/zsh/history"
 chmod 600 "$HOME/.local/state/zsh/history"
 configure_shell_environment
 configure_zshenv
-# Migrate the previous bootstrap's redundant login loader, preserving user code.
-if [[ -f "$HOME/.zprofile" && ! -L "$HOME/.zprofile" ]]; then
-  # shellcheck disable=SC2016
-  sed -i '\@^\[ ! -r "$HOME/.config/shell/env.sh" \] || \. "$HOME/.config/shell/env.sh"$@d' "$HOME/.zprofile"
-fi
 
 ZSH_PATH="$(command -v zsh || true)"
 if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -n "$ZSH_PATH" ]]; then
@@ -2710,9 +2691,7 @@ bind -n M-H previous-window
 bind -n M-L next-window
 
 # Split panes in the current directory.
-unbind %
 bind | split-window -h -c "#{pane_current_path}"
-unbind '"'
 bind - split-window -v -c "#{pane_current_path}"
 
 bind % split-window -h -c "#{pane_current_path}"
