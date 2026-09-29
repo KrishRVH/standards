@@ -54,3 +54,23 @@ The flat `tests/` package is enough while all tests belong to one package. When
 the project gains a second test package, follow Odin's documented root
 `@require import` aggregator pattern and run the package graph with
 `-all-packages`.
+
+## Not Included
+
+These generic defaults stay out on purpose:
+
+- A floating latest or nightly compiler: dated releases contain breaking
+  changes, and exact releases with lock data exist.
+- `odinfmt` as a CI or style authority: it has no check mode, can report
+  success after some failures, and tracks a different parser snapshot.
+- `strip-semicolon` in `fmt`: it can rewrite files outside the requested
+  package.
+- A fixed test thread count or seed: it removes parallel and randomized coverage
+  that the reported seed already makes reproducible.
+- MemorySanitizer or ThreadSanitizer: their host and instrumentation
+  requirements are not generic.
+- A coverage threshold: no native Odin coverage surface owns the result.
+- A stack protector on test executables: it hardens a disposable runner, not a
+  shipped artifact. Add it to real build tasks.
+- A documentation smoke task: `odin doc` cannot deny missing documentation, and
+  the template has no documentation consumer.

@@ -129,7 +129,7 @@ Copy each language or tooling folder that the project needs:
   compiler and analyzer policy, central package management, locked restore,
   application-boundary guidance, Release build and test defaults, a banned-API
   wall, mutation testing, and the agent-driven doctrine shared with the Rust,
-  TS, and Python profiles ([research record](docs/research/agent-swarms.md)).
+  TS, and Python profiles.
 - `C++/` — an idiomatic C++20 CMake library, CLI, and test template with Clang
   format and tidy configuration, sanitizer presets, and an opt-in GCC/MinGW
   portability lane.
@@ -163,9 +163,9 @@ Copy each language or tooling folder that the project needs:
 - `Odin/` — OLS `odinfmt` nightly with fail-closed, project-scoped writes,
   strict compiler style and vet checks, an external consumer test package,
   native tests with reported reproduction seeds, and debug AddressSanitizer
-  plus optimized test lanes. Its [decision record](docs/research/odin.md)
-  explains the checksum-locked mutable formatter channel and compiler-owned CI
-  contract.
+  plus optimized test lanes. Its README explains the checksum-locked mutable
+  formatter channel, the compiler-owned CI contract, and the defaults it leaves
+  out.
 - `PHP/` — PHP 8.5 Composer and quality-tool configuration for PHPUnit,
   PHPStan, Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis,
   Composer audit, and Roave security advisories.
@@ -173,17 +173,14 @@ Copy each language or tooling folder that the project needs:
   Bandit, pytest/coverage, deptry, Hypothesis property tests, mutmut mutation
   testing, a banned-API wall, wheel and source builds, plus optional deeper
   mypy, documentation, complexity, slots, and dead-code checks. Shares the
-  agent-driven doctrine and
-  [research record](docs/research/agent-swarms.md) with Rust, TS, and C#.
+  agent-driven doctrine with Rust, TS, and C#.
 - `Roc/` — an immutable new-compiler nightly with official checksum-backed
   host assets, native formatting, warning-failing checks, and top-level
-  `expect` tests through the development backend. Its
-  [decision record](docs/research/roc.md) explains the reviewed nightly and
-  package-shape choices.
+  `expect` tests through the development backend. Its README explains the
+  reviewed nightly, the package shape, and the defaults it leaves out.
 - `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace,
   `cargo package` and `cargo-deny` dependency-policy defaults, mutation
-  testing, and an agent-driven development doctrine grounded in the
-  [agent-swarm research record](docs/research/agent-swarms.md).
+  testing, and an agent-driven development doctrine in its `AGENTS.md`.
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
 - `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
@@ -194,8 +191,7 @@ Copy each language or tooling folder that the project needs:
   and diagnostics, semantic and negative tests, mutation testing and knip
   gates, automatic CI, and a separately validated ESLint plus Prettier
   secondary workflow.
-  Shares the Rust profile's agent-driven doctrine and the
-  [agent-swarm research record](docs/research/agent-swarms.md).
+  Shares the Rust profile's agent-driven doctrine.
 - `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
   Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 

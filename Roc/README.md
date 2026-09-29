@@ -73,3 +73,18 @@ package manager, test framework, or invented ecosystem policy.
 This profile is provisional. Prefer current official documentation to
 compatibility with old Roc experiments, and revise the template as stable
 conventions emerge instead of preserving pre-0.1 history.
+
+## Not Included
+
+These generic defaults stay out on purpose:
+
+- A floating installer or `latest` URL: it can change without a reviewed
+  configuration diff, and an exact immutable tag with digests exists.
+- The `alpha4-rolling` channel or `roc format`: they belong to the old
+  compiler, with different syntax, CLI, and host assets.
+- A headerless Echo app: it is a compiler convenience platform with one output
+  operation, not a reusable package boundary.
+- An external platform: I/O requirements are project-specific. Add one when an
+  executable needs it.
+- An external formatter, linter, or test runner: the compiler already owns all
+  three contracts.
