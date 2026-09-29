@@ -49,6 +49,48 @@ AGGREGATE_MARKER_CASES = {
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)
 ROOT_SHARED_MIRROR = (".gitleaks.toml",)
+HYGIENE = ROOT / "Mise" / "tasks" / "hygiene"
+# A clean tree of legitimate layouts, allowances, and exemptions must pass with no
+# findings; removing any allowance or exemption makes one of these fail. A dirty
+# tree must report exactly the expected findings.
+HYGIENE_CLEAN = {
+    "src/reports/summary.rs": "pub fn summary() {}\n",
+    "src/lib.rs": "#![forbid(unsafe_code)]\n",
+    "api/v1/routes.go": "package v1\n",
+    "docs/pickup_rules.md": "# Pickup rules\n",
+    "docs/blog/2026-01-01-launch.md": "# Launch\n",
+    "migrations/V1__init.sql": "create table t (id int);\n",
+    "vendor/parser/parser_v2.c": "int parse;\n",
+    "README.md": (
+        "`mise run known:task`, `mise run kt`, `mise run rust:...`, `mise run //sub:sub:only`,\n"
+        "`mise run //sub:so`, `mise run sub:only`, `mise run //:known:task`,\n"
+        "`mise run //testers/...:standards`, `mise run build-${TARGET}`, `mise run build-\"${TARGET}\"`,\n"
+        '`cd sub && mise run only:here`, `cd "sub project" && mise run only:here`\n'
+    ),
+    "scripts/setup.sh": "#!/bin/sh\ncat <<EOF\nRun tasks such as mise run build.\nEOF\n",
+}
+HYGIENE_DIRTY = {
+    "docs/research/engine.md": ("# Engine\n", ["history directory `research/`; git holds history"]),
+    "archive/plan.md": ("# Plan\n", ["history directory `archive/`; git holds history"]),
+    "src/parser_v2.rs": ("pub fn parse() {}\n", ["versioned file name; replace the old version in place"]),
+    "src/main.rs.orig": ("fn main() {}\n", ["leftover file name; rename in place or delete it"]),
+    "migrations/V2__add.sql.bak": ("alter table t;\n", ["leftover file name; rename in place or delete it"]),
+    "HANDOFF.md": ("# Handoff\n", ["handoff note; keep task notes in untracked .scratch/"]),
+    "docs/2026-01-01-audit.md": ("# Audit\n", ["dated name; current docs carry no dates"]),
+    "docs/tasks.md": (
+        "`mise run missing:task`, `mise run //sub:missing`, and `mise run //:sub:only`\n",
+        [
+            "unknown mise task `//sub:missing`",
+            "unknown mise task `missing:task`",
+            "unknown mise task `//:sub:only`",
+        ],
+    ),
+    "src/sparse_v2.rs": ("pub fn sparse() {}\n", ["versioned file name; replace the old version in place"]),
+    "scripts/check.sh": ("#!/bin/sh\nmise run gone:task\n", ["unknown mise task `gone:task`"]),
+}
+HYGIENE_TASKS = '[{"name":"//:known:task","aliases":["kt"]},{"name":"//sub:sub:only","aliases":["so"]}]'
+# Left untracked in each tree; every other seeded file is staged.
+HYGIENE_UNTRACKED = {"README.md", "scripts/setup.sh", "scripts/check.sh"}
 
 
 def load_profiles() -> dict[str, dict[str, object]]:
@@ -252,7 +294,7 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
         expected = [{"task": "_dispatch", "args": [task_name]}]
         if task.get("run") != expected:
             errors.append(f"{rel(config)} aggregate task {task_name} must run {expected!r}")
-        expected_depends = ["secrets"] if task_name == "standards:check" else None
+        expected_depends = ["secrets", "hygiene"] if task_name == "standards:check" else None
         if task.get("depends") != expected_depends:
             errors.append(
                 f"{rel(config)} aggregate task {task_name} must set depends to {expected_depends!r}"
@@ -347,6 +389,111 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
     return errors
 
 
+def check_hygiene_task() -> list[str]:
+    errors: list[str] = []
+    if not os.access(HYGIENE, os.X_OK):
+        errors.append(f"{rel(HYGIENE)} must be executable for mise to list it")
+    text = HYGIENE.read_text(encoding="utf-8")
+    pinned = next((line for line in text.splitlines() if line.startswith("# MISE tools=")), "")
+    python = load_toml(ROOT / "Mise" / "conf.d" / "20-python.toml").get("tools", {}).get("python")
+    if pinned != f'# MISE tools={{python="{python}"}}':
+        errors.append(f"{rel(HYGIENE)} must pin the Python profile's python {python}")
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="standards-hygiene-") as temporary:
+            temporary_root = Path(temporary)
+            bin_dir = temporary_root / "bin"
+            bin_dir.mkdir()
+            fake_mise = bin_dir / "mise"
+            fake_mise.write_text(f"#!/bin/sh\nprintf '%s' '{HYGIENE_TASKS}'\n", encoding="utf-8")
+            fake_mise.chmod(0o755)
+            environment = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', os.defpath)}"}
+
+            def git(workspace: Path, *arguments: str) -> None:
+                subprocess.run(["git", *arguments], cwd=workspace, check=True, capture_output=True)
+
+            def seed(name: str, files: dict[str, str]) -> Path:
+                workspace = temporary_root / name
+                workspace.mkdir()
+                if files:
+                    git(workspace, "init", "-q")
+                for path, content in files.items():
+                    target = workspace / path
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(content, encoding="utf-8")
+                staged = [path for path in files if path not in HYGIENE_UNTRACKED]
+                if staged:
+                    git(workspace, "add", "--", *staged)
+                return workspace
+
+            def run_hygiene(workspace: Path, **overrides: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, str(HYGIENE)],
+                    cwd=workspace,
+                    env={**environment, **overrides},
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=60,
+                )
+
+            outside_tree = seed("outside", {})
+            outside = run_hygiene(outside_tree)
+            if outside.returncode != 0 or "skipped" not in outside.stdout:
+                errors.append("hygiene must skip outside a git work tree, as in the Dagger check")
+            broken = run_hygiene(outside_tree, GIT_DIR=str(temporary_root / "missing-git-dir"))
+            if broken.returncode != 1:
+                errors.append("hygiene must fail, not skip, when GIT_DIR names no repository")
+
+            # Clean-only index entries: a deleted tracked file, a gitlink, and a
+            # tracked file behind a directory that became a symlink out of the tree.
+            clean_tree = seed("clean", {**HYGIENE_CLEAN, "archive/deleted.md": "# Gone\n"})
+            (clean_tree / "archive" / "deleted.md").unlink()
+            git(clean_tree, "update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},modules/engine_v2")
+            (clean_tree / "modules" / "engine_v2").mkdir(parents=True)
+            (clean_tree / "linked").mkdir()
+            (clean_tree / "linked" / "config.toml").write_text("[tasks.a]\n", encoding="utf-8")
+            git(clean_tree, "add", "--", "linked/config.toml")
+            (clean_tree / "linked" / "config.toml").unlink()
+            (clean_tree / "linked").rmdir()
+            external = temporary_root / "external"
+            external.mkdir()
+            (external / "config.toml").write_text('run = "mise run missing:external"\n', encoding="utf-8")
+            (clean_tree / "linked").symlink_to(external)
+            # A symlink that core.symlinks=false wrote out as a plain file.
+            link_text = "mise run missing:symlinked\n"
+            (clean_tree / "docs" / "shortcut.sh").write_text(link_text, encoding="utf-8")
+            blob = subprocess.run(
+                ["git", "hash-object", "-w", "docs/shortcut.sh"],
+                cwd=clean_tree,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            git(clean_tree, "update-index", "--add", "--cacheinfo", f"120000,{blob},docs/shortcut.sh")
+            clean = run_hygiene(clean_tree)
+            if clean.returncode != 0 or clean.stderr:
+                errors.append(f"hygiene must pass a clean tree; exit {clean.returncode}: {clean.stderr.strip()}")
+
+            dirty_tree = seed("dirty", {path: content for path, (content, _) in HYGIENE_DIRTY.items()})
+            git(dirty_tree, "update-index", "--skip-worktree", "src/sparse_v2.rs")
+            (dirty_tree / "src" / "sparse_v2.rs").unlink()
+            (dirty_tree / "src" / "link_old.rs").symlink_to("parser_v2.rs")
+            git(dirty_tree, "add", "--", "src/link_old.rs")
+            dirty = run_hygiene(dirty_tree)
+            expected = {f"hygiene: src/link_old.rs: leftover file name; rename in place or delete it"} | {
+                f"hygiene: {path}: {message}" for path, (_, messages) in HYGIENE_DIRTY.items() for message in messages
+            }
+            reported = set(dirty.stderr.splitlines())
+            if dirty.returncode != 1:
+                errors.append(f"hygiene must fail a dirty tree; exit {dirty.returncode}")
+            errors.extend(f"hygiene missed: {line}" for line in sorted(expected - reported))
+            errors.extend(f"hygiene reported unexpectedly: {line}" for line in sorted(reported - expected))
+    except (OSError, subprocess.SubprocessError) as error:
+        errors.append(f"could not exercise the hygiene task: {error}")
+    return errors
+
+
 def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str]:
     errors: list[str] = []
     fixture_config = tester / ".config" / "mise" / "config.toml"
@@ -359,6 +506,10 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
     if full_config:
         for item in FULL_CONFIG_MIRROR:
             errors.extend(compare_file(profile_id, "full-config shared file", ROOT / "shared" / item, tester / item))
+        fixture_hygiene = tester / ".config" / "mise" / "tasks" / "hygiene"
+        errors.extend(compare_file(profile_id, "full-config hygiene task", HYGIENE, fixture_hygiene))
+        if fixture_hygiene.is_file() and not os.access(fixture_hygiene, os.X_OK):
+            errors.append(f"{profile_id}: {rel(fixture_hygiene)} must be executable for mise to list it")
     else:
         try:
             data = load_toml(fixture_config)
@@ -543,6 +694,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_aggregate_dispatch(profiles))
     errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())
+    errors.extend(check_hygiene_task())
 
     for profile_id, profile in profiles.items():
         tester = ROOT / str(profile["tester"])

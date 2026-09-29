@@ -12,7 +12,7 @@ hooks from the previous configuration do not survive.
 
 ## Project workflows and host tools
 
-Use `mise run tasks` to discover a repository's workflow. Tasks such as build,
+Use `mise tasks` to discover a repository's workflow. Tasks such as build,
 test, and standards checks select the project's toolchain and environment.
 Keep those tasks as the default project interface across languages.
 

@@ -11,9 +11,15 @@ risk, lifecycle, domain, or team tolerance.
 The baseline supports agent-driven delivery. The human owns product intent,
 constraints, and acceptance; agents perform bounded implementation and
 verification. A fresh agent entering a repository should discover its workflows
-and contracts locally, then return results backed by runnable evidence.
+and contracts locally, then report results that the project's gates verify.
 Conventional layouts, explicit side effects, and actionable failures reduce the
 human's need to supervise implementation details.
+
+A project holds only its current state. Each change removes what it makes
+obsolete, proof lives in the gate rather than in tracked reports, and every
+test defends a real failure. The shared agent guide states these rules. The
+`hygiene` task enforces their mechanical part in every local `standards:check`;
+the isolated Dagger gate copies the tree without `.git` and skips it.
 
 Every tool, rule, and abstraction must remove identifiable uncertainty,
 defects, or manual work at an acceptable runtime and maintenance cost. Fast
@@ -89,8 +95,9 @@ cp shared/.gitignore /path/to/project/.gitignore
 Copy the mise configuration into its conventional location:
 
 ```text
-Mise/config.toml   -> .config/mise/config.toml
-Mise/conf.d/*.toml -> .config/mise/conf.d/
+Mise/config.toml    -> .config/mise/config.toml
+Mise/tasks/hygiene  -> .config/mise/tasks/hygiene
+Mise/conf.d/*.toml  -> .config/mise/conf.d/
 ```
 
 Keep only the language fragments from `conf.d` that the project uses. For
@@ -264,8 +271,11 @@ mise run sbom
 
 `mise run standards` applies the available safe autofixes, then runs the local
 workflow for each detected language. `mise run standards:check` runs the
-CI-grade aggregate gate and scans for secrets with the shared
-`.gitleaks.toml`.
+CI-grade aggregate gate, scans for secrets with the shared `.gitleaks.toml`,
+and runs `hygiene`. `hygiene` prints the tree's size by category and rejects
+history directories, leftover, versioned, or dated file names, handoff notes,
+and references to undefined tasks. Adapt its constants and add language-aware
+project rules at the end of its checks.
 
 The root `.github/workflows/quality.yml` supports manual dispatch only. Use
 targeted local gates for routine catalog maintenance. Use the aggregate gate

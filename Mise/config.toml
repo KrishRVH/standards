@@ -1,4 +1,4 @@
-# Copy to .config/mise/config.toml.
+# Copy to .config/mise/config.toml, and tasks/hygiene to .config/mise/tasks/hygiene.
 
 min_version = "2026.6.12"
 
@@ -12,18 +12,6 @@ syft = "1.49.0"
 [tasks.install]
 description = "Install pinned project tools"
 run = "mise install"
-
-[tasks.lock]
-description = "Refresh mise.lock after tool-version changes"
-run = "mise lock"
-
-[tasks.doctor]
-description = "Inspect mise configuration and installed tools"
-run = "mise doctor"
-
-[tasks.tasks]
-description = "List available project tasks"
-run = "mise tasks"
 
 [tasks.secrets]
 description = "Scan the working tree for secrets"
@@ -184,5 +172,5 @@ run = [{ task = "_dispatch", args = ["standards"] }]
 
 [tasks."standards:check"]
 description = "Run standards CI checks using detected language tasks"
-depends = ["secrets"]
+depends = ["secrets", "hygiene"]
 run = [{ task = "_dispatch", args = ["standards:check"] }]

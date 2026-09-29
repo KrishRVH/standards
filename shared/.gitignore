@@ -25,6 +25,7 @@ Desktop.ini
 *.temp
 /.tmp/
 /tmp/
+/.scratch/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

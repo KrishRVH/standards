@@ -22,6 +22,15 @@ url_api = "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378332
 version = "8.5.9"
 backend = "asdf:php"
 
+[[tools.python]]
+version = "3.14.7"
+backend = "core:python"
+
+[tools.python."platforms.linux-x64"]
+checksum = "sha256:bd0d0568ccded07bbf1c87727230dc5dd0187e706a87da23c4de78388a229b78"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260924/cpython-3.14.7+20260924-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+provenance = "github-attestations"
+
 [[tools.syft]]
 version = "1.49.0"
 backend = "aqua:anchore/syft"

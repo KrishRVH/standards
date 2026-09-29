@@ -1,7 +1,8 @@
 # mise Standards
 
-Copy `config.toml` to `.config/mise/config.toml` and copy the selected
-`conf.d/*.toml` files to `.config/mise/conf.d/`.
+Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
+`.config/mise/tasks/hygiene`, and the selected `conf.d/*.toml` files to
+`.config/mise/conf.d/`.
 
 The copyable configuration requires mise `2026.6.12` or newer. That is the
 first release supporting the checksum-backed HTTP lock metadata used by the
@@ -41,15 +42,48 @@ mise run lint
 mise run test
 mise run standards
 mise run standards:check
+mise run hygiene
 mise run secrets
 mise run sbom
 mise run dagger:standards:check
 ```
 
+Use mise's own commands, such as `mise tasks`, `mise doctor`, and `mise lock`,
+directly; the template does not wrap them in tasks.
+
+`hygiene` checks the tree as it would be committed: tracked and new, non-ignored
+files, including sparse and symlinked entries by name. It prints a line
+inventory by category with the largest source files, so growth shows in every
+run. It fails on:
+
+- history directories such as `briefs/`, `reports/`, or `research/` at the top
+  level or under `docs/`;
+- leftover file names such as `main.rs.orig`, and versioned ones such as
+  `parser_v2.rs`;
+- handoff notes such as `HANDOFF.md`, and dated names at the top level or
+  directly under `docs/`;
+- literal `mise run` invocations of tasks that do not exist, including
+  `//project:task` references in a monorepo.
+
+Outside a git work tree, such as the Dagger check's copied source, it reports
+that it skipped. Paths in its constants are relative to the directory it runs
+in. `ALLOWED_PATHS` names externally owned trees that every rule skips.
+`CONTRACT_PATHS` names paths whose version or date names follow an external
+contract, such as migrations, a versioned API, or published posts; leftover and
+handoff rules still apply there.
+
+The task does not parse source code. Add language-aware rules, such as
+versioned identifiers or scripts that no task runs, at the end of its checks,
+using a parser or linter where practical.
+
+The task pins its own Python through a `# MISE tools=` header, so run
+`mise lock` after copying it. Keep the file executable; mise does not list a
+file task without the executable bit.
+
 `standards` applies available safe autofixes and runs each detected language's
 local workflow. Some ecosystems expose validation only because they have no
-safe formatter. `standards:check` runs the CI-grade aggregate task and the
-project's shared `.gitleaks.toml` secret scan. `sbom` writes a fresh CycloneDX
+safe formatter. `standards:check` runs the CI-grade aggregate task, the
+project's shared `.gitleaks.toml` secret scan, and `hygiene`. `sbom` writes a fresh CycloneDX
 JSON SBOM under `sbom/` for release and audit workflows; `SYFT_SOURCE_NAME` and
 `SYFT_SOURCE_VERSION` control its source metadata. If the project includes
 `10-dagger.toml` and the Dagger module, `dagger:standards:check` runs

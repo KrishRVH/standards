@@ -6,16 +6,18 @@ Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Roc/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain
 this repo. `testers/` smoke-test copied standards for every language template.
 
-Read `CONTEXT.md` first if it exists. Then read relevant ADRs/docs before
-changing architecture or domain language. Use this file for agent working rules.
+Read `CONTEXT.md` first if it exists. Then read the docs that own the change
+before changing architecture or domain language. Use this file for agent
+working rules.
 
 ## Design Target
 
 Optimize for agent-driven delivery: the human owns product intent, constraints,
 and acceptance; agents discover, implement, diagnose, and verify bounded work.
 A fresh agent should find the repository's workflows, contracts, and current
-state from local files, then produce evidence the human can judge without
-reconstructing every implementation detail.
+state from local files. Report what changed, which checks ran, and their
+results, so the human can judge the outcome without reconstructing
+implementation details.
 
 Keep ecosystem-idiomatic, systems-like strictness where it prevents concrete
 failures. Judge each tool, rule, and abstraction by the uncertainty, defects, or
