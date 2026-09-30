@@ -129,6 +129,7 @@ rebar3.crashdump
 
 # Fortran
 *.mod
+# Go's module file shares Fortran's extension; re-include it after *.mod.
 !go.mod
 *.smod
 
