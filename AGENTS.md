@@ -118,8 +118,9 @@ workflow's manual-only contract and the TypeScript-specific workflow behavior.
 - Root files and `.config/mise/`: repo maintenance.
 - `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
 - Template ignore, attribute, and allowlist files carry broad, generally useful
-  ecosystem coverage, including ecosystems without a profile here; adopters
-  remove what they do not use. Do not narrow them to this catalog's profiles.
+  ecosystem coverage, including ecosystems without a profile here. Adopters
+  copy the shared ones whole and prune profile ones to their project. Do not
+  narrow them to this catalog's profiles.
 - Put language-specific agent guidance in that language's `AGENTS.md`; reserve
   `shared/AGENTS.md` for guidance that applies across languages.
 - Changing `Mise/`, `Dagger/`, or a tested stack means updating the matching
