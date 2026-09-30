@@ -8,6 +8,11 @@ the shared mise template:
 .config/mise/conf.d/20-rust.toml
 ```
 
+`rust-toolchain.toml` is the one compiler pin. The task fragment tells mise to
+read it, so `mise install`, rustup, and editors select the same compiler and
+components. `Cargo.toml`'s `rust-version` is the MSRV that Clippy reads; raise
+it deliberately.
+
 This baseline gives agents executable lint and verification contracts.
 Lint exceptions require a per-site
 `#[expect(lint, reason = "...")]` that self-expires when it goes stale, and a
@@ -33,19 +38,14 @@ Linux. Adapt and test that boundary before using the complete gate on another
 operating system.
 
 ```sh
-mise run rust:components
-mise run rust:deny:install
-mise run rust:machete:install
-mise run rust:mutants:install
+mise install
 mise run rust:lock
-mise run rust:lock:check
 mise run rust:fmt
 mise run rust:fmt:check
-mise run rust:policy
 mise run rust:lint
-mise run rust:test
-mise run rust:test:doc
+mise run rust:policy
 mise run rust:doc
+mise run rust:test
 mise run rust:package
 mise run rust:mutants
 mise run rust:mutants:diff
@@ -54,6 +54,15 @@ mise run rust:deny
 mise run rust:standards
 mise run rust:standards:check
 ```
+
+mise installs cargo-deny from aqua and cargo-machete, cargo-nextest, and
+cargo-mutants from their GitHub release binaries. cargo-mutants publishes
+x86_64 binaries only; on an arm64 host, pin `cargo:cargo-mutants` instead.
+Cargo tasks share one build-directory lock, so the gate runs Clippy, the
+documentation build, the tests, and the package check in a fixed order. The
+policy self-tests, which mostly wait on shutdown timeouts, and cargo-mutants,
+which builds in its own copy of the tree, run beside them with formatting,
+cargo-deny, and cargo-machete.
 
 The baseline pins Rust, uses edition 2024, forbids local unsafe code, requires
 documented public API, denies rustdoc warnings, checks doctests, and runs
@@ -67,11 +76,11 @@ everywhere; tests are exempted from the unwrap/expect/panic/indexing lints
 only — state primitives and arithmetic in tests take a reasoned `#[expect]`.
 Release builds keep integer overflow checks.
 
-`rust:policy` requires every Cargo workspace member, including the root
-package, to declare `[lints] workspace = true`. Excluded packages and external
-dependencies are outside that inheritance check. `rust:lint` also forces
-Clippy's bare-attribute rules on the command line. Before the real lint run,
-`rust:policy` parses
+The `tests/allow_policy.rs` integration test requires every Cargo workspace
+member, including the root package, to declare `[lints] workspace = true`.
+Excluded packages and external dependencies are outside that inheritance check.
+`rust:lint` also forces Clippy's bare-attribute rules on the command line. The
+same test parses
 every first-party Rust source with Rust token and attribute parsers and rejects
 outer, crate-inner, multiline, and `cfg_attr`-nested `#[allow]` attributes,
 including raw `r#allow` spellings and literal attributes inside macro bodies.
@@ -92,17 +101,17 @@ script paths are scanned even without an `.rs` extension. Every resolved
 first-party target or included input must remain inside the canonical project
 root. Non-literal `include!` expressions and custom `#[path]` modules fail
 because the scanner cannot prove their compiler inputs.
-The same task compiles a negative `std::sync::Mutex` probe and requires the
+`rust:policy` compiles a negative `std::sync::Mutex` probe and requires the
 configured `clippy::disallowed_types` diagnostic, so the state wall cannot
-silently disappear.
+silently disappear. It also self-tests the mutation-report verifier and the
+mutation transaction lock.
 
-Use `rust:lock` to deliberately refresh `Cargo.lock` after dependency changes.
-Lock-sensitive gates run `rust:lock:check` first. That task generates
-`Cargo.lock` locally when it is missing, fails in CI when it is missing, and
-then lint/test/doc/package/mutants/deny tasks run with `--locked`.
-`rust:package` validates publishable package contents with
-`cargo package --workspace`. The `*:install` tasks put pinned `cargo-deny`,
-`cargo-machete`, and `cargo-mutants` into local `.cargo-tools`. `rust:deny`
+Use `rust:lock` to deliberately refresh `Cargo.lock` after dependency changes
+without upgrading unrelated packages. Every Cargo task runs with `--locked`,
+so a missing or stale `Cargo.lock` fails instead of being silently regenerated.
+`rust:test` runs the suite with cargo-nextest, then the doctests, which
+nextest cannot run. `rust:package` validates publishable package contents with
+`cargo package --workspace`. `rust:deny`
 fails on advisories (unmaintained crates included), yanked crates, disallowed
 licenses, wildcard dependency requirements, and unknown registries across
 normal and development dependency graphs, and surfaces duplicate-version

@@ -85,7 +85,6 @@ tester = "testers/csharp"
 task_prefix = "csharp"
 task_fragment = "20-csharp.toml"
 mirror = [
-  ".config/dotnet-tools.json",
   ".editorconfig",
   "BannedSymbols.txt",
   "Directory.Build.props",
@@ -103,6 +102,7 @@ template = "C++"
 tester = "testers/cpp"
 task_prefix = "cpp"
 task_fragment = "20-cpp.toml"
+fixture_checks = ["cpp:msvc"]
 mirror = [
   ".clang-format",
   ".clang-tidy",
@@ -114,6 +114,7 @@ mirror = [
   "cpp-quality.sh",
   "include/project/library.h",
   "mingw-w64.cmake",
+  "msvc-xwin.cmake",
   "src/library.cpp",
   "src/main.cpp",
   "tests/project_tests.cpp",
@@ -139,6 +140,7 @@ mirror = [
   "ford.md",
   "fpm.toml",
   "scripts/check-fpm-manifest.py",
+  "scripts/format.sh",
   "src/project_name.f90",
   "test/main.f90",
   "test/test_project_name.f90",
@@ -151,8 +153,6 @@ tester = "testers/gdscript"
 task_prefix = "godot"
 task_fragment = "20-godot.toml"
 mirror = [
-  ".config/python/gdtoolkit-requirements.in",
-  ".config/python/pylock.gdtoolkit.toml",
   ".editorconfig",
   ".gdlintrc",
   "project.godot",
@@ -185,6 +185,7 @@ mirror = [
   "bench/Main.hs",
   "cabal.project",
   "project-name.cabal",
+  "scripts/format.sh",
   "src/ProjectName.hs",
   "test/Main.hs",
 ]
@@ -254,7 +255,13 @@ template = "Odin"
 tester = "testers/odin"
 task_prefix = "odin"
 task_fragment = "20-odin.toml"
-mirror = [".editorconfig", "odinfmt.json", "src/project_name/project_name.odin", "tests/project_name_test.odin"]
+mirror = [
+  ".editorconfig",
+  "odinfmt.json",
+  "scripts/format.sh",
+  "src/project_name/project_name.odin",
+  "tests/project_name_test.odin",
+]
 
 [profiles.php]
 name = "PHP"
@@ -286,7 +293,7 @@ template = "Roc"
 tester = "testers/roc"
 task_prefix = "roc"
 task_fragment = "20-roc.toml"
-mirror = ["Project.roc", "main.roc"]
+mirror = ["Project.roc", "main.roc", "scripts/format.sh"]
 
 [profiles.rust]
 name = "Rust"
@@ -299,6 +306,7 @@ mirror = [
   "clippy.toml",
   "deny.toml",
   "policy-fixtures/disallowed-mutex.rs",
+  "rust-toolchain.toml",
   "rustfmt.toml",
   "scripts/mutants-lock.sh",
   "scripts/verify-mutants.sh",
@@ -333,6 +341,7 @@ mirror = [
   "gnat.adc",
   "project_name.gpr",
   "project_name_tests.gpr",
+  "scripts/check-alire.sh",
   "src/project_name.adb",
   "src/project_name.ads",
   "tests/project_name_tests.adb",
@@ -462,4 +471,4 @@ template = "Zig"
 tester = "testers/zig"
 task_prefix = "zig"
 task_fragment = "20-zig.toml"
-mirror = ["build.zig", "build.zig.zon", "src/main.zig", "src/root.zig"]
+mirror = ["build.zig", "build.zig.zon", "scripts/format.sh", "src/main.zig", "src/root.zig"]

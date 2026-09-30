@@ -1,93 +1,33 @@
+# Graph-locked gdtoolkit needs mise.lock revision 2, which mise 2026.9.7 added.
+min_version = "2026.9.7"
+
 [tools]
-godot = "4.7-stable"
-python = "3.12.11"
-uv = "0.11.32"
-
-[tasks."godot:lock"]
-description = "Lock GDToolkit for every supported platform"
-run = """
-uv pip compile \
-  --quiet \
-  --upgrade \
-  --python-version 3.12 \
-  --universal \
-  --format pylock.toml \
-  --custom-compile-command "mise run godot:lock" \
-  --output-file .config/python/pylock.gdtoolkit.toml \
-  .config/python/gdtoolkit-requirements.in
-"""
-
-[tasks."godot:lock:check"]
-description = "Ensure the GDToolkit lock is present and current"
-run = '''
-set -eu
-lock=.config/python/pylock.gdtoolkit.toml
-if [ ! -f "$lock" ]; then
-  echo "$lock is required for GDScript CI. Run mise run godot:lock and commit it." >&2
-  exit 1
-fi
-
-tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
-candidate="$tmp_dir/pylock.gdtoolkit.toml"
-cp "$lock" "$candidate"
-uv pip compile \
-  --quiet \
-  --python-version 3.12 \
-  --universal \
-  --format pylock.toml \
-  --custom-compile-command "mise run godot:lock" \
-  --output-file "$candidate" \
-  .config/python/gdtoolkit-requirements.in
-if ! cmp -s "$lock" "$candidate"; then
-  echo "$lock is stale. Run mise run godot:lock and commit the result." >&2
-  exit 1
-fi
-'''
-
-[tasks."godot:gdtoolkit:install"]
-description = "Install pinned GDToolkit into its tool-owned environment"
-sources = [
-  ".config/mise/conf.d/20-godot.toml",
-  ".config/python/gdtoolkit-requirements.in",
-  ".config/python/pylock.gdtoolkit.toml",
-]
-outputs = [".cache/gdtoolkit/.installed"]
-run = """
-set -eu
-uv venv --clear --python python .cache/gdtoolkit
-uv --preview-features pylock pip sync \
-  --python .cache/gdtoolkit \
-  .config/python/pylock.gdtoolkit.toml
-touch .cache/gdtoolkit/.installed
-"""
-
-[tasks."godot:install"]
-description = "Install pinned GDScript tooling"
-depends = ["godot:gdtoolkit:install"]
+# The Godot release binary carries its version in its file name; symlink_bins
+# exposes it under the aqua registry's `godot` name.
+godot = { version = "4.7-stable", symlink_bins = true }
+python = "3.14.7"
+uv = "0.12.19"
+"pypi:gdtoolkit" = "4.5.0"
 
 [tasks."godot:fmt"]
 description = "Format GDScript source"
-depends = ["godot:gdtoolkit:install"]
-run = "uv run --no-project --python .cache/gdtoolkit gdformat src tests"
+run = "gdformat src tests"
 
 [tasks."godot:fmt:check"]
 description = "Check GDScript formatting"
-depends = ["godot:gdtoolkit:install"]
-run = "uv run --no-project --python .cache/gdtoolkit gdformat --check src tests"
+run = "gdformat --check src tests"
 
 [tasks."godot:gdlint"]
 description = "Run GDScript style and complexity checks"
 hide = true
-depends = ["godot:gdtoolkit:install"]
-run = "uv run --no-project --python .cache/gdtoolkit gdlint src tests"
+run = "gdlint src tests"
 
 [tasks."godot:import"]
 description = "Import Godot project resources headlessly"
 run = "godot --headless --path . --import"
 
 [tasks."godot:check"]
-description = "Import the project and parse/type-check every owned GDScript file"
+description = "Import the project, then parse, type-check, and load every owned GDScript file"
 run = '''
 set -eu
 tmp="$(mktemp)"
@@ -130,18 +70,17 @@ if [ "$check_metadata" -eq 1 ]; then
   fi
 fi
 
-find src tests -type f -name '*.gd' -print | LC_ALL=C sort | while IFS= read -r script; do
-  run_godot_checked --headless --path . --check-only --script "$script"
-done
 run_godot_checked --headless --path . --script res://tests/gdscript_load_check.gd
 '''
 
 [tasks."godot:lint"]
 description = "Lint and type-check GDScript"
-run = [{ task = "godot:gdlint" }, { task = "godot:check" }]
+depends = ["godot:gdlint", "godot:check"]
 
 [tasks."godot:test"]
 description = "Run headless GDScript tests"
+# Godot writes its import cache under .godot/; run after godot:check in a gate.
+wait_for = ["godot:check"]
 run = '''
 set -eu
 if [ ! -f tests/run_tests.gd ]; then
@@ -176,9 +115,4 @@ depends = ["godot:fmt"]
 
 [tasks."godot:standards:check"]
 description = "Run the GDScript standards CI gate"
-run = [
-  { task = "godot:lock:check" },
-  { task = "godot:fmt:check" },
-  { task = "godot:lint" },
-  { task = "godot:test" },
-]
+depends = ["godot:fmt:check", "godot:lint", "godot:test"]

@@ -242,7 +242,7 @@ function mutationReport(
   return {
     config: {
       bun: { timeout: options.bunTimeout ?? 60000 },
-      concurrency: options.concurrency ?? 2,
+      concurrency: options.concurrency ?? 4,
       force: options.force ?? true,
       inPlace: options.inPlace ?? false,
       incremental: options.incremental ?? true,
@@ -387,6 +387,12 @@ test('the mutation report gate distinguishes fresh full evidence from compatible
       {
         accepted: false,
         mode: 'full',
+        name: 'reduced-concurrency',
+        report: mutationReport([{ status: 'Killed', testsCompleted: 1 }], { concurrency: 2 }),
+      },
+      {
+        accepted: false,
+        mode: 'full',
         name: 'short-core-timeout',
         report: mutationReport([{ status: 'Killed', testsCompleted: 1 }], { timeoutMS: 5000 }),
       },
@@ -424,17 +430,25 @@ test('the install age gate has no expired exceptions', async () => {
 
 test('the mutation task graph orders its preflight and pins the intended Stryker config', async () => {
   const tasks = await Bun.file(new URL('../.config/mise/conf.d/20-ts.toml', import.meta.url)).text();
-  const packageManifest = await Bun.file(new URL('../package.json', import.meta.url)).text();
   const runner = await Bun.file(new URL('../scripts/run-stryker.mjs', import.meta.url)).text();
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
-  const miseBun = /^bun = "([^"]+)"$/mu.exec(tasks)?.[1];
-  expect(miseBun).toBeDefined();
   expect(tasks).not.toContain('node = ');
-  expect(packageManifest).toContain(`"packageManager": "bun@${String(miseBun)}"`);
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
-  expect(section('ts:preflight')).toContain('depends = ["ts:install"]');
+  for (const check of [
+    'ts:lint',
+    'ts:type',
+    'ts:type-tests:check',
+    'ts:effect:check',
+    'ts:effect:diagnostics:check',
+    'ts:fmt:check',
+    'ts:audit',
+    'ts:knip',
+  ]) {
+    expect(section('ts:preflight')).toContain(`"${check}"`);
+  }
+  expect(section('ts:preflight')).toContain('run = "bun run test"');
   expect(section('ts:mutants')).toContain('depends = ["ts:preflight"]');
   expect(section('ts:mutants')).toContain('run = "bun scripts/run-stryker.mjs full stryker.config.mjs"');
   expect(section('ts:mutants:diff')).toContain('depends = ["ts:preflight"]');
@@ -455,7 +469,7 @@ test('static analysis and mutation use the complete application source extension
   expect(knip).toContain(`"project": ["${applicationSourceGlob}"`);
   expect(mutationPatterns).toContain(`'${applicationSourceGlob}'`);
   expect(mutationPatterns).toContain(`'${compositionRootGlob}'`);
-  expect(stryker).toContain('concurrency: 2');
+  expect(stryker).toContain('concurrency: 4');
   expect(stryker).toContain('timeoutMS: 30000');
   expect(stryker).toContain("bun: { env: { STANDARDS_STRYKER_SANDBOX: '1' }, timeout: 60000, testFiles }");
   expect(stryker).toContain("globSync('tests/**/*.test.{cts,mts,ts,tsx}')");

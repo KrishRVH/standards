@@ -371,7 +371,7 @@ internal static class StandardsVerifier
             StringComparison.Ordinal);
         int reviewableGuidance = task.IndexOf("git add -N <path>", StringComparison.Ordinal);
         int emptyDiffCheck = task.IndexOf("git diff --quiet", StringComparison.Ordinal);
-        int strykerInvocation = task.IndexOf("dotnet stryker", StringComparison.Ordinal);
+        int strykerInvocation = task.IndexOf("dotnet-stryker", StringComparison.Ordinal);
         if (untrackedGuard < 0
             || reviewableGuidance < 0
             || emptyDiffCheck < 0

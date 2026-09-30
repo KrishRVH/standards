@@ -31,7 +31,8 @@
 
 - Test observable behavior with table-driven cases where inputs are peers.
   Prefer real boundaries and narrow fakes over mocks of internal call order.
-- Reproduce a fixed defect with a failing test where practical. Run race tests
-  for concurrency changes; use fuzzing for parsing and other untrusted inputs.
+- Reproduce a fixed defect with a failing test where practical. Run `go:cover`,
+  which adds the race detector, for concurrency changes; use fuzzing for
+  parsing and other untrusted inputs.
 - Treat a green gate as necessary evidence. Review ownership, cancellation,
   error handling, and newly added suppressions separately.

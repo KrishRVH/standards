@@ -1,6 +1,7 @@
 # Zig Standards
 
-Copy `build.zig`, `build.zig.zon`, and `src/` into a Zig project, then replace
+Copy `build.zig`, `build.zig.zon`, `scripts/format.sh`, and `src/` into a Zig
+project, put `Mise/conf.d/20-zig.toml` in `.config/mise/conf.d/`, then replace
 `project_name` and `project-name` with the real package and executable names.
 Keep or add the project's own `README.md`, which the package manifest includes.
 Remove the executable target if the project is library-only.

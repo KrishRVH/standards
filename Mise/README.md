@@ -35,7 +35,7 @@ mode.
 Recommended project entrypoints:
 
 ```sh
-mise run install
+mise install
 mise run fmt
 mise run fmt:check
 mise run lint
@@ -48,8 +48,8 @@ mise run sbom
 mise run dagger:standards:check
 ```
 
-Use mise's own commands, such as `mise tasks`, `mise doctor`, and `mise lock`,
-directly; the template does not wrap them in tasks.
+Use mise's own commands, such as `mise install`, `mise tasks`, `mise doctor`,
+and `mise lock`, directly; the template does not wrap them in tasks.
 
 `hygiene` checks the tree as it would be committed: tracked and new, non-ignored
 files, including sparse and symlinked entries by name. It prints a line
@@ -142,10 +142,11 @@ The C# template enables locked package restore in project MSBuild properties:
 package locks are created by default, and CI restore runs in locked mode. Lint
 and test run Release builds with analyzer warnings promoted to failures.
 
-The Rust task file runs Cargo in workspace and locked modes, generates a local
-`Cargo.lock` only when missing outside CI, builds docs with rustdoc warnings
-denied, runs doctests, and installs pinned `cargo-deny` into `.cargo-tools` for
-dependency policy checks.
+The Rust task file reads the compiler pin from `rust-toolchain.toml`, runs every
+Cargo command in workspace and locked modes, builds docs with rustdoc warnings
+denied, and runs the tests with cargo-nextest plus the doctests. Its
+`[tools]` pin cargo-deny through aqua and cargo-machete, cargo-nextest, and
+cargo-mutants through their GitHub release binaries.
 
 The Odin task file uses the OLS `odinfmt` nightly for project-scoped developer
 formatting and the version-matched compiler as the style, vet, and test

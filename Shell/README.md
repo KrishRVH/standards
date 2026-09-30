@@ -17,8 +17,10 @@ mise run shell:test
 mise run shell:standards:check
 ```
 
-`shell:run -- <command>` exposes the runner's individual subcommands through
-mise. Bash runs the standards runner; install zsh when checking zsh scripts.
+Run one of the runner's subcommands (`fmt`, `fmt-check`, `lint`, `syntax`,
+`policy`, or `test`) with the pinned tools through
+`mise exec -- scripts/shell-standards.sh <subcommand>`. Bash runs the standards
+runner; install zsh when checking zsh scripts.
 
 Default checks:
 

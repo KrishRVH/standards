@@ -1,7 +1,8 @@
 # Haskell Standards
 
-Copy the Cabal files into a Haskell project and replace `project-name` plus
-module names with the real package. The template uses Cabal, GHCup, Ormolu,
+Copy the Cabal files and `scripts/format.sh` into a Haskell project, put
+`Mise/conf.d/20-haskell.toml` in `.config/mise/conf.d/`, and replace
+`project-name` plus module names with the real package. The template uses Cabal, GHCup, Ormolu,
 HLint, GHC2024, warnings-as-errors in the project gate, and named tasks for
 Haddock and source distribution checks. `haskell:install` initializes a missing
 Cabal package index and leaves an existing index untouched.

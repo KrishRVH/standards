@@ -62,6 +62,7 @@ definitions. Use the existing workflow and its arguments before adding a task.
 - `mise tasks`: list tasks.
 - `mise lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run secrets`: scan the standards repository for secrets.
+- `mise run hygiene`: tree size by category and repository hygiene rules.
 - `mise run standards`: root Markdown and Shell plus all-fixture standards
   workflow and available autofixes.
 - `mise run md:standards`: format and lint the repository's Markdown and MDX.
@@ -69,14 +70,13 @@ definitions. Use the existing workflow and its arguments before adding a task.
 - `mise run standards:eslint-prettier:check`: validate the TypeScript ESLint
   and Prettier secondary workflow against the canonical Oxc fixture.
 - `mise run standards:drift`: profile-contract and fixture-drift checks.
-- `mise run testers:standards`: run all tester mini projects through their
-  standards workflows and available autofixes.
-- `mise run testers:standards:check`: run all tester mini projects through
-  their standards CI gates.
-- `mise run testers:standards:check:isolated`: run the representative Python
-  fixture gate in Dagger.
-- `mise run standards:check`: root secret scan, ESLint and Prettier secondary
-  validation, drift, Markdown, and Shell checks, plus every fixture gate.
+- `mise run //testers/...:standards:check`: run every tester mini project
+  through its standards CI gate; `//testers/...:standards` applies autofixes.
+- `mise run //testers/python:dagger:standards:check`: run the representative
+  Python fixture gate in Dagger.
+- `mise run standards:check`: root secret scan and hygiene, then ESLint and
+  Prettier secondary validation, drift, Markdown, and Shell checks, plus every
+  fixture gate.
 
 Run ordinary utilities such as `git`, `rg`, and `tokei`, and standalone scripts,
 directly. Use native commands for focused diagnosis; run the relevant mise gate for final project

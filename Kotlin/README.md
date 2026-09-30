@@ -1,15 +1,18 @@
 # Kotlin Standards
 
-Copy these files into a Kotlin/JVM library project that uses Gradle Kotlin DSL.
-Replace `project-name`, package names, and source layout details with the
-project's real names.
+Copy these files into a Kotlin/JVM library project that uses Gradle Kotlin DSL,
+and put `Mise/conf.d/20-kotlin.toml` in `.config/mise/conf.d/`. Replace
+`project-name`, package names, and source layout details with the project's
+real names.
 
 The template starts strict. Relax Detekt rules, warning policy, or dependency
 verification when the copied baseline is broader than the project needs.
 
 This template pins Java 25 LTS, Gradle, and ktlint through mise; Gradle pins
 Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
-`detektTest` alongside main-source compilation.
+`detektTest` alongside main-source compilation. The gate runs the lint and test
+graphs in one `gradle --no-daemon` invocation, so it starts one JVM and leaves
+no daemon behind.
 
 Detekt is pinned to `2.0.0-alpha.5` because that release is the Detekt line
 tested against JDK 25, Kotlin 2.4, and Gradle 9.6.

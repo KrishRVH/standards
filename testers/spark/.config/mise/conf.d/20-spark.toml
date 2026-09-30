@@ -21,125 +21,12 @@ alr -n exec -- gnatformat --version
 
 [tasks."spark:manifest"]
 description = "Check SPARK/Ada manifest and source policy"
-run = """
-set -eu
-
-if [ ! -f alire.toml ]; then
-  echo "alire.toml is required for the SPARK standard." >&2
-  exit 1
-fi
-
-if [ ! -f "${SPARK_PROJECT_FILE:-project_name.gpr}" ]; then
-  echo "SPARK project file is missing: ${SPARK_PROJECT_FILE:-project_name.gpr}" >&2
-  exit 1
-fi
-
-if [ ! -f "${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}" ]; then
-  echo "SPARK test project file is missing: ${SPARK_TEST_PROJECT_FILE:-project_name_tests.gpr}" >&2
-  exit 1
-fi
-
-awk '
-  /^\\[\\[depends-on\\]\\]/ { in_deps = 1; next }
-  /^\\[/ { in_deps = 0 }
-  in_deps && /^[[:space:]]*[[:alnum:]_][[:alnum:]_-]*[[:space:]]*=/ {
-    value = substr($0, index($0, "=") + 1)
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-    if (value !~ /^"=[0-9]+[.][0-9]+[.][0-9]+"$/) {
-      print FILENAME ":" FNR ": dependency must use an exact =x.y.z constraint: " $0
-      bad = 1
-    }
-  }
-  END { exit bad }
-' alire.toml
-
-missing_spark_mode="$(
-  find . -type d \\( -path './.git' -o -path './alire' -o -path './build' -o -path './config' -o -path './obj' \\) -prune \
-    -o -type f \\( -name '*.ads' -o -name '*.adb' \\) \
-    ! -exec awk '
-      {
-        line = $0
-        sub(/[[:space:]]*--.*/, "", line)
-        if (line ~ /SPARK_Mode/) {
-          found = 1
-        }
-      }
-      END { exit found ? 0 : 1 }
-    ' {} \\; -print
-)"
-if [ -n "$missing_spark_mode" ]; then
-  printf '%s\n' "$missing_spark_mode" >&2
-  echo "Ada sources must declare or inherit SPARK_Mode explicitly." >&2
-  exit 1
-fi
-"""
+run = "scripts/check-alire.sh manifest"
 
 [tasks."spark:lock:check"]
 description = "Validate the committed Alire lockfile without updating it"
 depends = ["spark:manifest"]
-run = """
-set -eu
-
-if [ ! -f alire/alire.lock ]; then
-  echo "alire/alire.lock is required. Run mise run spark:lock:update and commit it." >&2
-  exit 1
-fi
-
-if ! grep -q '^solved = true$' alire/alire.lock; then
-  echo "alire/alire.lock does not contain a complete solution. Run mise run spark:lock:update." >&2
-  exit 1
-fi
-
-if ! awk '
-  /^fulfilment = / && $0 !~ /^fulfilment = "solved"$/ {
-    print
-    incomplete = 1
-  }
-  END { exit incomplete }
-' alire/alire.lock; then
-  echo "alire/alire.lock contains an unfulfilled dependency. Run mise run spark:lock:update." >&2
-  exit 1
-fi
-
-manifest_deps="$(mktemp)"
-lock_deps="$(mktemp)"
-trap 'rm -f "$manifest_deps" "$lock_deps"' EXIT
-
-awk '
-  /^\\[\\[depends-on\\]\\]/ { in_deps = 1; next }
-  /^\\[/ { in_deps = 0 }
-  in_deps && /^[[:space:]]*[[:alnum:]_][[:alnum:]_-]*[[:space:]]*=/ {
-    name = $0
-    sub(/[[:space:]]*=.*/, "", name)
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", name)
-    value = substr($0, index($0, "=") + 1)
-    gsub(/[[:space:]\"]/, "", value)
-    print name "=" value
-  }
-' alire.toml | sort > "$manifest_deps"
-
-awk '
-  /^\\[\\[solution.state\\]\\]/ { crate = ""; direct = 0; next }
-  /^crate = "/ {
-    crate = $0
-    sub(/^crate = "/, "", crate)
-    sub(/"$/, "", crate)
-  }
-  /^transitivity = "direct"$/ { direct = 1 }
-  direct && crate != "" && /^versions = "/ {
-    version = $0
-    sub(/^versions = "/, "", version)
-    sub(/"$/, "", version)
-    print crate "=" version
-  }
-' alire/alire.lock | sort > "$lock_deps"
-
-if ! cmp -s "$manifest_deps" "$lock_deps"; then
-  echo "alire/alire.lock is stale. Run mise run spark:lock:update and commit it." >&2
-  diff -u "$manifest_deps" "$lock_deps" >&2 || true
-  exit 1
-fi
-"""
+run = "scripts/check-alire.sh lock"
 
 [tasks."spark:lock:update"]
 description = "Refresh the Alire lockfile from current indexes"
@@ -171,12 +58,12 @@ alr -n exec -- gnatformat --check -P "$test_project" -U --charset=utf-8 --width=
 [tasks."spark:lint"]
 description = "Compile SPARK/Ada with strict GNAT diagnostics"
 depends = ["spark:lock:check"]
-wait_for = ["spark:fmt:check"]
 run = "alr -n build --validation"
 
 [tasks."spark:prove"]
 description = "Prove SPARK contracts and absence of run-time errors"
 depends = ["spark:lock:check"]
+# Build, proof, and test share the project object directories, so they run in turn.
 wait_for = ["spark:lint"]
 run = """
 set -eu

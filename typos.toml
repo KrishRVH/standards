@@ -6,6 +6,10 @@ locale = "en-us"
 [default.extend-identifiers]
 optin = "optin"
 
+[default.extend-words]
+# Alire's lockfile key, spelled as Alire writes it.
+fulfilment = "fulfilment"
+
 [files]
 extend-exclude = [
   ".cache",

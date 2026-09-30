@@ -14,4 +14,5 @@
 Cargo.toml @OWNER
 /clippy.toml @OWNER
 /deny.toml @OWNER
+/rust-toolchain.toml @OWNER
 /rustfmt.toml @OWNER

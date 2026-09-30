@@ -94,7 +94,7 @@ On entry, read the applicable agent guide and inspect `mise tasks` and task
 definitions. Use the existing workflow and its arguments before adding a task.
 
 - `mise tasks`: list available tasks.
-- `mise run install`: install pinned tools.
+- `mise install`: install pinned tools.
 - `mise run fmt`: format.
 - `mise run fmt:check`: verify formatting.
 - `mise run lint`: lint/static analysis.

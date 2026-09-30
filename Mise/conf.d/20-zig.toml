@@ -3,41 +3,11 @@ zig = "0.16.0"
 
 [tasks."zig:fmt"]
 description = "Format Zig source"
-run = """
-set -eu
-tmp="$(mktemp)"
-raw="$(mktemp)"
-trap 'rm -f "$tmp" "$raw"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' > "$raw"
-  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$tmp"
-else
-  find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
-    -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print0 > "$tmp"
-fi
-if [ -s "$tmp" ]; then
-  xargs -0 zig fmt < "$tmp"
-fi
-"""
+run = "scripts/format.sh write"
 
 [tasks."zig:fmt:check"]
 description = "Check Zig formatting"
-run = """
-set -eu
-tmp="$(mktemp)"
-raw="$(mktemp)"
-trap 'rm -f "$tmp" "$raw"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.zig' '*.zon' > "$raw"
-  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$tmp"
-else
-  find . -type d \\( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \\) -prune \
-    -o -type f \\( -name '*.zig' -o -name '*.zon' \\) -print0 > "$tmp"
-fi
-if [ -s "$tmp" ]; then
-  xargs -0 zig fmt --check < "$tmp"
-fi
-"""
+run = "scripts/format.sh check"
 
 [tasks."zig:lint"]
 description = "Compile Zig in strict native modes"

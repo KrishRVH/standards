@@ -3,10 +3,14 @@ min_version = "2026.6.12"
 [settings]
 lockfile = true
 
+# The owner accepts Microsoft's CRT and SDK license for catalog-local cpp:msvc checks.
+[env]
+XWIN_ACCEPT_LICENSE = "true"
+
 [tasks.standards]
 description = "Run the C++ tester standards workflow"
 depends = ["cpp:standards"]
 
 [tasks."standards:check"]
 description = "Run the C++ tester standards CI gate"
-depends = ["cpp:standards:check"]
+depends = ["cpp:standards:check", "cpp:msvc"]

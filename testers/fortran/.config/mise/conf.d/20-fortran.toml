@@ -7,7 +7,7 @@ FPM_FC = "gfortran"
 "conda:findent" = "4.3.7"
 "conda:fortls" = "3.2.2"
 "conda:ford" = "7.0.13"
-python = "3.14.6"
+python = "3.14.7"
 
 [tasks."fortran:manifest"]
 description = "Check Fortran manifest and source policy"
@@ -39,70 +39,21 @@ fi
 
 [tasks."fortran:fmt"]
 description = "Format free-form Fortran source"
-run = """
-set -eu
-list="$(mktemp)"
-raw="$(mktemp)"
-trap 'rm -f "$list" "$raw"' EXIT
-
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.f90' '*.F90' > "$raw"
-  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$list"
-else
-  find . -type d \\( -name .git -o -name build -o -name .fpm -o -name vendor \\) -prune \
-    -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
-fi
-
-if [ -s "$list" ]; then
-  xargs -0 -I{} sh -c '
-    set -eu
-    tmp="$(mktemp)"
-    trap "rm -f \"$tmp\"" EXIT
-    findent -ifree -ofree -i3 -Rr < "$1" > "$tmp"
-    cat "$tmp" > "$1"
-  ' sh {} < "$list"
-fi
-"""
+run = "scripts/format.sh write"
 
 [tasks."fortran:fmt:check"]
 description = "Check free-form Fortran formatting"
-run = """
-set -eu
-tmp="$(mktemp)"
-list="$(mktemp)"
-raw="$(mktemp)"
-trap 'rm -f "$tmp" "$list" "$raw"' EXIT
-
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.f90' '*.F90' > "$raw"
-  xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\\0" "$file"; done' sh < "$raw" > "$list"
-else
-  find . -type d \\( -name .git -o -name build -o -name .fpm -o -name vendor \\) -prune \
-    -o -type f \\( -name '*.f90' -o -name '*.F90' \\) -print0 > "$list"
-fi
-
-if [ -s "$list" ]; then
-  xargs -0 -I{} sh -c '
-    set -eu
-    findent -ifree -ofree -i3 -Rr < "$1" > "$2"
-    if ! cmp -s "$1" "$2"; then
-      echo "Fortran source is not formatted: $1" >&2
-      exit 1
-    fi
-  ' sh {} "$tmp" < "$list"
-fi
-"""
+run = "scripts/format.sh check"
 
 [tasks."fortran:lint"]
 description = "Run strict Fortran static checks"
 depends = ["fortran:manifest"]
-wait_for = ["fortran:fmt:check"]
 run = """
 set -eu
 
 strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic -fcheck=all -fbacktrace"
-fpm build --compiler gfortran --profile debug --flag "$strict_flags"
-fpm build --compiler gfortran --profile release --flag "-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic"
+fpm build --profile debug --flag "$strict_flags"
+fpm build --profile release --flag "-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic"
 
 list="$(mktemp)"
 trap 'rm -f "$list"' EXIT
@@ -123,24 +74,20 @@ fi
 [tasks."fortran:test"]
 description = "Run Fortran tests"
 depends = ["fortran:manifest"]
+# fpm keeps shared dependency and cache state under build/, so builds run one at a time.
 wait_for = ["fortran:lint"]
 run = """
 set -eu
 # fpm builds the test-drive dev-dependency with these flags, and its source
 # trips unused-function and maybe-uninitialized, so only those stay warnings.
 strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -Wno-error=unused-function -Wno-error=maybe-uninitialized -pedantic -fcheck=all -fbacktrace"
-fpm test --compiler gfortran --profile debug --flag "$strict_flags"
+fpm test --profile debug --flag "$strict_flags"
 """
 
 [tasks."fortran:doc"]
 description = "Generate Fortran API documentation"
 depends = ["fortran:manifest"]
-wait_for = ["fortran:test"]
 run = "ford ford.md"
-
-[tasks."fortran:clean"]
-description = "Remove Fortran build output"
-run = "fpm clean --all"
 
 [tasks."fortran:standards"]
 description = "Run the Fortran standards workflow with autofixes"

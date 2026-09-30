@@ -19,9 +19,11 @@ mise run php:test
 mise run php:standards:check
 ```
 
-`php:install` requires Composer, then runs `composer install`. `php:lock`
-refreshes `composer.lock`; commit it for applications, CLIs, and fixtures that
-want locked CI behavior.
+mise pins Composer from its GitHub release and verifies the release checksum
+and attestation. The fragment lists it before PHP so a Composer bundled with a
+PHP build cannot shadow it. `php:install` runs
+`composer install`. `php:lock` refreshes `composer.lock`; commit it for
+applications, CLIs, and fixtures that want locked CI behavior.
 
 `composer standards` runs Composer normalization, Rector, PHPCBF, and a PHPCS
 post-check for unfixed style violations. `composer standards:check` runs

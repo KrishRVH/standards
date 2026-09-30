@@ -3,11 +3,6 @@ bats = "1.14.0"
 shellcheck = "0.11.0"
 shfmt = "3.14.0"
 
-[tasks."shell:run"]
-description = "Run a shell standards subcommand: fmt, fmt-check, lint, syntax, policy, or test"
-usage = "arg \"command\""
-run = "scripts/shell-standards.sh \"$usage_command\""
-
 [tasks."shell:fmt"]
 description = "Format shell scripts"
 run = "scripts/shell-standards.sh fmt"
@@ -18,12 +13,10 @@ run = "scripts/shell-standards.sh fmt-check"
 
 [tasks."shell:lint"]
 description = "Run shell static analysis, syntax checks, and shebang policy"
-wait_for = ["shell:fmt:check"]
 run = "scripts/shell-standards.sh lint"
 
 [tasks."shell:test"]
 description = "Run Bats shell tests"
-wait_for = ["shell:fmt:check"]
 run = "scripts/shell-standards.sh test"
 
 [tasks."shell:standards"]

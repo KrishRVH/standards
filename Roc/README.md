@@ -45,8 +45,8 @@ experiment is why Roc belongs in this catalog before 0.1.
 
 ## Baseline
 
-Copy `main.roc`, `Project.roc`, and `Mise/conf.d/20-roc.toml` into a Roc
-project. Replace `Project` in the module name, filename, and package exposure
+Copy `main.roc`, `Project.roc`, `scripts/format.sh`, and
+`Mise/conf.d/20-roc.toml` into a Roc project. Replace `Project` in the module name, filename, and package exposure
 with the real package name. Keep `main.roc` as the package root, or update the
 explicit task paths when the project chooses another root.
 

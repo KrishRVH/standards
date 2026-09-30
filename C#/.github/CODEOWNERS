@@ -9,7 +9,6 @@
 # /.config/mise/, add its path here.
 * @OWNER
 .editorconfig @OWNER
-/.config/dotnet-tools.json @OWNER
 /.config/mise/ @OWNER
 /.github/ @OWNER
 /AGENTS.md @OWNER

@@ -60,20 +60,13 @@ description = "Run Go tests"
 depends = ["go:install"]
 run = "go test -trimpath -count=1 ./..."
 
-[tasks."go:test:race"]
-description = "Run Go tests with the race detector"
-depends = ["go:install"]
-wait_for = ["go:test"]
-run = "go test -trimpath -race -count=1 ./..."
-
 [tasks."go:cover"]
-description = "Run Go tests with coverage"
+description = "Run Go tests with the race detector and coverage"
 depends = ["go:install"]
-wait_for = ["go:test:race"]
 run = """
 set -eu
 mkdir -p coverage
-go test -trimpath -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
+go test -trimpath -race -count=1 -coverpkg=./... -covermode=atomic -coverprofile=coverage/go.out ./...
 go tool cover -func=coverage/go.out
 min="${GO_COVER_MIN:-}"
 if [ -n "$min" ]; then
@@ -103,4 +96,4 @@ run = [
 
 [tasks."go:standards:check"]
 description = "Run the Go standards CI gate"
-depends = ["go:fmt:check", "go:lint", "go:test", "go:test:race", "go:cover"]
+depends = ["go:fmt:check", "go:lint", "go:cover"]

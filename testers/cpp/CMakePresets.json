@@ -55,13 +55,22 @@
         "PROJECT_ENABLE_SANITIZERS": "OFF",
         "PROJECT_MINGW_STATIC": "ON"
       }
+    },
+    {
+      "name": "msvc",
+      "inherits": "base",
+      "displayName": "clang-cl with the MSVC CRT and Windows SDK (cross build)",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/msvc-xwin.cmake"
+      }
     }
   ],
   "buildPresets": [
     { "name": "clang", "configurePreset": "clang" },
     { "name": "release", "configurePreset": "release" },
     { "name": "gcc", "configurePreset": "gcc" },
-    { "name": "mingw", "configurePreset": "mingw" }
+    { "name": "mingw", "configurePreset": "mingw" },
+    { "name": "msvc", "configurePreset": "msvc" }
   ],
   "testPresets": [
     {

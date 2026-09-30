@@ -182,8 +182,6 @@ mise.*.local.lock
 /testers/**/compile_commands.json
 
 # Rust
-/.cargo-tools/
-**/.cargo-tools/
 /target/
 **/target/
 **/mutants.out/

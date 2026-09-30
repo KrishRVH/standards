@@ -12,93 +12,11 @@ windows-x64 = { url = "https://github.com/roc-lang/nightlies/releases/download/n
 
 [tasks."roc:fmt"]
 description = "Format project-owned Roc source"
-run = """
-set -eu
-list="$(mktemp)"
-trap 'rm -f "$list"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.roc' > "$list"
-else
-  find . -type d -name .git -prune -o \\( -type f -o -type l \\) -name '*.roc' -print0 > "$list"
-fi
-if [ -s "$list" ]; then
-  xargs -0 -n 1 sh -c '
-    set -eu
-    path=$1
-    case "$path" in
-      /* | ./*) ;;
-      *) path="./$path" ;;
-    esac
-    if [ -L "$path" ]; then
-      printf "roc:fmt refuses non-regular source: %s\n" "$1" >&2
-      exit 1
-    fi
-    if [ ! -e "$path" ]; then
-      exit 0
-    fi
-    if [ ! -f "$path" ]; then
-      printf "roc:fmt refuses non-regular source: %s\n" "$1" >&2
-      exit 1
-    fi
-    tmp="$(mktemp "${path}.roc-fmt.XXXXXX")"
-    cleanup() { rm -f "$tmp"; }
-    abort() { exit 1; }
-    trap cleanup 0
-    trap abort 1 2 15
-    cp -p "$path" "$tmp"
-    roc fmt --stdin < "$path" > "$tmp"
-    if cmp -s "$path" "$tmp"; then
-      rm -f "$tmp"
-    else
-      compare_status=$?
-      if [ "$compare_status" -ne 1 ]; then
-        printf "roc:fmt could not compare staged source: %s\n" "$1" >&2
-        exit 1
-      fi
-      if ! mv -f "$tmp" "$path"; then
-        printf "roc:fmt could not replace source: %s\n" "$1" >&2
-        exit 1
-      fi
-    fi
-    trap - 0 1 2 15
-  ' sh < "$list"
-fi
-"""
+run = "scripts/format.sh write"
 
 [tasks."roc:fmt:check"]
 description = "Check Roc formatting"
-run = """
-set -eu
-list="$(mktemp)"
-trap 'rm -f "$list"' EXIT
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- '*.roc' > "$list"
-else
-  find . -type d -name .git -prune -o \\( -type f -o -type l \\) -name '*.roc' -print0 > "$list"
-fi
-if [ -s "$list" ]; then
-  xargs -0 -n 1 sh -c '
-    set -eu
-    path=$1
-    case "$path" in
-      /* | ./*) ;;
-      *) path="./$path" ;;
-    esac
-    if [ -L "$path" ]; then
-      printf "roc:fmt:check refuses non-regular source: %s\n" "$1" >&2
-      exit 1
-    fi
-    if [ ! -e "$path" ]; then
-      exit 0
-    fi
-    if [ ! -f "$path" ]; then
-      printf "roc:fmt:check refuses non-regular source: %s\n" "$1" >&2
-      exit 1
-    fi
-    roc fmt --check "$path"
-  ' sh < "$list"
-fi
-"""
+run = "scripts/format.sh check"
 
 [tasks."roc:lint"]
 description = "Check Roc source and fail on diagnostics"

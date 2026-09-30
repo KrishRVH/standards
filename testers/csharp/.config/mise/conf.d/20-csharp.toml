@@ -1,5 +1,6 @@
 [tools]
 dotnet = "10.0.400"
+"dotnet:dotnet-stryker" = { version = "4.16.0", depends = "dotnet" }
 
 [tasks."csharp:restore"]
 description = "Restore .NET dependencies"
@@ -31,13 +32,9 @@ depends = ["csharp:restore"]
 wait_for = ["csharp:lint"]
 run = "dotnet test --no-restore --configuration Release --results-directory TestResults -- --report-trx"
 
-[tasks."csharp:mutants:install"]
-description = "Restore the pinned dotnet-stryker local tool"
-run = "dotnet tool restore"
-
 [tasks."csharp:mutants"]
 description = "Run the full mutation sweep; a surviving mutant is a review finding"
-depends = ["csharp:mutants:install", "csharp:restore"]
+depends = ["csharp:restore"]
 wait_for = ["csharp:test"]
 run = """
 set -eu
@@ -48,7 +45,7 @@ output_dir="$(mktemp -d "$output_root/standards-full.XXXXXX")"
 run_log="$output_dir/stryker.log"
 
 set +e
-dotnet stryker --config-file stryker-config.json --output "$output_dir" >"$run_log" 2>&1
+dotnet-stryker --config-file stryker-config.json --output "$output_dir" >"$run_log" 2>&1
 status=$?
 set -e
 cat "$run_log"
@@ -64,7 +61,7 @@ echo "Preserved verified mutation evidence in $output_dir"
 
 [tasks."csharp:mutants:diff"]
 description = "Mutation-test changed code; default base prefers origin/main"
-depends = ["csharp:mutants:install", "csharp:restore"]
+depends = ["csharp:restore"]
 run = """
 set -eu
 
@@ -115,7 +112,7 @@ output_dir="$(mktemp -d "$output_root/standards-diff.XXXXXX")"
 run_log="$output_dir/stryker.log"
 
 set +e
-dotnet stryker --config-file stryker-config.json --since:"$merge_base" --output "$output_dir" >"$run_log" 2>&1
+dotnet-stryker --config-file stryker-config.json --since:"$merge_base" --output "$output_dir" >"$run_log" 2>&1
 status=$?
 set -e
 cat "$run_log"

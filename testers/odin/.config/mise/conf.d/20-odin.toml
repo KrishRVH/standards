@@ -11,75 +11,7 @@ rename_exe = "odinfmt"
 
 [tasks."odin:fmt"]
 description = "Format project-owned Odin source with odinfmt"
-run = """
-set -eu
-list="$(mktemp)"
-trap 'rm -f "$list"' EXIT
-trap 'exit 1' HUP INT TERM
-
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git ls-files --cached --others --exclude-standard -z -- src/project_name tests > "$list"
-else
-  find src/project_name tests \\( -type f -o -type l \\) -name '*.odin' -print0 > "$list"
-fi
-
-if [ -s "$list" ]; then
-  xargs -0 -n 1 sh -c '
-    file="$1"
-    case "$file" in
-      *.odin) ;;
-      *) exit 0 ;;
-    esac
-
-    if [ -L "$file" ]; then
-      echo "Refusing to replace Odin symlink: $file" >&2
-      exit 1
-    fi
-    if [ ! -e "$file" ]; then
-      exit 0
-    fi
-    if [ ! -f "$file" ]; then
-      echo "Odin source is not a regular file: $file" >&2
-      exit 1
-    fi
-
-    candidate="$(mktemp "${file}.odinfmt.XXXXXX")"
-    cleanup() {
-      if [ -n "$candidate" ]; then
-        rm -f "$candidate"
-      fi
-    }
-    trap cleanup EXIT
-    trap "exit 1" HUP INT TERM
-
-    cp -p "$file" "$candidate"
-    if ! formatted="$(odinfmt -stdin -config:odinfmt.json < "$file")"; then
-      echo "odinfmt failed: $file" >&2
-      exit 1
-    fi
-    if ! printf "%s\n" "$formatted" > "$candidate"; then
-      echo "Could not write formatted candidate: $file" >&2
-      exit 1
-    fi
-
-    if cmp -s "$file" "$candidate"; then
-      rm -f "$candidate"
-    else
-      compare_status="$?"
-      if [ "$compare_status" -ne 1 ]; then
-        echo "Could not compare formatted candidate: $file" >&2
-        exit 1
-      fi
-      if ! mv -f "$candidate" "$file"; then
-        echo "Could not replace formatted source: $file" >&2
-        exit 1
-      fi
-    fi
-    candidate=""
-    trap - EXIT HUP INT TERM
-  ' sh < "$list"
-fi
-"""
+run = "scripts/format.sh write"
 
 [tasks."odin:fmt:check"]
 description = "Validate Odin style with strict compiler checks; odinfmt has no check mode"
@@ -127,6 +59,7 @@ description = "Run Odin tests with debug checks and AddressSanitizer"
 run = """
 odin test tests \
   -collection:project=src \
+  -out:tests-debug \
   -debug \
   -sanitize:address \
   -vet \
@@ -146,6 +79,7 @@ description = "Run Odin tests with optimized code generation"
 run = """
 odin test tests \
   -collection:project=src \
+  -out:tests-optimized \
   -o:speed \
   -vet \
   -vet-style \
@@ -165,8 +99,5 @@ run = [{ task = "odin:fmt" }, { task = "odin:lint" }]
 
 [tasks."odin:standards:check"]
 description = "Run the Odin standards CI gate"
-run = [
-  { task = "odin:lint" },
-  { task = "odin:test" },
-  { task = "odin:test:optimized" },
-]
+# The test lanes name their executables apart so they can build side by side.
+depends = ["odin:lint", "odin:test", "odin:test:optimized"]

@@ -24,9 +24,10 @@
  * - Stryker core gets 30 seconds of absolute timeout deviation in addition to
  *   its measured-run factor, under the Bun runner's 60-second hard ceiling.
  *   Ordinary host load must not turn survivors into score-inflating timeouts.
- * - Two mutation workers leave capacity for Bun's child processes and for a
- *   second fixture gate in the repository aggregate; CPU-count concurrency
- *   oversubscribes the host and makes timeout outcomes load-dependent.
+ * - Four mutation workers keep the sweep short while leaving capacity for
+ *   Bun's child processes and for a second fixture gate in the repository
+ *   aggregate; CPU-count concurrency oversubscribes the host and makes timeout
+ *   outcomes load-dependent.
  * - Stryker runs the whole `bun.testFiles` list for every static mutant, so
  *   the list holds only test files that import application source directly.
  *   Tooling and contract tests that exercise configuration, scripts, or
@@ -51,7 +52,7 @@ export default {
   mutate: ['src/**/*.{cts,mts,ts,tsx}', '!src/main.{cts,mts,ts,tsx}'],
   incremental: true,
   incrementalFile: 'reports/stryker-incremental.json',
-  concurrency: 2,
+  concurrency: 4,
   reporters: ['clear-text', 'progress', 'json'],
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
   thresholds: { high: 80, low: 60, break: 66 },

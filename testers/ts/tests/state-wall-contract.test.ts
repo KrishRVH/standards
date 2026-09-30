@@ -1,12 +1,14 @@
 import { expect, test } from 'bun:test';
 
-import { lintProbe } from './support/oxlint-probe.js';
+import { lintBatch } from './support/oxlint-probe.js';
 
 /**
  * Contract tests: the shared state and source-policy rules in .oxlintrc.json
  * must actually fire. A dropped native or local plugin rule would otherwise
- * leave the gate green while the wall silently stops existing.
+ * leave the gate green while the wall silently stops existing. Every probe
+ * lints in one batched Oxlint run.
  */
+const probe = lintBatch();
 const applicationSourceExtensions = ['cts', 'mts', 'ts', 'tsx'] as const;
 const unsupportedApplicationSourceExtensions = ['cjs', 'js', 'jsx', 'mjs'] as const;
 const immediateTimerCases: readonly {
@@ -37,11 +39,17 @@ const immediateTimerCases: readonly {
 ];
 
 for (const extension of applicationSourceExtensions) {
+  const wallResult = probe(
+    'let moduleCounter = 0;\nglobalThis.counter++;\nvoid moduleCounter;\n',
+    `src/state-wall-probe.${extension}`,
+  );
+  const timerResults = immediateTimerCases.map((timerCase) => ({
+    result: probe(timerCase.source, `src/state-wall-probe.${extension}`),
+    timerCase,
+  }));
+
   test(`the application state walls cover .${extension} source`, async () => {
-    const messages = await lintProbe(
-      'let moduleCounter = 0;\nglobalThis.counter++;\nvoid moduleCounter;\n',
-      `src/state-wall-probe.${extension}`,
-    );
+    const messages = await wallResult();
 
     expect(
       messages.some(
@@ -57,8 +65,8 @@ for (const extension of applicationSourceExtensions) {
       `.${extension} global wall: ${JSON.stringify(messages)}`,
     ).toBe(true);
 
-    for (const timerCase of immediateTimerCases) {
-      const timerMessages = await lintProbe(timerCase.source, `src/state-wall-probe.${extension}`);
+    for (const { result, timerCase } of timerResults) {
+      const timerMessages = await result();
       expect(
         timerMessages.some(({ ruleId, severity }) => ruleId === timerCase.ruleId && severity === 2),
         `.${extension} ${timerCase.name} setImmediate wall: ${JSON.stringify(timerMessages)}`,
@@ -68,8 +76,9 @@ for (const extension of applicationSourceExtensions) {
 }
 
 for (const extension of unsupportedApplicationSourceExtensions) {
+  const result = probe('const value = 1;\nvoid value;\n', `src/state-wall-probe.${extension}`);
   test(`the application source policy rejects .${extension} source before it can bypass typechecking`, async () => {
-    const messages = await lintProbe('const value = 1;\nvoid value;\n', `src/state-wall-probe.${extension}`);
+    const messages = await result();
 
     expect(
       messages.some(
@@ -83,8 +92,9 @@ for (const extension of unsupportedApplicationSourceExtensions) {
   });
 }
 
+const moduleBindingResult = probe('let counter = 0;\nexport { counter };\n');
 test('the state wall mechanically rejects module-scope mutable bindings', async () => {
-  const messages = await lintProbe('let counter = 0;\nexport { counter };\n');
+  const messages = await moduleBindingResult();
 
   expect(
     messages.some(
@@ -96,8 +106,9 @@ test('the state wall mechanically rejects module-scope mutable bindings', async 
   ).toBe(true);
 });
 
+const exportedBindingResult = probe('export let counter = 0;\n');
 test('the state wall mechanically rejects exported mutable bindings', async () => {
-  const messages = await lintProbe('export let counter = 0;\n');
+  const messages = await exportedBindingResult();
 
   expect(
     messages.some(
@@ -109,8 +120,9 @@ test('the state wall mechanically rejects exported mutable bindings', async () =
   ).toBe(true);
 });
 
+const globalMutationResult = probe('globalThis.flag = true;\n');
 test('the state wall mechanically rejects globalThis mutation', async () => {
-  const messages = await lintProbe('globalThis.flag = true;\n');
+  const messages = await globalMutationResult();
 
   expect(
     messages.some(
@@ -366,8 +378,9 @@ const ambientStateBypasses: readonly {
 ];
 
 for (const bypass of ambientStateBypasses) {
+  const result = probe(bypass.source);
   test(`the state wall rejects ${bypass.name}`, async () => {
-    const messages = await lintProbe(bypass.source);
+    const messages = await result();
 
     expect(
       messages.some(({ ruleId, severity }) => ruleId === bypass.ruleId && severity === 2),
@@ -376,75 +389,83 @@ for (const bypass of ambientStateBypasses) {
   });
 }
 
+const mutatorTargetResult = probe(
+  [
+    'const copy: Record<string, unknown> = {};',
+    'Object.assign(copy, globalThis);',
+    "Object.defineProperty(copy, 'original', { value: globalThis });",
+    "globalThis.Object.defineProperty(copy, 'original', { value: globalThis });",
+    "Object.defineProperty.call(Object, copy, 'original', { value: globalThis });",
+    "Reflect.set(copy, 'original', globalThis);",
+    "globalThis.Reflect.set(copy, 'original', globalThis);",
+    "Reflect.set.call(Reflect, copy, 'original', globalThis);",
+    'Reflect.preventExtensions(copy);',
+  ].join('\n'),
+);
 test('the mutation rule considers only the mutator target argument', async () => {
-  const messages = await lintProbe(
-    [
-      'const copy: Record<string, unknown> = {};',
-      'Object.assign(copy, globalThis);',
-      "Object.defineProperty(copy, 'original', { value: globalThis });",
-      "globalThis.Object.defineProperty(copy, 'original', { value: globalThis });",
-      "Object.defineProperty.call(Object, copy, 'original', { value: globalThis });",
-      "Reflect.set(copy, 'original', globalThis);",
-      "globalThis.Reflect.set(copy, 'original', globalThis);",
-      "Reflect.set.call(Reflect, copy, 'original', globalThis);",
-      'Reflect.preventExtensions(copy);',
-    ].join('\n'),
-  );
+  const messages = await mutatorTargetResult();
 
   expect(messages.some(({ ruleId }) => ruleId === 'standards/no-global-mutation')).toBe(false);
 });
 
+const shadowedGlobalThisResult = probe(
+  'export function update(globalThis: { flag: boolean }): void {\n  globalThis.flag = true;\n}\n',
+);
 test('the mutation rule respects a lexically shadowed globalThis parameter', async () => {
-  const messages = await lintProbe(
-    'export function update(globalThis: { flag: boolean }): void {\n  globalThis.flag = true;\n}\n',
-  );
+  const messages = await shadowedGlobalThisResult();
 
   expect(messages.some(({ ruleId }) => ruleId === 'standards/no-global-mutation')).toBe(false);
 });
 
+const shadowedGlobalResult = probe(
+  'export function replace(global: unknown): void {\n  global = {};\n  void global;\n}\n',
+);
 test('the mutation rule respects a lexically shadowed Node global parameter', async () => {
-  const messages = await lintProbe(
-    'export function replace(global: unknown): void {\n  global = {};\n  void global;\n}\n',
-  );
+  const messages = await shadowedGlobalResult();
 
   expect(messages.some(({ ruleId }) => ruleId === 'standards/no-global-mutation')).toBe(false);
 });
 
+const shadowedCommonJsResult = probe(
+  'function use(require, module, exports) {\n  require();\n  module.exports = {};\n  exports.value = 1;\n}\nvoid use;\n',
+  'scripts/shadowed-commonjs.mjs',
+);
 test('the ESM rule respects lexically shadowed CommonJS names', async () => {
-  const messages = await lintProbe(
-    'function use(require, module, exports) {\n  require();\n  module.exports = {};\n  exports.value = 1;\n}\nvoid use;\n',
-    'scripts/shadowed-commonjs.mjs',
-  );
+  const messages = await shadowedCommonJsResult();
 
   expect(messages.some(({ ruleId }) => ruleId === 'standards/esm-only')).toBe(false);
 });
 
+const floatingPromiseResult = probe('void Promise.resolve(1);\n');
 test('typed Oxlint rejects floating promises even when they are explicitly voided', async () => {
-  const messages = await lintProbe('void Promise.resolve(1);\n');
+  const messages = await floatingPromiseResult();
 
   expect(messages.some(({ ruleId, severity }) => ruleId === 'typescript/no-floating-promises' && severity === 2)).toBe(
     true,
   );
 });
 
+const unscopedGlobalsResult = probe('void document;\nvoid process;\n', 'scripts/unscoped-globals.mjs');
 test('the primary linter does not grant browser or Node globals to unscoped JavaScript', async () => {
-  const messages = await lintProbe('void document;\nvoid process;\n', 'scripts/unscoped-globals.mjs');
+  const messages = await unscopedGlobalsResult();
 
   expect(messages.filter(({ ruleId, severity }) => ruleId === 'no-undef' && severity === 2)).toHaveLength(2);
 });
 
+const uselessAssignmentResult = probe(
+  'function value(): number {\n  let result = 1;\n  result = 2;\n  return result;\n}\nvoid value;\n',
+);
 test('the primary linter rejects overwritten assignments that are never observed', async () => {
-  const messages = await lintProbe(
-    'function value(): number {\n  let result = 1;\n  result = 2;\n  return result;\n}\nvoid value;\n',
-  );
+  const messages = await uselessAssignmentResult();
 
   expect(messages.some(({ ruleId, severity }) => ruleId === 'no-useless-assignment' && severity === 2)).toBe(true);
 });
 
+const unnecessaryConditionResult = probe(
+  "function value(input: string): string {\n  if (input === undefined) {\n    return '';\n  }\n  return input;\n}\nvoid value;\n",
+);
 test('typed Oxlint rejects conditions proven unnecessary', async () => {
-  const messages = await lintProbe(
-    "function value(input: string): string {\n  if (input === undefined) {\n    return '';\n  }\n  return input;\n}\nvoid value;\n",
-  );
+  const messages = await unnecessaryConditionResult();
 
   expect(
     messages.some(({ ruleId, severity }) => ruleId === 'typescript/no-unnecessary-condition' && severity === 2),
@@ -466,8 +487,9 @@ const typeScriptEmitCases: readonly { readonly name: string; readonly source: st
 ];
 
 for (const emitCase of typeScriptEmitCases) {
+  const result = probe(emitCase.source);
   test(`the primary linter rejects ${emitCase.name}`, async () => {
-    const messages = await lintProbe(emitCase.source);
+    const messages = await result();
 
     expect(
       messages.some(({ ruleId, severity }) => ruleId === 'standards/no-typescript-emit-syntax' && severity === 2),

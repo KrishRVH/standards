@@ -12,8 +12,8 @@ The tested dependency set is exact:
 | `effect`                   | 3.22.1  |
 | `@effect/language-service` | 0.87.2  |
 | TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.1   |
-| `@types/bun`               | 1.4.1   |
+| Bun                        | 1.4.2   |
+| `@types/bun`               | 1.4.2   |
 | `@effect/platform`         | 0.97.1  |
 | `@effect/platform-bun`     | 0.91.2  |
 
@@ -216,9 +216,9 @@ evidence. Because Stryker scores timeouts as detected, the report gate permits
 at most one percent (with a one-mutant minimum allowance); every remaining
 timeout needs investigation and a handoff explanation. Stryker core receives
 30 seconds of absolute timeout deviation under the Bun runner's 60-second hard
-child timeout. Mutation concurrency is fixed at two so Bun children and a
-parallel aggregate fixture retain CPU capacity; ordinary host load must not
-cheaply improve the score.
+child timeout. Mutation concurrency is fixed at four: enough workers to keep the
+sweep short while Bun children and a parallel aggregate fixture retain CPU
+capacity, so ordinary host load cannot cheaply improve the score.
 `ts:mutants:diff` requires `force=false` and `incremental=true`; its evidence
 may be newly tested or compatibly reused from Stryker's incremental state. A
 stale lock fails closed: first verify that no mutation process is running,

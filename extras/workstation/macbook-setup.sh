@@ -18,8 +18,6 @@ IFS=$'\n\t'
 #   BOOTSTRAP_INSTALL_RUSTUP=0         skip rustup/stable Rust toolchain
 #   BOOTSTRAP_RUSTUP_UPDATE=0          skip stable Rust update when rustup already exists
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
-#   BOOTSTRAP_INSTALL_FRAWK=1          opt in to cargo-install frawk
-#   BOOTSTRAP_CARGO_UPGRADE=0          skip cargo package update checks
 #   BOOTSTRAP_BREW_UPGRADE=0           skip upgrading already-installed managed formulae
 #   BOOTSTRAP_BREW_CLEANUP=0           skip brew cleanup
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos on reruns
@@ -33,8 +31,6 @@ IFS=$'\n\t'
 : "${BOOTSTRAP_INSTALL_RUSTUP:=1}"
 : "${BOOTSTRAP_RUSTUP_UPDATE:=1}"
 : "${BOOTSTRAP_INSTALL_LAZYVIM:=1}"
-: "${BOOTSTRAP_INSTALL_FRAWK:=0}"
-: "${BOOTSTRAP_CARGO_UPGRADE:=1}"
 : "${BOOTSTRAP_BREW_UPGRADE:=1}"
 : "${BOOTSTRAP_BREW_CLEANUP:=1}"
 : "${BOOTSTRAP_GIT_UPDATE:=1}"
@@ -658,20 +654,6 @@ install_or_update_rustup() {
 
   has cargo || return 1
   return 0
-}
-
-install_optional_frawk() {
-  [ "$BOOTSTRAP_INSTALL_FRAWK" = "1" ] || return 0
-  has cargo || {
-    warn "cargo is required for frawk"
-    return 1
-  }
-
-  if has frawk && [ "$BOOTSTRAP_CARGO_UPGRADE" != "1" ]; then
-    return 0
-  fi
-
-  retry_quiet cargo install frawk --no-default-features
 }
 
 update_tldr_cache() {
@@ -1326,37 +1308,48 @@ main() {
     ripgrep
     tokei
     gh
+    lazygit
     git-delta
     difftastic
     hyperfine
+    just
+    watchexec
     ast-grep
+    tree-sitter-cli
     shellcheck
     shfmt
     jq
+    yq
+    miller
     tree
     fd
     bat
     btop
+    lnav
+    duf
     neovim
+    herdr
     zsh-autosuggestions
     zsh-syntax-highlighting
     zoxide
     atuin
     eza
     xh
-    procs
-    bottom
     dust
     tealdeer
     starship
     jj
-    broot
     sd
+    ouch
+    zstd
+    trash
+    age
+    uv
+    pipx
   )
 
   step_required "Homebrew formulae" brew_install_formulae "${BREW_FORMULAE[@]}"
   step_required "Rust stable toolchain" install_or_update_rustup
-  step_optional "frawk" install_optional_frawk
   step_optional "tldr cache" update_tldr_cache
   step_optional "Dagger container runtime" check_dagger_container_runtime
   step_required "zsh configuration" write_zsh_config

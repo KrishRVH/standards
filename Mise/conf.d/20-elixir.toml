@@ -6,7 +6,8 @@ rebar = "3.27.0"
 [tasks."elixir:install"]
 description = "Install Elixir project dependencies"
 run = [
-  "mix local.hex 2.4.2 --force",
+  # mise's Elixir keeps Hex in its own MIX_HOME; reinstall only when the pin changes.
+  '[ -d "$MIX_HOME/archives/hex-2.4.2" ] || mix local.hex 2.4.2 --force',
   '''mix local.rebar rebar3 "$(command -v rebar3)" --force''',
   """
   if [ -f mix.lock ]; then
@@ -30,13 +31,15 @@ run = "mix format --check-formatted"
 [tasks."elixir:lint"]
 description = "Run Elixir static analysis"
 depends = ["elixir:install"]
-wait_for = ["elixir:fmt:check"]
 run = [
   "MIX_ENV=test mix compile --warnings-as-errors",
   "mix credo --strict",
   "mix xref graph --format cycles --label compile-connected --fail-above 0",
 ]
 
+# Mix locks each build directory, so independent checks run side by side. Tasks in
+# the test environment wait for lint's warnings-as-errors compile, and coverage
+# waits for the plain test run instead of racing it.
 [tasks."elixir:test"]
 description = "Run Elixir tests"
 depends = ["elixir:install"]
@@ -46,25 +49,23 @@ run = "MIX_ENV=test mix test --warnings-as-errors"
 [tasks."elixir:types"]
 description = "Run Elixir Dialyzer type analysis"
 depends = ["elixir:install"]
-wait_for = ["elixir:test"]
+wait_for = ["elixir:lint"]
 run = "mix dialyzer"
 
 [tasks."elixir:deps"]
 description = "Audit Elixir dependency hygiene"
 depends = ["elixir:install"]
-wait_for = ["elixir:types"]
 run = ["mix deps.unlock --check-unused", "mix hex.audit", "mix deps.audit"]
 
 [tasks."elixir:docs"]
 description = "Build Elixir docs with warnings denied"
 depends = ["elixir:install"]
-wait_for = ["elixir:deps"]
 run = "MIX_ENV=dev mix docs --warnings-as-errors"
 
 [tasks."elixir:coverage"]
 description = "Run Elixir coverage report"
 depends = ["elixir:install"]
-wait_for = ["elixir:docs"]
+wait_for = ["elixir:test"]
 run = "MIX_ENV=test mix coveralls"
 
 [tasks."elixir:standards"]

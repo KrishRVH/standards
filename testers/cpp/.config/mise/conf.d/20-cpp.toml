@@ -1,6 +1,3 @@
-[settings]
-experimental = true
-
 [tools]
 "pkgx:llvm.org" = "22.1.8"
 clang-format = "22.1.8"
@@ -16,16 +13,23 @@ description = "Check C++ source formatting"
 run = "./cpp-format.sh check"
 
 [tasks."cpp:lint"]
-description = "Run C++ static checks"
-run = ["cmake --preset clang", "cmake --build --preset clang", "./cpp-quality.sh . build/clang"]
+description = "Run clangd semantic and clang-tidy checks"
+run = ["cmake --preset clang", "./cpp-quality.sh . build/clang"]
 
 [tasks."cpp:test"]
-description = "Run pinned C++ Debug and Release tests"
+description = "Build with warnings as errors and run pinned Debug and Release tests"
+# cpp:lint configures the same build/clang directory, so the two never overlap.
+wait_for = ["cpp:lint"]
 run = "./cpp-build.sh"
 
 [tasks."cpp:portability"]
 description = "Run C++ checks with available alternate and cross compilers"
 run = "./cpp-build.sh portability"
+
+[tasks."cpp:msvc"]
+description = "Build with clang-cl against the MSVC CRT and Windows SDK"
+tools = { "conda:clang" = "22.1.8", "conda:lld" = "22.1.8", "conda:llvm-tools" = "22.1.8", "github:Jake-Shadle/xwin" = "0.10.0" }
+run = "./cpp-build.sh msvc"
 
 [tasks."cpp:standards"]
 description = "Run the C++ standards workflow with autofixes"
@@ -33,8 +37,4 @@ depends = ["cpp:fmt"]
 
 [tasks."cpp:standards:check"]
 description = "Run the C++ standards CI gate"
-run = [
-  { task = "cpp:fmt:check" },
-  { task = "cpp:lint" },
-  { task = "cpp:test" },
-]
+depends = ["cpp:fmt:check", "cpp:lint", "cpp:test"]

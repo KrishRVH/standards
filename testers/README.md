@@ -9,7 +9,7 @@ every downstream project to keep every check.
 Run all tester projects from the repository root:
 
 ```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:standards:check
+MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run //testers/...:standards:check
 ```
 
 The root is an explicit mise monorepo with `testers/*` config roots,
@@ -23,16 +23,11 @@ fixture through the same root namespace with, for example:
 mise run //testers/python:standards:check
 ```
 
-The root aggregate keeps one small nested mise wrapper because the root's
-minimum mise, `2026.7.0`, executes monorepo path wildcards but does not resolve
-those paths inside `depends` or structured `run` entries. The wrapper also preserves the
-required `GOROOT` and `GOTOOLDIR` sanitization.
-
 For an isolated check, run one representative fixture in its Dagger reference
 container. This task intentionally sits outside the default root gate:
 
 ```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run testers:standards:check:isolated
+MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run //testers/python:dagger:standards:check
 ```
 
 Or run one fixture directly:

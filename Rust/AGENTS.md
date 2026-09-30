@@ -8,7 +8,7 @@ adopting the profile or changing its enforcement.
 ## Work and verification
 
 Use `mise run rust:...` for development. Run `rust:lint` and `rust:test` for
-source changes; add `rust:test:doc` and `rust:doc` for public API changes.
+source changes; add `rust:doc` for public API changes.
 `rust:standards` formats code. Refresh `Cargo.lock` through `rust:lock` after
 dependency changes and commit it.
 
@@ -69,8 +69,9 @@ block then carries a reasoned expectation and a `SAFETY` comment.
 
 Every workspace package, including the root package, declares
 `[lints] workspace = true`. Release profiles belong in the root manifest;
-keep overflow checks enabled. `rust:policy` checks first-party source inputs
-and configured policy probes. Read its [scope and limitations](README.md)
+keep overflow checks enabled. `tests/allow_policy.rs` checks first-party
+source inputs, and `rust:policy` checks configured policy probes. Read their
+[scope and limitations](README.md)
 before adding macros, custom target paths, includes, or symlinks.
 Checker-specific production behavior and synthesized suppression attributes
 are prohibited even when static analysis cannot detect them.

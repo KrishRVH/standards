@@ -1,6 +1,3 @@
-[settings]
-experimental = true
-
 [tools]
 "pkgx:llvm.org" = "22.1.8"
 "conda:clang-tools" = "22.1.8"
@@ -39,6 +36,8 @@ run = [
 
 [tasks."c:test"]
 description = "Run native Clang tests, sanitizers, optimized tests, and consumers"
+# c:lint rebuilds the same build/clang-fast directory, so the two never overlap.
+wait_for = ["c:lint"]
 run = "./c-build.sh native"
 
 [tasks."c:portability"]
@@ -59,9 +58,4 @@ depends = ["c:fmt"]
 
 [tasks."c:standards:check"]
 description = "Run every mandatory native C standards gate"
-run = [
-  { task = "c:fmt:check" },
-  { task = "c:lint" },
-  { task = "c:test" },
-  { task = "c:regression" },
-]
+depends = ["c:fmt:check", "c:lint", "c:test", "c:regression"]

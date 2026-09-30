@@ -153,8 +153,6 @@ mise.*.local.lock
 *.dSYM/
 
 # Rust
-/.cargo-tools/
-**/.cargo-tools/
 /target/
 **/target/
 **/mutants.out/

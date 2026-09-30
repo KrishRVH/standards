@@ -137,18 +137,40 @@ mise run cpp:fmt:check
 mise run cpp:lint
 mise run cpp:test
 mise run cpp:portability
+mise run cpp:msvc
 mise run cpp:standards:check
 ```
 
-`cpp:lint` runs compiler warnings and `clangd --check --clang-tidy`. The
-clang-tidy profile curates bugprone, CERT, C++ Core Guidelines, modernize,
-performance, portability, and readability checks, removes known noisy rules,
-and blocks on every remaining finding. `cpp:test` runs pinned LLVM `clang++`
-Debug with ASan/UBSan and an optimized Release build. `cpp:portability` is an
-explicit opt-in for available GCC and MinGW compilers. The test script also
+`cpp:lint` runs `clangd --check --clang-tidy`, which parses every source and
+header with the project's compile flags. The clang-tidy profile curates
+bugprone, CERT, C++ Core Guidelines, modernize, performance, portability, and
+readability checks, removes known noisy rules, and blocks on every remaining
+finding. `cpp:test` builds with warnings as errors and runs pinned LLVM
+`clang++` Debug with ASan/UBSan and an optimized Release build. It also
 installs the CMake package config and verifies that a tiny external CMake
-consumer can link `cpp_project::library`.
+consumer can link `cpp_project::library`. `cpp:standards:check` runs
+formatting alongside lint, then the tests; lint and tests share
+`build/clang`, so they run in turn.
 
-The provided checks exercise Clang, GCC, and MinGW, but not the MSVC
-configuration. A project claiming native MSVC support must add a native Windows
-build, test, install, and consumer gate.
+`cpp:portability` is an explicit opt-in for GCC and MinGW compilers already
+installed on the host.
+
+## MSVC configuration
+
+`cpp:msvc` is an explicit opt-in that exercises the `if(MSVC)` branch on
+Linux. It downloads the pinned MSVC CRT and Windows SDK with
+[xwin](https://github.com/Jake-Shadle/xwin) into
+`${XDG_CACHE_HOME:-~/.cache}/xwin`, outside the project, then builds with
+`clang-cl` and `lld-link` through `msvc-xwin.cmake`. The task installs its own
+LLVM and xwin tools, about 350 MiB to download and 1.7 GiB on disk; the CRT and
+SDK add about 320 MiB to download and 630 MiB on disk. Downloading them accepts
+[Microsoft's license](https://go.microsoft.com/fwlink/?LinkId=2086102), so the
+task runs only when `XWIN_ACCEPT_LICENSE=true`.
+
+It proves that the MSVC flag set (`/W4 /permissive- /EHsc /Zc:__cplusplus /WX`)
+compiles and links under the MSVC-compatible driver with warnings as errors,
+against the real MSVC standard library. It does not prove native `cl.exe`
+behavior, and it does not run the tests on Windows. xwin omits the debug CRT,
+so every configuration links the release DLL runtime. A project that claims
+native MSVC support still needs a native Windows build, test, install, and
+consumer gate.

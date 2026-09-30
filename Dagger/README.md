@@ -11,18 +11,18 @@ dagger/
   src/index.ts
 ```
 
-Use these project tasks for the standard isolated workflow; they select the
-pinned Dagger version:
+Run the isolated gate through its task, which selects the pinned Dagger
+version:
 
 ```sh
-mise run dagger:develop
 mise run dagger:standards:check
 ```
 
-Direct Dagger commands remain available for focused diagnosis.
+Run other Dagger commands with the pinned version through `mise exec`, for
+example `mise exec -- dagger develop` after you change the module.
 
 The module starts from the official mise `v2026.6.12` image at an immutable
-multi-architecture digest. It enables strict lockfile mode, then runs `mise run
+multi-architecture digest. It enables strict lockfile mode, then runs `mise
 install` and `mise run standards:check`. The companion mise fragment pins
 Dagger `v0.21.7`. Task definitions therefore stay in mise while Dagger supplies
 an isolated environment without live operating-system package resolution.

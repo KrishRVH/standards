@@ -7,7 +7,6 @@ useDefault = true
 description = "Generated dependency, build, cache, and release-output paths"
 paths = [
   '''(^|/)\.cache/''',
-  '''(^|/)\.cargo-tools/''',
   '''(^|/)\.elixir_ls/''',
   '''(^|/)\.git/''',
   '''(^|/)\.godot/''',

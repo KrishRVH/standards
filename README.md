@@ -241,7 +241,7 @@ Project tasks work without interactive activation or shims. See the
 
 1. Remove language task files that do not apply.
 2. Adjust package names, namespaces, source directories, and test directories.
-3. Run `mise run install`.
+3. Run `mise install`.
 4. Run `mise run standards`.
 5. Run `mise run standards:check`.
 6. Commit the resulting lockfiles. These include the mise lockfile for the
@@ -255,7 +255,7 @@ such as `tokei`, `rg`, and `git` run directly; see [mise usage](Mise/README.md)
 for the boundary between project tasks and host tools.
 
 ```sh
-mise run install
+mise install
 mise run fmt
 mise run fmt:check
 mise run lint
@@ -333,25 +333,25 @@ root check. For example, use `mise run md:standards:check` for Markdown.
 
 Use `mise run standards:check` for release or CI validation, when explicitly
 requested, and after changes to shared or aggregate infrastructure that can
-affect unrelated fixtures. The aggregate gate scans for secrets, validates the
-TypeScript ESLint and Prettier secondary workflow, checks drift, Markdown, and
-Shell, and runs every tester fixture.
+affect unrelated fixtures. The aggregate gate first scans for secrets and runs
+`hygiene`, before fixture tests write temporary probe files into the tree. It
+then validates the TypeScript ESLint and Prettier secondary workflow, checks
+drift, Markdown, and Shell, and runs every tester fixture, in parallel.
 
 The root mise configuration discovers fixture tasks through the explicit
 `testers/*` monorepo configuration roots. Its `[settings].jobs` value bounds
 concurrent task execution; language tools also set their own concurrency.
 
 `[monorepo] lockfile = false` keeps each committed fixture lockfile beside its
-standalone configuration. The root runner uses one child mise process for the
-path wildcard because the root's minimum mise, `2026.7.0`, does not resolve
-monorepo paths in native task relationships. That child still uses mise's scheduler and
-project-attributed output.
+standalone configuration. The root gate runs every fixture through the native
+`//testers/...:standards:check` path wildcard, so one scheduler attributes
+output to each project.
 
-To run an optional isolated proof outside the hosted runner, use the existing
-Dagger entrypoint for the representative Python fixture:
+To run an optional isolated proof, use the Dagger entrypoint of the
+representative Python fixture:
 
 ```sh
-mise run testers:standards:check:isolated
+mise run //testers/python:dagger:standards:check
 ```
 
 The profile-contract portion of the root gate has three focused checkers.

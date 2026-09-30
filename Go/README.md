@@ -20,8 +20,9 @@ mise run go:standards:check
 
 `go:lint` checks module tidiness, verifies downloaded modules, runs the standard
 `go vet` analyzers and the restricted-dialect analyzer below, then runs
-`golangci-lint` and `govulncheck`. `go:standards:check` adds race tests and
-coverage. Benchmarks stay a named task because they are not part of the CI gate.
+`golangci-lint` and `govulncheck`. `go:cover` runs the suite once with the race
+detector and coverage; the gate uses it instead of separate plain and race
+runs. Benchmarks stay a named task because they are not part of the CI gate.
 `go:cover` emits a coverage report by default; set `GO_COVER_MIN` when a project
 wants a hard local threshold expressed as a decimal from 0 to 100.
 

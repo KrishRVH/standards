@@ -1,5 +1,5 @@
 [tools]
-bun = "1.4.0"
+bun = "1.4.2"
 
 [tasks."js:install"]
 description = "Install Bun-managed JavaScript dependencies"
@@ -18,11 +18,6 @@ if [ ! -f bun.lock ]; then
   exit 1
 fi
 """
-
-[tasks."js:run"]
-description = "Run a Bun package script: mise run js:run -- <script>"
-usage = "arg \"script\""
-run = "bun run \"$usage_script\""
 
 [tasks."js:fmt"]
 description = "Format JavaScript"

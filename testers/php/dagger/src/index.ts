@@ -4,7 +4,6 @@ const MISE_IMAGE = 'jdxcode/mise:2026.6.12@sha256:8e2087d0831aa3f05c55ee41e5c30b
 
 const SOURCE_IGNORES = [
   '.cache',
-  '.cargo-tools',
   '.coverage',
   '.elixir_ls',
   '.git',
@@ -102,7 +101,7 @@ export class ProjectStandards {
         .withEnvVariable('MISE_TRUSTED_CONFIG_PATHS', '/src')
         .withDirectory('/src', source, { gitignore: true })
         .withWorkdir('/src')
-        .withExec(['mise', 'run', 'install'])
+        .withExec(['mise', 'install'])
         .withExec(['mise', ...args])
     );
   }

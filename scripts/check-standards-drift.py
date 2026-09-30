@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import filecmp
+import json
 import os
 import subprocess
 import sys
@@ -20,7 +21,7 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files", "shared_mirror"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "fixture_checks", "required_tester_files", "shared_mirror"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_MARKER_CASES = {
@@ -112,7 +113,10 @@ def load_toml(path: Path) -> dict[str, object]:
 
 
 def rel(path: Path) -> str:
-    return str(path.relative_to(ROOT))
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def same_file(left: Path, right: Path) -> bool:
@@ -199,6 +203,31 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         if not isinstance(dagger, bool):
             errors.append(f"{profile_id}: dagger must be a boolean")
 
+        if isinstance(profile["task_prefix"], str) and isinstance(profile["task_fragment"], str):
+            fragment = ROOT / "Mise" / "conf.d" / profile["task_fragment"]
+            errors.extend(fixture_check_errors(profile_id, profile, fragment))
+
+    return errors
+
+
+def fixture_check_errors(profile_id: str, profile: dict[str, object], fragment: Path) -> list[str]:
+    """Each extra fixture gate check must be a task of the profile's own fragment."""
+    checks = profile.get("fixture_checks")
+    if checks is None:
+        return []
+    if not isinstance(checks, list) or not all(isinstance(check, str) for check in checks):
+        return [f"{profile_id}: fixture_checks must be a list of task names"]
+    prefix = profile["task_prefix"]
+    try:
+        tasks = load_toml(fragment).get("tasks", {})
+    except (OSError, tomllib.TOMLDecodeError):
+        tasks = {}
+    errors = []
+    for check in checks:
+        if not check.startswith(f"{prefix}:"):
+            errors.append(f"{profile_id}: fixture_checks entry {check!r} must start with {prefix}:")
+        elif not isinstance(tasks, dict) or check not in tasks:
+            errors.append(f"{profile_id}: fixture_checks entry {check!r} is not a task in {rel(fragment)}")
     return errors
 
 
@@ -487,7 +516,97 @@ def check_hygiene_task() -> list[str]:
     return errors
 
 
-def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str]:
+def bun_pin(fragment: Path) -> str | None:
+    """The fragment's exact tools.bun pin, or None when it pins no Bun."""
+    try:
+        pin = load_toml(fragment).get("tools", {}).get("bun")
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+    if isinstance(pin, dict):
+        pin = pin.get("version")
+    return pin if isinstance(pin, str) else None
+
+
+def package_manager_errors(profile_id: str, package_json: Path, pin: str, fragment: str) -> list[str]:
+    """Bun reads packageManager and mise reads tools.bun; both must name one release."""
+    try:
+        actual = json.loads(package_json.read_text(encoding="utf-8")).get("packageManager")
+    except (OSError, ValueError, AttributeError):
+        actual = None
+    if actual != f"bun@{pin}":
+        return [f"{profile_id}: packageManager {actual!r} must be 'bun@{pin}' to match {fragment} tools.bun"]
+    return []
+
+
+def check_bun_pins(profiles: dict[str, dict[str, object]]) -> list[str]:
+    errors: list[str] = []
+    for profile_id, profile in profiles.items():
+        fragment = ROOT / "Mise" / "conf.d" / str(profile["task_fragment"])
+        pin = bun_pin(fragment)
+        if pin is not None:
+            package_json = ROOT / str(profile["template"]) / "package.json"
+            errors.extend(package_manager_errors(profile_id, package_json, pin, rel(fragment)))
+    markdown = ROOT / "Mise" / "conf.d" / "20-markdown.toml"
+    root_pin = bun_pin(markdown)
+    if root_pin is not None:
+        errors.extend(package_manager_errors("root", ROOT / "package.json", root_pin, rel(markdown)))
+
+    # Seeded proof: a mismatch must be reported and an agreeing pair must pass.
+    with tempfile.TemporaryDirectory(prefix="standards-bun-pin-") as temporary:
+        root = Path(temporary)
+        fragment = root / "20-seed.toml"
+        fragment.write_text('[tools]\nbun = "1.2.3"\n', encoding="utf-8")
+        for label, manager, should_fail in (("agree", "bun@1.2.3", False), ("mismatch", "bun@1.2.2", True)):
+            package_json = root / f"{label}.json"
+            package_json.write_text(json.dumps({"packageManager": manager}), encoding="utf-8")
+            found = package_manager_errors(label, package_json, bun_pin(fragment) or "", "seed")
+            if bool(found) != should_fail:
+                errors.append(f"bun pin rule mishandled the seeded {label} case: {found!r}")
+    return errors
+
+
+def check_fixture_checks_contract() -> list[str]:
+    """Prove the fixture_checks rules on seeded profiles and fixture configs."""
+    errors: list[str] = []
+    min_version = load_toml(ROOT / "Mise" / "config.toml").get("min_version")
+    with tempfile.TemporaryDirectory(prefix="standards-fixture-checks-") as temporary:
+        root = Path(temporary)
+        fragment = root / "20-x.toml"
+        # y:extra exists, so only the prefix rule can reject it.
+        fragment.write_text(
+            '[tasks."x:standards:check"]\nrun = "true"\n[tasks."x:extra"]\nrun = "true"\n'
+            '[tasks."y:extra"]\nrun = "true"\n'
+        )
+        cases = {
+            "declared": (["x:extra"], False),
+            "unknown": (["x:missing"], True),
+            "wrong-prefix": (["y:extra"], True),
+        }
+        for label, (checks, should_fail) in cases.items():
+            found = fixture_check_errors(label, {"task_prefix": "x", "fixture_checks": checks}, fragment)
+            if bool(found) != should_fail:
+                errors.append(f"fixture_checks validation mishandled the {label} case: {found!r}")
+
+        def fixture(name: str, check_depends: list[str]) -> Path:
+            tester = root / name
+            config = tester / ".config" / "mise" / "config.toml"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                f'min_version = "{min_version}"\n[settings]\nlockfile = true\n'
+                '[tasks.standards]\ndepends = ["x:standards"]\n'
+                f'[tasks."standards:check"]\ndepends = {check_depends!r}\n'.replace("'", '"')
+            )
+            return tester
+
+        complete = check_fixture_config("complete", fixture("complete", ["x:standards:check", "x:extra"]), "x", ["x:extra"])
+        if complete:
+            errors.append(f"fixture_checks rejected a fixture that runs its declared check: {complete!r}")
+        if not check_fixture_config("omitted", fixture("omitted", ["x:standards:check"]), "x", ["x:extra"]):
+            errors.append("fixture_checks accepted a fixture whose standards:check omits a declared check")
+    return errors
+
+
+def check_fixture_config(profile_id: str, tester: Path, prefix: str, fixture_checks: list[str]) -> list[str]:
     errors: list[str] = []
     fixture_config = tester / ".config" / "mise" / "config.toml"
     canonical_config = ROOT / "Mise" / "config.toml"
@@ -503,6 +622,8 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         errors.extend(compare_file(profile_id, "full-config hygiene task", HYGIENE, fixture_hygiene))
         if fixture_hygiene.is_file() and not os.access(fixture_hygiene, os.X_OK):
             errors.append(f"{profile_id}: {rel(fixture_hygiene)} must be executable for mise to list it")
+        if fixture_checks:
+            errors.append(f"{profile_id}: fixture_checks needs a minimal fixture config")
     else:
         try:
             data = load_toml(fixture_config)
@@ -532,12 +653,9 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         standards_check = tasks.get("standards:check", {})
         if not isinstance(standards, dict) or standards.get("depends") != [f"{prefix}:standards"]:
             errors.append(f"{profile_id}: minimal fixture config standards must depend on {prefix}:standards")
-        if not isinstance(standards_check, dict) or standards_check.get("depends") != [
-            f"{prefix}:standards:check"
-        ]:
-            errors.append(
-                f"{profile_id}: minimal fixture config standards:check must depend on {prefix}:standards:check"
-            )
+        expected_check = [f"{prefix}:standards:check", *fixture_checks]
+        if not isinstance(standards_check, dict) or standards_check.get("depends") != expected_check:
+            errors.append(f"{profile_id}: minimal fixture config standards:check must depend on {expected_check!r}")
 
     dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
     canonical_dagger = ROOT / "Mise" / "conf.d" / "10-dagger.toml"
@@ -580,40 +698,35 @@ def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
     if not isinstance(tasks, dict):
         errors.append(f"{rel(config)} must contain a [tasks] table")
     else:
-        for task_name in ("testers:standards", "testers:standards:check"):
-            task = tasks.get(task_name)
-            run = task.get("run") if isinstance(task, dict) else None
-            if not isinstance(run, str) or "env -u GOROOT -u GOTOOLDIR " not in run:
-                errors.append(f"{rel(config)} task {task_name} must sanitize Go's toolchain environment")
-
         standards = tasks.get("standards")
         expected_standards_run = [
             {"task": "md:standards"},
             {"task": "shell:standards"},
-            {"task": "testers:standards"},
+            {"task": "//testers/...:standards"},
         ]
         if not isinstance(standards, dict) or standards.get("run") != expected_standards_run:
             errors.append(
                 f"{rel(config)} task standards must run {expected_standards_run!r} in order"
             )
 
+        # The scans run before fixture tests write temporary probe files into the tree.
         standards_check = tasks.get("standards:check")
-        expected_standards_check_depends = [
-            "secrets",
-            "standards:eslint-prettier:check",
-            "standards:drift",
-            "md:standards:check",
-            "shell:standards:check",
-            "testers:standards:check",
+        expected_check_depends = ["secrets", "hygiene"]
+        expected_check_run = [
+            {
+                "tasks": [
+                    "standards:eslint-prettier:check",
+                    "standards:drift",
+                    "md:standards:check",
+                    "shell:standards:check",
+                    "//testers/...:standards:check",
+                ]
+            }
         ]
-        if (
-            not isinstance(standards_check, dict)
-            or standards_check.get("depends") != expected_standards_check_depends
-        ):
-            errors.append(
-                f"{rel(config)} task standards:check must depend on "
-                f"{expected_standards_check_depends!r} in order"
-            )
+        if not isinstance(standards_check, dict) or standards_check.get("depends") != expected_check_depends:
+            errors.append(f"{rel(config)} task standards:check must depend on {expected_check_depends!r}")
+        if not isinstance(standards_check, dict) or standards_check.get("run") != expected_check_run:
+            errors.append(f"{rel(config)} task standards:check must run {expected_check_run!r}")
 
     for profile_id, profile in profiles.items():
         tester = Path(str(profile["tester"]))
@@ -629,6 +742,7 @@ def check_root_shared_files() -> list[str]:
     errors: list[str] = []
     for item in ROOT_SHARED_MIRROR:
         errors.extend(compare_file("root", "shared file", ROOT / "shared" / item, ROOT / item))
+    errors.extend(compare_file("root", "hygiene task", HYGIENE, ROOT / ".config" / "mise" / "tasks" / "hygiene"))
     errors.extend(
         compare_file(
             "root",
@@ -688,6 +802,8 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())
     errors.extend(check_hygiene_task())
+    errors.extend(check_fixture_checks_contract())
+    errors.extend(check_bun_pins(profiles))
 
     for profile_id, profile in profiles.items():
         tester = ROOT / str(profile["tester"])
@@ -709,7 +825,12 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         if task_left.is_file():
             errors.extend(check_task_surface(profile_id, task_left, task_prefix))
         if has_tester:
-            errors.extend(check_fixture_config(profile_id, tester, task_prefix))
+            fixture_checks = profile.get("fixture_checks", [])
+            errors.extend(
+                check_fixture_config(
+                    profile_id, tester, task_prefix, fixture_checks if isinstance(fixture_checks, list) else []
+                )
+            )
             if profile.get("dagger", False):
                 errors.extend(check_dagger_copy(profile_id, tester))
 

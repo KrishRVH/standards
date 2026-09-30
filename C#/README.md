@@ -1,9 +1,8 @@
 # C# Standards
 
 Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`,
-`global.json`, `BannedSymbols.txt`, `stryker-config.json`,
-`.config/dotnet-tools.json`, `scripts/`, and `.github/` into a .NET repository,
-and use it with the shared mise template:
+`global.json`, `BannedSymbols.txt`, `stryker-config.json`, `scripts/`, and
+`.github/` into a .NET repository, and use it with the shared mise template:
 
 ```text
 .config/mise/config.toml
@@ -30,8 +29,9 @@ exactly one rule, SA1404, which rejects a missing, blank, or `<Pending>`
 ReferenceTrimmer fails on analyzable direct compile references reported unused
 as RT0001-RT0003 (SDK, transitive, and build-asset references are conservatively
 outside its scope);
-CsCheck is the property-testing default; and Stryker.NET (pinned as a local
-dotnet tool) runs the mutation gate on the Microsoft Testing Platform runner,
+CsCheck is the property-testing default; and Stryker.NET (pinned in mise
+through its dotnet backend) runs the mutation gate on the Microsoft Testing
+Platform runner,
 which is in preview. Coverage analysis is disabled because that integration is
 not yet reliable; each run emits JSON and its complete log to a unique,
 preserved output directory. A dependency-free verifier rejects malformed

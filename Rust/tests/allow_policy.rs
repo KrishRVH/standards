@@ -13,13 +13,7 @@ use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::{Expr, Lit, Meta, Token};
 
-const ROOT_EXCLUDED_DIRECTORIES: [&str; 5] = [
-    ".cargo-tools",
-    "mutants.out",
-    "mutants.out.old",
-    "target",
-    "vendor",
-];
+const ROOT_EXCLUDED_DIRECTORIES: [&str; 4] = ["mutants.out", "mutants.out.old", "target", "vendor"];
 
 #[derive(Deserialize)]
 struct CargoMetadataDocument {
@@ -1611,11 +1605,8 @@ fn mutation_tasks_preserve_workspace_and_base_resolution_contracts() {
         "the full mutation task must run every workspace test"
     );
     assert!(
-        full.lines().any(|line| {
-            line.contains("cargo-mutants\"")
-                && line.contains(" mutants ")
-                && line.contains("--output=.")
-        }),
+        full.lines()
+            .any(|line| line.contains("cargo mutants ") && line.contains("--output=.")),
         "the full mutation task must force cargo-mutants to write the report under the project root"
     );
     assert!(
@@ -1638,11 +1629,8 @@ fn mutation_tasks_preserve_workspace_and_base_resolution_contracts() {
         "the diff mutation task must run every workspace test"
     );
     assert!(
-        diff.lines().any(|line| {
-            line.contains("cargo-mutants\"")
-                && line.contains(" mutants ")
-                && line.contains("--output=.")
-        }),
+        diff.lines()
+            .any(|line| line.contains("cargo mutants ") && line.contains("--output=.")),
         "the diff mutation task must force cargo-mutants to write the report under the project root"
     );
     assert!(

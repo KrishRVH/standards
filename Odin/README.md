@@ -1,9 +1,9 @@
 # Odin Standards
 
-Copy `.editorconfig`, `odinfmt.json`, `src/`, `tests/`, and
-`Mise/conf.d/20-odin.toml` into an Odin project. Replace `project_name` in
-directory names, package declarations, imports, and task paths with the real
-package name.
+Copy `.editorconfig`, `odinfmt.json`, `scripts/format.sh`, `src/`, `tests/`,
+and `Mise/conf.d/20-odin.toml` into an Odin project. Replace `project_name` in
+directory names, package declarations, imports, task paths, and the formatter
+script's paths with the real package name.
 
 The OLS `odinfmt` nightly handles developer formatting. The version-matched
 Odin compiler remains authoritative for parsing, style, static analysis, and
@@ -24,9 +24,10 @@ mise run odin:standards:check
 ```
 
 `odin:fmt` mutates only Git-tracked or unignored `.odin` files under
-`src/project_name/` and `tests/`. Its adapter rejects symlinks, propagates parser
-and write failures, preserves ordinary file modes, and atomically replaces
-changed files instead of using `odinfmt -w`'s fallible backup path. The explicit
+`src/project_name/` and `tests/`. Its adapter, `scripts/format.sh`, rejects
+symlinks, propagates parser and write failures, preserves ordinary file modes,
+and atomically replaces changed files instead of using `odinfmt -w`'s fallible
+backup path. The explicit
 configuration keeps LF output on every host. `odin:fmt:check` remains strict
 compiler style validation because `odinfmt` has no check-only mode.
 

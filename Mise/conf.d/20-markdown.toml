@@ -1,5 +1,5 @@
 [tools]
-bun = "1.4.0"
+bun = "1.4.2"
 lychee = "0.24.2"
 typos = "1.48.0"
 
@@ -20,11 +20,6 @@ if [ ! -f bun.lock ]; then
   exit 1
 fi
 """
-
-[tasks."md:run"]
-description = "Run a Bun Markdown/MDX package script: mise run md:run -- <script>"
-usage = "arg \"script\""
-run = "bun run \"$usage_script\""
 
 [tasks."md:fmt"]
 description = "Format Markdown and MDX"

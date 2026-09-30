@@ -22,7 +22,7 @@ assert.equal(
   'reports/mutation/mutation.json',
   'Stryker used an unexpected machine-report path.',
 );
-assert.equal(report.config.concurrency, 2, 'Stryker must use exactly two mutation workers.');
+assert.equal(report.config.concurrency, 4, 'Stryker must use exactly four mutation workers.');
 assert.equal(report.config.timeoutMS, 30000, 'Stryker core must use 30 seconds of absolute timeout deviation.');
 assert.equal(report.config.bun?.timeout, 60000, 'The Bun test runner must use a 60-second hard child timeout.');
 assert.ok(mutants.length > 0, 'Stryker report contains no mutants.');

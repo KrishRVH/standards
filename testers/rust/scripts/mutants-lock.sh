@@ -5,7 +5,7 @@
 
 acquire_mutants_task_lock() {
   mutants_task_mode="${1:-unknown}"
-  mutants_task_lock_dir="${MUTANTS_TASK_LOCK_DIR:-.cargo-tools/standards-mutants.lock}"
+  mutants_task_lock_dir="${MUTANTS_TASK_LOCK_DIR:-target/standards-mutants.lock}"
   mutants_task_lock_parent="$(dirname "$mutants_task_lock_dir")"
   mkdir -p "$mutants_task_lock_parent"
 

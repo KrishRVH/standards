@@ -33,36 +33,24 @@ run = [
 description = "Scan the standards repository for secrets"
 run = "gitleaks dir . --redact --no-banner"
 
-# mise 2026.7.x executes monorepo task paths natively but its validator does
-# not resolve them in depends/structured run entries. Keep one bounded child
-# scheduler until validation supports those references.
-[tasks."testers:standards"]
-description = "Run all tester mini projects through their standards workflows and available autofixes"
-run = "env -u GOROOT -u GOTOOLDIR mise run //testers/...:standards"
-
-[tasks."testers:standards:check"]
-description = "Run all tester mini projects through their standards CI gates"
-run = "env -u GOROOT -u GOTOOLDIR mise run //testers/...:standards:check"
-
-[tasks."testers:standards:check:isolated"]
-description = "Run the Python fixture standards gate in Dagger"
-run = "mise run //testers/python:dagger:standards:check"
-
 [tasks.standards]
 description = "Run repository standards workflows and available autofixes"
 run = [
   { task = "md:standards" },
   { task = "shell:standards" },
-  { task = "testers:standards" },
+  { task = "//testers/...:standards" },
 ]
 
 [tasks."standards:check"]
 description = "Run the standards repository CI gate"
-depends = [
-  "secrets",
-  "standards:eslint-prettier:check",
-  "standards:drift",
-  "md:standards:check",
-  "shell:standards:check",
-  "testers:standards:check",
+# Scan the tree before fixture gates write temporary probe files into it.
+depends = ["secrets", "hygiene"]
+run = [
+  { tasks = [
+    "standards:eslint-prettier:check",
+    "standards:drift",
+    "md:standards:check",
+    "shell:standards:check",
+    "//testers/...:standards:check",
+  ] },
 ]

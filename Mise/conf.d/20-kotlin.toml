@@ -48,8 +48,6 @@ depends = ["kotlin:fmt"]
 
 [tasks."kotlin:standards:check"]
 description = "Run the Kotlin standards CI gate"
-run = [
-  { tasks = ["kotlin:lock:check", "kotlin:fmt:check"] },
-  { task = "kotlin:lint" },
-  { task = "kotlin:test" },
-]
+depends = ["kotlin:lock:check", "kotlin:fmt:check"]
+# One Gradle invocation runs the lint and test graphs, so the gate starts one JVM.
+run = "gradle --no-daemon --warning-mode=fail detektMain detektTest classes test"

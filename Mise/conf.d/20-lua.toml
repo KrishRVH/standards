@@ -7,11 +7,6 @@ stylua = "2.5.2"
 description = "Install Lua project lint/test tooling"
 run = """
 set -eu
-if ! command -v luarocks >/dev/null 2>&1; then
-  echo "luarocks is required for Lua lint/test tooling." >&2
-  exit 1
-fi
-
 if ! luarocks --tree .lua_modules list luacheck | grep -q '1.2.0-1'; then
   luarocks --tree .lua_modules install luacheck 1.2.0-1
 fi
