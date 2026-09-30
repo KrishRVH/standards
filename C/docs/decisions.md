@@ -310,10 +310,9 @@ unit explicitly. The gate requires its selected count to equal the database
 entry count, rejecting duplicate source entries whose competing commands the
 driver would otherwise deduplicate and choose between ambiguously. Missing
 inputs, zero selected C units, or tools are hard errors.
-The pinned conda `clang-tools` package supplies clang-tidy and the parallel
-driver but not a complete Clang resource-header tree, so the gate pairs it with
-the same-version pinned LLVM Clang resource directory and verifies
-`include/stddef.h` before analysis.
+The pinned official LLVM release supplies Clang, clang-tidy, and the parallel
+driver from one installation. The gate still passes Clang's resource directory
+explicitly and verifies `include/stddef.h` before analysis.
 
 The standard-library model includes POSIX contracts, but it cannot expose a
 POSIX name by itself: the compiler command still must select the `posix-2008`

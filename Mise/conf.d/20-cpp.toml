@@ -1,5 +1,5 @@
 [tools]
-"pkgx:llvm.org" = "22.1.8"
+"github:llvm/llvm-project" = { version = "22.1.8", version_prefix = "llvmorg-" }
 clang-format = "22.1.8"
 cmake = "4.4.0"
 ninja = "1.13.2"

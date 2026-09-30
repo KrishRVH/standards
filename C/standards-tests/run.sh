@@ -581,11 +581,9 @@ run_warning_behavior_contracts() {
   local scratch_dir="$1"
   local compiler="$2"
   local fixture_root="$ROOT/standards-tests/compiler"
-  local common_diagnostic="multiple definition"
-
-  if [[ "$compiler" == "clang" ]]; then
-    common_diagnostic="duplicate symbol"
-  fi
+  # The wording belongs to the linker: GNU ld says "multiple definition";
+  # lld and Apple ld64 say "duplicate symbol". grep -F matches either line.
+  local common_diagnostic=$'multiple definition\nduplicate symbol'
 
   note "$compiler warning behavior contracts"
   "$compiler" -std=c99 -fsyntax-only -DCASE_WALL -Wall \
