@@ -81,8 +81,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/mingw-w64.cmake",
-        "PROJECT_PLATFORM_PROFILE": "win32",
-        "PROJECT_CLI_SOURCES": "standards-tests/platform/win32-api.c"
+        "PROJECT_CLI_SOURCES": "standards-tests/platform/win32-api.c",
+        "PROJECT_PLATFORM_PROFILE": "win32"
       }
     }
   ],

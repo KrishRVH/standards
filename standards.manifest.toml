@@ -102,7 +102,6 @@ template = "C++"
 tester = "testers/cpp"
 task_prefix = "cpp"
 task_fragment = "20-cpp.toml"
-fixture_checks = ["cpp:msvc"]
 mirror = [
   ".clang-format",
   ".clang-tidy",
@@ -119,6 +118,7 @@ mirror = [
   "src/main.cpp",
   "tests/project_tests.cpp",
 ]
+fixture_checks = ["cpp:msvc"]
 
 [profiles.elixir]
 name = "Elixir"

@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [".stryker-tmp/", "reports/"],
   "arrowParens": "always",
   "bracketSameLine": false,
   "bracketSpacing": true,
@@ -13,13 +14,12 @@
   "semi": true,
   "singleAttributePerLine": false,
   "singleQuote": true,
-  "tabWidth": 2,
-  "trailingComma": "all",
-  "useTabs": false,
-  "sortPackageJson": false,
   "sortImports": {
     "newlinesBetween": false,
     "partitionByNewline": true
   },
-  "ignorePatterns": [".stryker-tmp/", "reports/"]
+  "sortPackageJson": false,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "useTabs": false
 }

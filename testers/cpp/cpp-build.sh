@@ -12,6 +12,10 @@ fail() {
   exit 1
 }
 
+compiler_major_version() {
+  "$1" -dumpfullversion -dumpversion | sed -E 's/^([0-9]+).*/\1/'
+}
+
 # Configures and builds a preset from a clean directory; cross presets skip CTest
 # because their executables cannot run here.
 run_preset() {
@@ -113,10 +117,6 @@ run_msvc() {
       fail "$compile_database has a command without the MSVC branch flag $flag"
     fi
   done
-}
-
-compiler_major_version() {
-  "$1" -dumpfullversion -dumpversion | sed -E 's/^([0-9]+).*/\1/'
 }
 
 mode="${1:-default}"

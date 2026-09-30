@@ -226,17 +226,6 @@ The aggregate mise tasks use marker files so the defaults remain copyable.
 Monorepos and mixed-tooling repositories should replace this generic dispatcher
 with explicit project-specific task dependencies or narrower markers.
 
-### Optional: set up a workstation
-
-The personal bootstrap scripts are at
-`extras/workstation/macbook-setup.sh` and
-`extras/workstation/wsl-setup.sh`. Read the relevant script before you run it
-directly on the target machine. They install host tools through native
-installers. WSL also provisions Node through mise and enables cached interactive
-runtime switching; macOS keeps native runtime paths without mise activation.
-Project tasks work without interactive activation or shims. See the
-[workstation guide](extras/workstation/README.md) for shell defaults and maintenance.
-
 ### 6. Verify the copied baseline
 
 1. Remove language task files that do not apply.
@@ -247,6 +236,17 @@ Project tasks work without interactive activation or shims. See the
 6. Commit the resulting lockfiles. These include the mise lockfile for the
    chosen configuration layout, such as `.config/mise/mise.lock`, and any
    package-manager lockfiles the project uses.
+
+### Optional: set up a workstation
+
+The personal bootstrap scripts are at
+`extras/workstation/macbook-setup.sh` and
+`extras/workstation/wsl-setup.sh`. Read the relevant script before you run it
+directly on the target machine. They install host tools through native
+installers. WSL also provisions Node through mise and enables cached interactive
+runtime switching; macOS keeps native runtime paths without mise activation.
+Project tasks work without interactive activation or shims. See the
+[workstation guide](extras/workstation/README.md) for shell defaults and maintenance.
 
 ## Use Mise for Development and CI
 

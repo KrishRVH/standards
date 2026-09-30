@@ -8,8 +8,8 @@
 # shadows the wall. If the mise task fragment (20-csharp.toml) lives outside
 # /.config/mise/, add its path here.
 * @OWNER
-.editorconfig @OWNER
 /.config/mise/ @OWNER
+.editorconfig @OWNER
 /.github/ @OWNER
 /AGENTS.md @OWNER
 /BannedSymbols.txt @OWNER

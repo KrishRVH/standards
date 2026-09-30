@@ -10,8 +10,8 @@ TabWidth: 4
 UseTab: Never
 
 AlignAfterOpenBracket: true
-AlignOperands: Align
 AlignEscapedNewlines: Left
+AlignOperands: Align
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 BinPackArguments: false

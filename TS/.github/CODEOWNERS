@@ -4,8 +4,8 @@
 # Enable the complete protected-branch checklist in README.md; CODEOWNERS alone
 # does not dismiss stale approvals or prevent bypass. Linter config patterns
 # are unanchored because a nested config can shadow the wall for its subtree.
-# If the mise task fragment
-# (20-ts.toml) lives outside /.config/mise/, add its path here.
+# If the mise task fragment (20-ts.toml) lives outside /.config/mise/, add its
+# path here.
 * @OWNER
 .oxfmtrc.* @OWNER
 .oxlintrc.* @OWNER

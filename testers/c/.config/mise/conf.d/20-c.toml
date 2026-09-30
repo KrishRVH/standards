@@ -24,6 +24,16 @@ run = [
   "./c-quality.sh hard . build/clang-fast",
 ]
 
+[tasks."c:test"]
+description = "Run native Clang tests, sanitizers, optimized tests, and consumers"
+# c:lint rebuilds the same build/clang-fast directory, so the two never overlap.
+wait_for = ["c:lint"]
+run = "./c-build.sh native"
+
+[tasks."c:regression"]
+description = "Test the C standards configuration with positive and negative fixtures"
+run = "./standards-tests/run.sh native"
+
 [tasks."c:advisory"]
 description = "Run the reviewed, non-autofix clang-tidy advisory ratchet"
 run = [
@@ -34,12 +44,6 @@ run = [
   "./c-quality.sh advisory . build/clang-fast",
 ]
 
-[tasks."c:test"]
-description = "Run native Clang tests, sanitizers, optimized tests, and consumers"
-# c:lint rebuilds the same build/clang-fast directory, so the two never overlap.
-wait_for = ["c:lint"]
-run = "./c-build.sh native"
-
 [tasks."c:portability"]
 description = "Run the pinned GCC extended portability gate"
 run = "./c-build.sh portability"
@@ -47,10 +51,6 @@ run = "./c-build.sh portability"
 [tasks."c:mingw"]
 description = "Run the explicit MinGW-w64 compile-only exploratory gate"
 run = "./c-build.sh mingw"
-
-[tasks."c:regression"]
-description = "Test the C standards configuration with positive and negative fixtures"
-run = "./standards-tests/run.sh native"
 
 [tasks."c:standards"]
 description = "Run the C standards workflow with presentation autofixes"

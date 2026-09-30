@@ -28,8 +28,8 @@ defmodule ProjectName.MixProject do
       preferred_envs: [
         coveralls: :test,
         "coveralls.html": :test,
-        dialyzer: :test,
-        "deps.audit": :test
+        "deps.audit": :test,
+        dialyzer: :test
       ]
     ]
   end

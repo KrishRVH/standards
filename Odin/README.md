@@ -27,18 +27,18 @@ mise run odin:standards:check
 `src/project_name/` and `tests/`. Its adapter, `scripts/format.sh`, rejects
 symlinks, propagates parser and write failures, preserves ordinary file modes,
 and atomically replaces changed files instead of using `odinfmt -w`'s fallible
-backup path. The explicit
-configuration keeps LF output on every host. `odin:fmt:check` remains strict
-compiler style validation because `odinfmt` has no check-only mode.
+backup path. The explicit configuration keeps LF output on every host.
+`odin:fmt:check` remains strict compiler style validation because `odinfmt` has
+no check-only mode.
 
 The formatter channel is mutable by design. The committed fixture lock records
 the reviewed nightly asset and GitHub-published checksum, so replacement fails
 closed, but it cannot preserve an asset after OLS rotates the nightly release.
 After reviewing a replacement, run `mise run --skip-tools odin:fmt:update` to
-refresh its checksum before mise attempts installation, then force-reinstall
-the formatter. Relocking alone can leave a warm machine on
-the old cached binary. The formatting adapter requires a POSIX shell; native
-Windows remains unverified.
+refresh its checksum before mise attempts installation, then force-reinstall the
+formatter. Relocking alone can leave a warm machine on the old cached binary.
+The formatting adapter requires a POSIX shell; native Windows remains
+unverified.
 
 Tests keep Odin's default parallel execution and per-run random seed, which the
 runner reports for reproduction. The required lanes disable animated output,

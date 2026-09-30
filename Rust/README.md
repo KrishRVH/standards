@@ -80,20 +80,20 @@ The `tests/allow_policy.rs` integration test requires every Cargo workspace
 member, including the root package, to declare `[lints] workspace = true`.
 Excluded packages and external dependencies are outside that inheritance check.
 `rust:lint` also forces Clippy's bare-attribute rules on the command line. The
-same test parses
-every first-party Rust source with Rust token and attribute parsers and rejects
-outer, crate-inner, multiline, and `cfg_attr`-nested `#[allow]` attributes,
-including raw `r#allow` spellings and literal attributes inside macro bodies.
-It also rejects direct, repeated, and `cfg_attr`-nested attribute-metavariable
-emission. Fixed `#[doc = $description]` attributes remain legal because only
-their documentation value is forwarded. Stable source tokenization cannot reconstruct arbitrary declarative-
-or procedural-macro output, so a macro that synthesizes an `allow` from split
-or generated tokens remains a prohibited reviewer-owned wall bypass rather
-than a supported exception. Comments and strings containing attribute-shaped
-text remain legal, and vendored dependencies are outside this first-party
-policy. Generated/dependency directories such as `target/` and `vendor/` are
-excluded at each accepted workspace package root, so an ordinary nested source
-directory with the same basename cannot hide compiler inputs.
+same test parses every first-party Rust source with Rust token and attribute
+parsers and rejects outer, crate-inner, multiline, and `cfg_attr`-nested
+`#[allow]` attributes, including raw `r#allow` spellings and literal attributes
+inside macro bodies. It also rejects direct, repeated, and `cfg_attr`-nested
+attribute-metavariable emission. Fixed `#[doc = $description]` attributes remain
+legal because only their documentation value is forwarded. Stable source
+tokenization cannot reconstruct arbitrary declarative- or procedural-macro
+output, so a macro that synthesizes an `allow` from split or generated tokens
+remains a prohibited reviewer-owned wall bypass rather than a supported
+exception. Comments and strings containing attribute-shaped text remain legal,
+and vendored dependencies are outside this first-party policy.
+Generated/dependency directories such as `target/` and `vendor/` are excluded at
+each accepted workspace package root, so an ordinary nested source directory
+with the same basename cannot hide compiler inputs.
 Literal `include!` inputs are followed recursively regardless of extension;
 cycles are harmless. In-project source-file and directory symlinks are
 followed cycle-safely, and explicit Cargo lib/bin/test/example/bench and build

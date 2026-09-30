@@ -4,14 +4,14 @@
 		"builtin": true,
 		"es2024": true
 	},
+	"options": {
+		"denyWarnings": true
+	},
 	"categories": {
 		"correctness": "error",
 		"suspicious": "error"
 	},
 	"rules": {
 		"no-duplicate-imports": "error"
-	},
-	"options": {
-		"denyWarnings": true
 	}
 }

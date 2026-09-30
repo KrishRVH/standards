@@ -45,44 +45,6 @@ node_modules/
 /out/
 /sbom/
 
-# Godot
-/.godot/
-*.translation
-
-# JavaScript / TypeScript
-*.tsbuildinfo
-.eslintcache
-**/.stryker-tmp/
-**/reports/.stryker-mutation.lock/
-**/reports/mutation/
-**/reports/stryker-incremental.json
-/.angular/
-/.astro/
-/.next/
-/.nuxt/
-/.nyc_output/
-/.parcel-cache/
-/.svelte-kit/
-/.turbo/
-/.vite/
-
-# Python
-.basedpyright/
-.coverage
-.coverage.*
-.hypothesis/
-/.mutmut-run.lock/
-.mutmut-cache
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.venv/
-__pycache__/
-/mutants/
-*.py[codz]
-*.egg-info/
-/htmlcov/
-
 # mise
 mise.local.toml
 mise.*.local.toml
@@ -97,30 +59,13 @@ mise.*.local.lock
 /dagger/.turbo/
 /dagger/dist/
 
-# PHP
-/.phpstan.cache/
-/.phpunit.cache/
-/.phpunit.result.cache
-/composer.phar
-/var/cache/
-/var/log/
-
-# C# / .NET
-/.vs/
-/artifacts/
-**/TestResults/
-**/StrykerOutput/
-**/[Bb]in/[Dd]ebug/
-**/[Bb]in/[Rr]elease/
-**/[Oo]bj/
-*.nupkg
-*.pdb
-*.snupkg
-*.rsuser
-*.sln.docstates
-*.suo
-*.user
-*.userosscache
+# Ada / SPARK
+/alire/build_hash_inputs
+/alire/flags/
+/alire/settings.toml
+/config/*_config.ads
+/config/*_config.gpr
+/config/*_config.h
 
 # C / CMake
 /CMakeCache.txt
@@ -152,41 +97,22 @@ mise.*.local.lock
 *.so
 *.dSYM/
 
-# Rust
-/target/
-**/target/
-**/mutants.out/
-**/mutants.out.old/
-**/*.rs.bk
-
-# Lua
-.lua-language-server/
-.lua_modules/
-*.luac
-luac.out
-
-# Go
-*.test
-
-# Fortran
-*.mod
-!go.mod
-*.smod
-
-# Ada / SPARK
-/alire/build_hash_inputs
-/alire/flags/
-/alire/settings.toml
-/config/*_config.ads
-/config/*_config.gpr
-/config/*_config.h
-
-# JVM / Kotlin / Gradle
-/.gradle/
-/.kotlin/
-*.class
-hs_err_pid*
-replay_pid*
+# C# / .NET
+/.vs/
+/artifacts/
+**/TestResults/
+**/StrykerOutput/
+**/[Bb]in/[Dd]ebug/
+**/[Bb]in/[Rr]elease/
+**/[Oo]bj/
+*.nupkg
+*.pdb
+*.snupkg
+*.rsuser
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
 
 # Elixir / Erlang
 /_build/
@@ -200,6 +126,18 @@ rebar3.crashdump
 *.ez
 *.plt
 *.plt.hash
+
+# Fortran
+*.mod
+!go.mod
+*.smod
+
+# Go
+*.test
+
+# Godot
+/.godot/
+*.translation
 
 # Haskell
 /dist-newstyle/
@@ -216,6 +154,68 @@ cabal.project.local~
 *.prof
 *.tix
 *.eventlog
+
+# JavaScript / TypeScript
+*.tsbuildinfo
+.eslintcache
+**/.stryker-tmp/
+**/reports/.stryker-mutation.lock/
+**/reports/mutation/
+**/reports/stryker-incremental.json
+/.angular/
+/.astro/
+/.next/
+/.nuxt/
+/.nyc_output/
+/.parcel-cache/
+/.svelte-kit/
+/.turbo/
+/.vite/
+
+# JVM / Kotlin / Gradle
+/.gradle/
+/.kotlin/
+*.class
+hs_err_pid*
+replay_pid*
+
+# Lua
+.lua-language-server/
+.lua_modules/
+*.luac
+luac.out
+
+# PHP
+/.phpstan.cache/
+/.phpunit.cache/
+/.phpunit.result.cache
+/composer.phar
+/var/cache/
+/var/log/
+
+# Python
+.basedpyright/
+.coverage
+.coverage.*
+.hypothesis/
+/.mutmut-run.lock/
+.mutmut-cache
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+/mutants/
+*.py[codz]
+*.egg-info/
+/htmlcov/
+
+# Rust
+/target/
+**/target/
+**/mutants.out/
+**/mutants.out.old/
+**/*.rs.bk
 
 # Zig
 /.zig-cache/

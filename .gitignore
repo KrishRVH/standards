@@ -51,52 +51,6 @@ node_modules/
 **/out/
 **/sbom/
 
-# Godot generated output
-/.godot/
-**/.godot/
-*.translation
-
-# JavaScript / TypeScript
-*.tsbuildinfo
-.eslintcache
-**/.stryker-tmp/
-**/reports/.stryker-mutation.lock/
-**/reports/mutation/
-**/reports/stryker-incremental.json
-/.angular/
-/.astro/
-/.next/
-/.nuxt/
-/.nyc_output/
-/.parcel-cache/
-/.svelte-kit/
-/.turbo/
-/.vite/
-
-# Python generated output
-.basedpyright/
-.coverage
-.coverage.*
-.hypothesis/
-.mutmut-cache
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.venv/
-__pycache__/
-/mutants/
-*.py[codz]
-*.egg-info/
-/htmlcov/
-/testers/**/.coverage
-/testers/**/.mypy_cache/
-/testers/**/.pytest_cache/
-/testers/**/.ruff_cache/
-/testers/**/.venv/
-/testers/**/__pycache__/
-/testers/**/*.egg-info/
-/testers/**/htmlcov/
-
 # mise local state
 mise.local.toml
 mise.*.local.toml
@@ -113,35 +67,19 @@ mise.*.local.lock
 /testers/**/dagger/.turbo/
 /testers/**/dagger/dist/
 
-# PHP generated output
-/.phpstan.cache/
-/.phpunit.cache/
-/.phpunit.result.cache
-/composer.phar
-/var/cache/
-/var/log/
-/testers/**/.phpstan.cache/
-/testers/**/.phpunit.cache/
-/testers/**/.phpunit.result.cache
-/testers/**/var/cache/
-/testers/**/var/log/
-
-# C# / .NET generated output
-/.vs/
-/artifacts/
-**/TestResults/
-**/StrykerOutput/
-**/[Bb]in/[Dd]ebug/
-**/[Bb]in/[Rr]elease/
-**/[Oo]bj/
-*.nupkg
-*.pdb
-*.snupkg
-*.rsuser
-*.sln.docstates
-*.suo
-*.user
-*.userosscache
+# Ada / SPARK generated output
+/alire/build_hash_inputs
+/alire/flags/
+/alire/settings.toml
+/config/*_config.ads
+/config/*_config.gpr
+/config/*_config.h
+/testers/**/alire/build_hash_inputs
+/testers/**/alire/flags/
+/testers/**/alire/settings.toml
+/testers/**/config/*_config.ads
+/testers/**/config/*_config.gpr
+/testers/**/config/*_config.h
 
 # C / CMake generated output
 /CMakeCache.txt
@@ -181,51 +119,22 @@ mise.*.local.lock
 /testers/**/cmake_install.cmake
 /testers/**/compile_commands.json
 
-# Rust
-/target/
-**/target/
-**/mutants.out/
-**/mutants.out.old/
-**/*.rs.bk
-
-# Lua generated output
-.lua-language-server/
-.lua_modules/
-*.luac
-luac.out
-/testers/**/.lua-language-server/
-/testers/**/.lua_modules/
-
-# Go generated output
-*.test
-
-# Fortran generated output
-*.mod
-!go.mod
-*.smod
-
-# Ada / SPARK generated output
-/alire/build_hash_inputs
-/alire/flags/
-/alire/settings.toml
-/config/*_config.ads
-/config/*_config.gpr
-/config/*_config.h
-/testers/**/alire/build_hash_inputs
-/testers/**/alire/flags/
-/testers/**/alire/settings.toml
-/testers/**/config/*_config.ads
-/testers/**/config/*_config.gpr
-/testers/**/config/*_config.h
-
-# JVM / Kotlin / Gradle generated output
-/.gradle/
-/.kotlin/
-**/.gradle/
-**/.kotlin/
-*.class
-hs_err_pid*
-replay_pid*
+# C# / .NET generated output
+/.vs/
+/artifacts/
+**/TestResults/
+**/StrykerOutput/
+**/[Bb]in/[Dd]ebug/
+**/[Bb]in/[Rr]elease/
+**/[Oo]bj/
+*.nupkg
+*.pdb
+*.snupkg
+*.rsuser
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
 
 # Elixir / Erlang generated output
 /_build/
@@ -248,6 +157,19 @@ rebar3.crashdump
 /testers/**/deps/
 /testers/**/.elixir_ls/
 
+# Fortran generated output
+*.mod
+!go.mod
+*.smod
+
+# Go generated output
+*.test
+
+# Godot generated output
+/.godot/
+**/.godot/
+*.translation
+
 # Haskell generated output
 /dist-newstyle/
 /.stack-work/
@@ -265,6 +187,84 @@ cabal.project.local~
 *.prof
 *.tix
 *.eventlog
+
+# JavaScript / TypeScript
+*.tsbuildinfo
+.eslintcache
+**/.stryker-tmp/
+**/reports/.stryker-mutation.lock/
+**/reports/mutation/
+**/reports/stryker-incremental.json
+/.angular/
+/.astro/
+/.next/
+/.nuxt/
+/.nyc_output/
+/.parcel-cache/
+/.svelte-kit/
+/.turbo/
+/.vite/
+
+# JVM / Kotlin / Gradle generated output
+/.gradle/
+/.kotlin/
+**/.gradle/
+**/.kotlin/
+*.class
+hs_err_pid*
+replay_pid*
+
+# Lua generated output
+.lua-language-server/
+.lua_modules/
+*.luac
+luac.out
+/testers/**/.lua-language-server/
+/testers/**/.lua_modules/
+
+# PHP generated output
+/.phpstan.cache/
+/.phpunit.cache/
+/.phpunit.result.cache
+/composer.phar
+/var/cache/
+/var/log/
+/testers/**/.phpstan.cache/
+/testers/**/.phpunit.cache/
+/testers/**/.phpunit.result.cache
+/testers/**/var/cache/
+/testers/**/var/log/
+
+# Python generated output
+.basedpyright/
+.coverage
+.coverage.*
+.hypothesis/
+.mutmut-cache
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+/mutants/
+*.py[codz]
+*.egg-info/
+/htmlcov/
+/testers/**/.coverage
+/testers/**/.mypy_cache/
+/testers/**/.pytest_cache/
+/testers/**/.ruff_cache/
+/testers/**/.venv/
+/testers/**/__pycache__/
+/testers/**/*.egg-info/
+/testers/**/htmlcov/
+
+# Rust
+/target/
+**/target/
+**/mutants.out/
+**/mutants.out.old/
+**/*.rs.bk
 
 # Zig generated output
 /.zig-cache/

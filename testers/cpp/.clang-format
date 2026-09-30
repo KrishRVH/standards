@@ -1,39 +1,46 @@
 BasedOnStyle: LLVM
 Language: Cpp
-InsertNewlineAtEOF: true
 
+ColumnLimit: 100
 IndentWidth: 4
+ContinuationIndentWidth: 8
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 100
-ContinuationIndentWidth: 8
-IndentCaseLabels: true
-IndentPPDirectives: None
 
-BreakBeforeBraces: Attach
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Inline
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+AlignOperands: Align
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
-
-BinPackParameters: false
 BinPackArguments: false
+BinPackParameters: false
 BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: true
-SpaceBeforeParens: ControlStatements
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-SpacesInAngles: Never
-SpaceInEmptyParentheses: false
 
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+
+FixNamespaceComments: true
+NamespaceIndentation: None
+
+Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 PointerAlignment: Left
 ReferenceAlignment: Left
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: Never
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
 
-SortIncludes: CaseSensitive
+IndentPPDirectives: None
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<.*\.h>'
@@ -42,18 +49,10 @@ IncludeCategories:
     Priority: 2
   - Regex: '^".*"'
     Priority: 3
+SortIncludes: CaseSensitive
 
-NamespaceIndentation: None
-FixNamespaceComments: true
-
-AlignAfterOpenBracket: Align
-AlignOperands: Align
-AlignConsecutiveAssignments: None
-AlignConsecutiveDeclarations: None
-AlignEscapedNewlines: Left
-
-MaxEmptyLinesToKeep: 1
+InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false
-SeparateDefinitionBlocks: Leave
-Cpp11BracedListStyle: true
+MaxEmptyLinesToKeep: 1
 ReflowComments: false
+SeparateDefinitionBlocks: Leave

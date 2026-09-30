@@ -23,15 +23,15 @@ alr -n exec -- gnatformat --version
 description = "Check SPARK/Ada manifest and source policy"
 run = "scripts/check-alire.sh manifest"
 
-[tasks."spark:lock:check"]
-description = "Validate the committed Alire lockfile without updating it"
-depends = ["spark:manifest"]
-run = "scripts/check-alire.sh lock"
-
 [tasks."spark:lock:update"]
 description = "Refresh the Alire lockfile from current indexes"
 depends = ["spark:manifest"]
 run = "alr -n update --online"
+
+[tasks."spark:lock:check"]
+description = "Validate the committed Alire lockfile without updating it"
+depends = ["spark:manifest"]
+run = "scripts/check-alire.sh lock"
 
 [tasks."spark:fmt"]
 description = "Format SPARK/Ada source"

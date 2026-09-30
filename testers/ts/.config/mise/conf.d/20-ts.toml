@@ -115,6 +115,10 @@ description = "Run the TypeScript/JavaScript standards workflow with autofixes"
 depends = ["ts:install"]
 run = "bun run standards"
 
+[tasks."ts:standards:check"]
+description = "Run the TypeScript/JavaScript standards CI gate"
+depends = ["ts:mutants"]
+
 [tasks."ts:standards:secondary"]
 description = "Run the secondary ESLint and Prettier workflow with autofixes"
 depends = ["ts:install"]
@@ -124,7 +128,3 @@ run = "bun run standards:secondary"
 description = "Check the secondary ESLint and Prettier workflow"
 depends = ["ts:install"]
 run = "bun run standards:secondary:check"
-
-[tasks."ts:standards:check"]
-description = "Run the TypeScript/JavaScript standards CI gate"
-depends = ["ts:mutants"]
