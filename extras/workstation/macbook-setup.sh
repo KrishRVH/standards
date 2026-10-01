@@ -724,13 +724,12 @@ _host_rest="${PATH-}:"
 _host_path=:
 _host_tail=:
 # Insert fallbacks before the system search path, retaining any caller prefix.
-# On WSL this also avoids searching Windows directories for native tools.
 while [ -n "$_host_rest" ]; do
     _host_entry="${_host_rest%%:*}"
     _host_rest="${_host_rest#*:}"
     [ "$_host_entry" != "$_host_shims" ] || continue
     case "$_host_entry" in
-        /usr/local/bin | /usr/local/sbin | /usr/bin | /usr/sbin | /bin | /sbin | /System/* | /mnt/[a-z]/*)
+        /usr/local/bin | /usr/local/sbin | /usr/bin | /usr/sbin | /bin | /sbin | /System/*)
             _host_tail=":$_host_entry:$_host_rest"
             break ;;
         *) _host_path="$_host_path$_host_entry:" ;;
