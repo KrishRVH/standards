@@ -13,7 +13,7 @@ description = "Check C++ source formatting"
 run = "./cpp-format.sh check"
 
 [tasks."cpp:lint"]
-description = "Run clangd semantic and clang-tidy checks"
+description = "Run clang-tidy on every translation unit and clangd on each header"
 run = ["cmake --preset clang", "./cpp-quality.sh . build/clang"]
 
 [tasks."cpp:test"]

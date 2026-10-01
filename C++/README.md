@@ -33,8 +33,8 @@ them for header guards and unavoidable platform or build boundaries.
 Use `.cpp` for implementations and `.h` for interfaces. Public headers are
 self-contained, include what they use, and use a deterministic guard derived
 from their installed include path. An implementation includes its own header
-first. The semantic check parses sources and headers so missing header
-dependencies and semantic diagnostics fail close to their declarations.
+first. The lint gate also parses each header on its own, so a missing header
+dependency fails close to its declaration.
 
 ## API contracts
 
@@ -141,16 +141,17 @@ mise run cpp:msvc
 mise run cpp:standards:check
 ```
 
-`cpp:lint` runs `clangd --check --clang-tidy`, which parses every source and
-header with the project's compile flags. The clang-tidy profile curates
-bugprone, CERT, C++ Core Guidelines, modernize, performance, portability,
-readability, and selected Google checks, removes known noisy rules, and blocks
-on every remaining finding. `cpp:test` builds with warnings as errors and runs pinned LLVM
-`clang++` Debug with ASan/UBSan and an optimized Release build. It also
-installs the CMake package config and verifies that a tiny external CMake
-consumer can link `cpp_project::library`. `cpp:standards:check` runs
-formatting alongside lint, then the tests; lint and tests share
-`build/clang`, so they run in turn.
+`cpp:lint` runs `run-clang-tidy` over every translation unit in the
+`build/clang` compilation database, then `clangd --check` on each header with
+interpolated compile flags. clangd alone skips some clang-tidy checks, including
+the Clang Static Analyzer. The clang-tidy profile curates bugprone, CERT, C++
+Core Guidelines, modernize, performance, portability, readability, and selected
+Google checks, removes known noisy rules, and blocks on every remaining finding.
+`cpp:test` builds with warnings as errors and runs pinned LLVM `clang++` Debug
+with ASan/UBSan and an optimized Release build. It also installs the CMake
+package config and verifies that a tiny external CMake consumer can link
+`cpp_project::library`. `cpp:standards:check` runs formatting alongside lint,
+then the tests; lint and tests share `build/clang`, so they run in turn.
 
 `cpp:portability` is an explicit opt-in for GCC and MinGW compilers already
 installed on the host.

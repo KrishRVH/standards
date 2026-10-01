@@ -25,7 +25,8 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers
 WarningsAsErrors: '*'
-HeaderFilterRegex: '^(include|src|tests)/.*\.(h|hh|hpp|hxx|cc|cpp|cxx|ixx|cppm)$'
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '(^|[/\\])(build|vendor|third_party|external)([/\\]|$)'
 FormatStyle: file
 CheckOptions:
   readability-identifier-naming.DefaultCase: lower_case

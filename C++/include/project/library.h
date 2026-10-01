@@ -1,5 +1,5 @@
-#ifndef PROJECT_LIBRARY_H_
-#define PROJECT_LIBRARY_H_
+#ifndef PROJECT_LIBRARY_H
+#define PROJECT_LIBRARY_H
 
 namespace project {
 
@@ -12,4 +12,4 @@ namespace project {
 
 } // namespace project
 
-#endif // PROJECT_LIBRARY_H_
+#endif // PROJECT_LIBRARY_H
