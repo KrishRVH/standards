@@ -5,25 +5,24 @@ import { InvalidCheckPolicy, maximumEndpoints } from './endpoint-contracts.js';
 const maximumPolicyMilliseconds = 3_600_000;
 const maximumRetries = 5;
 
-const PolicyMilliseconds = Schema.Number.pipe(Schema.int(), Schema.between(1, maximumPolicyMilliseconds));
-const RetryDelayMilliseconds = Schema.Number.pipe(
-  Schema.int(),
-  Schema.between(0, maximumPolicyMilliseconds),
-  Schema.filter((milliseconds) => !Object.is(milliseconds, -0), {
+const PolicyMilliseconds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: maximumPolicyMilliseconds }));
+const RetryDelayMilliseconds = Schema.Int.check(
+  Schema.isBetween({ minimum: 0, maximum: maximumPolicyMilliseconds }),
+  Schema.makeFilter((milliseconds) => !Object.is(milliseconds, -0), {
     description: 'a non-negative millisecond count excluding negative zero',
   }),
 );
 
 export const CheckPolicyInput = Schema.Struct({
-  allowedOrigins: Schema.NonEmptyArray(Schema.String).pipe(Schema.maxItems(maximumEndpoints)),
+  allowedOrigins: Schema.NonEmptyArray(Schema.String).check(Schema.isMaxLength(maximumEndpoints)),
   attemptTimeoutMilliseconds: PolicyMilliseconds,
-  concurrency: Schema.Number.pipe(Schema.int(), Schema.between(1, maximumEndpoints)),
-  retries: Schema.Number.pipe(Schema.int(), Schema.between(0, maximumRetries)),
+  concurrency: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: maximumEndpoints })),
+  retries: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: maximumRetries })),
   retryDelayMilliseconds: RetryDelayMilliseconds,
   totalDeadlineMilliseconds: PolicyMilliseconds,
 });
 
-export type CheckPolicyInput = Schema.Schema.Type<typeof CheckPolicyInput>;
+export type CheckPolicyInput = typeof CheckPolicyInput.Type;
 
 export interface CheckedPolicy {
   readonly allowedOrigins: ReadonlySet<string>;
@@ -90,17 +89,18 @@ function normalizePolicy(input: CheckPolicyInput): PolicyNormalization {
   };
 }
 
-export const decodeCheckPolicy = Effect.fn('project-name/endpoint-checker.decode-policy')((input: unknown) =>
-  Schema.decodeUnknown(CheckPolicyInput, { onExcessProperty: 'error' })(input).pipe(
+const decodePolicyInput = Schema.decodeUnknownEffect(CheckPolicyInput, { onExcessProperty: 'error' });
+
+export const decodeCheckPolicy = Effect.fn('project-name/endpoint-checker.decode-policy')(function* (input: unknown) {
+  const decoded = yield* decodePolicyInput(input).pipe(
     Effect.mapError(
       () => new InvalidCheckPolicy({ reason: 'policy input does not match the bounded configuration schema' }),
     ),
-    Effect.flatMap((decoded) => {
-      const normalized = normalizePolicy(decoded);
+  );
+  const normalized = normalizePolicy(decoded);
+  if (normalized._tag === 'Invalid') {
+    return yield* new InvalidCheckPolicy({ reason: normalized.reason });
+  }
 
-      return normalized._tag === 'Valid'
-        ? Effect.succeed(normalized.policy)
-        : Effect.fail(new InvalidCheckPolicy({ reason: normalized.reason }));
-    }),
-  ),
-);
+  return normalized.policy;
+});

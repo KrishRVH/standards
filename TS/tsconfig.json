@@ -33,7 +33,7 @@
           "anyUnknownInErrorContext": "error",
           "asyncFunction": "off",
           "cryptoRandomUUID": "off",
-          "cryptoRandomUUIDInEffect": "off",
+          "cryptoRandomUUIDInEffect": "error",
           "effectFnIife": "suggestion",
           "effectGenUsesAdapter": "error",
           "effectInFailure": "error",
@@ -54,17 +54,15 @@
           "layerMergeAllWithDependencies": "error",
           "lazyPromiseInEffectSync": "error",
           "leakingRequirements": "suggestion",
-          "missingEffectServiceDependency": "error",
           "multipleEffectProvide": "error",
           "newPromise": "off",
           "nodeBuiltinImport": "off",
+          "outdatedApi": "error",
           "preferSchemaOverJson": "suggestion",
           "processEnv": "off",
           "processEnvInEffect": "error",
           "returnEffectInGen": "error",
           "runEffectInsideEffect": "error",
-          "schemaSyncInEffect": "error",
-          "scopeInLayerEffect": "error",
           "strictEffectProvide": "off",
           "unknownInEffectCatch": "error",
           "unsafeEffectTypeAssertion": "error"
@@ -81,6 +79,6 @@
     "useUnknownInCatchVariables": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*", "tests/**/*", "types/**/*"],
   "exclude": ["build", "coverage", "dist", "node_modules"]
 }

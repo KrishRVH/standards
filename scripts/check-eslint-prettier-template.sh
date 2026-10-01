@@ -37,6 +37,7 @@ cp -R \
   "${PROFILE_ROOT}/tests" \
   "${PROFILE_ROOT}/tsconfig.json" \
   "${PROFILE_ROOT}/type-tests" \
+  "${PROFILE_ROOT}/types" \
   "${SCRATCH_ROOT}/"
 
 mkdir -p "${SCRATCH_ROOT}/.config/mise/conf.d"

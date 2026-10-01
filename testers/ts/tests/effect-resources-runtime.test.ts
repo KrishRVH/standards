@@ -1,21 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-  Cause,
-  Context,
-  Data,
-  Deferred,
-  Effect,
-  Exit,
-  Fiber,
-  Layer,
-  ManagedRuntime,
-  Option,
-  Ref,
-  TestClock,
-  TestContext,
-} from 'effect';
-
-import { waitForScheduledSleep } from './support/test-clock.js';
+import { Cause, Context, Data, Deferred, Effect, Exit, Fiber, Layer, ManagedRuntime, Option, Ref } from 'effect';
 
 class UseFailure extends Data.TaggedError('UseFailure') {}
 
@@ -23,36 +7,36 @@ interface BaseService {
   readonly source: string;
 }
 
-class Base extends Context.Tag('@standards/tests/Base')<Base, BaseService>() {}
+class Base extends Context.Service<Base, BaseService>()('@standards/tests/Base') {}
 
 interface DependentService {
   readonly baseSource: string;
 }
 
-class Dependent extends Context.Tag('@standards/tests/Dependent')<Dependent, DependentService>() {}
+class Dependent extends Context.Service<Dependent, DependentService>()('@standards/tests/Dependent') {}
 
 interface LeftService {
   readonly value: string;
 }
 
-class Left extends Context.Tag('@standards/tests/Left')<Left, LeftService>() {}
+class Left extends Context.Service<Left, LeftService>()('@standards/tests/Left') {}
 
 interface RightService {
   readonly value: string;
 }
 
-class Right extends Context.Tag('@standards/tests/Right')<Right, RightService>() {}
+class Right extends Context.Service<Right, RightService>()('@standards/tests/Right') {}
 
-class DuplicateKeyA extends Context.Tag('@standards/tests/Duplicate')<DuplicateKeyA, LeftService>() {}
+class DuplicateKeyA extends Context.Service<DuplicateKeyA, LeftService>()('@standards/tests/Duplicate') {}
 
-class DuplicateKeyB extends Context.Tag('@standards/tests/Duplicate')<DuplicateKeyB, RightService>() {}
+class DuplicateKeyB extends Context.Service<DuplicateKeyB, RightService>()('@standards/tests/Duplicate') {}
 
 test('duplicate service identifiers alias the same runtime Context entry', () => {
   const context = Context.make(DuplicateKeyA, { value: 'from-a' });
 
-  // unsafeGet deliberately bypasses the distinct static tag identities to
+  // getUnsafe deliberately bypasses the distinct static service identities to
   // expose the runtime string-key collision this contract guards against.
-  expect(Context.unsafeGet(context, DuplicateKeyB)).toEqual({ value: 'from-a' });
+  expect(Context.getUnsafe(context, DuplicateKeyB)).toEqual({ value: 'from-a' });
 });
 
 test('acquireRelease finalizes after success', async () => {
@@ -88,8 +72,8 @@ test('acquireRelease finalizes after typed failure', async () => {
   expect(releases).toBe(1);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('UseFailure');
-    expect(Array.from(Cause.defects(exit.cause))).toEqual([]);
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('UseFailure');
+    expect(Cause.hasDies(exit.cause)).toBe(false);
   }
 });
 
@@ -104,12 +88,14 @@ test('acquireRelease finalizes after interruption', async () => {
         Effect.flatMap(() => Effect.never),
         Effect.scoped,
       );
-      const fiber = yield* Effect.fork(resource);
+      const fiber = yield* Effect.forkChild(resource);
 
       yield* Deferred.await(acquired);
 
+      yield* Fiber.interrupt(fiber);
+
       return {
-        exit: yield* Fiber.interrupt(fiber),
+        exit: yield* Fiber.await(fiber),
         releases: yield* Ref.get(releases),
       };
     }),
@@ -118,56 +104,63 @@ test('acquireRelease finalizes after interruption', async () => {
   expect(result.releases).toBe(1);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Cause.isInterruptedOnly(result.exit.cause)).toBe(true);
+    expect(Cause.hasInterruptsOnly(result.exit.cause)).toBe(true);
   }
 });
 
+// The finalizer waits on a gate instead of virtual time: the pinned TestClock
+// forks its warning fiber interruptibly, so a pending interrupt can end a
+// virtual sleep inside an otherwise uninterruptible finalizer.
 test('a slow finalizer delays the interrupted Exit until release completes', async () => {
   const result = await Effect.runPromise(
     Effect.gen(function* () {
       const acquired = yield* Deferred.make<undefined>();
       const finalizerStarted = yield* Deferred.make<undefined>();
+      const finishRelease = yield* Deferred.make<undefined>();
       const releases = yield* Ref.make(0);
       const resource = Effect.acquireRelease(Deferred.succeed(acquired, undefined).pipe(Effect.as('resource')), () =>
         Deferred.succeed(finalizerStarted, undefined).pipe(
-          Effect.zipRight(Effect.sleep('5 seconds')),
-          Effect.zipRight(Ref.update(releases, (count) => count + 1)),
+          Effect.andThen(Deferred.await(finishRelease)),
+          Effect.andThen(Ref.update(releases, (count) => count + 1)),
         ),
       ).pipe(
         Effect.flatMap(() => Effect.never),
         Effect.scoped,
       );
-      const resourceFiber = yield* Effect.fork(resource);
+      const resourceFiber = yield* Effect.forkChild(resource);
 
       yield* Deferred.await(acquired);
 
-      const interruptFiber = yield* Effect.fork(Fiber.interrupt(resourceFiber));
+      const interruptFiber = yield* Effect.forkChild(Fiber.interrupt(resourceFiber));
 
       yield* Deferred.await(finalizerStarted);
-      yield* waitForScheduledSleep(5_000);
-      yield* TestClock.adjust('4 seconds');
+      yield* Effect.yieldNow;
 
-      const beforeDeadline = yield* Fiber.poll(interruptFiber);
+      const beforeRelease = {
+        interruption: interruptFiber.pollUnsafe(),
+        resource: resourceFiber.pollUnsafe(),
+      };
 
-      yield* TestClock.adjust('1 second');
+      yield* Deferred.succeed(finishRelease, undefined);
+      yield* Fiber.join(interruptFiber);
 
       return {
-        beforeDeadline,
-        exit: yield* Fiber.join(interruptFiber),
+        beforeRelease,
+        exit: yield* Fiber.await(resourceFiber),
         releases: yield* Ref.get(releases),
       };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }),
   );
 
-  expect(Option.isNone(result.beforeDeadline)).toBe(true);
+  expect(result.beforeRelease).toEqual({ interruption: undefined, resource: undefined });
   expect(result.releases).toBe(1);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Cause.isInterruptedOnly(result.exit.cause)).toBe(true);
+    expect(Cause.hasInterruptsOnly(result.exit.cause)).toBe(true);
   }
 });
 
-test('a finalizer defect is retained sequentially with the use failure', async () => {
+test('a finalizer defect is retained after the use failure', async () => {
   const exit = await Effect.runPromiseExit(
     Effect.acquireRelease(Effect.succeed('resource'), () => Effect.die('release-defect')).pipe(
       Effect.flatMap(() => Effect.fail(new UseFailure())),
@@ -177,9 +170,9 @@ test('a finalizer defect is retained sequentially with the use failure', async (
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isSequentialType(exit.cause)).toBe(true);
-    expect(Array.from(Cause.failures(exit.cause), (failure) => failure._tag)).toEqual(['UseFailure']);
-    expect(Array.from(Cause.defects(exit.cause))).toEqual(['release-defect']);
+    expect(exit.cause.reasons.map(({ _tag }) => _tag)).toEqual(['Fail', 'Die']);
+    expect(exit.cause.reasons.filter(Cause.isFailReason).map(({ error }) => error._tag)).toEqual(['UseFailure']);
+    expect(exit.cause.reasons.filter(Cause.isDieReason).map(({ defect }) => defect)).toEqual(['release-defect']);
   }
 });
 
@@ -204,7 +197,7 @@ test('mergeAll sibling output does not satisfy a sibling dependency', async () =
 test('a shared root layer acquires once and ManagedRuntime disposes it once', async () => {
   let acquisitions = 0;
   let releases = 0;
-  const baseLive = Layer.scoped(
+  const baseLive = Layer.effect(
     Base,
     Effect.acquireRelease(
       Effect.sync(() => {
@@ -258,7 +251,7 @@ test('ManagedRuntime AbortSignal interrupts a runtime-run Effect', async () => {
       Effect.sync(() => {
         started.resolve(undefined);
       }).pipe(
-        Effect.zipRight(Effect.never),
+        Effect.andThen(Effect.never),
         Effect.onInterrupt(() =>
           Effect.sync(() => {
             interruptions += 1;
@@ -276,14 +269,14 @@ test('ManagedRuntime AbortSignal interrupts a runtime-run Effect', async () => {
     expect(interruptions).toBe(1);
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+      expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
     }
   } finally {
     await runtime.dispose();
   }
 });
 
-test('disposing ManagedRuntime does not supervise a runFork fiber', async () => {
+test('disposing ManagedRuntime interrupts a fiber it forked without observing its result', async () => {
   const runtime = ManagedRuntime.make(Layer.empty);
   const started = Promise.withResolvers<undefined>();
   let interruptions = 0;
@@ -291,7 +284,7 @@ test('disposing ManagedRuntime does not supervise a runFork fiber', async () => 
     Effect.sync(() => {
       started.resolve(undefined);
     }).pipe(
-      Effect.zipRight(Effect.never),
+      Effect.andThen(Effect.never),
       Effect.onInterrupt(() =>
         Effect.sync(() => {
           interruptions += 1;
@@ -301,18 +294,20 @@ test('disposing ManagedRuntime does not supervise a runFork fiber', async () => 
   );
 
   await started.promise;
+  expect(fiber.pollUnsafe()).toBeUndefined();
+
   await runtime.dispose();
 
-  try {
-    const afterDispose = await Effect.runPromise(Fiber.poll(fiber));
-
-    expect(Option.isNone(afterDispose)).toBe(true);
-    expect(interruptions).toBe(0);
-  } finally {
-    await Effect.runPromise(Fiber.interrupt(fiber));
-  }
+  const exit = fiber.pollUnsafe();
 
   expect(interruptions).toBe(1);
+  expect(exit).toBeDefined();
+  if (exit !== undefined) {
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+    }
+  }
 });
 
 test('top-level runFork remains live until its returned fiber is interrupted', async () => {
@@ -322,7 +317,7 @@ test('top-level runFork remains live until its returned fiber is interrupted', a
     Effect.sync(() => {
       started.resolve(undefined);
     }).pipe(
-      Effect.zipRight(Effect.never),
+      Effect.andThen(Effect.never),
       Effect.onInterrupt(() =>
         Effect.sync(() => {
           interruptions += 1;
@@ -334,9 +329,7 @@ test('top-level runFork remains live until its returned fiber is interrupted', a
   await started.promise;
 
   try {
-    const beforeInterrupt = await Effect.runPromise(Fiber.poll(fiber));
-
-    expect(Option.isNone(beforeInterrupt)).toBe(true);
+    expect(fiber.pollUnsafe()).toBeUndefined();
     expect(interruptions).toBe(0);
   } finally {
     await Effect.runPromise(Fiber.interrupt(fiber));

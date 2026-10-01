@@ -17,9 +17,10 @@ Keep three lifetimes distinct:
   durable external queue or service, not an in-memory fiber.
 
 Construct one application `ManagedRuntime` outside render. Dispose it at the
-application lifetime boundary. `ManagedRuntime.runFork` starts a fiber but does
-not by itself provide task registration, failure observation, or shutdown
-policy; transferred tasks use the scoped application supervisor.
+application lifetime boundary. `ManagedRuntime.runFork` starts a fiber in the
+runtime's fiber scope, so disposal interrupts it, but nothing registers,
+observes, or publishes its result; transferred tasks use the scoped
+application supervisor.
 
 ## Operation controller semantics
 

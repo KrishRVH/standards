@@ -44,8 +44,10 @@ Event/log/span context and metric dimensions are not interchangeable: a
 resource identifier that is safe in an event can still be too high-cardinality
 as a metric label.
 
-When an exporter is adopted, acquire it in a scoped layer, make propagation
-explicit, bound its queues, and give shutdown flushing a liveness budget. A
+Effect 4 ships OTLP exporters in `effect/observability`; `@effect/opentelemetry`
+integrates an existing OpenTelemetry SDK. When an exporter is adopted, acquire
+it in a layer whose release flushes it, make propagation explicit, bound its
+queues, and give shutdown flushing a liveness budget. A
 failed exporter must not recursively generate unbounded telemetry. Tests capture
 the safe projection before the real exporter and assert both retained
 classification and forbidden substrings.

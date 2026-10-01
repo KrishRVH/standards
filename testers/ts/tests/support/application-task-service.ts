@@ -10,19 +10,15 @@ export const makeApplicationTaskService = (
   observeFailure: ApplicationTaskFailureObserver,
 ): Effect.Effect<ApplicationTaskService, never, Scope.Scope> =>
   Effect.gen(function* () {
-    const fibers = yield* FiberSet.make<undefined, never>();
+    const fibers = yield* FiberSet.make();
 
     return {
       start: (task) =>
         FiberSet.run(
           fibers,
           task.pipe(
-            Effect.as(undefined),
-            Effect.catchAllCause((cause) =>
-              Cause.isInterruptedOnly(cause)
-                ? Effect.succeed(undefined)
-                : observeFailure(cause).pipe(Effect.as(undefined)),
-            ),
+            Effect.asVoid,
+            Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : observeFailure(cause))),
           ),
         ).pipe(Effect.asVoid),
     };

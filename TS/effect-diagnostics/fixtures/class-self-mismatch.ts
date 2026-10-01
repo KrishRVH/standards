@@ -1,9 +1,11 @@
-import * as Effect from 'effect/Effect';
+import { Context } from 'effect';
 
 interface ServiceShape {
   readonly value: number;
 }
 
-export class InvalidContextTag extends Effect.Tag('ValidContextTag')<ValidContextTag, ServiceShape>() {}
+export class InvalidContextService extends Context.Service<ValidContextService, ServiceShape>()(
+  'ValidContextService',
+) {}
 
-declare class ValidContextTag {}
+declare class ValidContextService {}

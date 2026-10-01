@@ -102,17 +102,17 @@ const projectCause = <E>(
   projectExpected: (error: E) => SafeFailureDiagnostic,
   defectOperation: string,
 ): Option.Option<SafeFailureDiagnostic> => {
-  if (Cause.isInterruptedOnly(cause)) {
+  if (Cause.hasInterruptsOnly(cause)) {
     return Option.none();
   }
-  if (Array.from(Cause.defects(cause)).length > 0) {
+  if (Cause.hasDies(cause)) {
     return Option.some({
       failureKind: 'internal-defect',
       operation: defectOperation,
     });
   }
 
-  return Option.map(Cause.failureOption(cause), projectExpected);
+  return Option.map(Cause.findErrorOption(cause), projectExpected);
 };
 
 export const observeFailureAtBoundary = <A, E, R>(
@@ -121,7 +121,7 @@ export const observeFailureAtBoundary = <A, E, R>(
   observe: (diagnostic: SafeFailureDiagnostic) => Effect.Effect<void>,
   defectOperation = 'unclassified-operation',
 ): Effect.Effect<A, E, R> =>
-  Effect.tapErrorCause(effect, (cause) =>
+  Effect.tapCause(effect, (cause) =>
     Option.match(projectCause(cause, projectExpected, defectOperation), {
       onNone: () => Effect.void,
       onSome: observe,

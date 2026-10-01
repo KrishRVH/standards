@@ -11,7 +11,10 @@ published Schema identifiers as protocol identifiers with an explicit
 compatibility policy. A private `Data.TaggedError` name is not automatically a
 permanent wire commitment. Document whether Effect and platform packages are
 peer dependencies or implementation dependencies and test the supported
-version range rather than only the newest installation.
+version range rather than only the newest installation. `effect` and its
+lockstep `@effect/*` runtime packages share one version, so declare those
+peers with matching ranges. An API marked `@stability unstable` may change in a minor
+release; re-export it only under a matching compatibility promise.
 
 ## Runtime neutrality
 

@@ -9,12 +9,9 @@ const main = Effect.acquireRelease(
     Effect.sync(() => {
       process.stdout.write('FINALIZED\n');
     }),
-).pipe(Effect.zipRight(Effect.never), Effect.scoped);
+).pipe(Effect.andThen(Effect.never), Effect.scoped);
 
-BunRuntime.runMain(main, {
-  disableErrorReporting: true,
-  disablePrettyLogger: true,
-});
+BunRuntime.runMain(main, { disableErrorReporting: true });
 
 // `runMain` registers SIGINT/SIGTERM handlers before it returns. The parent
 // waits for this marker so it cannot signal during synchronous acquisition.

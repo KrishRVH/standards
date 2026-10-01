@@ -471,7 +471,7 @@ test('static analysis and mutation use the complete application source extension
   expect(mutationPatterns).toContain(`'${compositionRootGlob}'`);
   expect(stryker).toContain('concurrency: 4');
   expect(stryker).toContain('timeoutMS: 30000');
-  expect(stryker).toContain("bun: { env: { STANDARDS_STRYKER_SANDBOX: '1' }, timeout: 60000, testFiles }");
+  expect(stryker).toContain('bun: { timeout: 60000, testFiles }');
   expect(stryker).toContain("globSync('tests/**/*.test.{cts,mts,ts,tsx}')");
 });
 

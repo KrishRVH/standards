@@ -1,6 +1,6 @@
 import { Context, Layer } from 'effect';
 
-class A extends Context.Tag('@effect-diagnostics/A')<A, { readonly value: number }>() {}
+class A extends Context.Service<A, { readonly value: number }>()('@effect-diagnostics/A') {}
 
 declare const layer: Layer.Layer<A, never, A>;
 

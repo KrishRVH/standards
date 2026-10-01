@@ -78,7 +78,7 @@ test('replaceWith waits for the previous finalizer before starting replacement w
         finalizerStarted.resolve(undefined);
         return releaseFinalizer.promise;
       }),
-  ).pipe(Effect.zipRight(Effect.never), Effect.scoped);
+  ).pipe(Effect.andThen(Effect.never), Effect.scoped);
 
   controller.start(previous, () => undefined);
   await acquired.promise;
@@ -118,7 +118,7 @@ test('owner interruption revokes a replacement waiting for the old finalizer', a
           finalizing.resolve(undefined);
           return release.promise;
         }),
-    ).pipe(Effect.zipRight(Effect.never), Effect.scoped),
+    ).pipe(Effect.andThen(Effect.never), Effect.scoped),
     () => undefined,
   );
   await acquired.promise;
@@ -190,7 +190,7 @@ test('only the latest queued replacement starts and awaited interruption revokes
             finalizing.resolve(undefined);
             return release.promise;
           }),
-      ).pipe(Effect.zipRight(Effect.never), Effect.scoped),
+      ).pipe(Effect.andThen(Effect.never), Effect.scoped),
       () => undefined,
     );
     await started.promise;
@@ -224,11 +224,11 @@ test('the operation owner observes expected failures and defects but not interru
 
   controller.start(Effect.fail(new OperationRejected()), () => undefined);
   const expectedCause = await firstFailure.promise;
-  expect(Array.from(Cause.failures(expectedCause))).toEqual([new OperationRejected()]);
+  expect(expectedCause.reasons.filter(Cause.isFailReason).map(({ error }) => error)).toEqual([new OperationRejected()]);
 
   controller.start(Effect.die('defect-sentinel'), () => undefined);
   const defectCause = await secondFailure.promise;
-  expect(Array.from(Cause.defects(defectCause))).toEqual(['defect-sentinel']);
+  expect(defectCause.reasons.filter(Cause.isDieReason).map(({ defect }) => defect)).toEqual(['defect-sentinel']);
 
   controller.start(Effect.never, () => undefined);
   await controller.interruptAndWait();

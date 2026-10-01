@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
-import { Cause, Duration, Effect, Exit, Fiber, Option, TestClock, TestContext } from 'effect';
+import { Cause, Duration, Effect, Exit, Fiber, Option } from 'effect';
+import { TestClock } from 'effect/testing';
 
 import { type ClientApiFailure, executeClientRequest } from './support/client-api-boundary.js';
-import { waitForScheduledSleep } from './support/test-clock.js';
+import { testClockLayer, waitForScheduledSleep } from './support/test-clock.js';
 
 const defaultOptions = {
   callerRetryDisposition: 'caller-may-retry' as const,
@@ -26,8 +27,8 @@ const failureOf = async (effect: Effect.Effect<unknown, ClientApiFailure>): Prom
     throw new Error('Expected the client boundary to fail.');
   }
 
-  expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
-  return Option.getOrThrow(Cause.failureOption(exit.cause));
+  expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
+  return Option.getOrThrow(Cause.findErrorOption(exit.cause));
 };
 
 test('401 requests session handling instead of reporting a network failure', async () => {
@@ -106,7 +107,7 @@ test('timeout remains distinct from local transport failure', async () => {
   const started = Promise.withResolvers<undefined>();
   const timeoutExit = await Effect.runPromise(
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         executeClientRequest({
           ...defaultOptions,
           fetch: (signal) => {
@@ -125,12 +126,12 @@ test('timeout remains distinct from local transport failure', async () => {
       yield* waitForScheduledSleep(1_000);
       yield* TestClock.adjust(Duration.seconds(1));
       return yield* Fiber.await(fiber);
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(Exit.isFailure(timeoutExit)).toBe(true);
   if (Exit.isFailure(timeoutExit)) {
-    expect(Option.getOrThrow(Cause.failureOption(timeoutExit.cause))).toEqual({
+    expect(Option.getOrThrow(Cause.findErrorOption(timeoutExit.cause))).toEqual({
       _tag: 'RequestTimedOut',
       retryDisposition: 'caller-may-retry',
     });
@@ -174,7 +175,7 @@ test('timeout and interruption abort response-body work after headers arrive', a
       let bodyAborted = false;
       const exit = await Effect.runPromise(
         Effect.gen(function* () {
-          const fiber = yield* Effect.fork(
+          const fiber = yield* Effect.forkChild(
             executeClientRequest({
               ...defaultOptions,
               fetch: (signal) => {
@@ -203,20 +204,21 @@ test('timeout and interruption abort response-body work after headers arrive', a
           );
           yield* Effect.promise(() => reading.promise);
           if (cancel === 'interrupt') {
-            return yield* Fiber.interrupt(fiber);
+            yield* Fiber.interrupt(fiber);
+            return yield* Fiber.await(fiber);
           }
           yield* waitForScheduledSleep(1_000);
           yield* TestClock.adjust(Duration.seconds(1));
           return yield* Fiber.await(fiber);
-        }).pipe(Effect.provide(TestContext.TestContext)),
+        }).pipe(Effect.provide(testClockLayer)),
       );
 
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit)) {
         if (cancel === 'interrupt') {
-          expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+          expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
         } else {
-          expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual({
+          expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual({
             _tag: 'RequestTimedOut',
             retryDisposition: 'caller-may-retry',
           });
@@ -277,12 +279,12 @@ test('external Effect interruption stays interruption instead of becoming a clie
   );
 
   await started.promise;
-  const exit = await Effect.runPromise(Fiber.interrupt(fiber));
+  const exit = await Effect.runPromise(Fiber.interrupt(fiber).pipe(Effect.andThen(Fiber.await(fiber))));
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
-    expect(Option.isNone(Cause.failureOption(exit.cause))).toBe(true);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+    expect(Option.isNone(Cause.findErrorOption(exit.cause))).toBe(true);
   }
   expect(interruptedSignal?.aborted).toBe(true);
 });

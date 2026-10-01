@@ -1,29 +1,35 @@
-# TypeScript and Effect v3 standards
+# TypeScript and Effect v4 standards
 
 Copy this profile into a private Bun TypeScript application, replace
 `project-name`, and keep the generated `bun.lock`. Merge `TS/AGENTS.md` into
-`shared/AGENTS.md`; it is an Effect v3 standards fragment, not a standalone
+`shared/AGENTS.md`; it is an Effect v4 standards fragment, not a standalone
 project guide.
 
 The tested dependency set is exact:
 
-| Package/runtime            | Version |
-| -------------------------- | ------- |
-| `effect`                   | 3.22.1  |
-| `@effect/language-service` | 0.87.2  |
-| TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.2   |
-| `@types/bun`               | 1.4.2   |
-| `@effect/platform`         | 0.97.1  |
-| `@effect/platform-bun`     | 0.91.2  |
+| Package/runtime            | Version      |
+| -------------------------- | ------------ |
+| `effect`                   | 4.0.0-rc.118 |
+| `@effect/platform-bun`     | 4.0.0-rc.118 |
+| `@effect/language-service` | 0.87.3       |
+| TypeScript                 | 6.0.3        |
+| Bun                        | 1.4.2        |
+| `@types/bun`               | 1.4.2        |
 
 Application dependencies and development tools are exact and the lockfile is
-mirrored because a copied private app must not install an untested version. Bun
-records the platform package's broad cluster/RPC/SQL peer graph in the lock;
-`bunfig.toml` disables automatic installation of those unused peers. Install a
-peer explicitly when importing the corresponding platform adapter. The
-published-library overlay in `AGENTS.md` defines the deliberate peer/range
-alternative.
+mirrored because a copied private app must not install an untested version.
+The `effect` package contains the platform, RPC, SQL, and cluster modules, so
+the Bun runtime adapter is the only other Effect runtime dependency. `effect`
+and its `@effect/*` platform, SQL, AI, and test packages share one version and
+release in lockstep, so keep `effect` and `@effect/platform-bun` on the same
+version; `@effect/language-service` is versioned separately. The
+[published-library overlay](docs/effect/overlays/published-library.md) defines
+the deliberate peer/range alternative.
+
+The pin is the `4.0.0-rc.118` release candidate because
+`@effect/platform-bun@4.0.0` requires `effect@4.0.0`, which npm does not serve.
+Move both packages to the first published 4.x stable through the routine
+upgrade below.
 
 ## Pinned baseline, not a freeze
 
@@ -45,17 +51,21 @@ green gate verifies the maintained contracts on the new lock, and a
 red gate identifies remaining migration work. Downstream projects upgrade the same
 way and do not need this catalog's permission to move.
 
-A future Effect major (v4) is an intended path, not a foreclosed one. It is
-handled as one separately scoped migration per EFF-028: update the inventory,
-canonical examples, diagnostics configuration, semantic suites, and locks
-together, so the profile lands on the new major with the same closed feedback
-loop it has today. Until then, do not mix majors: v4 APIs and documentation
-are not evidence for this v3 baseline.
+A future Effect major is handled as one separately scoped migration per
+EFF-028: update the inventory, canonical examples, diagnostics configuration,
+semantic suites, and locks together, so the profile lands on the new major
+with the same closed feedback loop it has today. Evidence comes from Effect 4
+alone: v3 APIs, examples, and documentation describe a different runtime. The
+language service's `outdatedApi` diagnostic blocks removed or renamed v3 APIs,
+and the upstream
+[migration guide](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md)
+maps them to their v4 forms.
 
-TypeScript remains at 6.0.3 because the current Effect language service and
-`typescript-eslint` parser reject TypeScript 7. Upgrade the compiler when those
-consumers support it and the full gate passes; do not add a second compiler to
-work around their version contracts.
+TypeScript remains at 6.0.3 because `typescript-eslint` 8.71 accepts only
+TypeScript below 6.1, and `@effect/language-service` targets TypeScript 6;
+TypeScript 7 needs the separate `@effect/tsgo` language service. Upgrade the
+compiler when those consumers support it and the full gate passes; do not add
+a second compiler to work around their version contracts.
 
 ## Integrating into an existing project
 
@@ -71,6 +81,9 @@ has TypeScript tooling:
   the project's newer version, run the full `ts:standards:check` gate against
   it, and treat any red result as the concrete migration work list. The pins
   are the catalog's tested evidence floor, not a ceiling.
+- A project still on Effect v3 migrates to v4 first, following the upstream
+  migration guide, as its own scoped change. With v4 installed, the gate's
+  `outdatedApi` and TypeScript errors list the remaining v3 call sites.
 - Conformance is the green gate, not visual similarity to this catalog.
 
 ## Profile boundary
@@ -95,12 +108,12 @@ The canonical endpoint checker is intentionally small:
 - `src/endpoint-policy.ts` validates finite millisecond/origin configuration
   before constructing the checked normalized policy.
 - `src/endpoint-checker.ts` owns exact-origin authorization, explicit redirect
-  rejection, the service/tag/live layer, signal-aware promise adapter,
-  per-attempt timeout, narrowly classified duplicate-safe retry, total deadline,
-  bounded concurrency, and deliberate ordered outcome collection.
+  rejection, the `Context.Service` and its static layer, signal-aware promise
+  adapter, per-attempt timeout, narrowly classified duplicate-safe retry, total
+  deadline, bounded concurrency, and deliberate ordered outcome collection.
 - `src/main.ts` uses the narrow
   `@effect/platform-bun/BunRuntime` import and `BunRuntime.runMain`.
-- `tests/endpoint-checker.test.ts` asserts exact policy and ParseError
+- `tests/endpoint-checker.test.ts` asserts exact policy and SchemaError
   failures, target identity, normalized destination rejection, redirect
   classification, cancellation, attempts, non-retry, batch outcomes,
   concurrency, encoding, and redaction-safe projection behavior.
@@ -112,9 +125,9 @@ The canonical endpoint checker is intentionally small:
   larger fixture-owned semantic probes so the downstream seed remains readable.
 
 Use the BunRuntime subpath rather than the `@effect/platform-bun` barrel.
-With `skipLibCheck: false`, the barrel pulls unrelated HTTP/RPC/socket
-declarations whose optional Bun/DOM/`ws` types are not part of this profile.
-The narrow entrypoint declaration checks cleanly.
+With `skipLibCheck: false`, the barrel pulls unrelated cluster and RPC
+declarations that reference the DOM-only `Transferable` type. The narrow
+entrypoint declaration checks cleanly.
 
 ## Effect diagnostics
 
@@ -128,10 +141,12 @@ correctness and ownership diagnostics are errors. Shape/style opportunities
 are editor suggestions. Outside-Effect native APIs and native boundary
 adapters remain allowed when their contract is explicit.
 
-The standalone command omits `--strict`: in language service 0.87.2, strict
+The standalone command omits `--strict`: in language service 0.87.3, strict
 only makes warnings affect the exit code; it does not promote messages or
 suggestions. The expected-diagnostic harness proves configured blockers fail
-and catches silently ignored diagnostic-name drift.
+and catches silently ignored diagnostic-name drift. `outdatedApi` is an error,
+so a removed or renamed v3 API fails the gate by name; the migration guide maps
+it to the v4 form.
 
 Do not bulk-apply Effect quick fixes. Some exact-version fixes turn typed
 failure into a defect, change layer dependency topology/lifetime, or change a
@@ -166,7 +181,7 @@ mise run ts:standards:secondary:check
 ```
 
 `ts:effect:overview` is an orientation command; it should show the exported
-service, live layer, and errors from the canonical fixture. Its output is
+service, its static `layer`, and errors from the canonical fixture. Its output is
 generated and is not committed.
 
 `ts:standards` runs the out-of-band directive check and Oxlint autofix before
@@ -247,7 +262,7 @@ locked `mise run standards:check` gate for every pull request, every push to
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
-The workflow pins mise 2026.9.1. The configuration's 2026.6.12 minimum is the
+The workflow pins mise 2026.9.18. The configuration's 2026.6.12 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
 `.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
@@ -281,7 +296,11 @@ export, and TypeScript emit-syntax walls that are part of this profile.
 
 `skipLibCheck` is false. This costs some feedback time but checks dependency
 declarations. Re-enable it only after measuring a material project-specific
-cost and record which declaration mismatch becomes invisible.
+cost and record which declaration mismatch becomes invisible. Effect's own
+declarations reference one DOM-only global, `TextDecoderOptions`;
+`types/text-decoder-options.d.ts` declares its WHATWG shape instead of adding
+the browser `DOM` lib to a server profile. Delete that file once `tsc` passes
+without it.
 
 `moduleResolution: "bundler"`, Bun types, and the Bun package manager are
 application-profile choices. Browser, React Native, and published-library
@@ -309,9 +328,9 @@ then checks its own output. After any tool-version change, run
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
 subprocesses resolve through Bun's PATH shim. Mutation orchestration and tests
-also run under Bun. Stryker core 10.0.0 and Bun runner 1.3.8 pass the full
-fixture together; the runner's declared core peer range still names version 9.
-Keep this pairing covered by the full mutation gate when upgrading either tool.
+also run under Bun. Stryker core 10.0.0 and Bun runner 1.4.0 pass the full
+fixture together. Keep this pairing covered by the full mutation gate when
+upgrading either tool.
 
 `bunfig.toml` also pins install posture: new dependencies land exact, and
 `minimumReleaseAge` delays newly resolved versions for three days. OpenSSF
@@ -324,5 +343,5 @@ requires human countersign and gets removed once the window passes.
 Long-running Bun programs use `BunRuntime.runMain`. Framework applications
 instead build one application-owned `ManagedRuntime`, dispose it at application
 teardown, and supervise background work separately: disposing a ManagedRuntime
-closes its layer but does not automatically own fibers launched by
-`runFork`.
+closes its layer and interrupts the fibers its asynchronous runners started,
+but nothing observes their failures.

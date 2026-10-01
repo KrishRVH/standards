@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Ref, TestClock, TestContext } from 'effect';
+import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Ref, Schema } from 'effect';
+import { TestClock } from 'effect/testing';
 
 import {
   type CheckedEndpointTarget,
@@ -12,6 +13,7 @@ import {
   type EndpointHealthy,
   EndpointNotAllowed,
   EndpointRejected,
+  EndpointResults,
   InvalidCheckPolicy,
   TransientProbeError,
   decodeCheckRequest,
@@ -21,7 +23,7 @@ import {
   projectDefectDiagnostic,
 } from '../src/endpoint-contracts.js';
 import { decodeCheckPolicy, defaultCheckPolicy } from '../src/endpoint-policy.js';
-import { waitForScheduledSleep } from './support/test-clock.js';
+import { testClockLayer, waitForScheduledSleep } from './support/test-clock.js';
 
 function checkedTarget(id: string, input: string): CheckedEndpointTarget {
   const url = new URL(input);
@@ -37,16 +39,16 @@ function oneTarget(id = 'primary-api', url = 'https://example.com/health') {
   return { endpoints: [{ id, url }] };
 }
 
-test('reports invalid external input as ParseError without a defect or interruption', async () => {
+test('reports invalid external input as SchemaError without a defect or interruption', async () => {
   const exit = await Effect.runPromiseExit(decodeCheckRequest(oneTarget('primary-api', 'not a URL')));
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
 
-    expect(failure._tag).toBe('ParseError');
-    expect(Cause.defects(exit.cause)).toHaveLength(0);
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
+    expect(failure._tag).toBe('SchemaError');
+    expect(Cause.hasDies(exit.cause)).toBe(false);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
   }
 });
 
@@ -81,7 +83,7 @@ test('rejects duplicate endpoint IDs at the external boundary', async () => {
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('ParseError');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('SchemaError');
   }
 });
 
@@ -97,7 +99,7 @@ test('rejects endpoint collections above the fixed resource limit', async () => 
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('ParseError');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('SchemaError');
   }
 });
 
@@ -122,9 +124,9 @@ for (const invalidPolicy of invalidDurationPolicies) {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
-      expect(Cause.defects(exit.cause)).toHaveLength(0);
-      expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
+      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+      expect(Cause.hasDies(exit.cause)).toBe(false);
+      expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
     }
   });
 }
@@ -179,12 +181,12 @@ test('rejects excess configuration properties as likely mistakes', async () => {
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
 
     expect(failure._tag).toBe('InvalidCheckPolicy');
     expect(failure.reason).toBe('policy input does not match the bounded configuration schema');
-    expect(Cause.defects(exit.cause)).toHaveLength(0);
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(false);
+    expect(Cause.hasDies(exit.cause)).toBe(false);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
   }
 });
 
@@ -221,7 +223,7 @@ for (const invalidOrigin of invalidOrigins) {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
     }
   });
 }
@@ -236,7 +238,7 @@ test('rejects duplicate allowed origins after URL normalization', async () => {
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
 
     expect(failure._tag).toBe('InvalidCheckPolicy');
     expect(failure.reason).toBe('allowedOrigins must be unique after normalization');
@@ -259,7 +261,7 @@ test('rejects invalid policy before invoking the adapter', async () => {
   expect(attempts).toBe(0);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
   }
 });
 
@@ -400,7 +402,7 @@ test('forwards external interruption to the signal-aware native adapter', async 
   expect(redirect).toBe('manual');
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
   }
 });
 
@@ -422,7 +424,7 @@ test('classifies redirect rejection without following or exposing Location', asy
   expect(redirect).toBe('manual');
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
 
     expect(failure._tag).toBe('EndpointRedirectRejected');
     if (failure._tag === 'EndpointRedirectRejected') {
@@ -451,7 +453,7 @@ test('does not retry a redirect rejection', async () => {
   expect(attempts).toBe(1);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('EndpointRedirectRejected');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('EndpointRedirectRejected');
   }
 });
 
@@ -504,7 +506,7 @@ test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal'
         retries: 0,
       });
       const fiber = yield* checkEndpoint(probe, checkedTarget('primary-api', 'https://example.com'), policy).pipe(
-        Effect.fork,
+        Effect.forkChild,
       );
 
       yield* Effect.promise(() => started.promise);
@@ -512,14 +514,14 @@ test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal'
       yield* TestClock.adjust('100 millis');
 
       return yield* Fiber.await(fiber);
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(aborts).toBe(1);
   expect(adapterSignal?.aborted).toBe(true);
   expect(Exit.isFailure(result)).toBe(true);
   if (Exit.isFailure(result)) {
-    expect(Option.getOrThrow(Cause.failureOption(result.cause))._tag).toBe('AttemptTimedOut');
+    expect(Option.getOrThrow(Cause.findErrorOption(result.cause))._tag).toBe('AttemptTimedOut');
   }
 });
 
@@ -550,7 +552,7 @@ test('configured retries do not retry a timed-out attempt into overlapping work'
             publications += 1;
           }),
         ),
-        Effect.fork,
+        Effect.forkChild,
       );
 
       yield* Effect.promise(() => started.promise);
@@ -558,13 +560,13 @@ test('configured retries do not retry a timed-out attempt into overlapping work'
       yield* TestClock.adjust('100 millis');
 
       return yield* Fiber.await(fiber);
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(invocations).toBe(1);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('AttemptTimedOut');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AttemptTimedOut');
   }
 
   underlying.resolve(new Response(null, { status: 204 }));
@@ -592,7 +594,7 @@ test('a non-retryable status rejection executes once', async () => {
   expect(attempts).toBe(1);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
 
     expect(failure._tag).toBe('EndpointRejected');
     if (failure._tag === 'EndpointRejected') {
@@ -653,7 +655,7 @@ test('bounds endpoint probes to the configured concurrency', async () => {
             maximum = Math.max(maximum, active);
           }).pipe(
             Effect.tap(() => (active === 2 ? Deferred.succeed(twoStarted, undefined) : Effect.void)),
-            Effect.zipRight(Deferred.await(release)),
+            Effect.andThen(Deferred.await(release)),
             Effect.as(healthy(target)),
             Effect.ensuring(
               Effect.sync(() => {
@@ -672,7 +674,7 @@ test('bounds endpoint probes to the configured concurrency', async () => {
           ],
         },
         { ...defaultCheckPolicy, concurrency: 2 },
-      ).pipe(Effect.provide(probe), Effect.fork);
+      ).pipe(Effect.provide(probe), Effect.forkChild);
 
       yield* Deferred.await(twoStarted);
       const maximumBeforeRelease = maximum;
@@ -704,7 +706,7 @@ test('total deadline interrupts retry sleep and returns no partial batch', async
             attempts += 1;
           }).pipe(
             Effect.tap(() => Deferred.succeed(firstAttempt, undefined)),
-            Effect.zipRight(Effect.fail(new TransientProbeError({ targetId: target.id }))),
+            Effect.andThen(Effect.fail(new TransientProbeError({ targetId: target.id }))),
           ),
       });
       const fiber = yield* checkEndpoints(oneTarget(), {
@@ -713,20 +715,20 @@ test('total deadline interrupts retry sleep and returns no partial batch', async
         retries: 5,
         retryDelayMilliseconds: 1_000,
         totalDeadlineMilliseconds: 250,
-      }).pipe(Effect.provide(probe), Effect.fork);
+      }).pipe(Effect.provide(probe), Effect.forkChild);
 
       yield* Deferred.await(firstAttempt);
       yield* waitForScheduledSleep(1_000);
       yield* TestClock.adjust('250 millis');
 
       return { attempts, exit: yield* Fiber.await(fiber) };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(result.attempts).toBe(1);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    const failure = Option.getOrThrow(Cause.failureOption(result.exit.cause));
+    const failure = Option.getOrThrow(Cause.findErrorOption(result.exit.cause));
 
     expect(failure._tag).toBe('WorkflowDeadlineExceeded');
     if (failure._tag === 'WorkflowDeadlineExceeded') {
@@ -745,7 +747,7 @@ test('total deadline interrupts active siblings instead of publishing partial re
         head: () =>
           Ref.updateAndGet(started, (count) => count + 1).pipe(
             Effect.tap((count) => (count === 2 ? Deferred.succeed(twoStarted, undefined) : Effect.void)),
-            Effect.zipRight(Effect.never),
+            Effect.andThen(Effect.never),
             Effect.onInterrupt(() => Ref.update(interrupted, (count) => count + 1)),
           ),
       });
@@ -757,20 +759,20 @@ test('total deadline interrupts active siblings instead of publishing partial re
           ],
         },
         { ...defaultCheckPolicy, concurrency: 2, totalDeadlineMilliseconds: 100 },
-      ).pipe(Effect.provide(probe), Effect.fork);
+      ).pipe(Effect.provide(probe), Effect.forkChild);
 
       yield* Deferred.await(twoStarted);
       yield* waitForScheduledSleep(100);
       yield* TestClock.adjust('100 millis');
 
       return { exit: yield* Fiber.await(fiber), interrupted: yield* Ref.get(interrupted) };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(result.interrupted).toBe(2);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');
+    expect(Option.getOrThrow(Cause.findErrorOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');
   }
 });
 
@@ -784,7 +786,7 @@ test('total deadline discards a completed outcome when another endpoint is still
           target.id === 'endpoint-one'
             ? Effect.succeed(healthy(target))
             : Deferred.succeed(secondStarted, undefined).pipe(
-                Effect.zipRight(Effect.never),
+                Effect.andThen(Effect.never),
                 Effect.onInterrupt(() => Ref.set(interrupted, true)),
               ),
       });
@@ -796,20 +798,20 @@ test('total deadline discards a completed outcome when another endpoint is still
           ],
         },
         { ...defaultCheckPolicy, concurrency: 1, totalDeadlineMilliseconds: 100 },
-      ).pipe(Effect.provide(probe), Effect.fork);
+      ).pipe(Effect.provide(probe), Effect.forkChild);
 
       yield* Deferred.await(secondStarted);
       yield* waitForScheduledSleep(100);
       yield* TestClock.adjust('100 millis');
 
       return { exit: yield* Fiber.await(fiber), interrupted: yield* Ref.get(interrupted) };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(result.interrupted).toBe(true);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');
+    expect(Option.getOrThrow(Cause.findErrorOption(result.exit.cause))._tag).toBe('WorkflowDeadlineExceeded');
   }
 });
 
@@ -845,7 +847,7 @@ test('external interruption revokes normal result publication even when fetch ig
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
   }
   expect(publications).toBe(0);
 
@@ -920,8 +922,22 @@ test('Schema-encodes the public outcome and rejects an impossible healthy status
   expect(encoded).toEqual([healthyOutcome]);
   expect(Exit.isFailure(invalidExit)).toBe(true);
   if (Exit.isFailure(invalidExit)) {
-    expect(Option.getOrThrow(Cause.failureOption(invalidExit.cause))._tag).toBe('ParseError');
+    expect(Option.getOrThrow(Cause.findErrorOption(invalidExit.cause))._tag).toBe('SchemaError');
   }
+});
+
+test('Schema-encodes both unavailable reasons and rejects an unknown reason', async () => {
+  const unavailable = [
+    { _tag: 'EndpointUnavailable' as const, id: 'primary-api', reason: 'service-unavailable' as const },
+    { _tag: 'EndpointUnavailable' as const, id: 'secondary-api', reason: 'transport' as const },
+  ];
+  const encoded = await Effect.runPromise(encodeEndpointResults(unavailable));
+  const unknownReason = await Effect.runPromiseExit(
+    Schema.decodeUnknownEffect(EndpointResults)([{ _tag: 'EndpointUnavailable', id: 'primary-api', reason: 'dns' }]),
+  );
+
+  expect(encoded).toEqual(unavailable);
+  expect(Exit.isFailure(unknownReason)).toBe(true);
 });
 
 test('Schema rejects success and overload statuses in the rejected-outcome branch', async () => {

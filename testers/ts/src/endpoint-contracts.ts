@@ -1,22 +1,22 @@
-import { Data, Effect, type ParseResult, Schema } from 'effect';
+import { Data, Effect, Schema } from 'effect';
 
 export const maximumEndpoints = 16;
 const maximumEndpointIdLength = 64;
 
-export const EndpointId = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(maximumEndpointIdLength),
-  Schema.pattern(/^[a-z][a-z0-9-]*$/u),
+export const EndpointId = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(maximumEndpointIdLength),
+  Schema.isPattern(/^[a-z][a-z0-9-]*$/u),
 );
 
 const EndpointTargetInput = Schema.Struct({
   id: EndpointId,
-  url: Schema.URL,
+  url: Schema.URLFromString,
 });
 
-const EndpointTargets = Schema.NonEmptyArray(EndpointTargetInput).pipe(
-  Schema.maxItems(maximumEndpoints),
-  Schema.filter((targets) => {
+const EndpointTargets = Schema.NonEmptyArray(EndpointTargetInput).check(
+  Schema.isMaxLength(maximumEndpoints),
+  Schema.makeFilter((targets) => {
     const ids = new Set(targets.map(({ id }) => id));
 
     return ids.size === targets.length || 'endpoint ids must be unique';
@@ -25,72 +25,70 @@ const EndpointTargets = Schema.NonEmptyArray(EndpointTargetInput).pipe(
 
 export const CheckRequest = Schema.Struct({ endpoints: EndpointTargets });
 
-export type CheckRequest = Schema.Schema.Type<typeof CheckRequest>;
-export type EndpointTargetInput = Schema.Schema.Type<typeof EndpointTargetInput>;
+export type CheckRequest = typeof CheckRequest.Type;
+export type EndpointTargetInput = typeof EndpointTargetInput.Type;
+
+const decodeCheckRequestInput = Schema.decodeUnknownEffect(CheckRequest, { onExcessProperty: 'ignore' });
 
 export const decodeCheckRequest = Effect.fn('project-name/endpoint-checker.decode-request')((input: unknown) =>
-  Schema.decodeUnknown(CheckRequest, { onExcessProperty: 'ignore' })(input),
+  decodeCheckRequestInput(input),
 );
 
-const RejectedHttpStatus = Schema.Number.pipe(
-  Schema.int(),
-  Schema.filter((status) => (status >= 100 && status <= 199) || (status >= 400 && status <= 599 && status !== 503), {
-    description: 'an informational or rejected HTTP status excluding the separately classified 503',
-  }),
+const RejectedHttpStatus = Schema.Int.check(
+  Schema.makeFilter(
+    (status) => (status >= 100 && status <= 199) || (status >= 400 && status <= 599 && status !== 503),
+    { description: 'an informational or rejected HTTP status excluding the separately classified 503' },
+  ),
 );
-const SuccessfulHttpStatus = Schema.Number.pipe(Schema.int(), Schema.between(200, 299));
-const RedirectHttpStatus = Schema.Number.pipe(Schema.int(), Schema.between(300, 399));
+const SuccessfulHttpStatus = Schema.Int.check(Schema.isBetween({ minimum: 200, maximum: 299 }));
+const RedirectHttpStatus = Schema.Int.check(Schema.isBetween({ minimum: 300, maximum: 399 }));
 
-export const EndpointHealthy = Schema.Struct({
-  _tag: Schema.Literal('EndpointHealthy'),
+export const EndpointHealthy = Schema.TaggedStruct('EndpointHealthy', {
   id: EndpointId,
   status: SuccessfulHttpStatus,
 });
 
-export const EndpointRejectedOutcome = Schema.Struct({
-  _tag: Schema.Literal('EndpointRejected'),
+export const EndpointRejectedOutcome = Schema.TaggedStruct('EndpointRejected', {
   id: EndpointId,
   status: RejectedHttpStatus,
 });
 
-export const EndpointUnavailable = Schema.Struct({
-  _tag: Schema.Literal('EndpointUnavailable'),
+export const EndpointUnavailable = Schema.TaggedStruct('EndpointUnavailable', {
   id: EndpointId,
-  reason: Schema.Literal('service-unavailable', 'transport'),
+  reason: Schema.Literals(['service-unavailable', 'transport']),
 });
 
-export const EndpointTimedOut = Schema.Struct({
-  _tag: Schema.Literal('EndpointTimedOut'),
+export const EndpointTimedOut = Schema.TaggedStruct('EndpointTimedOut', {
   id: EndpointId,
 });
 
-export const EndpointNotAllowedOutcome = Schema.Struct({
-  _tag: Schema.Literal('EndpointNotAllowed'),
+export const EndpointNotAllowedOutcome = Schema.TaggedStruct('EndpointNotAllowed', {
   id: EndpointId,
 });
 
-export const EndpointRedirectRejectedOutcome = Schema.Struct({
-  _tag: Schema.Literal('EndpointRedirectRejected'),
+export const EndpointRedirectRejectedOutcome = Schema.TaggedStruct('EndpointRedirectRejected', {
   id: EndpointId,
   status: RedirectHttpStatus,
 });
 
-export const EndpointOutcome = Schema.Union(
+export const EndpointOutcome = Schema.Union([
   EndpointHealthy,
   EndpointRejectedOutcome,
   EndpointUnavailable,
   EndpointTimedOut,
   EndpointNotAllowedOutcome,
   EndpointRedirectRejectedOutcome,
-);
+]);
 
 export const EndpointResults = Schema.Array(EndpointOutcome);
 
-export type EndpointHealthy = Schema.Schema.Type<typeof EndpointHealthy>;
-export type EndpointOutcome = Schema.Schema.Type<typeof EndpointOutcome>;
+export type EndpointHealthy = typeof EndpointHealthy.Type;
+export type EndpointOutcome = typeof EndpointOutcome.Type;
+
+const encodeEndpointResultsOutput = Schema.encodeEffect(EndpointResults);
 
 export const encodeEndpointResults = Effect.fn('project-name/endpoint-checker.encode-results')(
-  (results: readonly EndpointOutcome[]) => Schema.encode(EndpointResults)(results),
+  (results: readonly EndpointOutcome[]) => encodeEndpointResultsOutput(results),
 );
 
 export class TransientProbeError extends Data.TaggedError('TransientProbeError')<{
@@ -134,7 +132,7 @@ export type EndpointProbeFailure =
   | ProbeTransportError;
 
 export type EndpointLocalFailure = EndpointProbeFailure | EndpointNotAllowed | AttemptTimedOut;
-export type CheckFailure = ParseResult.ParseError | WorkflowDeadlineExceeded | InvalidCheckPolicy;
+export type CheckFailure = Schema.SchemaError | WorkflowDeadlineExceeded | InvalidCheckPolicy;
 
 export type RetryDisposition = 'caller-may-retry' | 'never' | 'reconcile-first';
 
@@ -146,7 +144,7 @@ export interface PublicCheckFailure {
 
 export function projectCheckFailure(failure: CheckFailure): PublicCheckFailure {
   switch (failure._tag) {
-    case 'ParseError':
+    case 'SchemaError':
       return {
         code: 'invalid_request',
         message: 'The endpoint request is invalid.',
@@ -207,7 +205,7 @@ function statusClass(status: number): '4xx' | '5xx' | undefined {
 
 export function projectCheckDiagnostic(failure: DiagnosticFailure): SafeFailureDiagnostic {
   switch (failure._tag) {
-    case 'ParseError':
+    case 'SchemaError':
       return { failureKind: 'invalid-request', operation: 'endpoint-check' };
     case 'InvalidCheckPolicy':
       return { failureKind: 'configuration-failure', operation: 'endpoint-check' };
@@ -255,7 +253,7 @@ export function projectDefectDiagnostic(): SafeFailureDiagnostic {
   return { failureKind: 'internal-defect', operation: 'endpoint-check' };
 }
 
-export function projectEncodingFailure(_failure: ParseResult.ParseError): PublicCheckFailure {
+export function projectEncodingFailure(_failure: Schema.SchemaError): PublicCheckFailure {
   return {
     code: 'internal_error',
     message: 'The endpoint result could not be encoded.',

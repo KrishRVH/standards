@@ -1,4 +1,4 @@
-# Effect v3 enforcement map
+# Effect v4 enforcement map
 
 This is the single normative owner for the TypeScript/Effect mandatory rules.
 The [agent guide](../../AGENTS.md) is a compact decision and routing index; the
@@ -22,7 +22,7 @@ boundary, port the matching tester suite shape before relying on that cell.
 
 ## Coverage summary
 
-This profile defines 30 mandatory rules. Twenty-six have at least one static
+This profile defines 30 mandatory rules. Twenty-seven have at least one static
 compiler, language-service, linter, or negative-fixture check; 29 have an
 executable unit, semantic, integration, or diagnostic contract. EFF-001 remains
 the only wholly non-blocking rule: the language service can advise against some
@@ -60,8 +60,8 @@ vocabulary, or repository-host branch protection.
   owner and removal condition.
 - **Enforcement:** TS blocking; LS blocking; Lint blocking;
   Neg diagnostic fixture; Unit partial; Sem —; Int —; CI yes; Manual residual.
-- **Version:** TS 6.0.3, LS 0.87.2, Oxlint 1.81.0,
-  oxlint-tsgolint 7.0.2001, typescript-eslint 8.69.0.
+- **Version:** TS 6.0.3, LS 0.87.3, Oxlint 1.86.0,
+  oxlint-tsgolint 7.0.2003, typescript-eslint 8.71.0.
 
 ## EFF-003 — Accurate exported Effect contracts
 
@@ -76,7 +76,7 @@ vocabulary, or repository-host branch protection.
   policy with a test.
 - **Enforcement:** TS blocking; LS blocking; Lint —; Neg diagnostic
   fixture; Unit typed exits; Sem partial; Int —; CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.2, TS 6.0.3.
+- **Version:** Effect 4.0.0-rc.118, LS 0.87.3, TS 6.0.3.
 
 ## EFF-004 — Lazy side effects
 
@@ -91,7 +91,7 @@ vocabulary, or repository-host branch protection.
   suppressed and tested.
 - **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
   diagnostic fixture; Unit —; Sem adapter test; Int —; CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.2.
+- **Version:** Effect 4.0.0-rc.118, LS 0.87.3.
 
 ## EFF-005 — Expected failure, defect, and interruption
 
@@ -107,7 +107,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS partial; Lint —; Neg diagnostic
   fixture; Unit exact Cause tests; Sem finalizer/interruption tests (catalog);
   Int partial; CI yes; Manual residual.
-- **Version:** Effect 3.22.1.
+- **Version:** Effect 4.0.0-rc.118 flat Cause reasons.
 
 ## EFF-006 — Separate error representations
 
@@ -124,15 +124,15 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS exhaustive matches; LS —; Lint partial;
   Neg partial; Unit projection/redaction; Sem observation/redaction; Int —; CI
   yes; Manual vocabulary review.
-- **Version:** Project contract; tagged forms use Effect 3.22.1.
+- **Version:** Project contract; tagged forms use Effect 4.0.0-rc.118.
 
 ## EFF-007 — Runtime and protocol identifier stability
 
-- **Rule — MUST:** Namespace service/context identifiers and keep them
-  deterministic and process-wide unique. Give externally observed protocol IDs
+- **Rule — MUST:** Namespace service keys and keep them deterministic and
+  process-wide unique. Give externally observed protocol IDs
   an explicit compatibility policy. Private tags need local consistency, not
   permanent compatibility.
-- **Rationale:** Runtime tag collisions alias capabilities; compatibility only
+- **Rationale:** Runtime key collisions alias capabilities; compatibility only
   follows observability.
 - **Minimum / prohibited:** `@org/package/Capability` and stable wire
   discriminants / ambiguous service keys or accidental serialization of private
@@ -142,34 +142,38 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS partial; Lint —; Neg —;
   Unit duplicate-key and wire tests (catalog); Sem context probe (catalog);
   Int —; CI yes; Manual scope review.
-- **Version:** Effect 3.22.1 Context behavior; compatibility is project-specific.
+- **Version:** Effect 4.0.0-rc.118 Context behavior; compatibility is
+  project-specific.
 
 ## EFF-008 — Non-generic runtime service identity
 
 - **Rule — MUST:** Do not use erased type parameters as runtime service
   identity. Put generic operations on a non-generic capability or declare
-  explicit concrete tags.
+  explicit concrete service keys.
 - **Rationale:** Runtime Context cannot distinguish erased type arguments.
-- **Minimum / prohibited:** One stable tag with a generic method / `Tag<A>` used
-  as distinct runtime identities.
+- **Minimum / prohibited:** One stable key with a generic method / a generic
+  `Context.Service` class used as distinct runtime identities.
 - **Exception:** Explicit concrete identifiers and service types.
 - **Enforcement:** TS partial; LS blocking; Lint —; Neg diagnostic
   fixture; Unit —; Sem —; Int —; CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.2.
+- **Version:** Effect 4.0.0-rc.118, LS 0.87.3.
 
 ## EFF-009 — Scoped layer construction
 
-- **Rule — MUST:** Use `Layer.scoped` when layer construction owns a resource or
-  requires `Scope`; use `Layer.effect` only when no owned release exists.
-- **Rationale:** The constructor states and enforces resource lifetime.
-- **Minimum / prohibited:** Scoped acquire/release tied to the layer / hiding a
-  Scope requirement inside `Layer.effect`.
-- **Exception:** An externally owned Scope with one owner, a lifetime test, and
-  a narrow diagnostic suppression.
-- **Enforcement:** TS partial; LS blocking; Lint —; Neg diagnostic
-  fixture; Unit finalization (catalog); Sem lifecycle test (catalog); Int —;
-  CI yes; Manual residual.
-- **Version:** Effect 3.22.1, LS 0.87.2.
+- **Rule — MUST:** When layer construction owns a resource, acquire it with
+  `Effect.acquireRelease` or register its release with `Effect.addFinalizer`
+  inside `Layer.effect`, so the layer's Scope releases it.
+- **Rationale:** `Layer.effect` supplies the layer Scope; a release registered
+  there follows the layer and runtime lifetime.
+- **Minimum / prohibited:** Acquire/release inside `Layer.effect` / an acquired
+  handle with no registered release, or a manually made Scope that construction
+  never closes.
+- **Exception:** An externally owned resource with one owner and a lifetime
+  test.
+- **Enforcement:** TS blocking (`Layer.effect` excludes `Scope` from its
+  requirements); LS —; Lint —; Neg —; Unit finalization (catalog); Sem
+  lifecycle test (catalog); Int —; CI yes; Manual release-registration review.
+- **Version:** Effect 4.0.0-rc.118 `Layer.effect` Scope semantics.
 
 ## EFF-010 — Deliberate layer and runtime roots
 
@@ -185,7 +189,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for graph shapes; Lint —;
   Neg diagnostic fixture; Unit acquisition counts (catalog); Sem layer
   topology (catalog); Int —; CI yes; Manual hot-path review.
-- **Version:** Effect 3.22.1, LS 0.87.2.
+- **Version:** Effect 4.0.0-rc.118 shared layer memoization, LS 0.87.3.
 
 ## EFF-011 — Named runtime edges
 
@@ -201,7 +205,8 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
   diagnostic fixture; Unit adapter exits; Sem runtime disposal; Int host test;
   CI yes; Manual owner review.
-- **Version:** Effect 3.22.1; Bun edge also uses platform-bun 0.91.2.
+- **Version:** Effect 4.0.0-rc.118; Bun edge also uses platform-bun
+  4.0.0-rc.118.
 
 ## EFF-012 — Async cancellation contracts
 
@@ -217,7 +222,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit adapter
   tests; Sem interruption/continuation tests; Int native API test (catalog);
   CI yes; Manual remote-commit analysis.
-- **Version:** Effect 3.22.1 and the pinned host API.
+- **Version:** Effect 4.0.0-rc.118 and the pinned host API.
 
 ## EFF-013 — Attempt and workflow budgets
 
@@ -232,7 +237,8 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS —; Lint —; Neg —; Unit policy decode;
   Sem `TestClock` ordering/sleep tests; Int —; CI yes; Manual provider budget
   ownership.
-- **Version:** Effect 3.22.1 timeout waits for loser termination/finalizers.
+- **Version:** Effect 4.0.0-rc.118 timeout waits for loser
+  termination/finalizers.
 
 ## EFF-014 — One retry owner
 
@@ -249,7 +255,8 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit classifier;
   Sem exact attempts/non-retry tests plus reconcile tests (catalog); Int —;
   CI yes; Manual cross-layer and provider audit.
-- **Version:** Effect 3.22.1: `{ times: n }` permits at most `n + 1` attempts.
+- **Version:** Effect 4.0.0-rc.118: `{ times: n }` permits at most `n + 1`
+  attempts.
 
 ## EFF-015 — Stable mutation idempotency identity
 
@@ -271,8 +278,10 @@ vocabulary, or repository-host branch protection.
 - **Rule — MUST:** For every fork, name owner, failure observer, interruption
   trigger, resource scope, permission to outlive the caller, publication rights,
   and shutdown behavior. Ordinary application work is never an unobserved daemon.
-- **Rationale:** Lifetime linkage does not automatically observe child failure,
-  and `ManagedRuntime.runFork` alone is not a task supervisor.
+- **Rationale:** Lifetime linkage does not automatically observe child failure.
+  `ManagedRuntime` disposal interrupts the fibers its asynchronous runners
+  started but observes none of their failures, so `runFork` alone is not a task
+  supervisor.
 - **Minimum / prohibited:** Scoped fork or supervised application task / raw
   component/request daemon or transferred work with no failure observer.
 - **Exception:** Reviewed process-lifetime daemon with bounded cleanup and sole
@@ -281,7 +290,8 @@ vocabulary, or repository-host branch protection.
   JSX/TSX; Neg —; Unit linter/controller (catalog); Sem task
   shutdown/failure/publication (catalog); Int —; CI yes; Manual framework
   lifecycle and owner review.
-- **Version:** Effect 3.22.1 ManagedRuntime and FiberSet behavior.
+- **Version:** Effect 4.0.0-rc.118 ManagedRuntime fiber scope and FiberSet
+  behavior.
 
 ## EFF-017 — Bounded concurrency and capacity
 
@@ -296,7 +306,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit limit decode;
   Sem maximum-concurrency/order/sibling tests; Int —; CI yes; Manual capacity
   and overload review.
-- **Version:** Effect 3.22.1 collection semantics.
+- **Version:** Effect 4.0.0-rc.118 collection semantics (`mode: "result"`).
 
 ## EFF-018 — Resource scope and release
 
@@ -305,15 +315,15 @@ vocabulary, or repository-host branch protection.
   is the honest public contract.
 - **Rationale:** Hidden or promoted lifetime creates leaks and action at a
   distance.
-- **Minimum / prohibited:** `acquireRelease`, `acquireUseRelease`, or
-  `Layer.scoped` at the owner / returning an open handle with an unwritten close
-  obligation.
+- **Minimum / prohibited:** `acquireRelease`, `acquireUseRelease`, or an
+  acquisition inside `Layer.effect` at the owner / returning an open handle with
+  an unwritten close obligation.
 - **Exception:** A wider owner with an explicit lifecycle and count/finalizer
   tests.
-- **Enforcement:** TS partial; LS blocking for common Scope leak; Lint —; Neg
-  diagnostic fixture; Unit releases (catalog); Sem success/failure/interruption
+- **Enforcement:** TS partial (a caller-owned `Scope` stays in `R`); LS —;
+  Lint —; Neg —; Unit releases (catalog); Sem success/failure/interruption
   (catalog); Int host resource (catalog); CI yes; Manual lifetime review.
-- **Version:** Effect 3.22.1 finalizer ordering and Cause behavior.
+- **Version:** Effect 4.0.0-rc.118 finalizer ordering and Cause behavior.
 
 ## EFF-019 — Shutdown policy for blocking close
 
@@ -327,14 +337,14 @@ vocabulary, or repository-host branch protection.
 - **Minimum / prohibited:** Tested awaited close budget, or a documented
   zero-wait cancellation with an attached fixed-diagnostic observer and an
   immediate release attempt / `void close().catch(() => undefined)`,
-  `disconnect`, or daemon cleanup with no owner.
+  `Effect.forkDetach`, or daemon cleanup with no owner.
 - **Exception:** A reviewed zero-wait release is allowed only when unfinished
   cleanup is safe, waiting can be unbounded, and rejection is still observed
   without replacing the primary Exit.
 - **Enforcement:** TS —; LS —; Lint —; Neg —; Unit close policy (catalog);
   Sem slow/failing finalizer plus rejected/stalled body cancellation (catalog);
   Int process shutdown (catalog); CI yes; Manual criticality review.
-- **Version:** Effect 3.22.1 timeout/finalizer semantics.
+- **Version:** Effect 4.0.0-rc.118 timeout/finalizer semantics.
 
 ## EFF-020 — Schema trust and wire boundaries
 
@@ -343,21 +353,23 @@ vocabulary, or repository-host branch protection.
   external representation before any lossy normalization.
 - **Rationale:** Casts and post-normalization validation can silently admit
   invalid protocol/config states.
-- **Minimum / prohibited:** Effect-returning decode/encode in workflows and
-  checked internal domain values / casting parsed JSON or retaining unchecked
-  `DurationInput` in policy.
-- **Exception:** Trusted internal values; sync/Either forms outside Effect when
-  their throw/error contract is explicit and tested.
-- **Enforcement:** TS blocking; LS blocking in workflows; Lint partial; Neg
-  diagnostic fixture; Unit ParseError/policy/encoding; Sem boundary tests; Int —;
-  CI yes; Manual schema-domain review.
-- **Version:** Effect Schema 3.22.1, LS 0.87.2.
+- **Minimum / prohibited:** `decodeUnknownEffect`/`encodeEffect` in workflows
+  and checked internal domain values / casting parsed JSON, a `*Sync` decoder
+  inside a workflow, or retaining unchecked `Duration.Input` in policy.
+- **Exception:** Trusted internal values; sync/Exit/Result forms outside Effect
+  when their throw/error contract is explicit and tested.
+- **Enforcement:** TS blocking; LS blocking for overridden Schema class
+  constructors; Lint partial; Neg diagnostic fixture; Unit
+  SchemaError/policy/encoding; Sem boundary tests; Int —; CI yes; Manual
+  sync-decode and schema-domain review.
+- **Version:** Effect Schema 4.0.0-rc.118, LS 0.87.3.
 
 ## EFF-021 — Secret containment
 
-- **Rule — MUST:** Represent secrets with `Config.redacted`/`Redacted`, reveal
+- **Rule — MUST:** Represent secrets with `Config.Redacted`/`Redacted`, reveal
   them only in the smallest provider adapter, and exclude them from errors,
-  logs, traces, metrics, snapshots, inspection, and parse details.
+  logs, traces, metrics, snapshots, inspection, and parse details, keeping
+  Schema's `reportInput` at its default `false`.
 - **Rationale:** A typed secret is still exposed if copied into observable data.
 - **Minimum / prohibited:** Redacted config and sentinel tests / plain secret
   strings in application state or diagnostics.
@@ -366,7 +378,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
   Lint partial; Neg diagnostic fixture; Unit redaction; Sem
   captured diagnostics (catalog); Int —; CI secret scan; Manual provider adapter review.
-- **Version:** Effect 3.22.1 Config/Redacted; LS 0.87.2.
+- **Version:** Effect 4.0.0-rc.118 Config/Redacted; LS 0.87.3.
 
 ## EFF-022 — Exhaustive handling and one observer
 
@@ -379,7 +391,7 @@ vocabulary, or repository-host branch protection.
   `503`, while repeated observation duplicates incidents and can leak detail.
 - **Minimum / prohibited:** One handling owner, exhaustive route/client match,
   separate public/telemetry projection, and a fixed safe cleanup diagnostic /
-  broad `catchAll` infrastructure fallback, logging the same Cause at every
+  broad `Effect.catch` infrastructure fallback, logging the same Cause at every
   layer, or swallowing cleanup rejection with an empty `catch`.
 - **Exception:** Expected domain outcomes may intentionally be unlogged; the
   outer runtime owns defects and interruption. A best-effort cleanup observer
@@ -387,7 +399,8 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS exhaustive switch; LS partial; Lint switch check; Neg HTTP fixture; Unit status/projector; Sem
   log-count/interruption/cleanup observation (catalog); Int —; CI yes; Manual server
   boundary severity/vocabulary.
-- **Version:** Effect 3.22.1, TS 6.0.3; HTTP vocabulary is application-specific.
+- **Version:** Effect 4.0.0-rc.118, TS 6.0.3; HTTP vocabulary is
+  application-specific.
 
 ## EFF-023 — Exact boundary assertions
 
@@ -407,17 +420,19 @@ vocabulary, or repository-host branch protection.
 ## EFF-024 — Deterministic synchronization
 
 - **Rule — MUST:** Before advancing virtual time, prove the tested fiber reached
-  its attempt or sleep with `Deferred`, `Ref`, a latch, or a state probe. Avoid
-  real sleeps.
+  its attempt or sleep with `Deferred`, `Ref`, a latch, or a state probe. Keep
+  workflow time, randomness, and timers on Effect services so tests control
+  them. Avoid real sleeps.
 - **Rationale:** Advancing `TestClock` too early creates tests that pass or hang
   by scheduler accident.
 - **Minimum / prohibited:** Explicit readiness then `TestClock.adjust` / racey
   adjustment or wall-clock delay.
 - **Exception:** A bounded isolated subprocess test whose subject is OS process
   signaling or real host timing.
-- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit —; Sem test pattern;
-  Int subprocess exception; CI yes; Manual readiness review.
-- **Version:** Effect 3.22.1 TestClock.
+- **Enforcement:** TS —; LS blocking for ambient time, randomness, and timers
+  in workflows; Lint —; Neg diagnostic fixture; Unit —; Sem test pattern; Int
+  subprocess exception; CI yes; Manual readiness review.
+- **Version:** Effect 4.0.0-rc.118 `effect/testing` TestClock, LS 0.87.3.
 
 ## EFF-025 — Untrusted resource and destination limits
 
@@ -435,14 +450,15 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit Schema/limits;
   Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
   production resolver/connect-time SSRF review.
-- **Version:** Bun 1.4.2 Web APIs and Effect 3.22.1 adapters.
+- **Version:** Bun 1.4.2 Web APIs and Effect 4.0.0-rc.118 adapters.
 
 ## EFF-026 — Bun process runtime
 
 - **Rule — MUST:** A long-running Bun process uses
   `@effect/platform-bun/BunRuntime.runMain` so SIGINT/SIGTERM interrupts the main
   fiber and application resources can finalize. One owner reports non-interrupt
-  Cause.
+  Cause, and the teardown's exit status is the process contract (`130` for an
+  interruption-only Exit by default).
 - **Rationale:** A bare Promise runner does not own process signals or shutdown.
 - **Minimum / prohibited:** Narrow BunRuntime import and application layer at
   main / bare `runPromise` or duplicate runtime error reporters.
@@ -450,7 +466,8 @@ vocabulary, or repository-host branch protection.
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; Lint partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
-- **Version:** `@effect/platform-bun` 0.91.2 with Effect 3.22.1, Bun 1.4.2.
+- **Version:** `@effect/platform-bun` 4.0.0-rc.118 with Effect 4.0.0-rc.118,
+  Bun 1.4.2.
 
 ## EFF-027 — Narrow diagnostic suppressions
 
@@ -466,26 +483,29 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS blocking for stale next-line suppression; Lint —;
   Neg exact diagnostic fixture; Unit harness; Sem —; Int —; CI yes; Manual
   reason/quick-fix review.
-- **Version:** LS 0.87.2; re-audit all names, severities, exits, and fixes on upgrade.
+- **Version:** LS 0.87.3; re-audit all names, severities, exits, and fixes on
+  upgrade.
 
-## EFF-028 — Exact Effect v3 dependency evidence
+## EFF-028 — Exact Effect v4 dependency evidence
 
-- **Rule — MUST:** Keep the committed frozen lock and pinned Effect v3, platform,
+- **Rule — MUST:** Keep the committed frozen lock and pinned Effect v4, platform,
   language-service, TypeScript, and Bun versions authoritative. Do not import
   APIs from another generation or use an unpinned branch as evidence, and do not
   silently upgrade while changing a behavioral contract.
 - **Rationale:** Exact declarations and runtime behavior are the profile's
   evidence; a mixed-version rule can compile differently or change ownership
   semantics.
-- **Minimum / prohibited:** Inspect installed 3.22.1 declarations/source and run
-  frozen installation plus lock checks / range drift, copying an API from an
-  unpinned generation or branch, or an unrelated lock refresh.
+- **Minimum / prohibited:** Inspect the installed declarations, source, and the
+  `AGENTS.md`/`ai-docs` shipped in `node_modules/effect`, and run frozen
+  installation plus lock checks / range drift, copying an API from v3 or an
+  unpinned branch, or an unrelated lock refresh.
 - **Exception:** A separately scoped upgrade proposal updates the inventory,
   probes, diagnostics, locks, migration notes, and complete gate together.
-- **Enforcement:** TS partial; LS exact dependency; Lint —; Neg exact
-  fixture; Unit version probes; Sem exact-version suite; Int —; CI frozen install
-  and lock/drift checks; Manual source hierarchy review.
-- **Version:** Effect 3.22.1, platform 0.97.1, platform-bun 0.91.2, LS 0.87.2,
+- **Enforcement:** TS partial; LS blocking for removed or renamed v3 APIs
+  (`outdatedApi`); Lint —; Neg exact fixture; Unit version probes; Sem
+  exact-version suite; Int —; CI frozen install and lock/drift checks; Manual
+  source hierarchy review.
+- **Version:** Effect 4.0.0-rc.118, platform-bun 4.0.0-rc.118, LS 0.87.3,
   TypeScript 6.0.3, Bun 1.4.2.
 
 ## EFF-029 — Automatic mandatory quality gate
@@ -509,7 +529,7 @@ vocabulary, or repository-host branch protection.
   Sem event/command contract; Int hosted run; CI self-executes; Manual branch
   protection and required-status configuration.
 - **Version:** Workflows pin checkout v7.0.1, mise-action v4.2.4, and the locally
-  tested mise 2026.9.1; the TypeScript gate uses the dependency versions above.
+  tested mise 2026.9.18; the TypeScript gate uses the dependency versions above.
 
 ## EFF-030 — Constructive type modeling
 
@@ -530,5 +550,5 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS blocking for exhaustion; LS —; Lint blocking for
   unsafe/object-literal/non-null assertions and switch exhaustiveness; Neg
   exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual modeling review.
-- **Version:** TS 6.0.3, Oxlint 1.81.0, oxlint-tsgolint 7.0.2001,
-  typescript-eslint 8.69.0; the modeling rule itself is not version-specific.
+- **Version:** TS 6.0.3, Oxlint 1.86.0, oxlint-tsgolint 7.0.2003,
+  typescript-eslint 8.71.0; the modeling rule itself is not version-specific.

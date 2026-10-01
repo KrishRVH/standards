@@ -1,7 +1,7 @@
 import { runMain } from '@effect/platform-bun/BunRuntime';
 import { Console, Effect } from 'effect';
 
-import { EndpointProbeLive, checkEndpoints } from './endpoint-checker.js';
+import { EndpointProbe, checkEndpoints } from './endpoint-checker.js';
 import { encodeEndpointResults, projectCheckFailure, projectEncodingFailure } from './endpoint-contracts.js';
 
 function parseTargetArgument(argument: string): { readonly id: string; readonly url: string } {
@@ -13,7 +13,7 @@ function parseTargetArgument(argument: string): { readonly id: string; readonly 
 }
 
 const main = checkEndpoints({ endpoints: globalThis.Bun.argv.slice(2).map(parseTargetArgument) }).pipe(
-  Effect.provide(EndpointProbeLive),
+  Effect.provide(EndpointProbe.layer),
   Effect.mapError(projectCheckFailure),
   Effect.flatMap((results) => encodeEndpointResults(results).pipe(Effect.mapError(projectEncodingFailure))),
   Effect.tap((encoded) => Console.log(JSON.stringify(encoded))),

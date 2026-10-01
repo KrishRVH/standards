@@ -7,19 +7,23 @@ recovery, public protocol, and telemetry contracts distinct.
 
 An expected failure is a recoverable operation outcome in `E`. A defect is a
 programmer error or violated invariant in `Cause`. Interruption records owner
-cancellation or shutdown in `Cause`. Typed `catchTag`/`catchTags` and exhaustive
-matches recover expected failures; they do not catch defects or relabel
-interruption.
+cancellation or shutdown in `Cause`. Typed `catchTag`/`catchTags`, `catch`, and
+exhaustive matches recover expected failures; they do not catch defects or
+relabel interruption.
 
-Inspect full `Exit`/`Cause` at the handling owner when parallel branches or
-finalizers can contribute more than one failure. `catchAllCause`, `sandbox`,
-`unsandbox`, `die`, and `orDie` are narrow tools, not ways to make channels look
-clean.
+A `Cause` is a flat list of `reasons`, each `Fail`, `Die`, or `Interrupt`.
+Inspect the complete `Exit`/`Cause` at the handling owner when parallel
+branches or finalizers can contribute more than one reason:
+`Cause.hasInterruptsOnly`, `Cause.hasDies`, `Cause.findErrorOption`, and
+`cause.reasons.filter(Cause.isFailReason)` answer the usual questions.
+`catchCause`, `catchDefect`, `sandbox`, `die`, and `orDie` are narrow tools, not
+ways to make channels look clean.
 
 Use `Data.TaggedError` for a runtime-only algebra. Use `Schema.TaggedError` for
-serialized RPC, event, persisted, or wire errors. A private tag can change with
-an internal refactor; an observed wire discriminant follows an explicit
-compatibility policy.
+serialized RPC, event, persisted, or wire errors. Both are yieldable:
+`return yield* new NotFound({ id })` fails the generator. A private tag can
+change with an internal refactor; an observed wire discriminant follows an
+explicit compatibility policy.
 
 ## Three projections
 
@@ -85,7 +89,7 @@ Defects stay with the outer server/runtime observer. Request interruption
 follows cancellation semantics and is not converted to `500` or `503`.
 
 An exhaustive projector argument is a valid alternative when it remains
-legible, but an unconstrained `E` plus generic `catchAll` fallback is not.
+legible, but an unconstrained `E` plus generic `Effect.catch` fallback is not.
 
 ## HTTP client projection
 
@@ -119,8 +123,11 @@ type ClientApiFailure =
 Parse and cap numeric `Retry-After` guidance before exposing it. This union
 describes what the caller may do; it does not cause the client to retry.
 
-Do not create one class per status. Decode a shared Schema-defined wire error
-when server and client share a monorepo. Keep provider/internal errors separate
+Do not create one class per status. When one provider error carries several
+caller-relevant variants, give it a tagged `reason` union and recover the
+variants with `Effect.catchReason`, `Effect.catchReasons`, or
+`Effect.unwrapReason`. Decode a shared Schema-defined wire error when server
+and client share a monorepo. Keep provider/internal errors separate
 from that contract. External cancellation remains interruption rather than a
 client request error.
 

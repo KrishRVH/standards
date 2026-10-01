@@ -100,7 +100,6 @@ async function waitForGroupExit(attempts) {
 async function stopActive(signal) {
   const processGroup = activeGroup;
   if (processGroup === undefined) {
-    clearActive();
     return;
   }
 
@@ -206,12 +205,12 @@ async function runCommand(arguments_) {
   ]);
 
   if (outcome.type === 'interruption') {
-    await stopActive(interruptedSignal ?? 'SIGTERM');
+    await stopActive(interruptedSignal);
     await completion.catch(() => undefined);
     if (signalForwardingError !== undefined) {
       throw signalForwardingError;
     }
-    throw new Error(`Mutation run interrupted by ${interruptedSignal ?? 'a soft signal'}.`);
+    throw new Error(`Mutation run interrupted by ${interruptedSignal}.`);
   }
   if (outcome.type === 'error') {
     throw outcome.error;

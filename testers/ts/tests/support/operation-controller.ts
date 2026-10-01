@@ -42,7 +42,7 @@ export const makeOperationController = (observeFailure: OperationFailureObserver
         if (active.publicationAllowed && Exit.isSuccess(exit)) {
           publish(exit.value);
         }
-        if (Exit.isFailure(exit) && !Cause.isInterruptedOnly(exit.cause)) {
+        if (Exit.isFailure(exit) && !Cause.hasInterruptsOnly(exit.cause)) {
           observeFailure(exit.cause);
         }
         if (current === active) {

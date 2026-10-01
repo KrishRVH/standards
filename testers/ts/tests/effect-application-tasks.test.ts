@@ -17,7 +17,7 @@ test('application work survives component navigation and is interrupted on appli
 
         yield* tasks.start(
           Deferred.succeed(started, undefined).pipe(
-            Effect.zipRight(Effect.never),
+            Effect.andThen(Effect.never),
             Effect.onInterrupt(() => Ref.set(interrupted, true)),
           ),
         );
@@ -47,7 +47,7 @@ test('a non-interruption application task failure is observed exactly once', asy
         const observations = yield* Ref.make(0);
         const tasks = yield* makeApplicationTaskService((cause) =>
           Ref.update(observations, (count) => count + 1).pipe(
-            Effect.zipRight(Deferred.succeed(observed, cause)),
+            Effect.andThen(Deferred.succeed(observed, cause)),
             Effect.asVoid,
           ),
         );
@@ -63,7 +63,7 @@ test('a non-interruption application task failure is observed exactly once', asy
   );
 
   expect(result.observations).toBe(1);
-  expect(Option.getOrThrow(Cause.failureOption(result.cause))).toEqual(
+  expect(Option.getOrThrow(Cause.findErrorOption(result.cause))).toEqual(
     new BackgroundTaskFailure({ operation: 'refresh-cache' }),
   );
 });

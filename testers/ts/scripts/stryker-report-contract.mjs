@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-export const terminalMutantStatuses = new Set([
+const terminalMutantStatuses = new Set([
   'CompileError',
   'Ignored',
   'Killed',

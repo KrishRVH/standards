@@ -1,5 +1,5 @@
-import { Effect } from 'effect';
+import { Context } from 'effect';
 
-export class InvalidService<_A> extends Effect.Service<InvalidService<any>>()('InvalidService', {
-  succeed: {},
-}) {}
+export class InvalidService<_A> extends Context.Service<InvalidService<any>, { readonly value: number }>()(
+  'InvalidService',
+) {}

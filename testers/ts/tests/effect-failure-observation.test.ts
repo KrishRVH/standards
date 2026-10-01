@@ -45,7 +45,7 @@ test('one handling boundary observes a propagated failure once while layered obs
   ]);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(failure);
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(failure);
   }
 });
 

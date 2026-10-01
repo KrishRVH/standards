@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 const childScript = fileURLToPath(new URL('./fixtures/bun-runtime-signal-child.ts', import.meta.url));
 
-test('BunRuntime SIGTERM interrupts main, finalizes its scope, and exits zero', async () => {
+test('BunRuntime SIGTERM interrupts main, finalizes its scope, and exits with the interrupt status', async () => {
   const child = Bun.spawn([process.execPath, childScript], {
     cwd: process.cwd(),
     stderr: 'pipe',
@@ -43,7 +43,8 @@ test('BunRuntime SIGTERM interrupts main, finalizes its scope, and exits zero', 
     const exitCode = await child.exited;
 
     expect(backstopTriggered).toBe(false);
-    expect(exitCode).toBe(0);
+    // effect 4 runMain's default teardown maps an interruption-only Exit to 130.
+    expect(exitCode).toBe(130);
     expect(stdout.trim().split(/\r?\n/)).toEqual(['ACQUIRED', 'HANDLERS_READY', 'FINALIZED']);
     expect(await stderrText).toBe('');
   } finally {

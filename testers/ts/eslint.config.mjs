@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-import { standardsPlugin } from './scripts/eslint-local-rules.mjs';
+import standardsPlugin from './scripts/eslint-local-rules.mjs';
 
 const javaScriptFiles = '**/*.{cjs,js,jsx,mjs}';
 const sourceFiles = '**/*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}';
@@ -29,7 +29,6 @@ export default defineConfig(
       '**/reports/**',
       '**/.stryker-tmp/**',
       '**/type-tests/**',
-      '**/*.tsbuildinfo',
     ],
     'base/global-ignores',
   ),
@@ -276,11 +275,12 @@ export default defineConfig(
     },
   },
 
-  // Declaration files may describe ambient globals and modules.
+  // Declaration files may describe ambient globals and modules, which no local code references.
   {
     name: 'typescript/dts-ambient-ok',
     files: ['**/*.d.ts'],
     rules: {
+      'no-unused-vars': 'off',
       'standards/no-typescript-emit-syntax': ['error', { allowNamespaces: true }],
     },
   },

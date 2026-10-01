@@ -8,12 +8,12 @@ const ProfileResponseSchema = Schema.Struct({
 });
 
 const WireErrorSchema = Schema.Struct({
-  code: Schema.Literal('forbidden', 'profile-incomplete', 'rate-limited', 'service-unavailable', 'session-expired'),
+  code: Schema.Literals(['forbidden', 'profile-incomplete', 'rate-limited', 'service-unavailable', 'session-expired']),
 });
 
-type WireError = Schema.Schema.Type<typeof WireErrorSchema>;
+type WireError = typeof WireErrorSchema.Type;
 
-export type ProfileResponse = Schema.Schema.Type<typeof ProfileResponseSchema>;
+export type ProfileResponse = typeof ProfileResponseSchema.Type;
 
 export type ClientApiFailure =
   | {
@@ -68,7 +68,7 @@ export interface ClientRequestOptions {
 
 const decodeSuccess = (response: Response): Effect.Effect<ProfileResponse, ClientApiFailure> =>
   Effect.tryPromise(() => response.json()).pipe(
-    Effect.flatMap(Schema.decodeUnknown(ProfileResponseSchema)),
+    Effect.flatMap(Schema.decodeUnknownEffect(ProfileResponseSchema)),
     Effect.mapError(() => ({
       _tag: 'MalformedSuccessResponse' as const,
       failureKind: 'protocol-failure' as const,
@@ -149,7 +149,7 @@ const projectWireError = (response: Response, error: WireError): ClientApiFailur
 
 const decodeError = (response: Response): Effect.Effect<never, ClientApiFailure> =>
   Effect.tryPromise(() => response.json()).pipe(
-    Effect.flatMap(Schema.decodeUnknown(WireErrorSchema)),
+    Effect.flatMap(Schema.decodeUnknownEffect(WireErrorSchema)),
     Effect.mapError(malformedErrorResponse),
     Effect.flatMap((error) => Effect.fail(projectWireError(response, error))),
   );
@@ -171,11 +171,12 @@ export const executeClientRequest = ({
       }).pipe(Effect.flatMap((response) => (response.ok ? decodeSuccess(response) : decodeError(response)))),
     (controller) => Effect.sync(() => controller.abort()),
   ).pipe(
-    Effect.timeoutFail({
+    Effect.timeoutOrElse({
       duration: timeout,
-      onTimeout: () => ({
-        _tag: 'RequestTimedOut' as const,
-        retryDisposition: callerRetryDisposition,
-      }),
+      orElse: () =>
+        Effect.fail({
+          _tag: 'RequestTimedOut' as const,
+          retryDisposition: callerRetryDisposition,
+        }),
     }),
   );

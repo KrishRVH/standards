@@ -41,20 +41,21 @@ equivalent terminal.
 Brand a primitive when two values of the same primitive type cross one
 signature and swapping them would still compile. Use `effect/Brand` from the
 pinned dependency set rather than a hand-rolled `__brand` intersection, and
-validate once at the constructor so downstream code trusts the type:
+validate once at the constructor so downstream code trusts the type.
+`Brand.make` takes a Schema-style filter that returns `true` or a failure
+message:
 
 ```ts
 import { Brand } from 'effect';
 
 type EndpointId = string & Brand.Brand<'EndpointId'>;
-const EndpointId = Brand.refined<EndpointId>(
-  (candidate) => /^[a-z][a-z0-9-]{0,63}$/.test(candidate),
-  (candidate) => Brand.error(`invalid endpoint id: ${candidate}`),
+const EndpointId = Brand.make<EndpointId>(
+  (candidate) => /^[a-z][a-z0-9-]{0,63}$/u.test(candidate) || 'endpoint ids are lowercase slugs',
 );
 ```
 
-At an untrusted boundary, `Schema.brand` composes the same brand into the
-decode step (EFF-020), keeping creation and validation one act. Brand on
+At an untrusted boundary, `Schema.brand` after the schema's checks brands the
+decoded type (EFF-020), keeping creation and validation one act. Brand on
 evidence of a real mix-up risk, not by reflex; a locally scoped number needs
 no brand.
 
@@ -65,7 +66,7 @@ type with repeated runtime checks. A collection that must not be empty is
 `Array.NonEmptyReadonlyArray<A>`; a time range is a start plus a
 non-negative duration, so a negative range cannot be written; a
 pair-structured list is `ReadonlyArray<readonly [A, A]>`. Where a loose
-value arrives, narrow once with a guard — `Array.isNonEmptyReadonlyArray` —
+value arrives, narrow once with a guard — `Array.isReadonlyArrayNonEmpty` —
 and the fact travels in the type from then on.
 
 Strengthen only under pressure. Keep `ReadonlyArray<A>` while every
@@ -97,7 +98,7 @@ excess-property checking and admits missing fields
 ## Derived shapes
 
 Every shape has one authority. Boundary contracts derive
-`Schema.Schema.Type` and `Schema.Schema.Encoded` from their schema
+`typeof Contract.Type` and `typeof Contract.Encoded` from their schema
 (EFF-020). Interior reuse derives with `Pick`, `Omit`, `Parameters`,
 `ReturnType`, `Awaited`, and `typeof` before declaring a new parallel
 interface that can drift.

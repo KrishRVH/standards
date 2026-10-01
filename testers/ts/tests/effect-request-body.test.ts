@@ -80,7 +80,7 @@ test('a declared oversize body is rejected before acquiring its stream reader', 
   expect(readerAcquisitions).toBe(0);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new DeclaredBodyTooLarge({ maximumBytes: 3 }));
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(new DeclaredBodyTooLarge({ maximumBytes: 3 }));
   }
 });
 
@@ -107,7 +107,7 @@ test('an invalid declared content length is rejected before acquiring its stream
   expect(readerAcquisitions).toBe(0);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new InvalidDeclaredContentLength());
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(new InvalidDeclaredContentLength());
   }
 });
 
@@ -131,7 +131,7 @@ test('actual oversize attempts cancellation and returns the exact safe failure',
   expect(body.locked).toBe(false);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));
   }
 });
 
@@ -147,9 +147,11 @@ test('a stream read rejection maps to BodyReadFailed without unsafe detail', asy
   expect(body.locked).toBe(false);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new BodyReadFailed());
-    expect(Array.from(Cause.defects(exit.cause))).toEqual([]);
-    expect(JSON.stringify(Cause.failures(exit.cause))).not.toContain('unsafe-read-detail');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(new BodyReadFailed());
+    expect(Cause.hasDies(exit.cause)).toBe(false);
+    expect(JSON.stringify(exit.cause.reasons.filter(Cause.isFailReason).map(({ error }) => error))).not.toContain(
+      'unsafe-read-detail',
+    );
   }
 });
 
@@ -171,13 +173,13 @@ test('interrupting a stalled read attempts cancellation and releases ownership',
   const fiber = Effect.runFork(readBoundedBody(makeBodyRequest(body), makeOptions(3)));
 
   await readStarted.promise;
-  const exit = await Effect.runPromise(Fiber.interrupt(fiber));
+  const exit = await Effect.runPromise(Fiber.interrupt(fiber).pipe(Effect.andThen(Fiber.await(fiber))));
 
   expect(cancellations).toBe(1);
   expect(body.locked).toBe(false);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
   }
 });
 
@@ -213,8 +215,8 @@ test('cleanup rejection is observed safely without replacing the primary failure
   expect(JSON.stringify(cleanupDiagnostic)).not.toContain('unsafe-cleanup-detail');
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));
-    expect(Array.from(Cause.defects(exit.cause))).toEqual([]);
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));
+    expect(Cause.hasDies(exit.cause)).toBe(false);
     expect(JSON.stringify(exit.cause)).not.toContain('unsafe-cleanup-detail');
   }
 });
@@ -236,15 +238,13 @@ test('a stalled cancellation uses the explicit zero-wait cleanup policy', async 
   const fiber = Effect.runFork(readBoundedBody(makeBodyRequest(body), makeOptions(3)));
 
   await cancellationStarted.promise;
-  const completed = await Effect.runPromise(Fiber.poll(fiber));
+  const completed = fiber.pollUnsafe();
 
-  expect(Option.isSome(completed)).toBe(true);
-  if (Option.isSome(completed)) {
-    expect(Exit.isFailure(completed.value)).toBe(true);
-    if (Exit.isFailure(completed.value)) {
-      expect(Option.getOrThrow(Cause.failureOption(completed.value.cause))).toEqual(
-        new BodyTooLarge({ maximumBytes: 3 }),
-      );
+  expect(completed).toBeDefined();
+  if (completed !== undefined) {
+    expect(Exit.isFailure(completed)).toBe(true);
+    if (Exit.isFailure(completed)) {
+      expect(Option.getOrThrow(Cause.findErrorOption(completed.cause))).toEqual(new BodyTooLarge({ maximumBytes: 3 }));
     }
   }
   expect(body.locked).toBe(false);
@@ -278,7 +278,7 @@ test('request abort remains interruption rather than an ordinary body failure', 
   expect(body.locked).toBe(false);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Cause.isInterruptedOnly(exit.cause)).toBe(true);
-    expect(Option.isNone(Cause.failureOption(exit.cause))).toBe(true);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+    expect(Option.isNone(Cause.findErrorOption(exit.cause))).toBe(true);
   }
 });

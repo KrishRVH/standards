@@ -8,4 +8,3 @@ exact = true
 # malicious packages are classified by OSV.dev within that window. Locked
 # versions are not revalidated, and registry removal is not guaranteed.
 minimumReleaseAge = 259200
-peer = false

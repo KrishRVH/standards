@@ -36,7 +36,7 @@ type BodyReader = ReadableStreamDefaultReader<Uint8Array>;
 type BodyReadResult = Awaited<ReturnType<BodyReader['read']>>;
 
 const readChunk = (reader: BodyReader, signal: AbortSignal): Effect.Effect<BodyReadResult, BodyReadFailed> =>
-  Effect.async<BodyReadResult, BodyReadFailed>((resume) => {
+  Effect.callback<BodyReadResult, BodyReadFailed>((resume) => {
     let settled = false;
     let onAbort = (): void => undefined;
     const complete = (result: Effect.Effect<BodyReadResult, BodyReadFailed>): void => {
@@ -127,7 +127,7 @@ const readAll = (
 
       totalBytes += result.value.byteLength;
       if (totalBytes > maximumBytes) {
-        return yield* Effect.fail(new BodyTooLarge({ maximumBytes }));
+        return yield* new BodyTooLarge({ maximumBytes });
       }
       chunks.push(result.value);
     }

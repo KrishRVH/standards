@@ -287,9 +287,8 @@ const automaticTriggerFragments: typeof lockedGateFragments = [
 ];
 
 // The catalog repository runs its gate locally before push and dispatches
-// hosted runs on demand; automatic triggers are a deliberate downstream-only
-// contract. Both absences are asserted so trigger drift fails in either
-// direction.
+// hosted runs on demand, so its workflow declares exactly workflow_dispatch;
+// automatic triggers are a downstream-only contract.
 const manualDispatchOnlyFragments: typeof lockedGateFragments = [
   {
     matches: (workflow) => {

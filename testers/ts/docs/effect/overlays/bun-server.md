@@ -9,9 +9,14 @@ the Bun-specific implementation guidance.
 
 Use `@effect/platform-bun/BunRuntime.runMain` at the narrow process edge. Build
 the application layer once, pass it to the program deliberately, and let that
-edge own termination-signal handling, the full `Exit`, and process status. A
-framework callback is a different edge: it should run a prebuilt
-`ManagedRuntime`, project every expected route error, and return a `Response`.
+edge own termination-signal handling, the full `Exit`, and process status. Its
+default teardown maps an interruption-only Exit, such as SIGINT/SIGTERM
+shutdown, to status `130` and another failure to an error status; a successful
+program exits once the event loop drains. Pass `teardown` only when a
+supervisor needs a different status contract, and `disableErrorReporting`
+only when another observer already reports the failure. A framework callback
+is a different edge: it should run a prebuilt `ManagedRuntime`, project every
+expected route error, and return a `Response`.
 
 Prefer routes whose expected error algebra is exhausted before an
 infrastructure wrapper:
@@ -37,10 +42,12 @@ authorize the `Location` value, and do not automatically retry the rejection.
 redirect and a socket or DNS failure. It is therefore the wrong setting when
 redirect rejection is part of the public or operational classification.
 
-Use an Effect platform package when its stable API materially supplies the
-portable request, server, filesystem, command, terminal, or path contract the
-application needs. Do not add a platform wrapper merely to rename a small,
-well-tested native boundary.
+Effect 4 ships HTTP client and server, filesystem, path, child-process, and
+terminal modules inside `effect` (for example `effect/http`), with Bun
+implementations in `@effect/platform-bun`. Many are marked
+`@stability unstable` and may break in a minor release. Adopt one when its API
+materially supplies the portable contract the application needs; a small,
+well-tested native boundary needs no platform wrapper merely to rename it.
 
 ## Bounded request bodies
 

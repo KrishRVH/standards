@@ -87,16 +87,34 @@ const expected = [
     name: 'anyUnknownInErrorContext',
   },
   {
-    column: 70,
+    column: 60,
     file: 'effect-diagnostics/fixtures/class-self-mismatch.ts',
     line: 7,
     name: 'classSelfMismatch',
+  },
+  {
+    column: 14,
+    file: 'effect-diagnostics/fixtures/crypto-random-uuid-in-effect.ts',
+    line: 4,
+    name: 'cryptoRandomUUIDInEffect',
   },
   {
     column: 46,
     file: 'effect-diagnostics/fixtures/effect-fn-implicit-any.ts',
     line: 3,
     name: 'effectFnImplicitAny',
+  },
+  {
+    column: 14,
+    file: 'effect-diagnostics/fixtures/effect-gen-adapter.ts',
+    line: 3,
+    name: 'anyUnknownInErrorContext',
+  },
+  {
+    column: 24,
+    file: 'effect-diagnostics/fixtures/effect-gen-adapter.ts',
+    line: 3,
+    name: 'anyUnknownInErrorContext',
   },
   {
     column: 46,
@@ -170,19 +188,13 @@ const expected = [
     line: 6,
     name: 'missingEffectContext',
   },
-  // @effect/language-service 0.87.2 reports missingEffectError with the
-  // missingEffectContext name. Preserve the observed contract until upgrade.
+  // @effect/language-service 0.87.3 reports missingEffectError with the
+  // missingEffectContext name. Re-verify the observed name on every upgrade.
   {
     column: 59,
     file: 'effect-diagnostics/fixtures/missing-effect-error.ts',
     line: 9,
     name: 'missingEffectContext',
-  },
-  {
-    column: 14,
-    file: 'effect-diagnostics/fixtures/missing-effect-service-dependency.ts',
-    line: 5,
-    name: 'missingEffectServiceDependency',
   },
   {
     column: 14,
@@ -195,18 +207,6 @@ const expected = [
     file: 'effect-diagnostics/fixtures/missing-return-yield-star.ts',
     line: 5,
     name: 'missingReturnYieldStar',
-  },
-  {
-    column: 14,
-    file: 'effect-diagnostics/fixtures/missing-star-in-yield.ts',
-    line: 3,
-    name: 'anyUnknownInErrorContext',
-  },
-  {
-    column: 24,
-    file: 'effect-diagnostics/fixtures/missing-star-in-yield.ts',
-    line: 3,
-    name: 'anyUnknownInErrorContext',
   },
   {
     column: 35,
@@ -227,10 +227,16 @@ const expected = [
     name: 'multipleEffectProvide',
   },
   {
-    column: 3,
-    file: 'effect-diagnostics/fixtures/non-object-service.ts',
-    line: 5,
-    name: 'nonObjectEffectServiceType',
+    column: 1,
+    file: 'effect-diagnostics/fixtures/outdated-api.ts',
+    line: 1,
+    name: 'outdatedApi',
+  },
+  {
+    column: 56,
+    file: 'effect-diagnostics/fixtures/outdated-api.ts',
+    line: 4,
+    name: 'outdatedApi',
   },
   {
     column: 3,
@@ -255,18 +261,6 @@ const expected = [
     file: 'effect-diagnostics/fixtures/run-effect-inside-effect.ts',
     line: 4,
     name: 'runEffectInsideEffect',
-  },
-  {
-    column: 10,
-    file: 'effect-diagnostics/fixtures/schema-sync-inside.ts',
-    line: 8,
-    name: 'schemaSyncInEffect',
-  },
-  {
-    column: 24,
-    file: 'effect-diagnostics/fixtures/scope-in-layer-effect.ts',
-    line: 7,
-    name: 'scopeInLayerEffect',
   },
   {
     column: 14,
@@ -304,6 +298,7 @@ const guidanceByDiagnostic = {
   'effect(-1)': 'EFF-027 docs/effect/enforcement.md#eff-027--narrow-diagnostic-suppressions',
   anyUnknownInErrorContext: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
   classSelfMismatch: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
+  cryptoRandomUUIDInEffect: 'EFF-024 docs/effect/enforcement.md#eff-024--deterministic-synchronization',
   effectFnImplicitAny: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
   effectGenUsesAdapter: 'EFF-001 docs/effect/enforcement.md#eff-001--selective-effect-adoption',
   effectInFailure: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
@@ -316,18 +311,15 @@ const guidanceByDiagnostic = {
   layerMergeAllWithDependencies: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
   lazyPromiseInEffectSync: 'EFF-004 docs/effect/enforcement.md#eff-004--lazy-side-effects',
   missingEffectContext: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
-  missingEffectServiceDependency: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   missingLayerContext: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
   missingReturnYieldStar: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   missingStarInYieldEffectGen: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   multipleEffectProvide: 'EFF-010 docs/effect/enforcement.md#eff-010--deliberate-layer-and-runtime-roots',
-  nonObjectEffectServiceType: 'EFF-008 docs/effect/enforcement.md#eff-008--non-generic-runtime-service-identity',
+  outdatedApi: 'EFF-028 docs/effect/enforcement.md#eff-028--exact-effect-v4-dependency-evidence',
   overriddenSchemaConstructor: 'EFF-020 docs/effect/enforcement.md#eff-020--schema-trust-and-wire-boundaries',
   processEnvInEffect: 'EFF-021 docs/effect/enforcement.md#eff-021--secret-containment',
   returnEffectInGen: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   runEffectInsideEffect: 'EFF-011 docs/effect/enforcement.md#eff-011--named-runtime-edges',
-  schemaSyncInEffect: 'EFF-020 docs/effect/enforcement.md#eff-020--schema-trust-and-wire-boundaries',
-  scopeInLayerEffect: 'EFF-009 docs/effect/enforcement.md#eff-009--scoped-layer-construction',
   unknownInEffectCatch: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
   unsafeEffectTypeAssertion: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
 };
@@ -345,16 +337,11 @@ assert.deepEqual(
 
 const fixtureDirectory = new URL('../effect-diagnostics/fixtures/', import.meta.url);
 const triggerFiles = (await readdir(fixtureDirectory))
-  .filter((file) => file.endsWith('.ts') && file !== 'schema-sync-outside.ts')
+  .filter((file) => file.endsWith('.ts'))
   .map((file) => `effect-diagnostics/fixtures/${file}`)
   .sort();
 const diagnosedFiles = [...new Set(actual.map(({ file }) => file))].sort();
 
 assert.deepEqual(diagnosedFiles, triggerFiles, 'Every invalid fixture must produce a blocking diagnostic.');
-assert.equal(
-  actual.some(({ file }) => file.endsWith('schema-sync-outside.ts')),
-  false,
-  'Synchronous Schema execution outside an Effect workflow must remain outside schemaSyncInEffect scope.',
-);
 
 standardOutput.write(`Verified ${String(actual.length)} blocking Effect diagnostic location(s).\n`);

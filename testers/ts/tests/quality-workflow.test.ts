@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
-import { sep } from 'node:path';
-import { URL, fileURLToPath } from 'node:url';
+import { URL } from 'node:url';
 
 import { qualityWorkflowViolations, rootQualityWorkflowViolations } from './support/workflow-contract.js';
 
@@ -29,26 +28,20 @@ function withParallelGroup(workflow: string, group: string): string {
   return workflow.replace('      - name: Install pinned tools\n', `${group}\n      - name: Install pinned tools\n`);
 }
 
-function isMutationSandbox(): boolean {
-  if (process.env['STANDARDS_STRYKER_SANDBOX'] !== '1') {
-    return false;
-  }
+const templateWorkflow = (): Promise<string> =>
+  readFile(new URL('../.github/workflows/quality.yml', import.meta.url), 'utf8');
 
-  const testerPath = fileURLToPath(new URL('..', import.meta.url));
-  expect(testerPath).toContain(`${sep}.stryker-tmp${sep}`);
-  return true;
-}
+const catalogWorkflow = (): Promise<string> =>
+  readFile(new URL('../../../.github/workflows/quality.yml', import.meta.url), 'utf8');
 
 test('the generated quality workflow automatically runs the locked mandatory gate', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
 
   expect(qualityWorkflowViolations(workflow)).toEqual([]);
 });
 
 test('the generated quality workflow requires merge-queue validation', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const withoutMergeGroup = workflow.replace('  merge_group:\n', '');
 
   expect(qualityWorkflowViolations(withoutMergeGroup)).toContain(
@@ -57,16 +50,14 @@ test('the generated quality workflow requires merge-queue validation', async () 
 });
 
 test('the generated quality workflow rejects floating external action tags', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const withFloatingCheckout = workflow.replace(/actions\/checkout@[0-9a-f]{40}/u, 'actions/checkout@v7');
 
   expect(qualityWorkflowViolations(withFloatingCheckout)).toContain(externalActionPinViolation);
 });
 
 test('external action paths reject traversal and non-portable separators', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const commit = '0123456789abcdef0123456789abcdef01234567';
 
   for (const reference of [`owner/../action@${commit}`, `owner/./action@${commit}`, `owner\\action@${commit}`]) {
@@ -77,8 +68,7 @@ test('external action paths reject traversal and non-portable separators', async
 });
 
 test('same-repository action and reusable-workflow references resolve at the running commit', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const localReferences = [
     { reference: '$/.github/actions/contract', transform: withActionStep },
     { reference: './.github/actions/contract', transform: withActionStep },
@@ -93,8 +83,7 @@ test('same-repository action and reusable-workflow references resolve at the run
 });
 
 test('malformed running-commit references cannot bypass external action pins', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const commit = '0123456789abcdef0123456789abcdef01234567';
   const invalidReferences = [
     '$',
@@ -133,8 +122,7 @@ test('malformed running-commit references cannot bypass external action pins', a
 });
 
 test('Docker container actions accept an immutable image digest', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const digest = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   const references = [
     `docker://alpine@sha256:${digest}`,
@@ -149,8 +137,7 @@ test('Docker container actions accept an immutable image digest', async () => {
 });
 
 test('Docker container actions reject mutable and malformed image references', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const digest = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   const invalidReferences = [
     'docker://alpine',
@@ -190,8 +177,7 @@ const parallelLayouts = [
 
 for (const layout of parallelLayouts) {
   test(`the generated workflow rejects a mutable external action in a ${layout.name} parallel group`, async () => {
-    const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-    const workflow = await readFile(workflowPath, 'utf8');
+    const workflow = await templateWorkflow();
     const violations = qualityWorkflowViolations(withParallelGroup(workflow, layout.mutableAction));
 
     expect(violations).toContain(externalActionPinViolation);
@@ -199,8 +185,7 @@ for (const layout of parallelLayouts) {
   });
 
   test(`the generated workflow rejects an unhardened checkout in a ${layout.name} parallel group`, async () => {
-    const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-    const workflow = await readFile(workflowPath, 'utf8');
+    const workflow = await templateWorkflow();
     const violations = qualityWorkflowViolations(withParallelGroup(workflow, layout.unhardenedCheckout));
 
     expect(violations).not.toContain(externalActionPinViolation);
@@ -209,8 +194,7 @@ for (const layout of parallelLayouts) {
 }
 
 test('cyclic parallel aliases fail closed', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const cyclicParallelGroup = ['      - parallel: &parallel-steps', '          - parallel: *parallel-steps'].join('\n');
   const violations = qualityWorkflowViolations(withParallelGroup(workflow, cyclicParallelGroup));
 
@@ -219,8 +203,7 @@ test('cyclic parallel aliases fail closed', async () => {
 });
 
 test('reused parallel aliases retain their pinned and hardened action contract', async () => {
-  const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await templateWorkflow();
   const sharedParallelGroup = [
     '      - parallel: &shared-steps',
     `          - uses: ${pinnedCheckout}`,
@@ -262,8 +245,7 @@ const hiddenCheckoutSpellings = [
 
 for (const spelling of hiddenCheckoutSpellings) {
   test(`the generated workflow recognizes and rejects a mutable checkout hidden behind a ${spelling.name}`, async () => {
-    const workflowPath = fileURLToPath(new URL('../.github/workflows/quality.yml', import.meta.url));
-    const workflow = await readFile(workflowPath, 'utf8');
+    const workflow = await templateWorkflow();
     const withHardenedCheckout = workflow.replace(
       '      - name: Install pinned tools\n',
       `${spelling.hardenedStep}\n      - name: Install pinned tools\n`,
@@ -276,19 +258,14 @@ for (const spelling of hiddenCheckoutSpellings) {
     const violations = qualityWorkflowViolations(withHiddenCheckout);
 
     expect(hardenedViolations).not.toContain(externalActionPinViolation);
-    expect(hardenedViolations).not.toContain('checkout credentials remain available to later steps');
+    expect(hardenedViolations).not.toContain(checkoutCredentialsViolation);
     expect(violations).toContain(externalActionPinViolation);
-    expect(violations).toContain('checkout credentials remain available to later steps');
+    expect(violations).toContain(checkoutCredentialsViolation);
   });
 }
 
 test('the standards repository workflow is manual-dispatch-only with the same locked gate', async () => {
-  if (isMutationSandbox()) {
-    return;
-  }
-
-  const workflowPath = fileURLToPath(new URL('../../../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await catalogWorkflow();
 
   expect(rootQualityWorkflowViolations(workflow)).toEqual([]);
 });
@@ -300,12 +277,7 @@ const forbiddenCatalogTriggers = [
 
 for (const trigger of forbiddenCatalogTriggers) {
   test(`the standards repository workflow rejects a top-level ${trigger.name} trigger`, async () => {
-    if (isMutationSandbox()) {
-      return;
-    }
-
-    const workflowPath = fileURLToPath(new URL('../../../.github/workflows/quality.yml', import.meta.url));
-    const workflow = await readFile(workflowPath, 'utf8');
+    const workflow = await catalogWorkflow();
     const withForbiddenTrigger = workflow.replace(
       'on:\n  workflow_dispatch:\n',
       `on:\n  workflow_dispatch:\n${trigger.yaml}\n`,
@@ -318,12 +290,7 @@ for (const trigger of forbiddenCatalogTriggers) {
 }
 
 test('every catalog checkout step disables persisted credentials', async () => {
-  if (isMutationSandbox()) {
-    return;
-  }
-
-  const workflowPath = fileURLToPath(new URL('../../../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await catalogWorkflow();
   const withUnhardenedCheckout = workflow.replace(
     '      - name: Install pinned tools\n',
     [
@@ -334,35 +301,21 @@ test('every catalog checkout step disables persisted credentials', async () => {
     ].join('\n'),
   );
 
-  expect(rootQualityWorkflowViolations(withUnhardenedCheckout)).toContain(
-    'checkout credentials remain available to later steps',
-  );
+  expect(rootQualityWorkflowViolations(withUnhardenedCheckout)).toContain(checkoutCredentialsViolation);
 });
 
 test('a block-scalar checkout input cannot impersonate credential hardening', async () => {
-  if (isMutationSandbox()) {
-    return;
-  }
-
-  const workflowPath = fileURLToPath(new URL('../../../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await catalogWorkflow();
   const withBlockScalarDecoy = workflow.replace(
     '          persist-credentials: false\n',
     '          fetch-depth: |\n            persist-credentials: false\n',
   );
 
-  expect(rootQualityWorkflowViolations(withBlockScalarDecoy)).toContain(
-    'checkout credentials remain available to later steps',
-  );
+  expect(rootQualityWorkflowViolations(withBlockScalarDecoy)).toContain(checkoutCredentialsViolation);
 });
 
 test('the catalog workflow rejects floating external action tags', async () => {
-  if (isMutationSandbox()) {
-    return;
-  }
-
-  const workflowPath = fileURLToPath(new URL('../../../.github/workflows/quality.yml', import.meta.url));
-  const workflow = await readFile(workflowPath, 'utf8');
+  const workflow = await catalogWorkflow();
   const withFloatingMiseAction = workflow.replace(/jdx\/mise-action@[0-9a-f]{40}/u, 'jdx/mise-action@v4');
 
   expect(rootQualityWorkflowViolations(withFloatingMiseAction)).toContain(externalActionPinViolation);

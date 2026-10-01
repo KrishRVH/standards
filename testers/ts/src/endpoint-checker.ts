@@ -29,8 +29,6 @@ export interface EndpointProbeService {
   readonly head: (target: CheckedEndpointTarget) => Effect.Effect<EndpointHealthy, EndpointProbeFailure>;
 }
 
-export class EndpointProbe extends Context.Tag('project-name/EndpointProbe')<EndpointProbe, EndpointProbeService>() {}
-
 export type FetchLike = (input: Request | string | URL, init?: RequestInit) => Promise<Response>;
 
 function classifyResponse(
@@ -71,10 +69,14 @@ export function makeEndpointProbe(fetcher: FetchLike): EndpointProbeService {
   };
 }
 
-export const EndpointProbeLive = Layer.succeed(
-  EndpointProbe,
-  makeEndpointProbe((input, init) => fetch(input, init)),
-);
+export class EndpointProbe extends Context.Service<EndpointProbe, EndpointProbeService>()(
+  'project-name/EndpointProbe',
+) {
+  static readonly layer = Layer.succeed(
+    EndpointProbe,
+    makeEndpointProbe((input, init) => fetch(input, init)),
+  );
+}
 
 function authorizeEndpoint(
   target: EndpointTargetInput,
@@ -104,9 +106,9 @@ export function checkEndpoint(
   policy: CheckedPolicy,
 ): Effect.Effect<EndpointHealthy, EndpointProbeFailure | AttemptTimedOut> {
   const attempt = probe.head(target).pipe(
-    Effect.timeoutFail({
+    Effect.timeoutOrElse({
       duration: policy.attemptTimeout,
-      onTimeout: () => new AttemptTimedOut({ targetId: target.id }),
+      orElse: () => Effect.fail(new AttemptTimedOut({ targetId: target.id })),
     }),
   );
 
@@ -138,31 +140,23 @@ function projectEndpointOutcome(failure: EndpointLocalFailure): EndpointOutcome 
   }
 }
 
-export const checkEndpoints = Effect.fn('project-name/endpoint-checker.check')(
-  (input: unknown, policyInput: unknown = defaultCheckPolicy) =>
-    decodeCheckPolicy(policyInput).pipe(
-      Effect.flatMap((policy) =>
-        decodeCheckRequest(input).pipe(
-          Effect.flatMap((request) =>
-            Effect.gen(function* () {
-              const probe = yield* EndpointProbe;
+export const checkEndpoints = Effect.fn('project-name/endpoint-checker.check')(function* (
+  input: unknown,
+  policyInput: unknown = defaultCheckPolicy,
+) {
+  const policy = yield* decodeCheckPolicy(policyInput);
+  const probe = yield* EndpointProbe;
+  const checkTarget = (target: EndpointTargetInput): Effect.Effect<EndpointOutcome> =>
+    authorizeEndpoint(target, policy).pipe(
+      Effect.flatMap((authorized) => checkEndpoint(probe, authorized, policy)),
+      Effect.catch((failure) => Effect.succeed(projectEndpointOutcome(failure))),
+    );
 
-              return yield* Effect.forEach(
-                request.endpoints,
-                (target) =>
-                  authorizeEndpoint(target, policy).pipe(
-                    Effect.flatMap((authorized) => checkEndpoint(probe, authorized, policy)),
-                    Effect.catchAll((failure) => Effect.succeed(projectEndpointOutcome(failure))),
-                  ),
-                { concurrency: policy.concurrency },
-              );
-            }),
-          ),
-          Effect.timeoutFail({
-            duration: policy.totalDeadline,
-            onTimeout: () => new WorkflowDeadlineExceeded({ operation: 'endpoint-check' }),
-          }),
-        ),
-      ),
-    ),
-);
+  return yield* decodeCheckRequest(input).pipe(
+    Effect.flatMap((request) => Effect.forEach(request.endpoints, checkTarget, { concurrency: policy.concurrency })),
+    Effect.timeoutOrElse({
+      duration: policy.totalDeadline,
+      orElse: () => Effect.fail(new WorkflowDeadlineExceeded({ operation: 'endpoint-check' })),
+    }),
+  );
+});

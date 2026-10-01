@@ -111,7 +111,7 @@ test('origins with either credential half, paths, queries, or non-https schemes 
 
         expect(Exit.isFailure(exit)).toBe(true);
         if (Exit.isFailure(exit)) {
-          expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+          expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
         }
       },
     ),

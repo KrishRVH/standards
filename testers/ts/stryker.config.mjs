@@ -13,9 +13,8 @@
  *   changed code are dispositioned in review, not amortized into the score.
  * - `src/main.*` is the composition root under every supported source suffix:
  *   side-effectful wiring with no unit seam, verified by the preflight gates.
- * - Mutation runs use Stryker's isolated sandbox. The tester skips its one
- *   catalog-root workflow assertion only inside that sandbox; the mandatory
- *   preflight proves the assertion before any source is mutated.
+ * - `inPlace: false` mutates a sandbox copy, so an interrupted run cannot
+ *   leave mutated source behind; the report gate rejects in-place runs.
  * - `coverageAnalysis`, `incrementalFile`, and `thresholds.high`/`low` pin
  *   Stryker's current defaults so an upstream change cannot silently move
  *   the reporting surface; only `break` is load-bearing.
@@ -57,5 +56,5 @@ export default {
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
   thresholds: { high: 80, low: 60, break: 66 },
   timeoutMS: 30000,
-  bun: { env: { STANDARDS_STRYKER_SANDBOX: '1' }, timeout: 60000, testFiles },
+  bun: { timeout: 60000, testFiles },
 };

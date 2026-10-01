@@ -1,7 +1,7 @@
 # Time, retry, and cancellation
 
 The [enforcement map](enforcement.md) owns mandatory wording. This guide
-explains the pinned Effect 3.22.1 ordering contracts.
+explains the pinned Effect v4 ordering contracts.
 
 ## Adapter cancellation is concrete
 
@@ -38,22 +38,25 @@ wait, body processing, and finalizers. It may intentionally prevent configured
 later attempts or interrupt retry sleep. Do not reject a caller deadline merely
 because it is shorter than the theoretical maximum attempts.
 
-In Effect 3.22.1, timeout interrupts the losing fiber and waits for its
-termination. Uninterruptible work or slow finalizers can therefore delay the
+`Effect.timeoutOrElse({ duration, orElse })` maps a timeout to a typed failure
+or fallback; `Effect.timeout` fails with `Cause.TimeoutError`, and
+`Effect.timeoutOption` returns `Option`. Each interrupts the losing fiber and
+waits for its termination, so uninterruptible work or slow finalizers delay the
 timeout result. A timeout result is a caller budget outcome, not proof that
 signal-ignorant work stopped.
 
 Decode policy from a narrow external representation before constructing
 `Duration.Duration`. Finite bounded integer milliseconds are easier to validate
-than the complete `DurationInput` union. Never validate a distinction after a
-constructor that normalizes negative, `NaN`, or infinite input.
+than the complete `Duration.Input` union, which also admits negative values.
+Never validate a distinction after a constructor that normalizes negative,
+`NaN`, or infinite input.
 
 ## Retry safety and ownership
 
 Inspect SDK, transport, service, orchestration, queue, and UI layers, then choose
 one automatic retry owner. Retry only the smallest duplicate-safe unit with an
 operation-specific predicate and bounded attempts. In the pinned version,
-`{ times: n }` means at most `n + 1` attempts.
+`Effect.retry({ schedule, times: n, while })` makes at most `n + 1` attempts.
 
 Do not infer retry from a generic “transient” label. Transmission phase, commit
 ambiguity, provider contract, overload response, authentication, validation,
@@ -77,9 +80,10 @@ outcome-unknown/reconcile result. Public `caller-may-retry` guidance is not the
 same policy as internal automatic retry.
 
 Production clients often need exponential backoff and jitter to avoid
-synchronization. The tiny canonical fixture omits jitter unless randomness is
-injected and deterministically tested. Server delay guidance is bounded and
-still capped by the total deadline.
+synchronization: jitter `Schedule.exponential` with `Schedule.jittered`, then
+cap it with `Schedule.min`, because jitter scales each delay by 0.8–1.2×. Jitter
+draws from the `Random` service, so tests provide a deterministic one. The tiny canonical fixture omits jitter. Server delay
+guidance is bounded and still capped by the total deadline.
 
 ## Cancellation and publication
 

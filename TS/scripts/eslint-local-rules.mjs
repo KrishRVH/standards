@@ -549,7 +549,7 @@ const typeScriptSourceOnly = {
   },
 };
 
-export const standardsPlugin = {
+const standardsPlugin = {
   meta: { name: 'standards-local', version: '1.0.0' },
   rules: {
     'esm-only': esmOnly,
@@ -562,5 +562,5 @@ export const standardsPlugin = {
   },
 };
 
-// eslint-disable-next-line standards/no-default-export -- Oxlint loads local plugins through a default export.
+// eslint-disable-next-line standards/no-default-export -- Oxlint and ESLint load this one plugin object through a default export.
 export default standardsPlugin;

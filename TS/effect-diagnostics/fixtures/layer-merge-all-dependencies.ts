@@ -1,8 +1,8 @@
 import { Context, Effect, Layer } from 'effect';
 
-class A extends Context.Tag('@effect-diagnostics/A')<A, { readonly value: number }>() {}
+class A extends Context.Service<A, { readonly value: number }>()('@effect-diagnostics/A') {}
 
-class B extends Context.Tag('@effect-diagnostics/B')<B, { readonly value: number }>() {}
+class B extends Context.Service<B, { readonly value: number }>()('@effect-diagnostics/B') {}
 
 const ALive = Layer.succeed(A, { value: 1 });
 const BLive = Layer.effect(

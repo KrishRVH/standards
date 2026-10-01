@@ -1,7 +1,7 @@
 # Testing and diagnostics
 
 The [enforcement map](enforcement.md) owns mandatory wording. This guide defines
-the executable evidence expected from Effect 3.22.1 code.
+the executable evidence expected from Effect v4 code.
 
 ## Red, then green
 
@@ -13,18 +13,32 @@ red and green commands in the change handoff.
 Assert the property, not merely `Exit.isFailure`: expected tag and safe fields,
 absence or presence of defects/interruption, forwarded signal, attempt count,
 provider input, max concurrency, result order, publication permission,
-acquisition/release counts, or full Cause shape.
+acquisition/release counts, or full Cause shape. Read a `Cause` with
+`Cause.findErrorOption`, `Cause.hasDies`, `Cause.hasInterruptsOnly`, or its
+ordered `reasons`.
 
 ## Virtual time and interruption
 
+Effect-based tests run at the `bun:test` edge with `Effect.runPromise` and
+provide virtual time explicitly, from `TestClock.layer()` in `effect/testing`.
 Fork timed work. Use `Deferred`, `Ref`, latches, or another explicit probe to
-prove the fiber entered the attempt or sleep before calling `TestClock.adjust`.
-Use real time only in a bounded isolated subprocess when process signals or real
-host time are the subject.
+prove the fiber entered the attempt or sleep before calling
+`TestClock.adjust`. `TestClock` keeps its sleep queue private, so
+`tests/support/test-clock.ts` supplies `testClockLayer`, a `TestClock` that
+records each requested wake time, and `waitForScheduledSleep` for the sleep
+case. Use real time only in a bounded isolated subprocess when process signals
+or real host time are the subject.
 
-Tests distinguish wrapper completion from underlying behavior. A timeout test
-for a signal-aware adapter also proves abort; a signal-ignorant test proves the
-underlying Promise can continue. Cancellation/publication tests prove handlers
+Gate a slow finalizer with a `Deferred` rather than a virtual sleep. The pinned
+`TestClock` forks its warning fiber interruptibly, so a pending interrupt can
+end a virtual sleep inside an otherwise uninterruptible finalizer; the live
+clock keeps such a finalizer uninterruptible.
+
+`Fiber.interrupt` returns `void` after finalizers finish; assert the
+interrupted `Exit` with `Fiber.await`. Tests distinguish wrapper completion
+from underlying behavior. A timeout test for a signal-aware adapter also
+proves abort; a signal-ignorant test proves the underlying Promise can
+continue. Cancellation/publication tests prove handlers
 do not publish a normal success or expected-failure result after interruption.
 
 Resource tests cover success, typed failure, interruption, slow/failing
@@ -43,8 +57,7 @@ boundary, port the matching tester suite shape next to it in the same change.
 Keep exact-version Effect language-service diagnostics. The normal project runs
 the standalone CLI for configured errors/warnings. A separate expected-
 diagnostic project contains intentionally invalid fixtures and asserts exact
-diagnostic name, file, line, severity, and nonzero CLI exit. The valid sync
-Schema fixture stays outside `schemaSyncInEffect` scope.
+diagnostic name, file, line, severity, and nonzero CLI exit.
 
 Do not put intentionally invalid HTTP/type examples in the normal compilation
 unit. Use an isolated negative TypeScript project and `@ts-expect-error` or a
@@ -55,7 +68,7 @@ behavior, editor/CI match, quick-fix meaning, and false-positive risk. Do not
 bulk-apply quick fixes. A narrow suppression names safety reason, owner/version,
 and removal condition; the harness rejects stale suppressions and
 diagnostic-name drift. The exact per-configured-rule record lives in the
-[0.87.2 diagnostic inventory](diagnostic-inventory.md).
+[0.87.3 diagnostic inventory](diagnostic-inventory.md).
 
 ## CI and documentation contracts
 

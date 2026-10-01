@@ -1,9 +1,14 @@
-# TypeScript, Effect v3, and Bun agent guide
+# TypeScript, Effect v4, and Bun agent guide
 
 Use this fragment with the project's shared agent guide. `package.json`,
-`bun.lock`, and the mise tasks own the tested versions and commands. Inspect
-the exact installed declaration/source before using a non-obvious Effect API.
-Read [the upgrade workflow](README.md#pinned-baseline-not-a-freeze) when changing
+`bun.lock`, and the mise tasks own the tested versions and commands. Write
+Effect v4: before using a non-obvious Effect API, read its installed
+declaration and the `AGENTS.md` and `ai-docs/` examples shipped in
+`node_modules/effect`. Translate remembered v3 code with the upstream
+[migration guide](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md);
+where it describes a newer 4.x surface, the installed declarations win. The
+`outdatedApi` diagnostic blocks removed v3 APIs. Read
+[the upgrade workflow](README.md#pinned-baseline-not-a-freeze) when changing
 dependencies; update the diagnostic inventory when the language service changes.
 
 The [enforcement map](docs/effect/enforcement.md) owns mandatory rules, narrow
@@ -52,16 +57,18 @@ has its own repair tasks.
 
 ## Design defaults
 
-Keep total synchronous calculations plain TypeScript. Use `Option`/`Either`
+Keep total synchronous calculations plain TypeScript. Use `Option`/`Result`
 for absence or validation as data; use Effect for operational failure,
 dependencies, time, interruption, concurrency, and resource lifetime. Use
 Schema at untrusted and protocol boundaries.
 
-Use `Effect.gen` for local orchestration, `Effect.fn("package.operation")` for
-a useful named trace boundary, and combinators for short transformations.
-Prefer an interface, namespaced `Context.Tag`, and named layer when declaring
-a service. Choose `Layer.succeed`, `Layer.effect`, or `Layer.scoped` according
-to construction and release ownership.
+Use `Effect.gen` for local orchestration, `Effect.fn("package.operation")` with
+a generator body for a useful named trace boundary, `Effect.fnUntraced` for a
+reusable helper that is no trace boundary, and combinators for short
+transformations. Declare a service as a `Context.Service` class over a named
+shape interface, with its primary layer as a static `layer`. Build layers with
+`Layer.succeed` for a value and `Layer.effect` for effectful construction; an
+`Effect.acquireRelease` inside `Layer.effect` releases with the layer.
 
 State belongs to a service, layer, or root model. Keep module bindings
 immutable; pass ambient capabilities through owned boundaries. Source uses

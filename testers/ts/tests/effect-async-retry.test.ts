@@ -1,20 +1,8 @@
 import { expect, test } from 'bun:test';
-import {
-  Cause,
-  Clock,
-  Data,
-  Deferred,
-  Effect,
-  Exit,
-  Fiber,
-  Option,
-  Ref,
-  Schedule,
-  TestClock,
-  TestContext,
-} from 'effect';
+import { Cause, Clock, Data, Deferred, Effect, Exit, Fiber, Option, Ref, Schedule } from 'effect';
+import { TestClock } from 'effect/testing';
 
-import { waitForScheduledSleep } from './support/test-clock.js';
+import { testClockLayer, waitForScheduledSleep } from './support/test-clock.js';
 
 class AttemptBudgetExceeded extends Data.TaggedError('AttemptBudgetExceeded') {}
 
@@ -44,7 +32,7 @@ test('a signal-ignorant promise continues after its Effect times out', async () 
   const program = Effect.gen(function* () {
     const started = yield* Deferred.make<undefined>();
     const operation = Deferred.succeed(started, undefined).pipe(
-      Effect.zipRight(
+      Effect.andThen(
         Effect.tryPromise(() =>
           underlying.promise.then(() => {
             completionCount += 1;
@@ -52,25 +40,25 @@ test('a signal-ignorant promise continues after its Effect times out', async () 
           }),
         ),
       ),
-      Effect.timeoutFail({
+      Effect.timeoutOrElse({
         duration: '1 second',
-        onTimeout: () => new AttemptBudgetExceeded(),
+        orElse: () => Effect.fail(new AttemptBudgetExceeded()),
       }),
     );
-    const fiber = yield* Effect.fork(operation);
+    const fiber = yield* Effect.forkChild(operation);
 
     yield* Deferred.await(started);
     yield* waitForScheduledSleep(1_000);
     yield* TestClock.adjust('1 second');
 
     return yield* Fiber.await(fiber);
-  }).pipe(Effect.provide(TestContext.TestContext));
+  }).pipe(Effect.provide(testClockLayer));
 
   const exit = await Effect.runPromise(program);
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('AttemptBudgetExceeded');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AttemptBudgetExceeded');
   }
   expect(completionCount).toBe(0);
 
@@ -97,12 +85,12 @@ test('timeout inside retry gives every attempt a budget and includes backoff', a
 
         return yield* Effect.never;
       }).pipe(
-        Effect.timeoutFail({
+        Effect.timeoutOrElse({
           duration: '1 second',
-          onTimeout: () => new AttemptBudgetExceeded(),
+          orElse: () => Effect.fail(new AttemptBudgetExceeded()),
         }),
       );
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         attempt.pipe(
           Effect.retry({
             schedule: Schedule.spaced('500 millis'),
@@ -120,14 +108,14 @@ test('timeout inside retry gives every attempt a budget and includes backoff', a
         exit: yield* Fiber.await(fiber),
         starts: yield* Ref.get(starts),
       };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(result.attempts).toBe(3);
   expect(result.starts).toEqual([0, 1_500, 3_000]);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('AttemptBudgetExceeded');
+    expect(Option.getOrThrow(Cause.findErrorOption(result.exit.cause))._tag).toBe('AttemptBudgetExceeded');
   }
 });
 
@@ -143,7 +131,7 @@ test('timeout outside retry caps the workflow and interrupts retry sleep', async
         yield* Ref.update(starts, (values) => [...values, now]);
         yield* Deferred.succeed(firstAttemptStarted, undefined);
 
-        return yield* Effect.fail(new TransientFailure());
+        return yield* new TransientFailure();
       });
       const retrying = attempt.pipe(
         Effect.retry({
@@ -153,12 +141,12 @@ test('timeout outside retry caps the workflow and interrupts retry sleep', async
         Effect.onInterrupt(() => Ref.set(retryInterrupted, true)),
       );
       const workflow = retrying.pipe(
-        Effect.timeoutFail({
+        Effect.timeoutOrElse({
           duration: '2500 millis',
-          onTimeout: () => new OverallDeadlineExceeded(),
+          orElse: () => Effect.fail(new OverallDeadlineExceeded()),
         }),
       );
-      const fiber = yield* Effect.fork(workflow);
+      const fiber = yield* Effect.forkChild(workflow);
 
       yield* Deferred.await(firstAttemptStarted);
       yield* waitForScheduledSleep(1_000);
@@ -169,14 +157,14 @@ test('timeout outside retry caps the workflow and interrupts retry sleep', async
         retryInterrupted: yield* Ref.get(retryInterrupted),
         starts: yield* Ref.get(starts),
       };
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
   expect(result.starts).toEqual([0, 1_000, 2_000]);
   expect(result.retryInterrupted).toBe(true);
   expect(Exit.isFailure(result.exit)).toBe(true);
   if (Exit.isFailure(result.exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(result.exit.cause))._tag).toBe('OverallDeadlineExceeded');
+    expect(Option.getOrThrow(Cause.findErrorOption(result.exit.cause))._tag).toBe('OverallDeadlineExceeded');
   }
 });
 
@@ -194,7 +182,7 @@ test('an ambiguous non-idempotent mutation is not retried automatically', async 
   expect(attempts).toBe(1);
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(Option.getOrThrow(Cause.failureOption(exit.cause))._tag).toBe('AmbiguousCommit');
+    expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AmbiguousCommit');
   }
 });
 

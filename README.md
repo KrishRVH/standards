@@ -189,7 +189,7 @@ Copy each language or tooling folder that the project needs:
 - `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
   GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
   warnings and unproved checks treated as failures, and tiny executable tests.
-- `TS/` — selectively Effect-enabled, Bun-backed TypeScript with strict `tsc`,
+- `TS/` — selectively Effect v4-enabled, Bun-backed TypeScript with strict `tsc`,
   typed Oxlint plus Oxfmt as the primary workflow, Effect Schema boundaries
   and diagnostics, semantic and negative tests, mutation testing and knip
   gates, automatic CI, and a separately validated ESLint plus Prettier
