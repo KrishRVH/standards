@@ -4,10 +4,10 @@ Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
 `.config/mise/tasks/hygiene`, and the selected `conf.d/*.toml` files to
 `.config/mise/conf.d/`.
 
-The copyable configuration requires mise `2026.6.12` or newer. That is the
-first release supporting the checksum-backed HTTP lock metadata used by the
-Odin formatter; it is a minimum, not an executable pin. A language fragment
-that needs a later release sets its own `min_version`.
+The copyable configuration requires mise `2026.6.12` or newer for structured
+task references and checksum-backed HTTP tool locks. It is a minimum, not an
+executable pin. A language fragment that needs a later release sets its own
+`min_version`.
 
 Use `mise run` for project workflows so a developer can build, format, or test
 without knowing the underlying toolchain. Dagger is optional; when a project
@@ -98,15 +98,10 @@ constrain tools from a developer's global mise configuration.
 
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
-`standards`, and `standards:check` tasks dispatch to C, C#, C++, Elixir,
-Fortran, GDScript, Go, Haskell, JavaScript, Kotlin, Lua, Markdown/MDX, Odin,
-PHP, Python, Roc, Rust, Shell, SPARK/Ada, TypeScript, and Zig when
-their project files are detected. Roc dispatch requires `main.roc`; Odin
-dispatch requires an owned source file under `src/` or `tests/`; GDScript
-dispatch requires `project.godot` and an owned script under `src/` or `tests/`;
-Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`; JavaScript and
-TypeScript dispatch require `package.json` plus `jsconfig.json` or
-`tsconfig.json`, respectively.
+`standards`, and `standards:check` tasks dispatch to C#, Go, Kotlin,
+Markdown/MDX, Python, Rust, Shell, and TypeScript when their project files are
+detected. Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`;
+TypeScript dispatch requires `package.json` plus `tsconfig.json`.
 
 Each language fragment expresses static workflow composition with native mise
 dependencies and structured task references. Shared install, restore,
@@ -123,13 +118,9 @@ generic aggregate tasks with explicit native dependencies. The dispatcher is a
 POSIX shell template verified on Linux; Windows consumers need explicit task
 relationships or a reviewed `run_windows` implementation.
 
-The JavaScript and TypeScript task files are intentionally Bun-only. If a
-project uses pnpm, Yarn, or npm, replace the matching task file with a
-project-specific one instead of keeping multiple unpinned package-manager
-branches in the shared standard. The JavaScript workflow uses Oxfmt for
-formatting, Oxlint for linting, Knip for the declared dependency boundary, and
-`tsc` only for strict `checkJs` analysis. The TypeScript workflow exposes
-separate Effect diagnostics and agent-oriented overview tasks.
+The TypeScript task file is Bun-only. If a project uses pnpm, Yarn, or npm,
+replace it with a project-specific task file. The workflow exposes separate
+Effect diagnostics and agent-oriented overview tasks.
 
 The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
 compiler dependencies. Local link and typo checks use pinned mise tools. The
@@ -145,32 +136,3 @@ Cargo command in workspace and locked modes, builds docs with rustdoc warnings
 denied, and runs the tests with cargo-nextest plus the doctests. Its
 `[tools]` pin cargo-deny through aqua and cargo-machete, cargo-nextest, and
 cargo-mutants through their GitHub release binaries.
-
-The Odin task file uses the OLS `odinfmt` nightly for project-scoped developer
-formatting and the version-matched compiler as the style, vet, and test
-authority. A fail-closed adapter avoids the formatter's unsafe in-place write
-path; the non-mutating `fmt:check` remains compiler-owned because `odinfmt` has
-no check mode. Its explicit update task relocks and force-reinstalls the mutable
-nightly so warm and cold machines converge. The required tests retain native
-parallelism and a fresh reported seed while enabling bad-memory failure
-tracking, debug AddressSanitizer, and a separate optimized lane. The fixture is
-verified on Linux x64 with pinned Clang. Official builds on macOS require the
-Xcode command-line tools, and Windows requires MSVC and the Windows SDK; this
-repository does not verify those hosts or FreeBSD. The formatter adapter
-requires a POSIX shell.
-
-The Roc task file pins the immutable new-compiler release selected by Roc's
-official installers and resolves its official release digests into the mise
-lock. Native `roc fmt`, warning-failing `roc check`, and top-level `expect`
-tests form the generic gate. The fixture is verified on Linux x64; the declared
-tool also maps the official Linux ARM64, macOS x64/Apple Silicon, and Windows
-x64 assets. Project-scoped format discovery requires a POSIX shell.
-
-The Lua task file pins Lua 5.4, runs StyLua, installs pinned Luacheck/Busted
-rocks into `.lua_modules`, and runs both Luacheck and LuaLS diagnostics. It
-requires `luarocks` on PATH for lint/test tooling.
-
-The GDScript task file pins Godot 4.7 and a portable, hashed GDToolkit
-environment. It formats and lints owned scripts, then uses headless Godot
-import, per-script checks, and resource loading as the language-semantic gate
-before running the project test entrypoint.

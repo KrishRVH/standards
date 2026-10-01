@@ -431,3 +431,36 @@ SHIM
     done
   done
 }
+
+@test "WSL prepares private history storage at default and custom state paths" {
+  local layout fixture state_home history_dir
+  for layout in default custom; do
+    fixture="$BATS_TEST_TMPDIR/history-$layout"
+    mkdir -p "$fixture"
+    state_home=""
+    history_dir="$fixture/.local/state/zsh"
+    if [[ "$layout" == custom ]]; then
+      state_home="$fixture/state with spaces"
+      history_dir="$state_home/zsh"
+    fi
+    awk '
+      /^ZSHRC$/ { body = 1; next }
+      body && /^configure_shell_environment$/ { exit }
+      body { print }
+    ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/prepare.sh"
+    [[ -s "$fixture/prepare.sh" ]]
+
+    run env -i HOME="$fixture" XDG_STATE_HOME="$state_home" PATH=/usr/bin:/bin \
+      bash -e "$fixture/prepare.sh"
+    [[ "$status" -eq 0 ]]
+    [[ -f "$history_dir/history" ]]
+    [[ "$(stat -c '%a' "$history_dir" 2> /dev/null || stat -f '%Lp' "$history_dir")" == 700 ]]
+    [[ "$(stat -c '%a' "$history_dir/history" 2> /dev/null || stat -f '%Lp' "$history_dir/history")" == 600 ]]
+
+    printf '%s\n' 'saved command' > "$history_dir/history"
+    run env -i HOME="$fixture" XDG_STATE_HOME="$state_home" PATH=/usr/bin:/bin \
+      bash -e "$fixture/prepare.sh"
+    [[ "$status" -eq 0 ]]
+    [[ "$(< "$history_dir/history")" == 'saved command' ]]
+  done
+}

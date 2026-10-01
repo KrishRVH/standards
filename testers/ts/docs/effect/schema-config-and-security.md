@@ -46,8 +46,8 @@ Public projection exposes only safe field/code information.
 
 When a constructor normalizes values, validate the external representation
 first. A policy boundary should decode finite bounded integer milliseconds and
-then construct normalized `Duration.Duration`. Its internal checked policy no
-longer contains `Duration.Input` or unchecked strings.
+then construct normalized `Duration.Duration`. The internal checked policy
+contains normalized durations and validated origins.
 
 ## Configuration and secrets
 

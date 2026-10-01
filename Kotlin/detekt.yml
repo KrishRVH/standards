@@ -48,7 +48,7 @@ potential-bugs:
 
 style:
   # Named constants for every status code, timeout, and size add ceremony
-  # without catching defects; the C++ profile disables its equivalents too.
+  # without catching defects.
   MagicNumber:
     active: false
   MaxLineLength:

@@ -19,31 +19,18 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "fixture_checks", "required_tester_files", "shared_mirror"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files", "shared_mirror"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_MARKER_CASES = {
-    "c": ("CMakeLists.txt", "src/main.c"),
-    "cpp": ("CMakeLists.txt", "src/library.hpp"),
     "csharp": ("src/project.csproj",),
-    "elixir": ("mix.exs",),
-    "fortran": ("fpm.toml",),
     "go": ("go.mod",),
-    "godot": ("project.godot", "src/features/player/state/machine/main.gd"),
-    "haskell": ("project.cabal",),
-    "js": ("package.json", "jsconfig.json"),
     "kotlin": ("build.gradle.kts",),
-    "lua": (".luarc.json",),
     "md": (".markdownlint-cli2.jsonc",),
-    "odin": ("src/project_name/project_name.odin",),
-    "php": ("composer.json",),
     "py": ("pyproject.toml",),
-    "roc": ("main.roc",),
     "rust": ("Cargo.toml",),
     "shell": (".shellcheckrc",),
-    "spark": ("alire.toml", "src/project.ads"),
     "ts": ("package.json", "tsconfig.json"),
-    "zig": ("build.zig",),
 }
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)
@@ -202,31 +189,6 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         if not isinstance(dagger, bool):
             errors.append(f"{profile_id}: dagger must be a boolean")
 
-        if isinstance(profile["task_prefix"], str) and isinstance(profile["task_fragment"], str):
-            fragment = ROOT / "Mise" / "conf.d" / profile["task_fragment"]
-            errors.extend(fixture_check_errors(profile_id, profile, fragment))
-
-    return errors
-
-
-def fixture_check_errors(profile_id: str, profile: dict[str, object], fragment: Path) -> list[str]:
-    """Each extra fixture gate check must be a task of the profile's own fragment."""
-    checks = profile.get("fixture_checks")
-    if checks is None:
-        return []
-    if not isinstance(checks, list) or not all(isinstance(check, str) for check in checks):
-        return [f"{profile_id}: fixture_checks must be a list of task names"]
-    prefix = profile["task_prefix"]
-    try:
-        tasks = load_toml(fragment).get("tasks", {})
-    except (OSError, tomllib.TOMLDecodeError):
-        tasks = {}
-    errors = []
-    for check in checks:
-        if not check.startswith(f"{prefix}:"):
-            errors.append(f"{profile_id}: fixture_checks entry {check!r} must start with {prefix}:")
-        elif not isinstance(tasks, dict) or check not in tasks:
-            errors.append(f"{profile_id}: fixture_checks entry {check!r} is not a task in {rel(fragment)}")
     return errors
 
 
@@ -382,10 +344,7 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
                     )
 
             for case, markers in {
-                "cmake-without-source": ("CMakeLists.txt",),
-                "godot-without-gdscript": ("project.godot",),
-                "package-without-js-or-ts-config": ("package.json",),
-                "spark-without-source": ("alire.toml",),
+                "package-without-ts-config": ("package.json",),
             }.items():
                 commands, stderr, returncode = execute(case, "fmt", markers)
                 if returncode != 0:
@@ -394,9 +353,9 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
                     errors.append(f"aggregate negative marker case {case} dispatched {commands!r}")
 
             commands, stderr, returncode = execute(
-                "standards-check-secrets", "standards:check", ("composer.json",)
+                "standards-check-secrets", "standards:check", (".shellcheckrc",)
             )
-            expected = ["run php:standards:check"]
+            expected = ["run shell:standards:check"]
             if returncode != 0:
                 errors.append(f"aggregate standards:check case failed: {stderr.strip()}")
             elif commands != expected:
@@ -566,49 +525,7 @@ def check_bun_pins(profiles: dict[str, dict[str, object]]) -> list[str]:
     return errors
 
 
-def check_fixture_checks_contract() -> list[str]:
-    """Prove the fixture_checks rules on seeded profiles and fixture configs."""
-    errors: list[str] = []
-    min_version = load_toml(ROOT / "Mise" / "config.toml").get("min_version")
-    with tempfile.TemporaryDirectory(prefix="standards-fixture-checks-") as temporary:
-        root = Path(temporary)
-        fragment = root / "20-x.toml"
-        # y:extra exists, so only the prefix rule can reject it.
-        fragment.write_text(
-            '[tasks."x:standards:check"]\nrun = "true"\n[tasks."x:extra"]\nrun = "true"\n'
-            '[tasks."y:extra"]\nrun = "true"\n'
-        )
-        cases = {
-            "declared": (["x:extra"], False),
-            "unknown": (["x:missing"], True),
-            "wrong-prefix": (["y:extra"], True),
-        }
-        for label, (checks, should_fail) in cases.items():
-            found = fixture_check_errors(label, {"task_prefix": "x", "fixture_checks": checks}, fragment)
-            if bool(found) != should_fail:
-                errors.append(f"fixture_checks validation mishandled the {label} case: {found!r}")
-
-        def fixture(name: str, check_depends: list[str]) -> Path:
-            tester = root / name
-            config = tester / ".config" / "mise" / "config.toml"
-            config.parent.mkdir(parents=True)
-            config.write_text(
-                f'min_version = "{min_version}"\n[settings]\nlockfile = true\n'
-                '[tasks.standards]\ndepends = ["x:standards"]\n'
-                f'[tasks."standards:check"]\ndepends = {check_depends!r}\n'.replace("'", '"')
-            )
-            return tester
-
-        complete_fixture = fixture("complete", ["x:standards:check", "x:extra"])
-        complete = check_fixture_config("complete", complete_fixture, "x", ["x:extra"])
-        if complete:
-            errors.append(f"fixture_checks rejected a fixture that runs its declared check: {complete!r}")
-        if not check_fixture_config("omitted", fixture("omitted", ["x:standards:check"]), "x", ["x:extra"]):
-            errors.append("fixture_checks accepted a fixture whose standards:check omits a declared check")
-    return errors
-
-
-def check_fixture_config(profile_id: str, tester: Path, prefix: str, fixture_checks: list[str]) -> list[str]:
+def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str]:
     errors: list[str] = []
     fixture_config = tester / ".config" / "mise" / "config.toml"
     canonical_config = ROOT / "Mise" / "config.toml"
@@ -624,8 +541,6 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str, fixture_che
         errors.extend(compare_file(profile_id, "full-config hygiene task", HYGIENE, fixture_hygiene))
         if fixture_hygiene.is_file() and not os.access(fixture_hygiene, os.X_OK):
             errors.append(f"{profile_id}: {rel(fixture_hygiene)} must be executable for mise to list it")
-        if fixture_checks:
-            errors.append(f"{profile_id}: fixture_checks needs a minimal fixture config")
     else:
         try:
             data = load_toml(fixture_config)
@@ -655,7 +570,7 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str, fixture_che
         standards_check = tasks.get("standards:check", {})
         if not isinstance(standards, dict) or standards.get("depends") != [f"{prefix}:standards"]:
             errors.append(f"{profile_id}: minimal fixture config standards must depend on {prefix}:standards")
-        expected_check = [f"{prefix}:standards:check", *fixture_checks]
+        expected_check = [f"{prefix}:standards:check"]
         if not isinstance(standards_check, dict) or standards_check.get("depends") != expected_check:
             errors.append(f"{profile_id}: minimal fixture config standards:check must depend on {expected_check!r}")
 
@@ -804,7 +719,6 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())
     errors.extend(check_hygiene_task())
-    errors.extend(check_fixture_checks_contract())
     errors.extend(check_bun_pins(profiles))
 
     for profile_id, profile in profiles.items():
@@ -827,12 +741,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         if task_left.is_file():
             errors.extend(check_task_surface(profile_id, task_left, task_prefix))
         if has_tester:
-            fixture_checks = profile.get("fixture_checks", [])
-            errors.extend(
-                check_fixture_config(
-                    profile_id, tester, task_prefix, fixture_checks if isinstance(fixture_checks, list) else []
-                )
-            )
+            errors.extend(check_fixture_config(profile_id, tester, task_prefix))
             if profile.get("dagger", False):
                 errors.extend(check_dagger_copy(profile_id, tester))
 

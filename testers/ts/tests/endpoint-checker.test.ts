@@ -179,9 +179,7 @@ test('normalizes valid positive policy values only after decoding them', async (
 });
 
 test('rejects excess configuration properties as likely mistakes', async () => {
-  const exit = await Effect.runPromiseExit(
-    decodeCheckPolicy({ ...defaultCheckPolicy, legacyAttemptTimeoutMilliseconds: 250 }),
-  );
+  const exit = await Effect.runPromiseExit(decodeCheckPolicy({ ...defaultCheckPolicy, unknownPolicyProperty: 250 }));
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {

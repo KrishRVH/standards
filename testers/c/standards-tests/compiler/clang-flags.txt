@@ -1,6 +1,0 @@
--Wcast-align
--Wcast-function-type-strict
--Wcomma
--Wdeprecated-non-prototype
--Wmissing-variable-declarations
--Wshift-sign-overflow

@@ -3,13 +3,6 @@ check-file = true
 check-filename = true
 locale = "en-us"
 
-[default.extend-identifiers]
-optin = "optin"
-
-[default.extend-words]
-# Alire's lockfile key, spelled as Alire writes it.
-fulfilment = "fulfilment"
-
 [files]
 extend-exclude = [
   ".cache",
@@ -28,11 +21,9 @@ extend-exclude = [
   "dist-newstyle",
   "node_modules",
   "out",
-  "PHP/composer.json",
   "sbom",
   "target",
   "testers/*/dagger/src/index.ts",
-  "testers/php/composer.json",
   "vendor",
   "zig-out",
   "zig-pkg",

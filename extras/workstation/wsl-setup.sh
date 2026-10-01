@@ -4,7 +4,7 @@ IFS=$'\n\t'
 
 # WSL/Ubuntu developer bootstrap (minimal output, idempotent where practical).
 # - apt base tools plus a curated modern CLI baseline
-# - verified upstream GitHub-release binaries where Ubuntu packages are stale/wrong
+# - upstream GitHub-release binaries checked against published digests when available
 # - rustup + cargo-binstall-backed Rust CLI tools
 # - native Zsh + two focused plugins + cached integrations + compact Starship
 # - managed `toolhelp` command, completions, Git defaults, tmux helpers
@@ -1654,8 +1654,8 @@ Examples:
 
 Notes:
   Check the chosen style into CI rather than relying on each developer's memory.
-  shfmt does not parse Zsh; use zsh -n for syntax checks and review Zsh
-  formatting separately.
+  shfmt support for Zsh is experimental; use zsh -n for syntax checks and
+  review Zsh formatting separately.
 DOC
       ;;
     zsh)
@@ -2628,10 +2628,11 @@ source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-syntax-highlighting/zsh
 # <<< wsl-bootstrap managed zshrc <<<
 ZSHRC
 
-mkdir -p "$HOME/.local/state/zsh" "$HOME/.cache/zsh" "$HOME/.config/zsh" "$HOME/src"
-chmod 700 "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
-touch "$HOME/.local/state/zsh/history"
-chmod 600 "$HOME/.local/state/zsh/history"
+zsh_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
+mkdir -p "$zsh_state_dir" "$HOME/.cache/zsh" "$HOME/.config/zsh" "$HOME/src"
+chmod 700 "$zsh_state_dir" "$HOME/.cache/zsh"
+touch "$zsh_state_dir/history"
+chmod 600 "$zsh_state_dir/history"
 configure_shell_environment
 configure_zshenv
 

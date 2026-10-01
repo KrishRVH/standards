@@ -4,6 +4,12 @@ Copy only the parts your project needs. This repository is a catalog, not an
 installable package. Its templates cover formatting, linting, static analysis,
 tests, dependency hygiene, and repeatable CI gates.
 
+The maintained profiles are C#, Rust, Python, TypeScript, Shell, Go, Kotlin,
+and Markdown/MDX. The secondary repository,
+[standards-archive](https://github.com/KrishRVH/standards-archive), preserves
+the other profiles as a dormant catalog.
+Each catalog owns its shared tooling; changes do not synchronize between them.
+
 Each template starts strict but stays close to its ecosystem. Use it as a
 high-signal baseline. Then narrow or remove rules that do not fit the project's
 risk, lifecycle, domain, or team tolerance.
@@ -49,7 +55,7 @@ permanent dependency on it. An agent that adopts these standards must:
 
 The finished baseline must describe the target repository, not the full
 catalog. `shared` means broadly reusable, not universally applicable. For
-example, a TypeScript-only repository must remove Haskell tasks, outputs,
+example, a TypeScript-only repository must remove Kotlin tasks, outputs,
 tools, and guidance from every copied file that contains them. Apply the same
 test to every language, tool, workflow, and policy outside the target
 repository's surface. Keep cross-cutting rules such as secret scanning and Git
@@ -105,8 +111,8 @@ Mise/conf.d/*.toml  -> .config/mise/conf.d/
 ```
 
 Keep only the language fragments from `conf.d` that the project uses. For
-example, a PHP and JavaScript project would retain `20-php.toml` and
-`20-js.toml`.
+example, a Python and TypeScript project would retain `20-python.toml` and
+`20-ts.toml`.
 
 The copyable configuration requires mise `2026.6.12` or newer for structured
 task references and checksum-backed HTTP tool locks. This is a minimum
@@ -128,77 +134,36 @@ Dagger/dagger/              -> dagger/
 
 Copy each language or tooling folder that the project needs:
 
-- `C/` — CMake presets, Clang formatting and static-analysis configuration,
-  and helper scripts.
 - `C#/` — pinned .NET and Microsoft Testing Platform configuration, strict
   compiler and analyzer policy, central package management, locked restore,
   application-boundary guidance, Release build and test defaults, a banned-API
   wall, mutation testing, and the agent-driven doctrine shared with the Rust,
   TS, and Python profiles.
-- `C++/` — an idiomatic C++20 CMake library, CLI, and test template with Clang
-  format and tidy configuration, sanitizer presets, and an opt-in GCC/MinGW
-  portability lane.
-- `Elixir/` — a Mix baseline with formatter, Credo, Dialyzer, xref
-  cycle checks, docs, coverage, dependency audits, and project-specific
-  Phoenix/Sobelow overlays.
-- `Fortran/` — an fpm baseline with free-form source, implicit typing and
-  implicit external disabled, Findent formatting, strict GNU Fortran warning
-  gates, fortls parser diagnostics, test-drive tests, FORD docs, and an fpm
-  dependency pin policy.
-- `GDScript/` — a Godot 4.7 baseline with typed GDScript warnings, GDToolkit
-  formatting and linting, native headless import, parse/type and resource-load
-  checks, and a small dependency-free test entrypoint.
 - `Go/` — a Go module baseline with gofumpt, module hygiene, `go vet`, a custom
   restricted-dialect analyzer, golangci-lint, govulncheck, tests, race,
   coverage, and benchmark tasks.
-- `Haskell/` — a Cabal/GHCup baseline with GHC2024, Ormolu, HLint, warnings as
-  errors in the local gate, named Haddock/source-distribution tasks, and
-  optional freeze support.
-- `JS/` — Bun-backed JavaScript with Oxfmt formatting, Oxlint linting, strict
-  compiler analysis through `checkJs` in `jsconfig.json`, a Knip dependency
-  boundary, dependency auditing, and Bun tests.
 - `Kotlin/` — a Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
-- `Lua/` — a Lua 5.4 baseline with StyLua, Luacheck, LuaLS, and optional Busted
-  tests.
 - `Markdown/` — a Bun-backed Markdown/MDX baseline with Prettier formatting,
   markdownlint structure checks, semantic YAML frontmatter validation, MDX
   compile checks through remark/rehype and Shiki, offline local link checks
   with lychee, and low-noise typo checks with typos.
-- `Odin/` — OLS `odinfmt` nightly with fail-closed, project-scoped writes,
-  strict compiler style and vet checks, an external consumer test package,
-  native tests with reported reproduction seeds, and debug AddressSanitizer
-  plus optimized test lanes. Its README explains the checksum-locked mutable
-  formatter channel, the compiler-owned CI contract, and the defaults it leaves
-  out.
-- `PHP/` — PHP 8.5 Composer and quality-tool configuration for PHPUnit,
-  PHPStan, Rector, PHPCS/Slevomat, PHPMD, ShipMonk dependency analysis,
-  Composer audit, and Roave security advisories.
 - `Python/` — `pyproject` and uv-based configuration for Ruff, basedpyright,
   Bandit, pytest/coverage, deptry, Hypothesis property tests, mutmut mutation
   testing, a banned-API wall, wheel and source builds, plus optional deeper
   mypy, documentation, complexity, slots, and dead-code checks. Shares the
   agent-driven doctrine with Rust, TS, and C#.
-- `Roc/` — an immutable new-compiler nightly with official checksum-backed
-  host assets, native formatting, warning-failing checks, and top-level
-  `expect` tests through the development backend. Its README explains the
-  reviewed nightly, the package shape, and the defaults it leaves out.
 - `Rust/` — Cargo, rustfmt, Clippy, rustdoc/doctest, locked workspace,
   `cargo package` and `cargo-deny` dependency-policy defaults, mutation
   testing, and an agent-driven development doctrine in its `AGENTS.md`.
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
-- `SPARK/` — an Alire-backed SPARK/Ada baseline with exact GNAT/GPRbuild,
-  GNATprove, and GNATformat tool dependencies, warning-as-error builds, proof
-  warnings and unproved checks treated as failures, and tiny executable tests.
 - `TS/` — selectively Effect v4-enabled, Bun-backed TypeScript with strict `tsc`,
   typed Oxlint plus Oxfmt as the primary workflow, Effect Schema boundaries
   and diagnostics, semantic and negative tests, mutation testing and knip
   gates, automatic CI, and a separately validated ESLint plus Prettier
   secondary workflow.
   Shares the Rust profile's agent-driven doctrine.
-- `Zig/` — `build.zig` and `build.zig.zon` with `zig fmt`, strict
-  Debug/ReleaseSafe compile checks, tests, and release-variant tasks.
 
 A language folder may also contain an `AGENTS.md`. Those files are merge
 fragments, not standalone guides: copy `shared/AGENTS.md` first, then merge the

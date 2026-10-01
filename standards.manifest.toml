@@ -1,83 +1,3 @@
-[profiles.c]
-name = "C"
-template = "C"
-tester = "testers/c"
-task_prefix = "c"
-task_fragment = "20-c.toml"
-mirror = [
-  ".clang-format",
-  ".clang-tidy",
-  ".clang-tidy-advisory",
-  ".clang-tidy-advisory-baseline",
-  "CMakeLists.txt",
-  "CMakePresets.json",
-  "c-build.sh",
-  "c-format.sh",
-  "c-quality.sh",
-  "cmake/ProjectCStandards.cmake",
-  "cmake/project-name-config.cmake.in",
-  "diagnostics.toml",
-  "include/project/library.h",
-  "mingw-w64.cmake",
-  "src/library.c",
-  "src/main.c",
-  "standards-tests/analyzer/CMakeLists.txt",
-  "standards-tests/analyzer/duplicate-cdb/CMakeLists.txt",
-  "standards-tests/analyzer/fixtures/cohesive-diagnostic.c",
-  "standards-tests/analyzer/fixtures/double-free.c",
-  "standards-tests/analyzer/fixtures/fragmented-diagnostic.c",
-  "standards-tests/analyzer/fixtures/header source with spaces.c",
-  "standards-tests/analyzer/fixtures/invalid-shift.c",
-  "standards-tests/analyzer/fixtures/leak-on-path.c",
-  "standards-tests/analyzer/fixtures/mismatched-cleanup.c",
-  "standards-tests/analyzer/fixtures/missing-braces.c",
-  "standards-tests/analyzer/fixtures/null-dereference.c",
-  "standards-tests/analyzer/fixtures/uninitialized-read.c",
-  "standards-tests/analyzer/fixtures/use-after-free.c",
-  "standards-tests/analyzer/hard-checks.txt",
-  "standards-tests/analyzer/include with spaces/project defect.h",
-  "standards-tests/cmake/excluded-directory/CMakeLists.txt",
-  "standards-tests/cmake/interface-target/CMakeLists.txt",
-  "standards-tests/cmake/no-tests/CMakeLists.txt",
-  "standards-tests/cmake/no-tests/main.c",
-  "standards-tests/cmake/stripped-target/CMakeLists.txt",
-  "standards-tests/cmake/unregistered-target/CMakeLists.txt",
-  "standards-tests/cmake/unregistered-target/main.c",
-  "standards-tests/cmake/unregistered-target/nested/CMakeLists.txt",
-  "standards-tests/cmake/unsupported-compiler.cmake",
-  "standards-tests/compiler/clang-flags.txt",
-  "standards-tests/compiler/common-definition-a.c",
-  "standards-tests/compiler/common-definition-b.c",
-  "standards-tests/compiler/common-flags.txt",
-  "standards-tests/compiler/format-wrapper.c",
-  "standards-tests/compiler/gcc-debug-flags.txt",
-  "standards-tests/compiler/gcc-release-flags.txt",
-  "standards-tests/compiler/warning-cases.tsv",
-  "standards-tests/compiler/warning-fixtures.c",
-  "standards-tests/compiler/warning-resolution.txt",
-  "standards-tests/consumer/CMakeLists.txt",
-  "standards-tests/consumer/main.c",
-  "standards-tests/fixtures/compile/clang-comma.c",
-  "standards-tests/fixtures/compile/format-mismatch.c",
-  "standards-tests/fixtures/compile/gcc-duplicated-condition.c",
-  "standards-tests/fixtures/compile/gnu-extension.c",
-  "standards-tests/fixtures/compile/sign-conversion.c",
-  "standards-tests/fixtures/compile/vla.c",
-  "standards-tests/fixtures/runtime/allocation-size.c",
-  "standards-tests/fixtures/runtime/argument-contract.c",
-  "standards-tests/fixtures/runtime/ownership-cleanup.c",
-  "standards-tests/fixtures/runtime/short-read.c",
-  "standards-tests/fixtures/sanitizer/heap-buffer-overflow.c",
-  "standards-tests/fixtures/sanitizer/signed-overflow.c",
-  "standards-tests/format/representative.c.expected",
-  "standards-tests/format/representative.c.in",
-  "standards-tests/platform/posix-contract.c",
-  "standards-tests/platform/win32-api.c",
-  "standards-tests/run.sh",
-  "tests/project_tests.c",
-]
-dagger = true
-
 [profiles.csharp]
 name = "C#"
 template = "C#"
@@ -96,74 +16,6 @@ mirror = [
   "stryker-config.json",
 ]
 
-[profiles.cpp]
-name = "C++"
-template = "C++"
-tester = "testers/cpp"
-task_prefix = "cpp"
-task_fragment = "20-cpp.toml"
-mirror = [
-  ".clang-format",
-  ".clang-tidy",
-  "CMakeLists.txt",
-  "CMakePresets.json",
-  "cmake/project-name-config.cmake.in",
-  "cpp-build.sh",
-  "cpp-format.sh",
-  "cpp-quality.sh",
-  "include/project/library.h",
-  "mingw-w64.cmake",
-  "msvc-xwin.cmake",
-  "src/library.cpp",
-  "src/main.cpp",
-  "tests/project_tests.cpp",
-]
-fixture_checks = ["cpp:msvc"]
-
-[profiles.elixir]
-name = "Elixir"
-template = "Elixir"
-tester = "testers/elixir"
-task_prefix = "elixir"
-task_fragment = "20-elixir.toml"
-mirror = [".credo.exs", ".formatter.exs", "mix.exs"]
-
-[profiles.fortran]
-name = "Fortran"
-template = "Fortran"
-tester = "testers/fortran"
-task_prefix = "fortran"
-task_fragment = "20-fortran.toml"
-mirror = [
-  ".fortls",
-  "app/main.f90",
-  "ford.md",
-  "fpm.toml",
-  "scripts/check-fpm-manifest.py",
-  "scripts/format.sh",
-  "src/project_name.f90",
-  "test/main.f90",
-  "test/test_project_name.f90",
-]
-
-[profiles.gdscript]
-name = "GDScript"
-template = "GDScript"
-tester = "testers/gdscript"
-task_prefix = "godot"
-task_fragment = "20-godot.toml"
-mirror = [
-  ".editorconfig",
-  ".gdlintrc",
-  "project.godot",
-  "src/counter.gd",
-  "src/counter.gd.uid",
-  "tests/gdscript_load_check.gd",
-  "tests/gdscript_load_check.gd.uid",
-  "tests/run_tests.gd",
-  "tests/run_tests.gd.uid",
-]
-
 [profiles.go]
 name = "Go"
 template = "Go"
@@ -173,44 +25,6 @@ task_fragment = "20-go.toml"
 mirror = [".golangci.yml", "AGENTS.md", "README.md", "go.mod"]
 required_tester_files = ["tests/format_tasks_test.go"]
 
-[profiles.haskell]
-name = "Haskell"
-template = "Haskell"
-tester = "testers/haskell"
-task_prefix = "haskell"
-task_fragment = "20-haskell.toml"
-mirror = [
-  ".hlint.yaml",
-  "app/Main.hs",
-  "bench/Main.hs",
-  "cabal.project",
-  "project-name.cabal",
-  "scripts/format.sh",
-  "src/ProjectName.hs",
-  "test/Main.hs",
-]
-
-[profiles.js]
-name = "JavaScript"
-template = "JS"
-tester = "testers/js"
-task_prefix = "js"
-task_fragment = "20-js.toml"
-mirror = [
-  ".oxfmtrc.json",
-  ".oxlintrc.json",
-  "README.md",
-  "bunfig.toml",
-  "jsconfig.json",
-  "knip.jsonc",
-  "package.json",
-  "src/math.js",
-  "tests/math.test.js",
-  "tests/tooling-contract.test.js",
-]
-shared_mirror = [".gitignore"]
-required_tester_files = ["bun.lock"]
-
 [profiles.kotlin]
 name = "Kotlin"
 template = "Kotlin"
@@ -219,15 +33,6 @@ task_prefix = "kotlin"
 task_fragment = "20-kotlin.toml"
 mirror = [".editorconfig", "build.gradle.kts", "detekt.yml", "gradle.properties", "settings.gradle.kts"]
 required_tester_files = ["gradle.lockfile", "gradle/verification-metadata.xml"]
-
-[profiles.lua]
-name = "Lua"
-template = "Lua"
-tester = "testers/lua"
-task_prefix = "lua"
-task_fragment = "20-lua.toml"
-mirror = [".luacheckrc", ".luarc.json", "stylua.toml"]
-dagger = true
 
 [profiles.markdown]
 name = "Markdown/MDX"
@@ -249,29 +54,6 @@ mirror = [
 ]
 required_tester_files = ["bun.lock"]
 
-[profiles.odin]
-name = "Odin"
-template = "Odin"
-tester = "testers/odin"
-task_prefix = "odin"
-task_fragment = "20-odin.toml"
-mirror = [
-  ".editorconfig",
-  "odinfmt.json",
-  "scripts/format.sh",
-  "src/project_name/project_name.odin",
-  "tests/project_name_test.odin",
-]
-
-[profiles.php]
-name = "PHP"
-template = "PHP"
-tester = "testers/php"
-task_prefix = "php"
-task_fragment = "20-php.toml"
-mirror = ["composer.json", "phpcs.xml", "phpmd.xml", "phpstan.neon", "phpunit.xml", "rector.php"]
-dagger = true
-
 [profiles.python]
 name = "Python"
 template = "Python"
@@ -286,14 +68,6 @@ mirror = [
   "scripts/run-mutation-transaction.py",
 ]
 dagger = true
-
-[profiles.roc]
-name = "Roc"
-template = "Roc"
-tester = "testers/roc"
-task_prefix = "roc"
-task_fragment = "20-roc.toml"
-mirror = ["Project.roc", "main.roc", "scripts/format.sh"]
 
 [profiles.rust]
 name = "Rust"
@@ -329,24 +103,6 @@ mirror = [
   "scripts/shell-standards.sh",
   "tests/project-name.bats",
 ]
-
-[profiles.spark]
-name = "SPARK (Ada)"
-template = "SPARK"
-tester = "testers/spark"
-task_prefix = "spark"
-task_fragment = "20-spark.toml"
-mirror = [
-  "alire.toml",
-  "gnat.adc",
-  "project_name.gpr",
-  "project_name_tests.gpr",
-  "scripts/check-alire.sh",
-  "src/project_name.adb",
-  "src/project_name.ads",
-  "tests/project_name_tests.adb",
-]
-required_tester_files = ["alire/alire.lock"]
 
 [profiles.ts]
 name = "TypeScript"
@@ -463,11 +219,3 @@ required_tester_files = [
   "tests/tooling-policy.test.ts",
 ]
 dagger = true
-
-[profiles.zig]
-name = "Zig"
-template = "Zig"
-tester = "testers/zig"
-task_prefix = "zig"
-task_fragment = "20-zig.toml"
-mirror = ["build.zig", "build.zig.zon", "scripts/format.sh", "src/main.zig", "src/root.zig"]

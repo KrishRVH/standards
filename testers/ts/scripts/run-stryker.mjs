@@ -44,10 +44,6 @@ function errorCode(error) {
   return typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
 }
 
-function clearActive() {
-  activeGroup = undefined;
-}
-
 function groupExists(processGroup) {
   try {
     process.kill(-processGroup, 0);
@@ -73,7 +69,7 @@ function signalActive(signal) {
     process.kill(-processGroup, signal);
   } catch (error) {
     if (errorCode(error) === 'ESRCH') {
-      clearActive();
+      activeGroup = undefined;
       return;
     }
     throw new Error(`Cannot signal mutation process group ${String(processGroup)} with ${signal}.`, {
@@ -86,7 +82,7 @@ async function waitForGroupExit(attempts) {
   for (let attempt = 0; attempt <= attempts; attempt += 1) {
     const processGroup = activeGroup;
     if (processGroup === undefined || !groupExists(processGroup)) {
-      clearActive();
+      activeGroup = undefined;
       return true;
     }
     if (attempt < attempts) {

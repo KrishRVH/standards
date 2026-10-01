@@ -4,10 +4,10 @@ Read `shared/AGENTS.md` first and follow it. This file adds the catalog's rules
 and wins where the two differ.
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
-`Dagger/`, `C/`, `C#/`, `C++/`, `Elixir/`, `Fortran/`, `GDScript/`, `Go/`,
-`Haskell/`, `JS/`, `Kotlin/`, `Lua/`, `Markdown/`, `Odin/`, `PHP/`, `Python/`,
-`Roc/`, `Rust/`, `Shell/`, `SPARK/`, `TS/`, `Zig/`. Root docs/config maintain
-this repo. `testers/` smoke-test copied standards for every language template.
+`Dagger/`, `C#/`, `Go/`, `Kotlin/`, `Markdown/`, `Python/`, `Rust/`, `Shell/`,
+and `TS/`. Root docs/config maintain this repo. `testers/` smoke-test copied
+standards for every profile. The dormant `standards-archive` repository owns
+the other profiles and an independent shared-tooling snapshot.
 
 ## Principles
 
