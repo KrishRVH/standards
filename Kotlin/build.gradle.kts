@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "2.4.10"
-    id("dev.detekt") version "2.0.0-alpha.5"
+    kotlin("jvm") version "2.4.20"
+    id("dev.detekt") version "2.0.0-alpha.6"
     `java-library`
 }
 

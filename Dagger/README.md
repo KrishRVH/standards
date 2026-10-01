@@ -21,10 +21,10 @@ mise run dagger:standards:check
 Run other Dagger commands with the pinned version through `mise exec`, for
 example `mise exec -- dagger develop` after you change the module.
 
-The module starts from the official mise `v2026.6.12` image at an immutable
+The module starts from the official mise `v2026.9.18` image at an immutable
 multi-architecture digest. It enables strict lockfile mode, then runs `mise
 install` and `mise run standards:check`. The companion mise fragment pins
-Dagger `v0.21.7`. Task definitions therefore stay in mise while Dagger supplies
+Dagger `v0.21.9`. Task definitions therefore stay in mise while Dagger supplies
 an isolated environment without live operating-system package resolution.
 
 Known generated and dependency paths, secret-bearing `.env` files, `.git`, and

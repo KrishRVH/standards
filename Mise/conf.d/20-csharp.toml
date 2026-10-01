@@ -1,6 +1,6 @@
 [tools]
-dotnet = "10.0.400"
-"dotnet:dotnet-stryker" = { version = "4.16.0", depends = "dotnet" }
+dotnet = "10.0.401"
+"dotnet:dotnet-stryker" = { version = "5.0.0", depends = "dotnet" }
 
 [tasks."csharp:restore"]
 description = "Restore .NET dependencies"

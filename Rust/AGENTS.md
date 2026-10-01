@@ -85,7 +85,7 @@ Pin any intermittently killed mutant with a deterministic example test.
 
 A surviving mutant needs a test that kills it, removal of unreachable code,
 or a per-site `#[mutants::skip]` with a source reason explaining why no test
-can distinguish it. The first skip adds `mutants = "0.0.3"` as a regular
+can distinguish it. The first skip adds `mutants = "0.0.4"` as a regular
 dependency; remove it when the last skip disappears. Classification and
 coarser configuration exclusions require human approval. Carry classifications
 and their reasons into the handoff.

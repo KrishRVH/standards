@@ -23,10 +23,9 @@ guide](https://www.swift.org/install/) before `mise install`; Linux archives
 need compatible system libraries, and macOS needs Apple's command-line tools
 and SDK. Interactive mise activation is optional.
 
-The optional catalog Dagger image contains mise 2026.6.12, below this profile's
-minimum. A Swift container gate needs a reviewed image with a compatible mise
-version, Linux distribution, and Swift system libraries. The Swift fixture
-does not include a Dagger gate.
+The optional catalog Dagger image is not verified for Swift. A Swift container
+gate needs a reviewed image whose Linux distribution and system libraries match
+a Swift toolchain release. The Swift fixture does not include a Dagger gate.
 
 The standards workflow is:
 

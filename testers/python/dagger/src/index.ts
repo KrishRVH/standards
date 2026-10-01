@@ -1,6 +1,6 @@
 import { type Directory, argument, dag, func, object } from '@dagger.io/dagger';
 
-const MISE_IMAGE = 'jdxcode/mise:2026.6.12@sha256:8e2087d0831aa3f05c55ee41e5c30b93f1317d369973ede36cbb8936c51dd54a';
+const MISE_IMAGE = 'jdxcode/mise:2026.9.18@sha256:67514a972b2bddd0eca59b8c4baf4e106fc4e9f9de11233bc2305414bf672ee3';
 
 const SOURCE_IGNORES = [
   '.build',
