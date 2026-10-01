@@ -122,7 +122,7 @@ if [ -f CMakeLists.txt ] && find . -maxdepth 4 -name '*.c' -print -quit | grep -
   dispatch c
 fi
 
-if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.csproj' \\) -print -quit | grep -q .; then
+if find . -maxdepth 3 \\( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \\) -print -quit | grep -q .; then
   dispatch csharp
 fi
 

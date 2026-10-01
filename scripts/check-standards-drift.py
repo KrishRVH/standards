@@ -369,14 +369,16 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
                 commands = log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
                 return commands, result.stderr, result.returncode
 
-            for prefix, markers in AGGREGATE_MARKER_CASES.items():
-                commands, stderr, returncode = execute(prefix, "fmt", markers)
+            positive_cases = [(prefix, prefix, markers) for prefix, markers in AGGREGATE_MARKER_CASES.items()]
+            positive_cases.append(("csharp-solution", "csharp", ("project.slnx",)))
+            for case, prefix, markers in positive_cases:
+                commands, stderr, returncode = execute(case, "fmt", markers)
                 expected = [f"run {prefix}:fmt"]
                 if returncode != 0:
-                    errors.append(f"aggregate marker case {prefix} failed: {stderr.strip()}")
+                    errors.append(f"aggregate marker case {case} failed: {stderr.strip()}")
                 elif commands != expected:
                     errors.append(
-                        f"aggregate marker case {prefix} dispatched {commands!r}; expected {expected!r}"
+                        f"aggregate marker case {case} dispatched {commands!r}; expected {expected!r}"
                     )
 
             for case, markers in {
