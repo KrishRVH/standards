@@ -289,10 +289,7 @@ internal static class StandardsVerifier
 
     private static async Task VerifyNoContainingGitRefAsync(string mergeBase)
     {
-        if (!IsLowerHexSha(mergeBase))
-        {
-            throw new InvalidDataException("The merge base must be an exact lowercase 40-character commit SHA.");
-        }
+        RequireFullCommitId(mergeBase);
 
         ProcessStartInfo startInfo = new("git")
         {
@@ -322,22 +319,20 @@ internal static class StandardsVerifier
         VerifyNoContainingGitRef(mergeBase, gitRefs);
     }
 
-    private static bool IsLowerHexSha(string value)
+    // A full SHA-1 or SHA-256 object ID; Stryker resolves anything shorter as a ref name first.
+    private static void RequireFullCommitId(string mergeBase)
     {
-        if (value.Length != 40)
+        bool isFullCommitId = mergeBase.Length is 40 or 64;
+        foreach (char character in mergeBase)
         {
-            return false;
+            isFullCommitId &= character is (>= '0' and <= '9') or (>= 'a' and <= 'f');
         }
 
-        foreach (char character in value)
+        if (!isFullCommitId)
         {
-            if (character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f'))
-            {
-                return false;
-            }
+            throw new InvalidDataException(
+                "The merge base must be a full lowercase commit ID: 40 hex digits for SHA-1 or 64 for SHA-256.");
         }
-
-        return true;
     }
 
     private static void VerifyNoContainingGitRef(string mergeBase, string gitRefs)
@@ -574,6 +569,18 @@ internal static class StandardsVerifier
             ExpectFailure(() => VerifyStrykerDirectivePolicy("Example.cs", compactDirective));
         }
         VerifyStrykerRun(empty, "ordinary output", false);
+        RequireFullCommitId(mergeBase);
+        RequireFullCommitId(mergeBase + "0123456789abcdef01234567");
+        foreach (string partialCommitId in new[]
+        {
+            mergeBase[..39],
+            mergeBase + "8",
+            mergeBase + "0123456789abcdef0123456",
+            "0123456789ABCDEF0123456789ABCDEF01234567",
+        })
+        {
+            ExpectFailure(() => RequireFullCommitId(partialCommitId));
+        }
         VerifyNoContainingGitRef(
             mergeBase,
             "refs/heads/main\nrefs/remotes/origin/main\nrefs/tags/v1.0.0\n");

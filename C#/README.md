@@ -87,15 +87,14 @@ test SDK, target framework, and package versions together in a deliberate
 platform update.
 
 `csharp:policy` self-tests the JSON/log verifier and compiles negative probes
-that must trigger RS0030 for a banned API and SA1404 for a suppression without
-a justification. `csharp:mutants:diff` resolves an explicit
-`MUTANTS_BASE_REF` exactly as supplied; when unset, it prefers
-`refs/remotes/origin/main` over local `main` and passes the exact 40-character
-merge-base SHA to Stryker. Because Stryker tests branch and tag names before
-its SHA lookup, the task fails closed if any local Git ref name contains that
-SHA. It also rejects untracked files with `git add -N` guidance because Git
-diff cannot review them. Fetch full history before using it in a shallow
-clone.
+that must trigger RS0030 for a banned API and SA1404 for a suppression without a
+justification. `csharp:mutants:diff` resolves an explicit `MUTANTS_BASE_REF`
+exactly as supplied; when unset, it prefers `refs/remotes/origin/main` over
+local `main` and passes the full merge-base commit ID (SHA-1 or SHA-256) to
+Stryker. Because Stryker tests branch and tag names before its SHA lookup, the
+task fails closed if any local Git ref name contains that SHA. It also rejects
+untracked files with `git add -N` guidance because Git diff cannot review them.
+Fetch full history before using it in a shallow clone.
 
 `.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
 because source files can carry mutation classifications and analyzer

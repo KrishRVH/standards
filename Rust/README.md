@@ -120,29 +120,29 @@ metadata against the committed lock, then uses metadata-aware, offline
 analysis for renamed dependencies. It fails on unused `[dependencies]`
 entries; dev- and build-dependencies remain outside cargo-machete's scope.
 
-`rust:mutants` runs the full mutation sweep and runs all workspace tests
-against each mutant. Both lanes force cargo-mutants to create `mutants.out/`
-under the project root, so `.cargo/mutants.toml` cannot redirect the run while
-the verifier reads stale local evidence. After cargo-mutants succeeds, each
-lane validates its native JSON and outcome lists. The full lane requires at
-least one mutant to have actually run; the diff lane accepts a complete
-zero-total report when the diff selects no mutants. A nonempty all-unviable
-report fails in either lane. A surviving mutant is a review finding, not a
-statistic. Both mutation lanes hold the same
-project-local lock through cargo-mutants and post-run verification, so a
-concurrent run fails before it can replace the report; a stale-lock failure
-names the directory to remove after confirming no run is active.
-`rust:mutants:diff` mutates only code changed relative to `MUTANTS_BASE_REF`
-for the inner loop. An explicit value resolves exactly as supplied; otherwise
-the task prefers `refs/remotes/origin/main` over the local `main` branch. It
-hands cargo-mutants a diff from the exact 40-character merge-base commit and
-reports how to fetch full history when no merge base exists. Untracked files
-fail the lane with `git add -N` guidance because Git diff cannot review them.
-The catalog's copyable `shared/.gitignore` already excludes `mutants.out/` and
-`mutants.out.old/`; commit `proptest-regressions/`. On large projects, swap
-`rust:mutants` for `rust:mutants:diff` in the PR gate and move the full sweep
-to a scheduled job; give the workflow's checkout step `fetch-depth: 0` first,
-or the diff task cannot resolve `MUTANTS_BASE_REF` in a shallow CI clone.
+`rust:mutants` runs the full mutation sweep and runs all workspace tests against
+each mutant. Both lanes force cargo-mutants to create `mutants.out/` under the
+project root, so `.cargo/mutants.toml` cannot redirect the run while the
+verifier reads stale local evidence. After cargo-mutants succeeds, each lane
+validates its native JSON and outcome lists. The full lane requires at least one
+mutant to have actually run; the diff lane accepts a complete zero-total report
+when the diff selects no mutants. A nonempty all-unviable report fails in either
+lane. A surviving mutant is a review finding, not a statistic. Both mutation
+lanes hold the same project-local lock through cargo-mutants and post-run
+verification, so a concurrent run fails before it can replace the report; a
+stale-lock failure names the directory to remove after confirming no run is
+active. `rust:mutants:diff` mutates only code changed relative to
+`MUTANTS_BASE_REF` for the inner loop. An explicit value resolves exactly as
+supplied; otherwise the task prefers `refs/remotes/origin/main` over the local
+`main` branch. It hands cargo-mutants a diff from the full merge-base commit ID
+(SHA-1 or SHA-256) and reports how to fetch full history when no merge base
+exists. Untracked files fail the lane with `git add -N` guidance because Git
+diff cannot review them. The catalog's copyable `shared/.gitignore` already
+excludes `mutants.out/` and `mutants.out.old/`; commit `proptest-regressions/`.
+On large projects, swap `rust:mutants` for `rust:mutants:diff` in the PR gate
+and move the full sweep to a scheduled job; give the workflow's checkout step
+`fetch-depth: 0` first, or the diff task cannot resolve `MUTANTS_BASE_REF` in a
+shallow CI clone.
 
 `.github/` ships a hash-pinned `quality.yml` workflow that runs the gate on
 pull requests, pushes, and merge-queue groups, and a PR template whose

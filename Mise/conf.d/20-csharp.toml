@@ -84,8 +84,8 @@ if ! merge_base="$(git merge-base HEAD "$base_commit")"; then
   echo "Cannot compute a merge base with $base_ref. Fetch full history with git fetch --unshallow or git fetch origin main." >&2
   exit 1
 fi
-if ! printf '%s\n' "$merge_base" | grep -Eq '^[0-9a-f]{40}$'; then
-  echo "git merge-base did not return an exact 40-character commit SHA." >&2
+if ! printf '%s\n' "$merge_base" | grep -Eq '^([0-9a-f]{40}|[0-9a-f]{64})$'; then
+  echo "git merge-base did not return a full SHA-1 or SHA-256 commit ID." >&2
   exit 1
 fi
 if ! untracked_files="$(git ls-files --others --exclude-standard)"; then
