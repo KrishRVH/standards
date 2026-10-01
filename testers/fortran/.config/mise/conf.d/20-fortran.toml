@@ -51,9 +51,9 @@ depends = ["fortran:manifest"]
 run = """
 set -eu
 
-strict_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic -fcheck=all -fbacktrace"
-fpm build --profile debug --flag "$strict_flags"
-fpm build --profile release --flag "-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic"
+warning_flags="-std=f2018 -Wall -Wextra -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Werror -pedantic"
+fpm build --profile debug --flag "$warning_flags -fcheck=all -fbacktrace"
+fpm build --profile release --flag "$warning_flags"
 
 list="$(mktemp)"
 trap 'rm -f "$list"' EXIT

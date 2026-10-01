@@ -20,7 +20,7 @@ if command -v git > /dev/null 2>&1 && git rev-parse --is-inside-work-tree > /dev
   # shellcheck disable=SC2016
   xargs -0 sh -c 'for file do [ ! -f "$file" ] || printf "%s\0" "$file"; done' sh < "$raw" > "$tmp"
 else
-  find . -type d \( -name .git -o -name .zig-cache -o -name zig-cache -o -name zig-out -o -name zig-pkg \) -prune \
+  find . -type d \( -name .git -o -name .zig-cache -o -name zig-out -o -name zig-pkg \) -prune \
     -o -type f \( -name '*.zig' -o -name '*.zon' \) -print0 > "$tmp"
 fi
 if [ -s "$tmp" ]; then

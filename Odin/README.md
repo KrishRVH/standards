@@ -1,9 +1,10 @@
 # Odin Standards
 
-Copy `.editorconfig`, `odinfmt.json`, `scripts/format.sh`, `src/`, `tests/`,
-and `Mise/conf.d/20-odin.toml` into an Odin project. Replace `project_name` in
-directory names, package declarations, imports, task paths, and the formatter
-script's paths with the real package name.
+Copy `.editorconfig`, `odinfmt.json`, `scripts/format.sh`, `src/`, and `tests/`
+into an Odin project, and put `Mise/conf.d/20-odin.toml` in
+`.config/mise/conf.d/`. Replace `project_name` in directory names, package
+declarations, imports, task paths, and the formatter script's paths with the
+real package name.
 
 The OLS `odinfmt` nightly handles developer formatting. The version-matched
 Odin compiler remains authoritative for parsing, style, static analysis, and

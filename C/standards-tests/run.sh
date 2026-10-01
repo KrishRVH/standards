@@ -263,11 +263,9 @@ run_analyzer_tests() {
   C_QUALITY_SHOW_CHECKS=0 "$ROOT/c-quality.sh" hard "$ROOT" "$positive_build"
 
   note "Analyzer overrides accept executable paths with spaces"
-  ln -s "$(command -v clang)" "$scratch_dir/clang compiler"
   ln -s "$(command -v clang-tidy)" "$scratch_dir/clang tidy"
   ln -s "$(command -v run-clang-tidy)" "$scratch_dir/run clang tidy"
-  C_CLANG="$scratch_dir/clang compiler" \
-    C_CLANG_TIDY="$scratch_dir/clang tidy" \
+  C_CLANG_TIDY="$scratch_dir/clang tidy" \
     C_RUN_CLANG_TIDY="$scratch_dir/run clang tidy" \
     C_QUALITY_SHOW_CHECKS=0 "$ROOT/c-quality.sh" hard "$ROOT" "$positive_build"
 

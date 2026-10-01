@@ -221,7 +221,7 @@ def test_configured_ruff_walls_fire_with_their_expected_rule_ids(tmp_path: Path)
         fixture = tmp_path / name
         fixture.write_text(source, encoding="utf-8")
 
-        result = subprocess.run(  # noqa: S603 -- PATH resolves the mise-installed pinned Ruff binary
+        result = subprocess.run(  # noqa: S603 -- PATH resolves the locked Ruff in the project environment
             [ruff, "check", "--config", str(RUFF_CONFIG), str(fixture)],
             check=False,
             capture_output=True,

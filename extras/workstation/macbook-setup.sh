@@ -658,8 +658,7 @@ install_or_update_rustup() {
 
 update_tldr_cache() {
   has tldr || return 0
-  tldr --update > /dev/null 2>&1 || tldr -u > /dev/null 2>&1 || true
-  return 0
+  tldr --update > /dev/null 2>&1 || true
 }
 
 check_dagger_container_runtime() {
@@ -1026,7 +1025,7 @@ bind -r J resize-pane -D 5
 bind -r K resize-pane -U 5
 bind -r L resize-pane -R 5
 
-# Helpers in tmux popups. Homebrew tmux is new enough for display-popup.
+# Helpers in tmux popups.
 bind-key f display-popup -E -w 80% -h 70% "~/.local/bin/tmux-sessionizer"
 bind-key C display-popup -E -w 80% -h 70% "~/.local/bin/tmux-cht"
 

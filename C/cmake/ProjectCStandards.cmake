@@ -77,7 +77,7 @@ function(project_apply_c_standards target feature_scope)
       -Wold-style-definition
       -Wshift-overflow=2
       -Wuse-after-free=2
-      "$<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:-Wnull-dereference>"
+      "$<$<CONFIG:Release,RelWithDebInfo>:-Wnull-dereference>"
     )
   endif()
 

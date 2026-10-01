@@ -143,9 +143,9 @@ mise run cpp:standards:check
 
 `cpp:lint` runs `clangd --check --clang-tidy`, which parses every source and
 header with the project's compile flags. The clang-tidy profile curates
-bugprone, CERT, C++ Core Guidelines, modernize, performance, portability, and
-readability checks, removes known noisy rules, and blocks on every remaining
-finding. `cpp:test` builds with warnings as errors and runs pinned LLVM
+bugprone, CERT, C++ Core Guidelines, modernize, performance, portability,
+readability, and selected Google checks, removes known noisy rules, and blocks
+on every remaining finding. `cpp:test` builds with warnings as errors and runs pinned LLVM
 `clang++` Debug with ASan/UBSan and an optimized Release build. It also
 installs the CMake package config and verifies that a tiny external CMake
 consumer can link `cpp_project::library`. `cpp:standards:check` runs

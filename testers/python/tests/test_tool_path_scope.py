@@ -59,7 +59,7 @@ def test_ruff_skips_root_mutants_but_checks_nested_source_mutants(tmp_path: Path
     generated.write_text("import os\n", encoding="utf-8")
     nested.write_text('import os\nvalue = eval("1 + 1")\n', encoding="utf-8")
 
-    result = subprocess.run(  # noqa: S603 -- PATH resolves the mise-installed pinned Ruff binary
+    result = subprocess.run(  # noqa: S603 -- PATH resolves the locked Ruff in the project environment
         [ruff, "check", "--config", str(project_config), "."],
         cwd=tmp_path,
         check=False,
@@ -82,7 +82,7 @@ def test_bandit_checks_nested_source_mutants(tmp_path: Path) -> None:
     nested.parent.mkdir(parents=True)
     nested.write_text('value = eval("1 + 1")\n', encoding="utf-8")
 
-    result = subprocess.run(  # noqa: S603 -- PATH resolves the mise-installed pinned Bandit binary
+    result = subprocess.run(  # noqa: S603 -- PATH resolves the locked Bandit in the project environment
         [bandit, "-q", "-c", str(project_config), "-r", "src"],
         cwd=tmp_path,
         check=False,

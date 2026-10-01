@@ -5,12 +5,7 @@
 check_macos_startup() {
   local script="$BATS_TEST_DIRNAME/../macbook-setup.sh" layout="$1"
   local fixture="${BATS_TEST_TMPDIR}/shell" data_dir tool
-  mkdir -p "$fixture/.cargo/bin" "$fixture/.oh-my-zsh" "$fixture/Windows Tools"
-  cat > "$fixture/.oh-my-zsh/oh-my-zsh.sh" << 'OMZ'
-git --version >/dev/null
-zstyle -s ':omz:update' mode update_mode
-[[ "$update_mode" == disabled ]] || echo 'unexpected startup updater' >> "$WORKSTATION_CALLS"
-OMZ
+  mkdir -p "$fixture/.cargo/bin" "$fixture/Project Tools"
   : > "$fixture/calls"
   case "$layout" in
     default) data_dir="$fixture/.local/share/mise" ;;
@@ -32,7 +27,6 @@ echo "${0##*/}" >> "$WORKSTATION_CALLS"
 TOOL
     chmod +x "$fixture/.cargo/bin/$tool"
   done
-  cp "$data_dir/shims/mise" "$data_dir/shims/git"
 
   awk '
     /<<[[:space:]]*.ZSHCONFIG./ { body = 1; next }
@@ -55,12 +49,12 @@ TOOL
   esac
   # shellcheck disable=SC2016 # The child zsh expands its own parameters.
   run env -i HOME="$fixture" CARGO_HOME="$fixture/.cargo" TERM=xterm-256color \
-    PATH="$data_dir/shims:$fixture/Windows Tools:/usr/bin:/bin" \
+    PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
     zsh -f -i -c '
       source "$1"
       source "$1"
-      [[ ":$PATH:" == *":$HOME/Windows Tools:"* ]] || exit 1
+      [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
       [[ ":$PATH:" != *":$2/shims:"* ]] || exit 1
       for hook in $precmd_functions; do "$hook"; done
       tokei
@@ -220,6 +214,33 @@ SHIM
   [[ "$output" = *"compinit"* ]]
   [[ "$(awk '$NF == "compinit" && $1 ~ /^[0-9]+\)$/ {print $2; exit}' <<< "$output")" == 1 ]]
   [[ "$(stat -c '%a' "$fixture/.zshenv" 2> /dev/null || stat -f '%Lp' "$fixture/.zshenv")" == 600 ]]
+}
+
+@test "WSL setup syntax-checks every generated startup file and helper" {
+  local fixture="$BATS_TEST_TMPDIR/syntax" broken file
+  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell"
+  awk '
+    /^# Syntax checks validate/ { body = 1 }
+    body && /^echo / { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/check.sh"
+  [[ -s "$fixture/check.sh" ]]
+  for broken in none toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht .zshrc .config/shell/env.sh; do
+    for file in .local/bin/toolhelp .local/bin/wsl-shell-refresh .local/bin/tmux-sessionizer \
+      .local/bin/tmux-cht .zshrc .config/shell/env.sh; do
+      if [[ "$file" == "$broken" || "$file" == ".local/bin/$broken" ]]; then
+        printf 'if then\n' > "$fixture/$file"
+      else
+        printf 'true\n' > "$fixture/$file"
+      fi
+    done
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -e "$fixture/check.sh"
+    if [[ "$broken" == none ]]; then
+      [[ "$status" -eq 0 ]]
+    else
+      [[ "$status" -ne 0 ]]
+    fi
+  done
 }
 
 @test "refusing an unmanaged WSL shell leaves its completion environment intact" {

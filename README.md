@@ -109,7 +109,8 @@ example, a PHP and JavaScript project would retain `20-php.toml` and
 
 The copyable configuration requires mise `2026.6.12` or newer for structured
 task references and checksum-backed HTTP tool locks. This is a minimum
-version, not a pin on the mise executable.
+version, not a pin on the mise executable. A language fragment that needs a
+later release sets its own `min_version`.
 
 ### 3. Add Dagger isolation if needed
 
@@ -285,8 +286,8 @@ The Rust, TypeScript, C#, and Python profiles each contain a copyable
 workflow for downstream projects. Those run automatically for pull requests,
 merge-queue groups, and pushes to `main`, and also support manual dispatch.
 All the workflows use the same locked command surface and pin the locally
-tested mise `2026.9.1`. The lower configuration minimums remain
-compatibility floors.
+tested mise `2026.9.18`. Configuration `min_version` values are floors, not
+pins.
 
 The downstream repository host must protect merges with all of these settings:
 

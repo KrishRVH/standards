@@ -13,7 +13,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Exercise the retained ESLint and Prettier workflow away from the canonical
+# Exercise the secondary ESLint and Prettier workflow away from the canonical
 # Oxc-formatted template. A scratch-local frozen install prevents the aggregate
 # gate from racing the live TypeScript fixture's negative lint probes.
 cp -R \

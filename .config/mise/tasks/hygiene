@@ -184,7 +184,8 @@ def name_findings(entries: dict[str, bool]) -> list[str]:
     for path in entries:
         parts = PurePosixPath(path).parts
         name = parts[-1]
-        scoped = parts[:-1] if parts[0] == "docs" else parts[:1][: len(parts) - 1]
+        directories = parts[:-1]
+        scoped = directories if parts[0] == "docs" else directories[:1]
         history = next((part for part in scoped if part.lower() in HISTORY_DIRECTORIES), None)
         name_tokens = tokens(name)
         stem_tokens = tokens(name.split(".")[0])
@@ -238,9 +239,10 @@ def print_inventory(entries: dict[str, bool]) -> None:
         lines = text_lines(path) if regular else None
         if lines is None:
             continue
-        counted[category(path)][0] += 1
-        counted[category(path)][1] += lines
-        if category(path) == "source":
+        kind = category(path)
+        counted[kind][0] += 1
+        counted[kind][1] += lines
+        if kind == "source":
             largest = sorted([*largest, (lines, path)], reverse=True)[:5]
     print(f"{'category':<10} {'files':>6} {'lines':>8}")
     for name, (files, lines) in counted.items():
@@ -252,9 +254,8 @@ def print_inventory(entries: dict[str, bool]) -> None:
 
 
 def is_reference_file(path: str) -> bool:
-    return (PurePosixPath(path).suffix in REFERENCE_SUFFIXES or path.startswith(TASK_DIRECTORY)) and not is_test(
-        path
-    )
+    reference = PurePosixPath(path).suffix in REFERENCE_SUFFIXES or path.startswith(TASK_DIRECTORY)
+    return reference and not is_test(path)
 
 
 def task_reference_findings(path: str, known: tuple[set[str], set[str]]) -> list[str]:

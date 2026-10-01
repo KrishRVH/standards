@@ -193,6 +193,5 @@ bun.lockb binary
 **/deps/** linguist-vendored=true linguist-detectable=false
 **/dist-newstyle/** linguist-generated=true
 **/vendor/** linguist-vendored=true linguist-detectable=false
-**/zig-cache/** linguist-generated=true
 **/zig-out/** linguist-generated=true
 **/zig-pkg/** linguist-vendored=true linguist-detectable=false

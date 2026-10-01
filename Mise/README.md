@@ -6,7 +6,8 @@ Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
 
 The copyable configuration requires mise `2026.6.12` or newer. That is the
 first release supporting the checksum-backed HTTP lock metadata used by the
-Odin formatter; it is a minimum, not an executable pin.
+Odin formatter; it is a minimum, not an executable pin. A language fragment
+that needs a later release sets its own `min_version`.
 
 Use `mise run` for project workflows so a developer can build, format, or test
 without knowing the underlying toolchain. Dagger is optional; when a project
@@ -27,10 +28,6 @@ defaults and latency checks.
 The command surface starts strict. Keep the language tasks that fit the project
 and relax or remove checks that do not match its risk, lifecycle, or team
 tolerance.
-
-The optional Dagger fragment pins Dagger `v0.21.7`, and the corresponding
-Dagger module uses the digest-pinned mise `v2026.6.12` image in strict lockfile
-mode.
 
 Recommended project entrypoints:
 
@@ -83,12 +80,13 @@ file task without the executable bit.
 `standards` applies available safe autofixes and runs each detected language's
 local workflow. Some ecosystems expose validation only because they have no
 safe formatter. `standards:check` runs the CI-grade aggregate task, the
-project's shared `.gitleaks.toml` secret scan, and `hygiene`. `sbom` writes a fresh CycloneDX
-JSON SBOM under `sbom/` for release and audit workflows; `SYFT_SOURCE_NAME` and
-`SYFT_SOURCE_VERSION` control its source metadata. If the project includes
-`10-dagger.toml` and the Dagger module, `dagger:standards:check` runs
-`standards:check` inside an official, digest-pinned `mise` Linux reference
-container.
+project's shared `.gitleaks.toml` secret scan, and `hygiene`. `sbom` writes a
+fresh CycloneDX JSON SBOM under `sbom/` for release and audit workflows;
+`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` control its source metadata. If
+the project includes `10-dagger.toml` and the Dagger module,
+`dagger:standards:check` runs `standards:check` inside an official,
+digest-pinned `mise` Linux reference container; the
+[Dagger guide](../Dagger/README.md) describes its pins and source filtering.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use
@@ -119,8 +117,8 @@ formatters and tools that share mutable build state remain sequenced.
 Because language fragments are optional, the generic aggregate dispatcher
 discovers them at runtime. It runs detected language graphs one at a time,
 preventing mixed-language projects from racing over shared package files or
-build state. The remaining nested `mise run` selects a task whose name is known
-only after marker detection. Projects with a fixed stack should replace the
+build state. Its one nested `mise run` selects a task whose name is known only
+after marker detection. Projects with a fixed stack should replace the
 generic aggregate tasks with explicit native dependencies. The dispatcher is a
 POSIX shell template verified on Linux; Windows consumers need explicit task
 relationships or a reviewed `run_windows` implementation.
@@ -130,8 +128,8 @@ project uses pnpm, Yarn, or npm, replace the matching task file with a
 project-specific one instead of keeping multiple unpinned package-manager
 branches in the shared standard. The JavaScript workflow uses Oxfmt for
 formatting, Oxlint for linting, Knip for the declared dependency boundary, and
-`tsc` only for strict `checkJs` analysis. The TypeScript Effect-first workflow
-exposes separate diagnostics and agent-oriented overview tasks.
+`tsc` only for strict `checkJs` analysis. The TypeScript workflow exposes
+separate Effect diagnostics and agent-oriented overview tasks.
 
 The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
 compiler dependencies. Local link and typo checks use pinned mise tools. The

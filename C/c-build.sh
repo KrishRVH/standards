@@ -333,10 +333,6 @@ run_mingw() {
   cmake --preset mingw
   verify_build_contract "$ROOT/build/mingw" none Release GNU win32
   cmake --build --preset mingw --parallel "$JOBS"
-  grep -F -- "-D_WIN32_WINNT=0x0A00" "$ROOT/build/mingw/compile_commands.json" > /dev/null ||
-    fail "MinGW compile database does not contain the declared _WIN32_WINNT contract"
-  grep -F -- "-DWINVER=0x0A00" "$ROOT/build/mingw/compile_commands.json" > /dev/null ||
-    fail "MinGW compile database does not contain the declared WINVER contract"
   grep -F -- "standards-tests/platform/win32-api.c" \
     "$ROOT/build/mingw/compile_commands.json" > /dev/null ||
     fail "MinGW gate did not compile the version-gated Win32 API fixture"

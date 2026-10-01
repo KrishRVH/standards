@@ -131,7 +131,6 @@ function(project_apply_common target)
       )
     endif()
   endif()
-
 endfunction()
 
 add_library(project_library STATIC ${PROJECT_LIBRARY_SOURCES})

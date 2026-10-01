@@ -5,9 +5,9 @@ POSIX `sh` are also supported when a script declares its dialect with a
 shebang.
 
 Copy `.editorconfig`, `.shellcheckrc`, `scripts/`, and `tests/` into the
-project. Merge `AGENTS.md` into the project guide. Add the shared mise
-`config.toml` and `conf.d/20-shell.toml` under `.config/mise/`; copy the
-shared ignore rules so generated files stay outside discovery. Replace the
+project. Merge `AGENTS.md` into the project guide. Put `Mise/config.toml` in
+`.config/mise/` and `Mise/conf.d/20-shell.toml` in `.config/mise/conf.d/`, and
+copy `shared/.gitignore` so generated files stay outside discovery. Replace the
 greeting script and tests with the project's glue.
 
 ```sh

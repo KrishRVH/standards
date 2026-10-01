@@ -42,7 +42,8 @@ would be worse:
 scripts. File-level tool configuration, formatting/import-order directives,
 and ranged mutation exclusions are forbidden. Keep analyzer configuration
 exceptions narrow and explained beside the setting. The sole accepted mypy
-file directive is the fixture's two-rule Hypothesis integration exception.
+file directive is the two-rule Hypothesis exception for property-test modules:
+`# mypy: disallow-any-decorated=False, disallow-any-expr=False`.
 Read the [scanner scope](README.md) when adding unusual source layouts or
 symlinks.
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Check standards profile fixtures against the copyable templates."""
 
-from __future__ import annotations
-
 import filecmp
 import json
 import os
@@ -69,6 +67,7 @@ HYGIENE_CLEAN = {
         '`cd sub && mise run only:here`, `cd "sub project" && mise run only:here`\n'
     ),
     "scripts/setup.sh": "#!/bin/sh\ncat <<EOF\nRun tasks such as mise run build.\nEOF\n",
+    "tests/fixtures/tasks.md": "`mise run missing:fixture`\n",
 }
 HYGIENE_DIRTY = {
     "docs/research/engine.md": ("# Engine\n", ["history directory `research/`; git holds history"]),
@@ -503,7 +502,7 @@ def check_hygiene_task() -> list[str]:
             (dirty_tree / "src" / "link_old.rs").symlink_to("parser_v2.rs")
             git(dirty_tree, "add", "--", "src/link_old.rs")
             dirty = run_hygiene(dirty_tree)
-            expected = {f"hygiene: src/link_old.rs: leftover file name; rename in place or delete it"} | {
+            expected = {"hygiene: src/link_old.rs: leftover file name; rename in place or delete it"} | {
                 f"hygiene: {path}: {message}" for path, (_, messages) in HYGIENE_DIRTY.items() for message in messages
             }
             reported = set(dirty.stderr.splitlines())
@@ -598,7 +597,8 @@ def check_fixture_checks_contract() -> list[str]:
             )
             return tester
 
-        complete = check_fixture_config("complete", fixture("complete", ["x:standards:check", "x:extra"]), "x", ["x:extra"])
+        complete_fixture = fixture("complete", ["x:standards:check", "x:extra"])
+        complete = check_fixture_config("complete", complete_fixture, "x", ["x:extra"])
         if complete:
             errors.append(f"fixture_checks rejected a fixture that runs its declared check: {complete!r}")
         if not check_fixture_config("omitted", fixture("omitted", ["x:standards:check"]), "x", ["x:extra"]):

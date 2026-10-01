@@ -39,12 +39,15 @@ async function dependencyProbe(source) {
 }
 
 test("the dependency gate rejects installed but undeclared packages", async () => {
+	// Knip depends on picomatch, so it resolves here without a declaration.
+	expect(Bun.resolveSync("picomatch", projectRoot)).toContain("node_modules");
 	const result = await dependencyProbe(
-		'import debug from "debug";\nvoid debug;\n',
+		'import picomatch from "picomatch";\nvoid picomatch;\n',
 	);
 
 	expect(result.code).not.toBe(0);
-	expect(result.output).toContain("debug");
+	expect(result.output).toContain("Unlisted dependencies");
+	expect(result.output).toContain("picomatch");
 });
 
 test("the dependency gate accepts declared packages", async () => {

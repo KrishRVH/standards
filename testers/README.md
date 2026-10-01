@@ -13,11 +13,11 @@ MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run //testers/...:standards:check
 ```
 
 The root is an explicit mise monorepo with `testers/*` config roots,
-per-fixture lockfiles, and a scheduler width sized for the maintainer workstation
-in the root config. The native
-monorepo scheduler provides project-prefixed output and failure propagation
-while every fixture continues to own its configuration and tools. Run one
-fixture through the same root namespace with, for example:
+per-fixture lockfiles, and a scheduler width sized for the maintainer
+workstation in the root config. The native monorepo scheduler provides
+project-prefixed output and failure propagation while every fixture owns its
+configuration and tools. Run one fixture through the same root namespace with,
+for example:
 
 ```sh
 mise run //testers/python:standards:check
@@ -30,15 +30,13 @@ container. This task intentionally sits outside the default root gate:
 MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run //testers/python:dagger:standards:check
 ```
 
-Or run one fixture directly:
+Or run the same host-local gate that the repository aggregate task uses from
+inside one fixture:
 
 ```sh
 cd testers/ts
 MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise run standards:check
 ```
-
-Use `mise run standards:check` inside any fixture when you want the same
-host-local gate used by the repository aggregate task.
 
 The fixture list comes from [`standards.manifest.toml`](../standards.manifest.toml).
 The root's `testers/*` discovery pattern contains no duplicate profile
@@ -47,9 +45,9 @@ and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and
 tests are intentionally fixture-owned.
 
-Fixture configurations define no `lock` task. After changing a
-pinned tool version or fixture mise config, refresh the affected lockfile from
-that fixture directory with mise's native command:
+Fixture configurations define no `lock` task. After changing a pinned tool
+version or fixture mise config, refresh the affected lockfile from that fixture
+directory with mise's native command:
 
 ```sh
 MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise lock --platform linux-x64

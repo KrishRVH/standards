@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Enforce reproducible fpm dependency declarations."""
 
-from __future__ import annotations
-
 import sys
 import tomllib
 from pathlib import Path

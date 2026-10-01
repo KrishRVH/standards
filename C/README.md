@@ -114,25 +114,25 @@ compilation database. After adding a reviewed third-party directory, exclude
 its source path with
 `project_exclude_c_standards_directory(path, "reason and upstream policy")`;
 the reason is mandatory, the caller cannot exempt itself, and the exception
-must never hide an owned target.
-`project_apply_common` rejects interface and other noncompiled targets because
-the template defines no header-only warning or platform-macro propagation
-contract.
-The build verifier requires every configured
-warning token on every compile command. The regression matrix also observes
-each warning's unpromoted diagnostic, then proves the reviewed `-Werror`
-behavior. Because several compiler flags are groups, pinned
-Clang `diagtool` and GCC `-Q --help=warnings` resolutions are also checked
-against committed counts and hashes; drift requires review before acceptance.
+must never hide an owned target. `project_apply_common` rejects interface and
+other noncompiled targets because the template defines no header-only warning
+or platform-macro propagation contract.
+
+The build verifier requires every configured warning token on every compile
+command. The regression matrix also observes each warning's unpromoted
+diagnostic, then proves the reviewed `-Werror` behavior. Because several
+compiler flags are groups, pinned Clang `diagtool` and GCC `-Q --help=warnings`
+resolutions are also checked against committed counts and hashes; drift
+requires review before acceptance.
 
 `c:test` uses distinct build directories for the fast, ASan+UBSan, optimized,
 and package profiles. The sanitizer profile is nonrecovering. The package gate
-installs static and shared targets, then configures, builds, and runs an external
-consumer of each. Build directories are removed before compiler/profile changes
-so a stale CMake compiler cache cannot contaminate evidence. Before building,
-the script verifies the configured compiler path/family/version, build type,
-platform macros, Werror state, and sanitizer instrumentation. CTest fails when
-the selected configuration registers no tests.
+installs static and shared targets, then configures, builds, and runs an
+external consumer of each. Each stage removes its build directory before
+configuring, so a stale CMake compiler cache cannot contaminate evidence. Before
+building, the script verifies the configured compiler path/family/version,
+build type, platform macros, Werror state, and sanitizer instrumentation. CTest
+fails when the selected configuration registers no tests.
 
 ## Policy files
 

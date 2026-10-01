@@ -20,7 +20,8 @@ that cannot justify that cost.
 
 ## Principles
 
-- Prefer ASD-STE100 Simplified Technical English for user communications. No dead prose.
+- Prefer ASD-STE100 Simplified Technical English for user communications. No
+  dead prose.
 - When writing technical documentation, follow the
   [Google Developer Docs Style Guide](https://developers.google.com/style).
 - Complexity is the enemy. Prefer obvious code, local state, and direct data
@@ -109,9 +110,10 @@ definitions. Use the existing workflow and its arguments before adding a task.
   when the project keeps the Dagger fragment.
 
 Run ordinary utilities such as `git`, `rg`, and `tokei`, and standalone scripts,
-directly. Use native commands for focused diagnosis; run the relevant mise gate for final project
-verification. Use `mise exec -- <command>` only when that invocation needs a
-project-pinned tool or environment and no suitable task exists.
+directly. Use native commands for focused diagnosis; run the relevant mise gate
+for final project verification. Use `mise exec -- <command>` only when that
+invocation needs a project-pinned tool or environment and no suitable task
+exists.
 
 Workstation tools and shell configuration follow host conventions. Keep prompt,
 history, navigation, and completion setup independent of mise. Shell activation

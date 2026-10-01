@@ -37,7 +37,7 @@ These guards keep the template's Go dialect direct and self-contained. Local
 data and control flow should remain visible without extra ceremony or language
 machinery.
 
-Project code rejects two language directions after Go 1.22:
+Project code rejects two language features:
 
 - Go 1.23 range-over-function iterators. `boringlint/noiterator` rejects direct
   `iter` imports, the language construct, and iterator-shaped project type and
@@ -51,7 +51,7 @@ iterator values; materialize them immediately at the call boundary, for example
 with `slices.Collect`. Iterator producer names are not cataloged because the
 structural guards cover the project-owned policy without release-specific lists.
 
-Mise installs `boringlint` from its canonical Go module at a pinned revision, so
+Mise installs `boringlint` from its canonical Go module at a pinned release, so
 its analysis dependencies do not enter the application module. The project runs
 it separately from the standard `go vet` analyzer set.
 

@@ -62,12 +62,12 @@ does not consume and package them consistently. Named dependency and cache
 trees stay outside this policy. The scanner rejects broad mypy file
 configuration except the documented two-rule Hypothesis exception. It also
 checks directives that follow an earlier comment fragment, Coverage's alternate
-spellings, and mutmut exclusions hidden in another directive's reason. Ruff security rules and Bandit run
-independently: a Ruff `noqa` does not suppress Bandit's finding; a deliberate
-exception must satisfy each tool's reasoned form. The
-banned-API wall covers ambient clocks, RNGs, environment reads, and `pickle`
-(TID251, remediation-shaped messages); PLW0603 bans `global`, and ASYNC/DTZ
-catch blocking sleeps in async code and naive datetimes.
+spellings, and mutmut exclusions hidden in another directive's reason. Ruff
+security rules and Bandit run independently: a Ruff `noqa` does not suppress
+Bandit's finding; a deliberate exception must satisfy each tool's reasoned
+form. The banned-API wall covers ambient clocks, RNGs, environment reads, and
+`pickle` (TID251, remediation-shaped messages); PLW0603 bans `global`, and
+ASYNC/DTZ catch blocking sleeps in async code and naive datetimes.
 Basedpyright runs in `all` mode and rejects rule-less or stale
 `# pyright: ignore` comments. Ruff skips only mutmut's generated root tree;
 Ruff, Bandit, and Vulture still inspect legitimate nested `mutants/`

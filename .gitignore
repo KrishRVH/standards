@@ -241,7 +241,6 @@ luac.out
 .coverage
 .coverage.*
 .hypothesis/
-.mutmut-cache
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
@@ -269,9 +268,7 @@ __pycache__/
 
 # Zig generated output
 /.zig-cache/
-/zig-cache/
 /zig-out/
 **/.zig-cache/
-**/zig-cache/
 **/zig-out/
 /zig-pkg/

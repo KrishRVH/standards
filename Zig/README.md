@@ -10,9 +10,10 @@ The baseline starts with Zig's native format, build, and test checks. Remove
 targets or release variants when the package does not need the full set.
 
 After renaming the package, delete the copied fingerprint and run
-`mise run zig:lint` so Zig generates a new package identity. Keep that
-fingerprint stable across releases. Zig dependency hashes live in
-`build.zig.zon`; there is no separate lockfile.
+`mise run zig:lint`; Zig fails with a suggested fingerprint for the new
+package identity. Add that value to `build.zig.zon` and keep it stable across
+releases. Zig dependency hashes live in `build.zig.zon`; there is no separate
+lockfile.
 
 The standards workflow is:
 

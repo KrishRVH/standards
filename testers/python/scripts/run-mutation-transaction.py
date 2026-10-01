@@ -73,9 +73,8 @@ class _ProjectLock:
                 f"Another Python mutation transaction holds {LOCK}/ ({_owner_summary()}).\n"
                 + "Before treating it as stale, check for live mutmut, mutation subprocess "
                 + "descendants, or run-mutation-transaction.py processes. Only when none "
-                + "remain, remove "
-                + f"{LOCK}/ and retry. A hard-killed run deliberately leaves this "
-                + "fail-closed lock."
+                + f"remain, remove {LOCK}/ and retry. A hard-killed run deliberately leaves "
+                + "this fail-closed lock."
             ) from error
         except OSError as error:
             raise _LockError(f"Cannot create mutation lock {LOCK}/: {error}") from error
@@ -202,7 +201,6 @@ class _Transaction:
         self.active_group = process.pid
         if self.received_signal is not None:
             self._signal_active(self.received_signal)
-        group_exited = False
         try:
             while True:
                 try:

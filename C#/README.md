@@ -27,27 +27,25 @@ state by symbol with remediation-shaped messages (RS0030); StyleCop ships for
 exactly one rule, SA1404, which rejects a missing, blank, or `<Pending>`
 `[SuppressMessage]` justification while review checks every other value;
 ReferenceTrimmer fails on analyzable direct compile references reported unused
-as RT0001-RT0003 (SDK, transitive, and build-asset references are conservatively
-outside its scope);
-CsCheck is the property-testing default; and Stryker.NET (pinned in mise
-through its dotnet backend) runs the mutation gate on the Microsoft Testing
-Platform runner,
-which is in preview. Coverage analysis is disabled because that integration is
-not yet reliable; each run emits JSON and its complete log to a unique,
-preserved output directory. A dependency-free verifier rejects malformed
-Stryker directives, pending or unknown statuses, and ignored mutants without a
-custom reason. It validates the mutated-source payload and permits only the
-documented one-shot line-comment form; ranged `disable`/`restore` and block
-directives fail. Directive-shaped string text is conservatively reserved for
-the policy. The full gate also requires an actually executed `Killed`,
-`Survived`, or `Timeout` mutant, so empty and all-`NoCoverage` runs fail.
-`thresholds.break` in `stryker-config.json` is pinned
-at the measured floor. The shipped 100 makes every survivor fail — a
-deliberate per-mutant gate at fixture size; pin your own measured floor on
-adoption and it becomes a coarse regression alarm, with survivors in changed
-code dispositioned in review. Mutation testing requires sources and tests in
-separate projects joined by a `ProjectReference`; a single mixed project
-cannot be mutated. On large projects, swap `csharp:mutants` for
+as RT0001-RT0003 (SDK, transitive, and build-asset references are
+conservatively outside its scope); CsCheck is the property-testing default;
+and Stryker.NET (pinned in mise through its dotnet backend) runs the mutation
+gate on the Microsoft Testing Platform runner, which is in preview. Coverage
+analysis stays off because its MTP integration is unreliable; each run emits
+JSON and its complete log to a unique, preserved output directory. A
+dependency-free verifier rejects malformed Stryker directives, pending or
+unknown statuses, and ignored mutants without a custom reason. It validates the
+mutated-source payload and permits only the documented one-shot line-comment
+form; ranged `disable`/`restore` and block directives fail. Directive-shaped
+string text is conservatively reserved for the policy. The full gate also
+requires an actually executed `Killed`, `Survived`, or `Timeout` mutant, so
+empty and all-`NoCoverage` runs fail. `thresholds.break` in
+`stryker-config.json` is pinned at the measured floor. The shipped 100 makes
+every survivor fail — a deliberate per-mutant gate at fixture size; pin your
+own measured floor on adoption and it becomes a coarse regression alarm, with
+survivors in changed code dispositioned in review. Mutation testing requires
+sources and tests in separate projects joined by a `ProjectReference`; a single
+mixed project cannot be mutated. On large projects, swap `csharp:mutants` for
 `csharp:mutants:diff` in the PR gate and move the full sweep to a scheduled
 job; give the workflow's checkout step `fetch-depth: 0` first, because a
 shallow clone cannot resolve `MUTANTS_BASE_REF` for `--since`.

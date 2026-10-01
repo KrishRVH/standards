@@ -79,10 +79,11 @@ definitions. Use the existing workflow and its arguments before adding a task.
   fixture gate.
 
 Run ordinary utilities such as `git`, `rg`, and `tokei`, and standalone scripts,
-directly. Use native commands for focused diagnosis; run the relevant mise gate for final project
-verification. Use `mise exec -- <command>` only when that invocation needs a
-project-pinned tool or environment and no suitable task exists. If project
-installation needs network, run the install task and report that.
+directly. Use native commands for focused diagnosis; run the relevant mise gate
+for final project verification. Use `mise exec -- <command>` only when that
+invocation needs a project-pinned tool or environment and no suitable task
+exists. If project installation needs network, run the install task and report
+that.
 
 Workstation tools and shell configuration follow host conventions. Keep prompt,
 history, navigation, and completion setup independent of mise. Shell activation
@@ -156,7 +157,7 @@ Treat these as generated unless the task is specifically about them:
 - Godot output: `.godot/`, `*.translation`
 - language outputs: `target/`, `bin/Debug/`, `bin/Release/`, `obj/`,
   `.gradle/`, `.kotlin/`, `_build/`, `deps/`, `dist-newstyle/`,
-  `.stack-work/`, `.zig-cache/`, `zig-cache/`, `zig-out/`, `zig-pkg/`
+  `.stack-work/`, `.zig-cache/`, `zig-out/`, `zig-pkg/`
 - tool caches: `.phpunit.cache/`, `.phpstan.cache/`,
   `.lua-language-server/`, `*.tsbuildinfo`, `.elixir_ls/`
 

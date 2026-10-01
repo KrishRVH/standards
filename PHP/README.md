@@ -21,9 +21,9 @@ mise run php:standards:check
 
 mise pins Composer from its GitHub release and verifies the release checksum
 and attestation. The fragment lists it before PHP so a Composer bundled with a
-PHP build cannot shadow it. `php:install` runs
-`composer install`. `php:lock` refreshes `composer.lock`; commit it for
-applications, CLIs, and fixtures that want locked CI behavior.
+PHP build cannot shadow it. `php:install` runs `composer install`. `php:lock`
+refreshes `composer.lock`; commit it for applications, CLIs, and fixtures that
+want locked CI behavior.
 
 `composer standards` runs Composer normalization, Rector, PHPCBF, and a PHPCS
 post-check for unfixed style violations. `composer standards:check` runs
@@ -38,6 +38,8 @@ The defaults keep parallel execution enabled and cache outside the repository.
 PHPStan owns static type and correctness analysis; PHPCS/Slevomat owns style.
 PHPMD is limited to source maintainability concerns such as complexity,
 oversized methods and classes, coupling, and high-signal clean-code hazards.
+Its Composer script hides the PHP deprecation notices that PHPMD's own source
+raises under PHP 8.5.
 ShipMonk is the sole default dependency-hygiene tool because one pass covers
 unused dependencies, shadow or transitive dependencies, and
 `require`/`require-dev` placement.

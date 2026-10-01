@@ -10,7 +10,7 @@ from typing import NoReturn
 
 TOTAL_PREFIX = re.compile(r"^\|\s*TOTAL\s*\|")
 TOTAL_ROW = re.compile(
-    r"\|\s*TOTAL\s*\|\s*[0-9]+\s*\|\s*[0-9]+\s*\|\s*[0-9]+\s*\|" + r"\s*[0-9]+(?:\.[0-9]+)?%\s*\|"
+    r"\|\s*TOTAL\s*\|\s*[0-9]+\s*\|\s*[0-9]+\s*\|\s*[0-9]+\s*\|\s*[0-9]+(?:\.[0-9]+)?%\s*\|"
 )
 
 

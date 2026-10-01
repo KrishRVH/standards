@@ -262,17 +262,16 @@ requirements tell consumers the header's minimum language feature; private
 warning flags and private platform definitions do not leak into dependencies.
 Every owned compiled target must pass through `project_apply_common`; a final
 recursive directory assertion rejects a target that does not, including an
-omission below an owned `add_subdirectory`. That helper alone opts the
-target into `EXPORT_COMPILE_COMMANDS`, a target property introduced in CMake
-3.20. It rejects interface and other noncompiled targets because this template
-does not define header-only warning or platform-macro propagation. The
-dedicated analyzer database therefore excludes third-party targets without
-guessing from source paths. After `add_subdirectory`, the narrow
+omission below an owned `add_subdirectory`. That helper alone opts the target
+into the `EXPORT_COMPILE_COMMANDS` target property, which sets the CMake minimum
+at 3.20, so the dedicated analyzer database excludes third-party targets without
+guessing from source paths. The helper rejects interface and other noncompiled
+targets because this template does not define header-only warning or
+platform-macro propagation. After `add_subdirectory`, the narrow
 `project_exclude_c_standards_directory(path, reason)` marker can exempt a
-reviewed third-party directory after it is added. The reason is mandatory and
-reported at configure time; a directory cannot exempt itself, and the
-exception cannot exempt one owned target. This target property sets the CMake
-minimum at 3.20.
+reviewed third-party directory. The reason is mandatory and reported at
+configure time; a directory cannot exempt itself, and the exception cannot
+exempt one owned target.
 
 Before a named stage builds, `c-build.sh` verifies the configured compiler path,
 family and version, build type, platform name and exact feature-macro set,
@@ -303,16 +302,15 @@ clangd remains an editor facility. Its official documentation states that not
 all clang-tidy checks work within clangd, and its default strict fast-check
 filter further limits editor execution. The hard gate therefore verifies a
 nonempty compilation database and uses the official `run-clang-tidy` driver.
-It checks the pinned tool versions, Clang resource headers, configuration
-validity, all database translation units, project headers, parallel exit status,
-and a committed 25-check resolved set. The driver receives each C translation
-unit explicitly. The gate requires its selected count to equal the database
-entry count, rejecting duplicate source entries whose competing commands the
-driver would otherwise deduplicate and choose between ambiguously. Missing
-inputs, zero selected C units, or tools are hard errors.
-The pinned official LLVM release supplies Clang, clang-tidy, and the parallel
-driver from one installation. The gate still passes Clang's resource directory
-explicitly and verifies `include/stddef.h` before analysis.
+It checks the pinned clang-tidy version, configuration validity, all database
+translation units, project headers, parallel exit status, and a committed
+25-check resolved set. The driver selects C translation units through an
+explicit `.c` source filter. The gate requires its selected count to equal the
+database entry count, rejecting duplicate source entries whose competing
+commands the driver would otherwise deduplicate and choose between ambiguously.
+Missing inputs, zero selected C units, or tools are hard errors. One pinned
+official LLVM release supplies Clang, clang-tidy, its resource headers, and the
+parallel driver.
 
 The standard-library model includes POSIX contracts, but it cannot expose a
 POSIX name by itself: the compiler command still must select the `posix-2008`
@@ -364,9 +362,9 @@ a high penalty to isolating C return types. Bracket alignment remains enabled
 to keep function-pointer declarations cohesive, while separate definition
 blocks preserve readable boundaries between C definitions.
 
-Only options valid for the pinned major version remain. The representative
-golden fixture is compared byte-for-byte and formatted twice to prove stability.
-Formatting never establishes behavior preservation.
+The configuration uses only options valid for the pinned major version. The
+representative golden fixture is compared byte-for-byte and formatted twice to
+prove stability. Formatting never establishes behavior preservation.
 
 ## Primary-source ledger
 
@@ -394,4 +392,4 @@ Formatting never establishes behavior preservation.
 | [CMake 4.4 `C_STANDARD`](https://cmake.org/cmake/help/v4.4/prop_tgt/C_STANDARD.html), [`C_EXTENSIONS`](https://cmake.org/cmake/help/v4.4/prop_tgt/C_EXTENSIONS.html), [`target_compile_options`](https://cmake.org/cmake/help/v4.4/command/target_compile_options.html), and [`target_compile_definitions`](https://cmake.org/cmake/help/v4.4/command/target_compile_definitions.html)                                                                                                                               | Target-scoped dialect, warnings, and platform definitions; private/public propagation                                                                                           | CMake feature selection cannot by itself prove compiler conformance or runtime API availability.                                                                                                           |
 | [CMake 4.4 `EXPORT_COMPILE_COMMANDS`](https://cmake.org/cmake/help/v4.4/prop_tgt/EXPORT_COMPILE_COMMANDS.html), [CTest `--no-tests`](https://cmake.org/cmake/help/v4.4/manual/ctest.1.html#cmdoption-ctest-no-tests), and [test-preset execution options](https://cmake.org/cmake/help/v4.4/manual/cmake-presets.7.html#test-preset)                                                                                                                                                                                 | Per-target compilation-database membership and explicit no-test failure behavior                                                                                                | The target property was introduced in CMake 3.20. A compilation database still proves only the targets deliberately opted into it, so the directory assertion separately proves owned-target registration. |
 | [Microsoft C language conformance](https://learn.microsoft.com/en-us/cpp/overview/visual-cpp-language-conformance?view=msvc-170) and [`/std` C modes](https://learn.microsoft.com/en-us/cpp/build/reference/std-specify-language-standard-version?view=msvc-170)                                                                                                                                                                                                                                                     | No strict C99 `/std:c99` profile exists to substantiate an MSVC strict profile                                                                                                  | Current MSVC may accept many C99 features; acceptance is not this template's tested strict profile.                                                                                                        |
-| [MinGW-w64 pre-built toolchains](https://www.mingw-w64.org/downloads/) and [official CMake cross-build example](https://www.mingw-w64.org/build-systems/cmake/)                                                                                                                                                                                                                                                                                                                                                      | MinGW-w64 supplies Windows headers/libraries alongside multiple compiler and CRT combinations; a CMake toolchain can establish a compile/link cross target                      | The local GCC 13/MSVCRT compile-only result does not establish native execution, UCRT behavior, or MSVC compatibility.                                                                                     |
+| [MinGW-w64 pre-built toolchains](https://www.mingw-w64.org/downloads/) and [official CMake cross-build example](https://www.mingw-w64.org/build-systems/cmake/)                                                                                                                                                                                                                                                                                                                                                      | MinGW-w64 supplies Windows headers/libraries alongside multiple compiler and CRT combinations; a CMake toolchain can establish a compile/link cross target                      | The GCC 13/MSVCRT compile-only profile does not establish native execution, UCRT behavior, or MSVC compatibility.                                                                                          |

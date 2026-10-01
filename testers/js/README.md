@@ -17,8 +17,7 @@ explicit with `"type": "module"`. Use runtime-valid relative imports or
 `package.json` imports rather than TypeScript-only path aliases. Switch to
 `NodeNext` and `@types/node` only when Node, rather than Bun, is the runtime.
 `bunfig.toml` routes package scripts and `node` shebang subprocesses through
-Bun and disables automatic peer installation; declare every peer the project
-actually imports.
+Bun.
 
 Copy the shared `.gitignore` into the project so generated files and local
 artifacts stay outside the standards workflow.

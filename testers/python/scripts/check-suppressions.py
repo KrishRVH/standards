@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 DEFAULT_PATHS = (Path("."),)
+PYTHON_SUFFIXES = frozenset({".py", ".pyi"})
 PRUNED_DIRECTORIES = frozenset(
     {
         ".basedpyright",
@@ -50,7 +51,7 @@ NO_MUTATE_VALID = re.compile(
 )
 NOQA = re.compile(r"^#\s*noqa\b", re.IGNORECASE)
 NOQA_VALID = re.compile(
-    r"^#\s*noqa\s*:\s*(?P<rules>[A-Z]+\d+(?:\s*,\s*[A-Z]+\d+)*)" + r"\s+--\s+(?P<reason>\S.*)$",
+    r"^#\s*noqa\s*:\s*(?P<rules>[A-Z]+\d+(?:\s*,\s*[A-Z]+\d+)*)\s+--\s+(?P<reason>\S.*)$",
     re.IGNORECASE,
 )
 NOSEC = re.compile(r"^#\s*nosec\b", re.IGNORECASE)
@@ -186,13 +187,13 @@ def directory_python_files(path: Path, project_root: Path) -> Iterable[Path]:
                         f"{child}: symlinked source directories are forbidden because "
                         + "Python tools disagree about whether to inspect and package them"
                     )
-                if child.suffix in {".py", ".pyi"}:
+                if child.suffix in PYTHON_SUFFIXES:
                     yield child
                 continue
             if child.is_dir():
                 if not is_pruned_directory(child, project_root):
                     pending.append(child)
-            elif child.is_file() and child.suffix in {".py", ".pyi"}:
+            elif child.is_file() and child.suffix in PYTHON_SUFFIXES:
                 yield child
 
 
@@ -205,9 +206,7 @@ def python_files(paths: Iterable[Path], project_root: Path) -> Iterable[Path]:
                 f"{path}: symlinked source directories are forbidden because "
                 + "Python tools disagree about whether to inspect and package them"
             )
-        if path.is_symlink() and path.suffix in {".py", ".pyi"}:
-            candidates.add(path)
-        elif path.is_file() and path.suffix in {".py", ".pyi"}:
+        if (path.is_symlink() or path.is_file()) and path.suffix in PYTHON_SUFFIXES:
             candidates.add(path)
         elif path.is_dir() and not is_pruned_directory(path, project_root):
             candidates.update(directory_python_files(path, project_root))

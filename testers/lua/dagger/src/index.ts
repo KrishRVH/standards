@@ -1,4 +1,4 @@
-import { type Container, type Directory, argument, dag, func, object } from '@dagger.io/dagger';
+import { type Directory, argument, dag, func, object } from '@dagger.io/dagger';
 
 const MISE_IMAGE = 'jdxcode/mise:2026.6.12@sha256:8e2087d0831aa3f05c55ee41e5c30b93f1317d369973ede36cbb8936c51dd54a';
 
@@ -83,26 +83,21 @@ export class ProjectStandards {
    */
   @func()
   async standardsCheck(@argument({ ignore: SOURCE_IGNORES }) source: Directory): Promise<string> {
-    return await this.runMise(source, ['run', 'standards:check']).stdout();
-  }
-
-  private runMise(source: Directory, args: string[]): Container {
-    return (
-      dag
-        .container()
-        .from(MISE_IMAGE)
-        .withoutEntrypoint()
-        // Ignore the image's moving global Node/Python selectors; resolve only project pins.
-        .withEnvVariable('MISE_IGNORED_CONFIG_PATHS', '/mise/config.toml')
-        .withEnvVariable('MISE_LOCKED', '1')
-        .withMountedCache('/mise/installs', dag.cacheVolume('mise-tools'))
-        .withMountedCache('/mise/cache', dag.cacheVolume('mise-cache'))
-        .withMountedCache('/root/.cache/uv', dag.cacheVolume('uv-cache'))
-        .withEnvVariable('MISE_TRUSTED_CONFIG_PATHS', '/src')
-        .withDirectory('/src', source, { gitignore: true })
-        .withWorkdir('/src')
-        .withExec(['mise', 'install'])
-        .withExec(['mise', ...args])
-    );
+    return await dag
+      .container()
+      .from(MISE_IMAGE)
+      .withoutEntrypoint()
+      // Ignore the image's moving global Node/Python selectors; resolve only project pins.
+      .withEnvVariable('MISE_IGNORED_CONFIG_PATHS', '/mise/config.toml')
+      .withEnvVariable('MISE_LOCKED', '1')
+      .withMountedCache('/mise/installs', dag.cacheVolume('mise-tools'))
+      .withMountedCache('/mise/cache', dag.cacheVolume('mise-cache'))
+      .withMountedCache('/root/.cache/uv', dag.cacheVolume('uv-cache'))
+      .withEnvVariable('MISE_TRUSTED_CONFIG_PATHS', '/src')
+      .withDirectory('/src', source, { gitignore: true })
+      .withWorkdir('/src')
+      .withExec(['mise', 'install'])
+      .withExec(['mise', 'run', 'standards:check'])
+      .stdout();
   }
 }

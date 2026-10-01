@@ -14,7 +14,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_CONFIGURE_ONLY=1         regenerate configs without installing/updating tools
 #   BOOTSTRAP_APT_UPGRADE=0            skip apt upgrade
 #   BOOTSTRAP_CARGO_UPGRADE=0          skip cargo package update checks
-#   BOOTSTRAP_GITHUB_UPGRADE=0         skip GitHub-release updates when a binary exists
+#   BOOTSTRAP_GITHUB_UPGRADE=0         skip upstream release updates for installed tools
 #   BOOTSTRAP_GITHUB_API_VERSION=...   override the GitHub REST API version header
 #   BOOTSTRAP_GIT_UPDATE=0             skip fast-forwarding managed git repos
 #   BOOTSTRAP_INSTALL_LAZYVIM=0        skip LazyVim starter install
@@ -27,7 +27,7 @@ IFS=$'\n\t'
 #   BOOTSTRAP_GIT_TIMEOUT=300          seconds before git network operations time out
 #   BOOTSTRAP_TLDR_TIMEOUT=120         seconds before tldr cache updates time out
 #   BOOTSTRAP_TMUX_PLUGIN_TIMEOUT=180  seconds before TPM operations time out
-#   WSL_KEEP_WINDOWS_PATH=1           retain Windows directories in the shell PATH
+#   WSL_KEEP_WINDOWS_PATH=1            retain Windows directories in the shell PATH
 #   TMUX_SESSIONIZER_ROOTS=a:b:c       colon-separated project roots for the session picker
 #   RETRY_MAX_ATTEMPTS=8               attempts for transient network operations
 
@@ -535,7 +535,6 @@ install_github_release_binary() {
   local repo="$1"
   local bin="$2"
   local asset_regex="$3"
-  local archive_bin="${4:-$2}"
   local target="$HOME/.local/bin/$bin"
   local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/wsl-bootstrap/github"
   local state_file="$state_dir/${repo//\//_}-$bin.state"
@@ -582,12 +581,12 @@ install_github_release_binary() {
 
   curl_fetch "$asset_url" -o "$archive"
   verify_sha256_digest "$archive" "$asset_digest"
-  extract_release_asset "$archive" "$asset_name" "$extract_dir" "$archive_bin"
+  extract_release_asset "$archive" "$asset_name" "$extract_dir" "$bin"
 
-  mapfile -t candidates < <(find "$extract_dir" -type f -name "$archive_bin" -print)
+  mapfile -t candidates < <(find "$extract_dir" -type f -name "$bin" -print)
   [[ ${#candidates[@]} -eq 1 ]] || {
     rm -rf "$tmpdir" || true
-    die "$asset_name: expected one extracted '$archive_bin' binary, found ${#candidates[@]}"
+    die "$asset_name: expected one extracted '$bin' binary, found ${#candidates[@]}"
   }
   candidate="${candidates[0]}"
 
@@ -769,8 +768,8 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   install_github_release_binary mvdan/sh shfmt "^shfmt_v[^/]+_linux_${release_go_arch}$"
   install_github_release_binary jesseduffield/lazygit lazygit "^lazygit_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
   install_github_release_binary muesli/duf duf "^duf_[^/]+_linux_${release_uname_arch}\\.tar\\.gz$"
-  install_github_release_binary johnkerl/miller mlr "^miller-[^/]+-linux-${release_go_arch}\\.tar\\.gz$" mlr
-  install_github_release_binary cli/cli gh "^gh_[^/]+_linux_${release_go_arch}\\.tar\\.gz$" gh
+  install_github_release_binary johnkerl/miller mlr "^miller-[^/]+-linux-${release_go_arch}\\.tar\\.gz$"
+  install_github_release_binary cli/cli gh "^gh_[^/]+_linux_${release_go_arch}\\.tar\\.gz$"
   # Herdr publishes bare Linux binaries; use its official GitHub release assets.
   install_github_release_binary herdrdev/herdr herdr "^herdr-linux-${release_herdr_arch}$"
 
@@ -903,6 +902,7 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     source "$CARGO_HOME/env"
   fi
   export PATH="$CARGO_HOME/bin:$PATH"
+  rustup component add rustfmt clippy
 
   cargo_binstall_arch="$(uname -m)"
   case "$cargo_binstall_arch" in
@@ -911,7 +911,7 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     *) die "unsupported architecture for cargo-binstall: $cargo_binstall_arch" ;;
   esac
   install_github_release_binary cargo-bins/cargo-binstall cargo-binstall \
-    "^cargo-binstall-${cargo_binstall_target}-unknown-linux-musl\\.tgz$" cargo-binstall
+    "^cargo-binstall-${cargo_binstall_target}-unknown-linux-musl\\.tgz$"
 
   cargo_install_latest uv uv
   cargo_install_latest zoxide zoxide
@@ -938,12 +938,10 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   fi
 
   # A global Node LTS baseline also works in noninteractive agent sessions.
-  msg "runtimes: Node LTS and Python tooling"
+  msg "runtimes: Node LTS"
   mise use --global node@lts
   mkdir -p "$HOME/.local/share/wsl-bootstrap/runtimes"
   ln -sfn "$(mise where node@lts)" "$HOME/.local/share/wsl-bootstrap/runtimes/node"
-  rustup component add rustfmt clippy
-
 fi # installation phase
 export PATH="$HOME/.local/bin:${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 
@@ -1134,29 +1132,29 @@ Fast decision map:
   Find files or directories              fd
   Choose interactively from a list       fzf
   Jump to a frequently used directory    zoxide
-  Read a source file                      bat
-  Inspect a directory                     eza
+  Read a source file                     bat
+  Inspect a directory                    eza
   Read ordinary Git patches              delta
   Understand structural code changes     difftastic / git dft
-  Transform JSON / YAML                   jq / yq
-  Process CSV by field name               mlr
+  Transform JSON / YAML                  jq / yq
+  Process CSV by field name              mlr
   Perform a simple textual replacement   sd
-  Search or rewrite code structurally     ast-grep
-  Benchmark commands                      hyperfine
+  Search or rewrite code structurally    ast-grep
+  Benchmark commands                     hyperfine
   Discover and run project workflows     mise tasks / mise run <task>
-  Run existing justfile recipes           just
-  Rerun on file changes                   watchexec
-  Validate and format shell               shellcheck + shfmt
-  Manage language/tool versions           mise
-  Recover a prior command                 atuin
+  Run existing justfile recipes          just
+  Rerun on file changes                  watchexec
+  Validate and format shell              shellcheck + shfmt
+  Manage language/tool versions          mise
+  Recover a prior command                atuin
   Work with GitHub PRs / Actions / API   gh
-  Use Git visually                        lazygit
-  Try safer Git-compatible workflows      jj
-  Diagnose machine / disk / logs          btop / dust / duf / lnav
-  Exercise an HTTP API                    xh
-  Work with archives / compression        ouch / zstd
-  Delete interactively with recovery      trash-put
-  Encrypt a file                          age
+  Use Git visually                       lazygit
+  Try safer Git-compatible workflows     jj
+  Diagnose machine / disk / logs         btop / dust / duf / lnav
+  Exercise an HTTP API                   xh
+  Work with archives / compression       ouch / zstd
+  Delete interactively with recovery     trash-put
+  Encrypt a file                         age
 
 Policy:
   These are interactive and development defaults, not portability mandates.
@@ -2801,9 +2799,6 @@ fi
 # <<< wsl-bootstrap managed tmux-cht <<<
 CHT
 
-bash -n "$HOME/.local/bin/tmux-sessionizer"
-bash -n "$HOME/.local/bin/tmux-cht"
-
 if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -x "$TPM_DIR/bin/install_plugins" ]]; then
   run_with_timeout "$BOOTSTRAP_TMUX_PLUGIN_TIMEOUT" env TMUX_PLUGIN_MANAGER_PATH="$TMUX_PLUGIN_DIR" bash "$TPM_DIR/bin/install_plugins" > /dev/null 2>&1 ||
     warn "TPM plugin installation failed; open tmux and press Prefix + I after networking is available"
@@ -2897,9 +2892,9 @@ in `~/.config/zsh/local.zsh`, which the bootstrap never overwrites.
 ## Maintenance
 
 ```sh
-bash /path/to/wsl-setup.sh                         # install/update tools and regenerate configs
+bash /path/to/wsl-setup.sh                             # install/update tools and regenerate configs
 BOOTSTRAP_CONFIGURE_ONLY=1 bash /path/to/wsl-setup.sh  # regenerate without package/network updates
-wsl-shell-refresh                          # refresh cached init after a manual tool upgrade
+wsl-shell-refresh                                      # refresh cached init after a manual tool upgrade
 ```
 
 `~/.zshenv` supplies a quiet environment to `zsh -c` and `zsh -lc`.
@@ -2907,8 +2902,8 @@ wsl-shell-refresh                          # refresh cached init after a manual 
 paths to Bash login sessions.
 Interactive aliases and prompt hooks live only in `.zshrc`.
 The bootstrap uses native Zsh completion with a daily security audit, two
-focused plugins, and cached upstream initialization scripts. It does not
-install Oh My Zsh or run update checks when a shell starts.
+focused plugins, and cached upstream initialization scripts. Shell startup
+runs no update checks.
 
 Cargo/Rust use rustup, and standalone CLIs execute directly from native
 binaries. Mise manages Node LTS and switches runtime directories interactively.
@@ -2942,7 +2937,9 @@ does not install an engine. Git identity and service logins remain user choices.
 GUIDE
 
 # Syntax checks validate exactly the files generated by this run.
-bash -n "$HOME/.local/bin/toolhelp" "$HOME/.local/bin/wsl-shell-refresh"
+for generated_script in toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht; do
+  bash -n "$HOME/.local/bin/$generated_script"
+done
 zsh -n "$HOME/.zshrc"
 sh -n "$HOME/.config/shell/env.sh"
 echo "done — run toolhelp for the managed CLI reference"

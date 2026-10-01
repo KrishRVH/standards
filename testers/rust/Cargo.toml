@@ -24,8 +24,8 @@ toml = "=1.1.5"
 
 # The lint wall lives at workspace scope so growth cannot silently shed it:
 # every member crate (including this root package) opts in with
-# `[lints] workspace = true`; rust:policy rejects missing opt-ins. Profiles
-# are only honored in this root manifest.
+# `[lints] workspace = true`; tests/allow_policy.rs rejects missing opt-ins.
+# Profiles are only honored in this root manifest.
 [workspace]
 
 # Agent-optimized posture: every rule a machine can check is denied here. The

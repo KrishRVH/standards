@@ -283,5 +283,5 @@ def test_checker_failure_propagates_after_export_and_releases_the_lock(tmp_path:
 
     assert result.returncode == 1
     assert "No mutation floor" in result.stderr
-    assert (tmp_path / "command.log").read_text(encoding="utf-8") == ("run\nexport-cicd-stats\n")
+    assert (tmp_path / "command.log").read_text(encoding="utf-8") == "run\nexport-cicd-stats\n"
     assert not (tmp_path / ".mutmut-run.lock").exists()

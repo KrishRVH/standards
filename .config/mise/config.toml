@@ -6,8 +6,8 @@ config_roots = ["testers/*"]
 lockfile = false
 
 [settings]
-# Sized for the maintainer's 32-thread workstation, the only host where this
-# root gate runs end to end. Fixture tasks stay bounded below by their own
+# Sized for the maintainer's 32-thread workstation, where this root gate
+# routinely runs end to end. Fixture tasks stay bounded below by their own
 # tool concurrency settings (for example the TypeScript Stryker workers).
 jobs = 8
 lockfile = true

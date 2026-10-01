@@ -158,7 +158,7 @@ dismissal: its approver need not be the code owner. These host settings turn
 "loosening requires human countersign" from an instruction into a gate.
 
 Noisy systems-code lints stay relaxed by default: int-to-float precision
-casts, size/repetition style counts, the remainder of `clippy::restriction`
-and `clippy::cargo`, and nightly formatting rules remain project-specific
-choices, as do feature-matrix builds (`cargo-hack`) for cfg-gated fallback
-paths and `cargo-semver-checks` for published libraries.
+casts and size/repetition style counts. The remainder of `clippy::restriction`
+and `clippy::cargo`, nightly formatting rules, feature-matrix builds
+(`cargo-hack`) for cfg-gated fallback paths, and `cargo-semver-checks` for
+published libraries remain project-specific choices.

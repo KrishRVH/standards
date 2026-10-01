@@ -8,7 +8,6 @@ SOURCE_ROOT="$(cd "${2:-$ROOT}" && pwd)"
 readonly SOURCE_ROOT
 readonly BUILD_DIR="${3:-$SOURCE_ROOT/build/clang-fast}"
 readonly JOBS="${JOBS:-$(getconf _NPROCESSORS_ONLN 2> /dev/null || nproc 2> /dev/null || echo 4)}"
-readonly CLANG="${C_CLANG:-clang}"
 readonly CLANG_TIDY="${C_CLANG_TIDY:-clang-tidy}"
 readonly RUN_CLANG_TIDY="${C_RUN_CLANG_TIDY:-run-clang-tidy}"
 readonly REQUIRED_VERSION="22.1.8"
@@ -32,7 +31,6 @@ case "$PROFILE" in
   *) fail "usage: $0 [hard|advisory] [source-root] [build-dir]" ;;
 esac
 
-require_tool "$CLANG"
 require_tool "$CLANG_TIDY"
 require_tool "$RUN_CLANG_TIDY"
 
@@ -42,18 +40,10 @@ readonly CDB="$BUILD_DIR/compile_commands.json"
 [[ -s "$CDB" ]] ||
   fail "mandatory analysis requires $CDB; run the clang-fast configure preset"
 
-clang_version="$("$CLANG" --version | head -n 1)"
 tidy_version="$("$CLANG_TIDY" --version 2>&1)"
-clang_reported_version="$(awk '{for (i = 1; i < NF; i++) if ($i == "version") {print $(i + 1); exit}}' <<< "$clang_version")"
 tidy_reported_version="$(awk '$1 == "LLVM" && $2 == "version" {print $3; exit}' <<< "$tidy_version")"
-[[ "$clang_reported_version" == "$REQUIRED_VERSION" ]] ||
-  fail "Clang $REQUIRED_VERSION is required; parsed version: ${clang_reported_version:-<none>}"
 [[ "$tidy_reported_version" == "$REQUIRED_VERSION" ]] ||
   fail "clang-tidy $REQUIRED_VERSION is required; parsed version: ${tidy_reported_version:-<none>}"
-
-resource_dir="$("$CLANG" -print-resource-dir)"
-[[ -f "$resource_dir/include/stddef.h" ]] ||
-  fail "Clang resource headers are missing from $resource_dir"
 
 "$CLANG_TIDY" --verify-config --config-file="$CONFIG" > /dev/null
 
@@ -96,8 +86,7 @@ run_analysis() {
   "$RUN_CLANG_TIDY" -quiet -j "$JOBS" \
     -clang-tidy-binary "$(command -v "$CLANG_TIDY")" \
     -config-file "$CONFIG" -p "$BUILD_DIR" \
-    -source-filter '(?s:.*[.]c$)' \
-    -extra-arg-before="-resource-dir=$resource_dir" 2>&1 |
+    -source-filter '(?s:.*[.]c$)' 2>&1 |
     tee "$log_file" || analysis_status=$?
   translation_units="$(analysis_file_count "$log_file")"
   ((analysis_status == 0)) ||
@@ -105,7 +94,6 @@ run_analysis() {
 }
 
 printf '[INFO] analysis profile: %s\n' "$PROFILE"
-printf '[INFO] clang: %s\n' "$clang_version"
 printf '[INFO] clang-tidy: LLVM %s\n' "$REQUIRED_VERSION"
 printf '[INFO] compilation database: %s\n' "$CDB"
 

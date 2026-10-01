@@ -53,9 +53,10 @@ them.
 
 WSL uses native zsh completion and repeats its security audit when the cached
 dump is at least 24 hours old. Setup generates cached initialization scripts
-for mise, zoxide, fzf, Atuin, and Starship. Run `wsl-shell-refresh` after manually
-upgrading an integrated tool, then open a new terminal. The refresh command
-validates and replaces those scripts and invalidates the completion dump.
+for mise, zoxide, fzf, Atuin, and Starship. Run `wsl-shell-refresh` after
+manually upgrading an integrated tool, then open a new terminal. The refresh
+command validates and replaces those scripts and invalidates the completion
+dump.
 
 Select tools for identifiable work: repository discovery, code search,
 structural edits, diffs, verification, or session management. A new framework,
@@ -72,10 +73,10 @@ reload, retained paths with spaces, and default or customized mise data paths.
 They also exercise the shared environment in POSIX sh, Bash, and zsh, including
 project tool precedence, preserved Java settings, empty PATH entries, and
 idempotent startup loaders. WSL cases cover Windows PATH trimming and opt-in
-retention, cached integrations, and one `.zshenv` loader. They check single
-completion initialization, disabled startup updates,
-and distinct tmux sessions for repositories with the same basename. They do
-not execute either machine installer.
+retention, cached integrations, one `.zshenv` loader, and syntax checks for
+every generated script. They check single completion initialization and
+distinct tmux sessions for repositories with the same basename. They do not
+execute either machine installer.
 
 The session picker searches two directory levels under common development
 roots. Set `TMUX_SESSIONIZER_ROOTS` to a colon-separated list of roots when

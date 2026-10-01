@@ -76,7 +76,7 @@ if [ -n "$min" ]; then
   fi
   actual="$(go tool cover -func=coverage/go.out | awk '/^total:/ { sub(/%/, "", $3); print $3 }')"
   awk -v actual="$actual" -v min="$min" 'BEGIN { exit(actual + 0 >= min + 0 ? 0 : 1) }' || {
-    echo "coverage ${actual}% is below required ${min}%"
+    echo "coverage ${actual}% is below required ${min}%" >&2
     exit 1
   }
 fi

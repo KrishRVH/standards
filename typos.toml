@@ -26,7 +26,6 @@ extend-exclude = [
   "deps",
   "dist",
   "dist-newstyle",
-  "Mise/conf.d/20-spark.toml",
   "node_modules",
   "out",
   "PHP/composer.json",
@@ -34,9 +33,7 @@ extend-exclude = [
   "target",
   "testers/*/dagger/src/index.ts",
   "testers/php/composer.json",
-  "testers/spark/.config/mise/conf.d/20-spark.toml",
   "vendor",
-  "zig-cache",
   "zig-out",
   "zig-pkg",
 ]

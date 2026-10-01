@@ -31,5 +31,5 @@ checks. zsh receives syntax checking only, so test its behavior explicitly.
 
 Test meaningful behavior through Bats: arguments containing spaces or option
 prefixes, exit status, stderr, failure cleanup, and repeated execution when
-applicable. A bug fix needs a regression that fails on the old behavior.
+applicable. A bug fix needs a regression test that fails without the fix.
 Review destructive commands and discovery changes independently.

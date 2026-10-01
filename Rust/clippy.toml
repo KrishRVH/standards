@@ -12,7 +12,7 @@ allow-unwrap-in-tests = true
 # pure function of (state, event); cross-thread data moves over channels to
 # the owning thread. Escape per site with
 # `#[expect(clippy::disallowed_types, reason = "...")]` where the reason
-# names the value being shared and why it cannot live on the root struct or
+# names the value being shared and why it cannot live on the root model or
 # arrive as an event.
 disallowed-types = [
     { path = "std::sync::Mutex", reason = "send the event to the state's owning thread over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },

@@ -74,8 +74,7 @@ int main() {
 CPP
 
   cmake -S "$consumer" -B "$consumer/build" -G Ninja \
-    -DCMAKE_PREFIX_PATH="$install_prefix" \
-    -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+    -DCMAKE_PREFIX_PATH="$install_prefix"
   cmake --build "$consumer/build" --parallel "$JOBS"
   "$consumer/build/consumer"
 }

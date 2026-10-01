@@ -46,9 +46,10 @@ experiment is why Roc belongs in this catalog before 0.1.
 ## Baseline
 
 Copy `main.roc`, `Project.roc`, `scripts/format.sh`, and
-`Mise/conf.d/20-roc.toml` into a Roc project. Replace `Project` in the module name, filename, and package exposure
-with the real package name. Keep `main.roc` as the package root, or update the
-explicit task paths when the project chooses another root.
+`Mise/conf.d/20-roc.toml` into a Roc project. Replace `Project` in the module
+name, filename, and package exposure with the real package name. Keep
+`main.roc` as the package root, or update the explicit task paths when the
+project chooses another root.
 
 The fixture stops at a package boundary and chooses no platform. An executable
 must deliberately select and review the platform that defines its capabilities;
@@ -70,9 +71,8 @@ the source of truth for that operational detail. Formatting, static checks,
 and top-level `expect` tests use the compiler directly, without adding a
 package manager, test framework, or invented ecosystem policy.
 
-This profile is provisional. Prefer current official documentation to
-compatibility with old Roc experiments, and revise the template as stable
-conventions emerge instead of preserving pre-0.1 history.
+Follow the current official documentation, and revise this template as stable
+conventions emerge.
 
 ## Not Included
 
