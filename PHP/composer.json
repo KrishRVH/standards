@@ -57,7 +57,7 @@
     "phpcbf": "phpcbf",
     "phpcs": "phpcs",
     "phpmd": "php -d error_reporting='E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED' vendor/bin/phpmd src text phpmd.xml",
-    "phpstan": "php -d disable_functions=proc_open vendor/bin/phpstan analyse --memory-limit=512M",
+    "phpstan": "phpstan analyse --memory-limit=512M",
     "rector": "rector process",
     "rector:check": "rector process --dry-run",
     "standards": [
