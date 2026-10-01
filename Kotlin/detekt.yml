@@ -47,13 +47,13 @@ potential-bugs:
     active: true
 
 style:
+  # Named constants for every status code, timeout, and size add ceremony
+  # without catching defects; the C++ profile disables its equivalents too.
   MagicNumber:
     active: false
   MaxLineLength:
     active: true
     maxLineLength: 100
-  RedundantVisibilityModifier:
-    active: false
   ReturnCount:
     active: true
     max: 3
