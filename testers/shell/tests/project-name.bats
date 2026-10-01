@@ -55,6 +55,27 @@ setup() {
   [[ "${output}" == *"scripts/deploy: project glue scripts need a recognized shell shebang."* ]]
 }
 
+@test "requires a reason after each ShellCheck suppression" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/suppression-reason"
+  mkdir -p "${workspace}/scripts"
+  cat > "${workspace}/scripts/explained.sh" << 'SCRIPT'
+#!/usr/bin/env bash
+# shellcheck disable=SC2034 # Sourced callers read it.
+export_name=1
+# shellcheck disable=SC2016 # `$1` expands in the child shell.
+bash -c 'echo "$1"' -- child
+SCRIPT
+  printf '#!/usr/bin/env bash\n  # shellcheck disable=SC2034\nunused=1\n' > "${workspace}/scripts/bare.sh"
+
+  run bash -c 'cd "$1" && "$2" policy' -- \
+    "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -ne 0 ]]
+  [[ "${output}" == *"scripts/bare.sh:2: add a reason after the ShellCheck suppression"* ]]
+  [[ "${output}" != *"explained.sh"* ]]
+}
+
 @test "checks root filenames beginning with a dash as paths" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/leading-dash"

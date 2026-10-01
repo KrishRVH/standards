@@ -195,10 +195,9 @@ and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
 `.mjs` files under `src/` fail lint instead of silently escaping typechecking.
 The directive scanner still covers all eight JavaScript-like suffixes so
 tooling and configuration files cannot bypass the exception protocol.
-The audit gate also covers development dependencies, so `package.json` pins
-patched releases of vulnerable transitive packages: `brace-expansion` under
-`minimatch`, `fast-uri` under `ajv` (ESLint and Stryker), and `qs` under
-Stryker's `typed-rest-client`. The runner-scoped `smol-toml` override fixes
+The audit gate also covers development dependencies, so `package.json` pins a
+patched release of `qs`, which Stryker's `typed-rest-client` otherwise pins to
+a vulnerable version. The runner-scoped `smol-toml` override fixes
 [GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2)
 until the runner updates its pinned dependency. Remove an override once no
 dependency resolves a vulnerable version without it. The countersigned escape
@@ -206,7 +205,9 @@ for an advisory with no fixed release is a `--ignore <advisory-id>` flag added
 to the `audit` script, removed once the fix ships.
 
 `ts:knip` fails on unused declared dependencies, unused files, and unused
-exports from both entry and non-entry modules. The directive checker uses the existing TypeScript
+exports from both entry and non-entry modules. It ignores exports used inside
+their own module (`ignoreExportsUsedInFile`), which contract schemas and
+projection types rely on. The directive checker uses the existing TypeScript
 ESLint parser to identify comments outside the linter, including after template
 interpolation and inside JSX expressions. A lint directive cannot disable the
 exception protocol itself.
@@ -218,7 +219,7 @@ belong to the preflight gate, and a unit test must import source itself to
 count toward the score. Its `break`
 threshold is a coarse regression alarm pinned at the measured floor, not a
 per-mutant guarantee — survivors in changed code are dispositioned in
-review. Both mutation tasks pass `stryker.config.mjs` explicitly and acquire
+review. Both mutation tasks run `stryker.config.mjs` and acquire
 the project-scoped `reports/.stryker-mutation.lock` before replacing the
 machine report. The lock is held while Stryker and the report checker access
 the shared report and incremental state; a second run fails immediately

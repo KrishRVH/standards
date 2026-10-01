@@ -15,17 +15,19 @@ test('application work survives component navigation and is interrupted on appli
         const interrupted = yield* Ref.make(false);
         const tasks = yield* makeApplicationTaskService(() => Effect.void);
 
-        yield* tasks.start(
-          Deferred.succeed(started, undefined).pipe(
-            Effect.andThen(Effect.never),
-            Effect.onInterrupt(() => Ref.set(interrupted, true)),
-          ),
+        // A component/request scope starts the task and ends while the
+        // application task owner remains alive; the task must keep running.
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            yield* tasks.start(
+              Deferred.succeed(started, undefined).pipe(
+                Effect.andThen(Effect.never),
+                Effect.onInterrupt(() => Ref.set(interrupted, true)),
+              ),
+            );
+            yield* Deferred.await(started);
+          }),
         );
-        yield* Deferred.await(started);
-
-        // A component/request scope may end while the application task owner
-        // remains alive. Closing this nested scope must not stop the task.
-        yield* Effect.scoped(Effect.void);
 
         return {
           interrupted,

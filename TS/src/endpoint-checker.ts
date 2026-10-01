@@ -61,8 +61,8 @@ export function makeEndpointProbe(fetcher: FetchLike): EndpointProbeService {
             redirect: 'manual',
             signal,
           }),
-        // Never retain or project the native error. Bun redirect:error can
-        // include the original query string, and provider errors are untrusted.
+        // Never retain or project the native error: transport and provider
+        // errors are untrusted and can embed the request URL.
         catch: () => new ProbeTransportError({ targetId: target.id }),
       }).pipe(Effect.flatMap((response) => classifyResponse(target, response))),
     ),

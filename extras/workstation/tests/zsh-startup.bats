@@ -216,6 +216,57 @@ SHIM
   [[ "$(stat -c '%a' "$fixture/.zshenv" 2> /dev/null || stat -f '%Lp' "$fixture/.zshenv")" == 600 ]]
 }
 
+@test "WSL completion audit runs on first start and again after 24 hours" {
+  local fixture="$BATS_TEST_TMPDIR/completion-audit"
+  mkdir -p "$fixture"
+  awk '
+    /^autoload -Uz compinit$/ { body = 1; next }
+    body { print }
+    body && /^fi$/ { exit }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/completion.zsh"
+  [[ -s "$fixture/completion.zsh" ]]
+  # A stub records each mode; like compinit -i, it leaves an existing dump alone.
+  # shellcheck disable=SC2016 # Parameters belong to the isolated zsh.
+  run zsh -f -c '
+    zmodload zsh/datetime
+    compinit() { print -r -- "$1"; [[ -e $3 ]] || : >| "$3"; }
+    _zsh_cache=$1
+    source "$1/completion.zsh"
+    source "$1/completion.zsh"
+    touch -t "$(strftime %Y%m%d%H%M $((EPOCHSECONDS - 90000)))" "$1/zcompdump"
+    source "$1/completion.zsh"
+    source "$1/completion.zsh"
+  ' -- "$fixture"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == $'-i\n-C\n-i\n-C' ]]
+}
+
+@test "WSL setup removes only its own ~/.tmux.conf shim" {
+  local fixture="$BATS_TEST_TMPDIR/tmux-shim"
+  mkdir -p "$fixture/managed" "$fixture/edited"
+  awk '
+    /^tmux_shim=/ { body = 1 }
+    body { print }
+    body && /^fi$/ { exit }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/cleanup.sh"
+  [[ -s "$fixture/cleanup.sh" ]]
+  printf '%s\n' '# >>> wsl-bootstrap managed ~/.tmux.conf >>>' 'source-file ~/.config/tmux/tmux.conf' \
+    '# <<< wsl-bootstrap managed ~/.tmux.conf <<<' > "$fixture/managed/.tmux.conf"
+  {
+    cat "$fixture/managed/.tmux.conf"
+    printf '%s\n' 'set -g mouse on'
+  } > "$fixture/edited/.tmux.conf"
+
+  # shellcheck disable=SC2016 # The child Bash expands its own parameters.
+  run bash -c 'warn() { printf "warn: %s\n" "$*"; }; for HOME in "$1/managed" "$1/edited"; do source "$1/cleanup.sh"; done' \
+    -- "$fixture"
+
+  [[ "$status" -eq 0 ]]
+  [[ ! -e "$fixture/managed/.tmux.conf" ]]
+  [[ -e "$fixture/edited/.tmux.conf" ]]
+  [[ "$output" == *"remove the wsl-bootstrap block from ~/.tmux.conf"* ]]
+}
+
 @test "WSL setup syntax-checks every generated startup file and helper" {
   local fixture="$BATS_TEST_TMPDIR/syntax" broken file
   mkdir -p "$fixture/.local/bin" "$fixture/.config/shell"

@@ -7,6 +7,7 @@ Copy `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`,
 ```text
 .config/mise/config.toml
 .config/mise/conf.d/20-csharp.toml
+.config/mise/tasks/hygiene
 ```
 
 Merge `AGENTS.md` into the repository's agent guide. Applications should also

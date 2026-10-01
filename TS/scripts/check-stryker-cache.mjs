@@ -4,7 +4,8 @@ import { argv, stdout } from 'node:process';
 
 import { validateStrykerReport } from './stryker-report-contract.mjs';
 
-const cachePath = argv[2] ?? 'reports/stryker-incremental.json';
+const cachePath = argv[2];
+assert.ok(cachePath, 'Usage: check-stryker-cache.mjs <cache-path>');
 const cache = JSON.parse(await readFile(cachePath, 'utf8'));
 
 validateStrykerReport(cache, 'Stryker incremental state');

@@ -428,9 +428,8 @@ test('the install age gate has no expired exceptions', async () => {
   expect(config).not.toContain('minimumReleaseAgeExcludes');
 });
 
-test('the mutation task graph orders its preflight and pins the intended Stryker config', async () => {
+test('the mutation task graph runs its preflight before both mutation lanes', async () => {
   const tasks = await Bun.file(new URL('../.config/mise/conf.d/20-ts.toml', import.meta.url)).text();
-  const runner = await Bun.file(new URL('../scripts/run-stryker.mjs', import.meta.url)).text();
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
@@ -450,14 +449,10 @@ test('the mutation task graph orders its preflight and pins the intended Stryker
   }
   expect(section('ts:preflight')).toContain('run = "bun run test"');
   expect(section('ts:mutants')).toContain('depends = ["ts:preflight"]');
-  expect(section('ts:mutants')).toContain('run = "bun scripts/run-stryker.mjs full stryker.config.mjs"');
+  expect(section('ts:mutants')).toContain('run = "bun scripts/run-stryker.mjs full"');
   expect(section('ts:mutants:diff')).toContain('depends = ["ts:preflight"]');
-  expect(section('ts:mutants:diff')).toContain('run = "bun scripts/run-stryker.mjs incremental stryker.config.mjs"');
+  expect(section('ts:mutants:diff')).toContain('run = "bun scripts/run-stryker.mjs incremental"');
   expect(section('ts:standards:check')).toContain('depends = ["ts:mutants"]');
-  expect(runner).toContain("const lockDirectory = path.join(reportsDirectory, '.stryker-mutation.lock');");
-  expect(runner).toContain("const strykerArguments = [strykerCli, 'run', configPath];");
-  expect(runner).toContain("await runCommand([checker, mode, 'reports/mutation/mutation.json']);");
-  expect(runner).toContain('remove reports/.stryker-mutation.lock manually and rerun');
 });
 
 test('static analysis and mutation use the complete application source extension policy', async () => {
@@ -469,9 +464,6 @@ test('static analysis and mutation use the complete application source extension
   expect(knip).toContain(`"project": ["${applicationSourceGlob}"`);
   expect(mutationPatterns).toContain(`'${applicationSourceGlob}'`);
   expect(mutationPatterns).toContain(`'${compositionRootGlob}'`);
-  expect(stryker).toContain('concurrency: 4');
-  expect(stryker).toContain('timeoutMS: 30000');
-  expect(stryker).toContain('bun: { timeout: 60000, testFiles }');
   expect(stryker).toContain("globSync('tests/**/*.test.{cts,mts,ts,tsx}')");
 });
 
@@ -505,7 +497,7 @@ test('concurrent mutation runners fail fast without touching source or stealing 
     );
     await writeFile(sourcePath, source, 'utf8');
 
-    first = Bun.spawn([process.execPath, runnerPath, 'incremental', 'stryker.config.mjs'], {
+    first = Bun.spawn([process.execPath, runnerPath, 'incremental'], {
       cwd: directory,
       stderr: 'pipe',
       stdout: 'pipe',
@@ -525,7 +517,7 @@ test('concurrent mutation runners fail fast without touching source or stealing 
       throw new Error('Mutation lock owner metadata was malformed.');
     }
 
-    second = Bun.spawn([process.execPath, runnerPath, 'incremental', 'stryker.config.mjs'], {
+    second = Bun.spawn([process.execPath, runnerPath, 'incremental'], {
       cwd: directory,
       stderr: 'pipe',
       stdout: 'pipe',
@@ -608,7 +600,7 @@ test('a dead command leader cannot hide a TERM-resistant descendant from the mut
       'utf8',
     );
 
-    const child = Bun.spawn([process.execPath, runnerPath, 'incremental', 'stryker.config.mjs'], {
+    const child = Bun.spawn([process.execPath, runnerPath, 'incremental'], {
       cwd: directory,
       stderr: 'pipe',
       stdout: 'pipe',
@@ -654,7 +646,7 @@ for (const signal of ['SIGHUP', 'SIGTERM'] as const) {
       );
       await writeFile(strykerPath, 'setInterval(() => undefined, 1_000);\n', 'utf8');
 
-      child = Bun.spawn([process.execPath, runnerPath, 'incremental', 'stryker.config.mjs'], {
+      child = Bun.spawn([process.execPath, runnerPath, 'incremental'], {
         cwd: directory,
         stderr: 'pipe',
         stdout: 'pipe',

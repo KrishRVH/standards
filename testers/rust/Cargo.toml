@@ -28,8 +28,8 @@ toml = "=1.1.6"
 # Profiles are only honored in this root manifest.
 [workspace]
 
-# Agent-optimized posture: every rule a machine can check is denied here. The
-# only sanctioned escape is a per-site `#[expect(lint, reason = "...")]`;
+# Agent-optimized posture: the lint groups below are denied, and the only
+# sanctioned escape is a per-site `#[expect(lint, reason = "...")]`;
 # `#[allow]` is banned below.
 [workspace.lints.rust]
 future_incompatible = { level = "deny", priority = -1 }
@@ -49,10 +49,8 @@ all = { level = "deny", priority = -1 }
 # the gate; nursery is marked `warn` anyway to document lower trust, and its
 # known false-positive offenders are allowed out explicitly below.
 all = { level = "deny", priority = -1 }
-correctness = { level = "deny", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
-suspicious = { level = "deny", priority = -1 }
 
 # Exceptions are visible and self-expiring or they do not exist: no bare
 # `#[allow]`, ever. `#[expect]` fails the build once the lint stops firing,
@@ -84,9 +82,6 @@ unused_result_ok = "deny"
 # Dependency hygiene.
 wildcard_dependencies = "deny"
 
-# Deep nesting is context-hostile; the threshold lives in clippy.toml.
-excessive_nesting = "deny"
-
 # Lossy casts (truncation, wrap, sign loss) are denied by pedantic above:
 # conversions go through From/TryFrom or checked methods. These two remain
 # allowed: int-to-float precision loss is usually intended, and widening `as`
@@ -99,12 +94,10 @@ cast_precision_loss = "allow"
 # invariant, so the lint loses.
 redundant_pub_crate = "allow"
 
-# Deliberately relaxed style lints: size and repetition counts are poor
-# proxies for wrongness and generate churn instead of findings.
-cognitive_complexity = "allow"
+# Deliberately relaxed lints: these style and size heuristics are poor proxies
+# for wrongness and generate churn instead of findings.
 enum_variant_names = "allow"
 missing_const_for_fn = "allow"
-module_name_repetitions = "allow"
 needless_pass_by_value = "allow"
 only_used_in_recursion = "allow"
 option_if_let_else = "allow"

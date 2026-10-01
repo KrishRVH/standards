@@ -6,6 +6,7 @@ and use it with the shared mise template:
 ```text
 .config/mise/config.toml
 .config/mise/conf.d/20-kotlin.toml
+.config/mise/tasks/hygiene
 ```
 
 Replace `project-name` and the `example.project` group with the project's real
@@ -20,10 +21,8 @@ Kotlin 2.4 and Detekt 2. `kotlin:lint` runs typed `detektMain` and
 graphs in one `gradle --no-daemon` build, so Gradle configures the project once
 and leaves no daemon behind.
 
-Detekt is pinned to `2.0.0-alpha.6` because that release is the Detekt line
-tested against JDK 25, Kotlin 2.4, and Gradle 9.7. Gradle stays on 9.7 because
-the Detekt plugin calls `Configuration.setVisible`, which Gradle 9.8 deprecates,
-and `--warning-mode=fail` rejects that deprecation.
+Detekt is pinned to a 2.0 alpha because that line is tested against JDK 25 and
+Kotlin 2.4. The Kotlin task fragment records why Gradle stays below 9.8.
 
 Generate and commit `gradle.lockfile` and
 `gradle/verification-metadata.xml` after copying; `kotlin:standards:check`

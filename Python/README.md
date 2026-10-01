@@ -25,6 +25,7 @@ Use this with the shared mise template:
 ```text
 .config/mise/config.toml
 .config/mise/conf.d/20-python.toml
+.config/mise/tasks/hygiene
 ```
 
 Day-to-day commands should go through mise:

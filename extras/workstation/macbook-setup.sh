@@ -284,7 +284,6 @@ ensure_homebrew() {
   fi
 
   shellenv="$("$brew_cmd" shellenv 2> /dev/null)" || return 1
-  # shellcheck disable=SC1090
   eval "$shellenv" || return 1
   HOMEBREW_PREFIX="$("$brew_cmd" --prefix 2> /dev/null)" || return 1
   export HOMEBREW_PREFIX
@@ -569,6 +568,54 @@ put_managed_block() {
   return "$rc"
 }
 
+remove_managed_block() {
+  local path begin end out existing_mode rc
+  path="$1"
+  begin="$2"
+  end="$3"
+
+  [ -e "$path" ] || [ -L "$path" ] || return 0
+  if [ -L "$path" ] || [ ! -f "$path" ]; then
+    warn "refusing to edit non-regular file: $path"
+    return 1
+  fi
+  grep -qF -- "$begin" "$path" || return 0
+  if ! grep -qF -- "$end" "$path"; then
+    warn "$path contains begin marker but not end marker"
+    return 1
+  fi
+
+  existing_mode="$(read_file_mode "$path")" || {
+    warn "could not read permissions for $path"
+    return 1
+  }
+  out="$(mktemp_file)" || return 1
+  register_tmp "$out"
+
+  # Drop the block and the trailing blank lines put_managed_block separated it with.
+  awk -v begin="$begin" -v end="$end" '
+    index($0, begin) { inside = 1; next }
+    inside && index($0, end) { inside = 0; next }
+    !inside { lines[++count] = $0 }
+    END {
+      while (count > 0 && lines[count] == "") count--
+      for (i = 1; i <= count; i++) print lines[i]
+    }
+  ' "$path" > "$out" || {
+    rm -f "$out"
+    return 1
+  }
+
+  if [ ! -s "$out" ]; then
+    rm -f "$out" "$path"
+    return
+  fi
+  atomic_install_file "$out" "$path" "$existing_mode"
+  rc=$?
+  rm -f "$out"
+  return "$rc"
+}
+
 normalize_git_url() {
   local url
   url="$1"
@@ -645,11 +692,6 @@ install_or_update_rustup() {
     retry curl -fsSL "$url" -o "$installer" || return 1
     chmod 0755 "$installer" || return 1
     "$installer" -y --profile minimal --default-toolchain stable --no-modify-path || return 1
-  fi
-
-  if [ -f "$CARGO_HOME/env" ]; then
-    # shellcheck disable=SC1090,SC1091
-    . "$CARGO_HOME/env" || return 1
   fi
 
   has cargo || return 1
@@ -961,12 +1003,14 @@ ZSHLOADER
 }
 
 write_tmux_config() {
-  local tmux_conf_marker tmux_loader_begin tmux_loader_end
+  local tmux_conf_marker
   tmux_conf_marker="# >>> macbook-bootstrap managed tmux.conf >>>"
-  tmux_loader_begin="# >>> macbook-bootstrap managed tmux loader >>>"
-  tmux_loader_end="# <<< macbook-bootstrap managed tmux loader <<<"
 
   mkdir -p "$HOME/.config/tmux" || return 1
+  # tmux reads the XDG config itself; a ~/.tmux.conf loader would load it twice.
+  remove_managed_block "$HOME/.tmux.conf" \
+    "# >>> macbook-bootstrap managed tmux loader >>>" \
+    "# <<< macbook-bootstrap managed tmux loader <<<" || return 1
 
   write_managed_file "$HOME/.config/tmux/tmux.conf" "$tmux_conf_marker" 0644 << 'TMUXCONF' || return 1
 # >>> macbook-bootstrap managed tmux.conf >>>
@@ -992,7 +1036,7 @@ if-shell 'infocmp -x tmux-256color >/dev/null 2>&1' \
 set -as terminal-features ',xterm-ghostty:RGB,xterm*:RGB,tmux-256color:RGB,screen-256color:RGB'
 
 # Clipboard. pbcopy is native on macOS; OSC 52/set-clipboard helps in modern
-# terminals such as Ghostty, while the explicit copy-pipe binding is reliable.
+# terminals such as Ghostty.
 set -g set-clipboard on
 
 # General
@@ -1031,7 +1075,7 @@ bind-key C display-popup -E -w 80% -h 70% "~/.local/bin/tmux-cht"
 # Copy mode.
 bind-key -T copy-mode-vi v send-keys -X begin-selection
 bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
-bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
+# tmux-yank owns the y binding.
 
 # Tokyo Night theme.
 set -g @tokyo-night-tmux_theme 'storm'
@@ -1053,12 +1097,6 @@ run '~/.tmux/plugins/tpm/tpm'
 
 # <<< macbook-bootstrap managed tmux.conf <<<
 TMUXCONF
-
-  put_managed_block "$HOME/.tmux.conf" "$tmux_loader_begin" "$tmux_loader_end" 0644 << 'TMUXLOADER'
-# >>> macbook-bootstrap managed tmux loader >>>
-source-file ~/.config/tmux/tmux.conf
-# <<< macbook-bootstrap managed tmux loader <<<
-TMUXLOADER
 }
 
 write_tmux_helpers() {

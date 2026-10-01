@@ -74,12 +74,6 @@ mise.*.local.lock
 /config/*_config.ads
 /config/*_config.gpr
 /config/*_config.h
-/testers/**/alire/build_hash_inputs
-/testers/**/alire/flags/
-/testers/**/alire/settings.toml
-/testers/**/config/*_config.ads
-/testers/**/config/*_config.gpr
-/testers/**/config/*_config.h
 
 # C / CMake generated output
 /CMakeCache.txt
@@ -110,14 +104,6 @@ mise.*.local.lock
 *.profraw
 *.so
 *.dSYM/
-/testers/**/CMakeCache.txt
-/testers/**/CMakeFiles/
-/testers/**/CMakeUserPresets.json
-/testers/**/CTestTestfile.cmake
-/testers/**/DartConfiguration.tcl
-/testers/**/Testing/
-/testers/**/cmake_install.cmake
-/testers/**/compile_commands.json
 
 # C# / .NET generated output
 /.vs/
@@ -153,9 +139,6 @@ rebar3.crashdump
 *.ez
 *.plt
 *.plt.hash
-/testers/**/_build/
-/testers/**/deps/
-/testers/**/.elixir_ls/
 
 # Fortran generated output
 *.mod
@@ -229,8 +212,6 @@ replay_pid*
 .lua_modules/
 *.luac
 luac.out
-/testers/**/.lua-language-server/
-/testers/**/.lua_modules/
 
 # PHP generated output
 /.phpstan.cache/
@@ -239,11 +220,6 @@ luac.out
 /composer.phar
 /var/cache/
 /var/log/
-/testers/**/.phpstan.cache/
-/testers/**/.phpunit.cache/
-/testers/**/.phpunit.result.cache
-/testers/**/var/cache/
-/testers/**/var/log/
 
 # Python generated output
 .basedpyright/

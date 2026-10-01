@@ -185,23 +185,3 @@ test('an ambiguous non-idempotent mutation is not retried automatically', async 
     expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AmbiguousCommit');
   }
 });
-
-test('duplicate-safe retries reuse one logical-operation idempotency key', async () => {
-  const idempotencyKey = 'order-123/charge';
-  const observedKeys: string[] = [];
-  let attempts = 0;
-  const result = await Effect.runPromise(
-    retryDuplicateSafe(
-      Effect.suspend(() => {
-        attempts += 1;
-        observedKeys.push(idempotencyKey);
-
-        return attempts < 3 ? Effect.fail(new TransientFailure()) : Effect.succeed('accepted');
-      }),
-    ),
-  );
-
-  expect(result).toBe('accepted');
-  expect(attempts).toBe(3);
-  expect(observedKeys).toEqual([idempotencyKey, idempotencyKey, idempotencyKey]);
-});

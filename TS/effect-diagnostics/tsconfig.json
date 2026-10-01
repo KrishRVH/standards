@@ -5,6 +5,5 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["fixtures/**/*.ts", "../types/**/*"],
-  "exclude": []
+  "include": ["fixtures/**/*.ts", "../types/**/*"]
 }

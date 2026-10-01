@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     kotlin("jvm") version "2.4.20"
     id("dev.detekt") version "2.0.0-alpha.6"
@@ -24,7 +22,6 @@ dependencies {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_25)
         allWarningsAsErrors.set(true)
         freeCompilerArgs.add("-Xjsr305=strict")
     }
@@ -42,15 +39,10 @@ detekt {
 }
 
 tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
-    jvmTarget.set("25")
     reports {
         checkstyle.required.set(true)
         html.required.set(false)
         markdown.required.set(false)
         sarif.required.set(false)
     }
-}
-
-tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
-    jvmTarget.set("25")
 }

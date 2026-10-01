@@ -9,9 +9,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { URL, fileURLToPath } from 'node:url';
 
 const mode = argv[2];
-const configPath = argv[3];
-if ((mode !== 'full' && mode !== 'incremental') || configPath !== 'stryker.config.mjs') {
-  throw new Error('Usage: run-stryker.mjs <full|incremental> stryker.config.mjs');
+const configPath = 'stryker.config.mjs';
+if ((mode !== 'full' && mode !== 'incremental') || argv.length !== 3) {
+  throw new Error('Usage: run-stryker.mjs <full|incremental>');
 }
 if (process.platform === 'win32') {
   throw new Error('run-stryker.mjs requires POSIX process-group signaling and does not support Windows.');

@@ -77,5 +77,4 @@ project-specific reason.
 Static analysis cannot prove DI lifetimes, middleware order, EF translation,
 authorization semantics, transactions, or external-system compatibility. Keep
 unit tests for isolated decisions, then add a small number of integration tests
-at those boundaries. A Web entry point intended for real-host tests should
-expose a public `partial Program` type.
+at those boundaries.

@@ -7,7 +7,5 @@
   "ignoreDependencies": ["@stryker-mutator/bun-runner"],
   // Contract exports (schemas, projection types) are used in-file by design.
   "ignoreExportsUsedInFile": true,
-  // tsconfig `types: ["bun-types"]` resolves through @types/bun.
-  "ignoreUnresolved": ["bun-types"],
   "includeEntryExports": true,
 }

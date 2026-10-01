@@ -316,7 +316,7 @@ test('a block-scalar checkout input cannot impersonate credential hardening', as
 
 test('the catalog workflow rejects floating external action tags', async () => {
   const workflow = await catalogWorkflow();
-  const withFloatingMiseAction = workflow.replace(/jdx\/mise-action@[0-9a-f]{40}/u, 'jdx/mise-action@v4');
+  const withFloatingMiseAction = workflow.replace(/jdx\/mise-action@[0-9a-f]{40}/u, 'jdx/mise-action@v5');
 
   expect(rootQualityWorkflowViolations(withFloatingMiseAction)).toContain(externalActionPinViolation);
 });

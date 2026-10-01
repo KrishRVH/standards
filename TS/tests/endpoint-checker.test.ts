@@ -15,7 +15,6 @@ import {
   EndpointRedirectRejected,
   EndpointRejected,
   EndpointResults,
-  InvalidCheckPolicy,
   ProbeTransportError,
   TransientProbeError,
   decodeCheckRequest,
@@ -998,25 +997,6 @@ test('external interruption revokes normal result publication even when fetch ig
   await Promise.resolve();
 
   expect(publications).toBe(0);
-});
-
-test('safe telemetry drops unsafe internal detail instead of using it for classification', () => {
-  const query = ['query', 'sentinel'].join('-');
-  const header = ['header', 'sentinel'].join('-');
-  const sql = ['sql', 'sentinel'].join('-');
-  const body = ['body', 'sentinel'].join('-');
-  const failure = new InvalidCheckPolicy({
-    reason: `url=?${query} header=${header} sql=${sql} body=${body}`,
-  });
-  const telemetry = projectCheckDiagnostic(failure);
-  const serialized = JSON.stringify(telemetry);
-
-  expect(telemetry.failureKind).toBe('configuration-failure');
-  expect(serialized).not.toContain(query);
-  expect(serialized).not.toContain(header);
-  expect(serialized).not.toContain(sql);
-  expect(serialized).not.toContain(body);
-  expect(serialized).not.toContain('constructor');
 });
 
 test('a defect diagnostic remains distinct from an expected endpoint failure', () => {

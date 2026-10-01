@@ -264,7 +264,7 @@ run_syntax() {
 
 run_policy() {
   local status=0
-  local file
+  local file finding
 
   while IFS= read -r -d '' file; do
     is_glue_script "${file}" || continue
@@ -274,6 +274,16 @@ run_policy() {
       status=1
     fi
   done < <(policy_files)
+
+  # A suppression names the invariant that makes the warning safe to ignore.
+  while IFS= read -r -d '' file; do
+    while IFS= read -r finding; do
+      echo "${file#./}:${finding%%:*}: add a reason after the ShellCheck suppression:" \
+        "# shellcheck disable=SC1234 # reason" >&2
+      status=1
+    done < <(grep -nE '^[[:space:]]*#[[:space:]]*shellcheck[[:space:]].*disable=' -- "${file}" |
+      grep -vE 'disable=[^#]*#[[:space:]]*[^[:space:]]' || :)
+  done < <(shell_files)
 
   return "${status}"
 }
@@ -296,7 +306,7 @@ run_tests() {
     return 0
   fi
 
-  bats "${files[@]}"
+  bats --print-output-on-failure "${files[@]}"
 }
 
 case "${SUBCOMMAND}" in

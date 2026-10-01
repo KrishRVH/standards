@@ -51,5 +51,8 @@ mise run md:standards:check:deep
   metadata after the language, such as `ts title="example.ts" {1}`.
 - The normal link check is offline. Run the deep task for external citations,
   preferably on a schedule or manually.
+- Inline `markdownlint` comments are disabled. Record an exception as a narrow
+  `overrides` entry in `.markdownlint-cli2.jsonc` with a comment giving its
+  reason.
 - `typos` is check-only by default. Add project words in `typos.toml` when a
   domain term is intentional.

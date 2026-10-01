@@ -178,14 +178,11 @@ pytest_add_cli_args_test_selection = ["tests/"]
 pytest_add_cli_args = ["--no-cov"]
 
 [tool.deptry]
-extend_exclude = [".git", ".gstack", ".venv", "mutants"]
+extend_exclude = [".gstack", "mutants"]
 known_first_party = ["project_name"]
 
-[tool.bandit]
-exclude_dirs = [".git", ".gstack", ".venv", "tests"]
-
 [tool.interrogate]
-exclude = [".git", ".gstack", ".venv", "mutants", "tests"]
+exclude = [".gstack", "mutants", "tests"]
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = true
@@ -197,7 +194,6 @@ ignore-semiprivate = true
 verbose = 1
 
 [tool.vulture]
-exclude = [".git", ".gstack", ".venv"]
 min_confidence = 90
 paths = ["src", "tests"]
 sort_by_size = true

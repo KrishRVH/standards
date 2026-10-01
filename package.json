@@ -6,8 +6,8 @@
   "packageManager": "bun@1.4.2",
   "scripts": {
     "audit": "bun audit --audit-level=low",
-    "format": "prettier \"**/*.{md,mdx}\" --write --cache --list-different --ignore-path .gitignore",
-    "format:check": "prettier \"**/*.{md,mdx}\" --check --ignore-path .gitignore",
+    "format": "prettier \"**/*.{md,mdx}\" --write --cache --list-different",
+    "format:check": "prettier \"**/*.{md,mdx}\" --check",
     "lint": "markdownlint-cli2",
     "lint:fix": "markdownlint-cli2 --fix",
     "mdx:check": "bun scripts/check-mdx.mjs",

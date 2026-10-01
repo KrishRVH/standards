@@ -300,7 +300,7 @@ const guidanceByDiagnostic = {
   classSelfMismatch: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   cryptoRandomUUIDInEffect: 'EFF-024 docs/effect/enforcement.md#eff-024--deterministic-synchronization',
   effectFnImplicitAny: 'EFF-002 docs/effect/enforcement.md#eff-002--precise-application-channels',
-  effectGenUsesAdapter: 'EFF-001 docs/effect/enforcement.md#eff-001--selective-effect-adoption',
+  effectGenUsesAdapter: 'EFF-028 docs/effect/enforcement.md#eff-028--exact-effect-v4-dependency-evidence',
   effectInFailure: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   effectInVoidSuccess: 'EFF-003 docs/effect/enforcement.md#eff-003--accurate-exported-effect-contracts',
   floatingEffect: 'EFF-011 docs/effect/enforcement.md#eff-011--named-runtime-edges',

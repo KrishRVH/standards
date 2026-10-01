@@ -7,19 +7,14 @@ import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    print("Python 3.11+ is required for tomllib. Run this through mise.", file=sys.stderr)
-    raise SystemExit(2) from None
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files", "shared_mirror"}
+OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files"}
 PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_MARKER_CASES = {
@@ -177,14 +172,15 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             if not isinstance(item, str) or not is_relative_path(item):
                 errors.append(f"{profile_id}: mirror entries must be normalized relative paths: {item!r}")
 
-        for key in ("required_tester_files", "shared_mirror"):
-            entries = profile.get(key, [])
-            if not isinstance(entries, list):
-                errors.append(f"{profile_id}: {key} must be a list")
-                continue
+        entries = profile.get("required_tester_files", [])
+        if not isinstance(entries, list):
+            errors.append(f"{profile_id}: required_tester_files must be a list")
+        else:
             for item in entries:
                 if not isinstance(item, str) or not is_relative_path(item):
-                    errors.append(f"{profile_id}: {key} entries must be normalized relative paths: {item!r}")
+                    errors.append(
+                        f"{profile_id}: required_tester_files entries must be normalized relative paths: {item!r}"
+                    )
 
         dagger = profile.get("dagger", False)
         if not isinstance(dagger, bool):
@@ -753,10 +749,6 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
                 right = tester / str(item)
                 errors.extend(compare_file(profile_id, "mirror", left, right))
         if has_tester:
-            for item in profile.get("shared_mirror", []):
-                errors.extend(
-                    compare_file(profile_id, "shared mirror", ROOT / "shared" / str(item), tester / str(item))
-                )
             for item in profile.get("required_tester_files", []):
                 required = tester / str(item)
                 if not required.is_file():

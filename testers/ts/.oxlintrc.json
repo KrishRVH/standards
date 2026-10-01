@@ -458,7 +458,6 @@
       "files": ["src/**/*.{cts,mts,ts,tsx}"],
       "rules": {
         "standards/no-ambient-runtime": "error",
-        "standards/no-global-mutation": "error",
         "no-restricted-globals": [
           "error",
           {

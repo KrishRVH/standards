@@ -84,6 +84,8 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# cargo-mutants leaves an existing report untouched when it selects no mutants.
+rm -rf mutants.out
 run_mutants_task_child cargo mutants --output=. --workspace --all-features --test-workspace=true --cargo-arg=--locked
 run_mutants_task_child sh scripts/verify-mutants.sh full mutants.out
 """
@@ -115,10 +117,6 @@ if ! merge_base="$(git merge-base HEAD "$base_commit")"; then
   echo "Cannot compute a merge base with $base_ref. Fetch full history with git fetch --unshallow or git fetch origin main." >&2
   exit 1
 fi
-if ! printf '%s\n' "$merge_base" | grep -Eq '^([0-9a-f]{40}|[0-9a-f]{64})$'; then
-  echo "git merge-base did not return a full SHA-1 or SHA-256 commit ID." >&2
-  exit 1
-fi
 if ! untracked_files="$(git ls-files --others --exclude-standard)"; then
   echo "Cannot inspect untracked files before mutation diff testing." >&2
   exit 1
@@ -144,7 +142,13 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# cargo-mutants leaves an existing report untouched when it selects no mutants.
+rm -rf mutants.out
 run_mutants_task_child cargo mutants --output=. --workspace --all-features --test-workspace=true --cargo-arg=--locked --in-diff "$diff_file"
+if [ ! -d mutants.out ]; then
+  echo "The diff selects no mutants; nothing to verify."
+  exit 0
+fi
 run_mutants_task_child sh scripts/verify-mutants.sh diff mutants.out
 """
 

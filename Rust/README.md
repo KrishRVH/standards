@@ -6,6 +6,7 @@ the shared mise template:
 ```text
 .config/mise/config.toml
 .config/mise/conf.d/20-rust.toml
+.config/mise/tasks/hygiene
 ```
 
 `rust-toolchain.toml` is the one compiler pin. The task fragment tells mise to
@@ -121,11 +122,11 @@ analysis for renamed dependencies. It fails on unused `[dependencies]`
 entries; dev- and build-dependencies remain outside cargo-machete's scope.
 
 `rust:mutants` runs the full mutation sweep and runs all workspace tests against
-each mutant. Both lanes force cargo-mutants to create `mutants.out/` under the
-project root, so `.cargo/mutants.toml` cannot redirect the run while the
-verifier reads stale local evidence. After cargo-mutants succeeds, each lane
-validates its native JSON and outcome lists. The full lane requires at least one
-mutant to have actually run; the diff lane accepts a complete zero-total report
+each mutant. Both lanes clear `mutants.out/` and force cargo-mutants to write
+it under the project root, so neither a previous run nor `.cargo/mutants.toml`
+can leave the verifier reading stale evidence. After cargo-mutants succeeds,
+each lane validates its native JSON and outcome lists. The full lane requires
+at least one mutant to have actually run; the diff lane passes without a report
 when the diff selects no mutants. A nonempty all-unviable report fails in either
 lane. A surviving mutant is a review finding, not a statistic. Both mutation
 lanes hold the same project-local lock through cargo-mutants and post-run
@@ -134,9 +135,8 @@ stale-lock failure names the directory to remove after confirming no run is
 active. `rust:mutants:diff` mutates only code changed relative to
 `MUTANTS_BASE_REF` for the inner loop. An explicit value resolves exactly as
 supplied; otherwise the task prefers `refs/remotes/origin/main` over the local
-`main` branch. It hands cargo-mutants a diff from the full merge-base commit ID
-(SHA-1 or SHA-256) and reports how to fetch full history when no merge base
-exists. Untracked files fail the lane with `git add -N` guidance because Git
+`main` branch. It hands cargo-mutants the diff from the merge base and reports
+how to fetch full history when no merge base exists. Untracked files fail the lane with `git add -N` guidance because Git
 diff cannot review them. The catalog's copyable `shared/.gitignore` already
 excludes `mutants.out/` and `mutants.out.old/`; commit `proptest-regressions/`.
 On large projects, swap `rust:mutants` for `rust:mutants:diff` in the PR gate
@@ -157,8 +157,8 @@ bypass. The latest-push approval option is not a substitute for stale
 dismissal: its approver need not be the code owner. These host settings turn
 "loosening requires human countersign" from an instruction into a gate.
 
-Noisy systems-code lints stay relaxed by default: int-to-float precision
-casts and size/repetition style counts. The remainder of `clippy::restriction`
+Noisy lints stay relaxed by default: int-to-float precision and widening
+casts, plus the style and size heuristics listed in `Cargo.toml`. The remainder of `clippy::restriction`
 and `clippy::cargo`, nightly formatting rules, feature-matrix builds
 (`cargo-hack`) for cfg-gated fallback paths, and `cargo-semver-checks` for
 published libraries remain project-specific choices.

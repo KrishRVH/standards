@@ -1,7 +1,7 @@
 # Effect language-service diagnostic inventory
 
 This inventory is specific to `@effect/language-service` 0.87.3 running against
-Effect v4 and the profile configuration in `TS/tsconfig.json`. Re-audit the
+Effect v4 and the profile configuration in `tsconfig.json`. Re-audit the
 installed source, editor behavior, standalone output, and every fix before
 changing either version.
 

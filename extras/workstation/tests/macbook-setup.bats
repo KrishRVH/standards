@@ -43,6 +43,27 @@ BLOCK
   cmp -s "$expected" "$target"
 }
 
+@test "managed block removal keeps other content and deletes a file it emptied" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
+  local shared="${BATS_TEST_TMPDIR}/shared-tmux.conf" only="${BATS_TEST_TMPDIR}/only-tmux.conf"
+  local block=$'# >>> loader >>>\nsource-file ~/.config/tmux/tmux.conf\n# <<< loader <<<'
+  printf '%s\n\n%s\n' 'set -g mouse on' "$block" > "$shared"
+  chmod 0600 "$shared"
+  printf '%s\n' "$block" > "$only"
+
+  run bash -c '
+    source "$1"
+    remove_managed_block "$2" "# >>> loader >>>" "# <<< loader <<<"
+    remove_managed_block "$3" "# >>> loader >>>" "# <<< loader <<<"
+    remove_managed_block "$3" "# >>> loader >>>" "# <<< loader <<<"
+  ' -- "$MACBOOK_SETUP_SCRIPT" "$shared" "$only"
+
+  [[ "$status" -eq 0 ]]
+  [[ "$(< "$shared")" == 'set -g mouse on' ]]
+  [[ "$(file_mode "$shared")" = "600" ]]
+  [[ ! -e "$only" ]]
+}
+
 @test "managed block updates reject a lone end marker" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
   local target="${BATS_TEST_TMPDIR}/zshrc"

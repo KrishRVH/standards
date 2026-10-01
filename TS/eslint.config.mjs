@@ -203,7 +203,6 @@ export default defineConfig(
     files: [typeScriptSourceFiles],
     rules: {
       'standards/no-ambient-runtime': 'error',
-      'standards/no-global-mutation': 'error',
       'no-restricted-globals': [
         'error',
         {

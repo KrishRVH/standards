@@ -1655,6 +1655,35 @@ fn mutation_tasks_preserve_workspace_and_base_resolution_contracts() {
             "the diff mutation task is missing base-resolution contract {contract}"
         );
     }
+    for (lane, task) in [("full", full), ("diff", diff)] {
+        let steps = [
+            format!("acquire_mutants_task_lock {lane}"),
+            "rm -rf mutants.out".to_owned(),
+            "run_mutants_task_child cargo mutants ".to_owned(),
+            format!("sh scripts/verify-mutants.sh {lane} mutants.out"),
+        ];
+        let positions: Vec<usize> = steps
+            .iter()
+            .map(|step| {
+                task.find(step.as_str())
+                    .unwrap_or_else(|| panic!("the {lane} mutation task is missing {step}"))
+            })
+            .collect();
+        assert!(
+            positions.is_sorted(),
+            "the {lane} mutation task must clear the previous report under its lock, then run and verify cargo-mutants"
+        );
+    }
+    let no_report = diff.find("if [ ! -d mutants.out ]; then").expect(
+        "the diff mutation task must pass without a report when the diff selects no mutants",
+    );
+    let diff_run = diff
+        .find("run_mutants_task_child cargo mutants ")
+        .expect("the diff mutation task should run cargo-mutants");
+    assert!(
+        diff_run < no_report,
+        "the diff mutation task must check for a report only after cargo-mutants runs"
+    );
     let untracked_guard = diff
         .find("git ls-files --others --exclude-standard")
         .expect("the diff mutation task should inspect untracked files");

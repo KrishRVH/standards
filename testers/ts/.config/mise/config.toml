@@ -1,5 +1,3 @@
-# Copy to .config/mise/config.toml, and tasks/hygiene to .config/mise/tasks/hygiene.
-
 min_version = "2026.6.12"
 
 [settings]

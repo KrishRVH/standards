@@ -74,9 +74,9 @@ They also exercise the shared environment in POSIX sh, Bash, and zsh, including
 project tool precedence, preserved Java settings, empty PATH entries, and
 idempotent startup loaders. WSL cases cover Windows PATH trimming and opt-in
 retention, cached integrations, one `.zshenv` loader, and syntax checks for
-every generated script. They check single completion initialization and
-distinct tmux sessions for repositories with the same basename. They do not
-execute either machine installer.
+every generated script. They check single completion initialization, the
+daily completion audit, and distinct tmux sessions for repositories with the
+same basename. They do not execute either machine installer.
 
 The session picker searches two directory levels under common development
 roots. Set `TMUX_SESSIONIZER_ROOTS` to a colon-separated list of roots when

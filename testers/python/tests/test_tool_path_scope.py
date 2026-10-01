@@ -41,8 +41,8 @@ def test_tool_exclusions_only_skip_the_generated_root() -> None:
     config = load_config()
 
     assert string_list(config_table(config, "tool", "ruff"), "extend-exclude") == ["mutants/**"]
-    assert "mutants" not in string_list(config_table(config, "tool", "bandit"), "exclude_dirs")
-    assert "mutants" not in string_list(config_table(config, "tool", "vulture"), "exclude")
+    vulture = config_table(config, "tool", "vulture")
+    assert "mutants" not in (string_list(vulture, "exclude") if "exclude" in vulture else [])
     assert "mutants" in string_list(config_table(config, "tool", "deptry"), "extend_exclude")
     assert "mutants" in string_list(config_table(config, "tool", "interrogate"), "exclude")
 
@@ -94,3 +94,24 @@ def test_bandit_checks_nested_source_mutants(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert "src/project_name/mutants/insecure.py" in output
     assert "B307" in output
+
+
+def test_bandit_checks_sources_whose_names_contain_tool_directory_names(tmp_path: Path) -> None:
+    bandit = shutil.which("bandit")
+    assert bandit is not None
+    project_config = tmp_path / CONFIG.name
+    project_config.write_text(CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
+    source = tmp_path / "src" / "project_name" / "contests.py"
+    source.parent.mkdir(parents=True)
+    source.write_text('value = eval("1 + 1")\n', encoding="utf-8")
+
+    result = subprocess.run(  # noqa: S603 -- PATH resolves the locked Bandit in the project environment
+        [bandit, "-q", "-c", str(project_config), "-r", "src"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "src/project_name/contests.py" in f"{result.stdout}\n{result.stderr}"

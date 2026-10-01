@@ -306,8 +306,8 @@ const generatedProfileFragments: typeof lockedGateFragments = [
   },
   {
     matches: (workflow) =>
-      workflow.includes('uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9') &&
-      workflow.includes('uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9') &&
+      /^\s+uses: actions\/cache\/restore@[0-9a-f]{40}(?:\s+#.*)?$/mu.test(workflow) &&
+      /^\s+uses: actions\/cache\/save@[0-9a-f]{40}(?:\s+#.*)?$/mu.test(workflow) &&
       !workflow.includes('uses: actions/cache@'),
     violation: 'Stryker cache must use separately pinned restore and save actions',
   },

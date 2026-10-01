@@ -109,7 +109,7 @@ check_wsl_ubuntu() {
   grep -qi microsoft /proc/sys/kernel/osrelease 2> /dev/null ||
     die "this bootstrap must run inside WSL"
   [[ -r /etc/os-release ]] || die "cannot identify the WSL distribution"
-  # shellcheck disable=SC1091
+  # shellcheck disable=SC1091 # The host provides /etc/os-release at runtime.
   distro_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
   [[ "$distro_id" == ubuntu ]] ||
     die "this bootstrap requires Ubuntu under WSL; found ${distro_id:-unknown}"
@@ -785,12 +785,7 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   # --- neovim (latest stable) -------------------------------------------------
   # Install upstream Neovim release tarballs so we are not stuck on Ubuntu's
   # older neovim package and so arm64 works with the artifacts upstream ships.
-  version_ge() { # version_ge 0.11.0 0.9.5  => true if $2 >= $1
-    [[ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" == "$1" ]]
-  }
-
   install_latest_neovim() {
-    local min_version="$1"
     local latest_json latest_tag latest_version current arch asset_arch asset_dir
     local asset_name asset_count asset_url asset_digest tmpdir downloaded_version installed_version
 
@@ -802,7 +797,6 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     latest_tag="$(printf '%s\n' "$latest_json" | jq -r '.tag_name // empty')"
     [[ "$latest_tag" == v* ]] || die "could not resolve latest Neovim release tag"
     latest_version="${latest_tag#v}"
-    version_ge "$min_version" "$latest_version" || die "latest Neovim $latest_version is older than required $min_version"
 
     if has nvim; then
       current="$(nvim --version 2> /dev/null | awk 'NR==1 { gsub(/^v/, "", $2); print $2 }')"
@@ -865,7 +859,7 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     rm -rf "$tmpdir" || true
   }
 
-  install_latest_neovim "0.11.0"
+  install_latest_neovim
 
   # --- rustup + cargo tools ---------------------------------------------------
 
@@ -897,11 +891,6 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     retry_quiet rustup default stable
   fi
 
-  if [[ -f "$CARGO_HOME/env" ]]; then
-    # shellcheck disable=SC1090,SC1091
-    source "$CARGO_HOME/env"
-  fi
-  export PATH="$CARGO_HOME/bin:$PATH"
   rustup component add rustfmt clippy
 
   cargo_binstall_arch="$(uname -m)"
@@ -1765,7 +1754,7 @@ Use it when:
 Examples:
   starship explain
   starship timings
-  starship print-config > ~/.config/starship.toml
+  starship print-config
 
 Notes:
   Prompt information has a rendering cost. Keep only modules that change your
@@ -2311,7 +2300,7 @@ trap 'rm -rf -- "$scratch"' EXIT
 emit() {
   local name=$1
   shift
-  if command -v "$1" >/dev/null 2>&1; then
+  if command -v "$name" >/dev/null 2>&1; then
     "$@" > "$scratch/$name.zsh"
     zsh -n "$scratch/$name.zsh"
     chmod 600 "$scratch/$name.zsh"
@@ -2423,11 +2412,14 @@ setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_SAVE_NO_DUPS HIST_EXPIRE_DUPS_F
 _zsh_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 fpath=("$HOME/.local/share/wsl-bootstrap/zsh/site-functions" $fpath)
 autoload -Uz compinit
-# Keep the security audit; use the validated dump for the next 24 hours.
-if [[ -f "$_zsh_cache/zcompdump" && -n "$_zsh_cache"/zcompdump(#qN.mh-24) ]]; then
+# Audit completion directories at most once a day; compinit -i leaves a valid
+# dump untouched, so touch it to restart the 24-hour window.
+_zsh_dump=("$_zsh_cache"/zcompdump(N.mh-24))
+if (( $#_zsh_dump )); then
   compinit -C -d "$_zsh_cache/zcompdump"
 else
   compinit -i -d "$_zsh_cache/zcompdump"
+  touch "$_zsh_cache/zcompdump"
 fi
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
@@ -2455,7 +2447,7 @@ done
 # No right-side modules: avoid a second Starship process for every prompt.
 RPROMPT=
 (( $+commands[starship] )) || PROMPT='%F{cyan}%~%f %(?.%F{green}.%F{red})❯%f '
-unset _zsh_integration _zsh_cache
+unset _zsh_integration _zsh_cache _zsh_dump
 
 ZSH_AUTOSUGGEST_STRATEGY=(history)
 ZSH_AUTOSUGGEST_USE_ASYNC=1
@@ -2513,7 +2505,6 @@ gcob() {
   git checkout -b "$1"
 }
 
-unalias gco 2>/dev/null || true
 gco() {
   [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }
   [[ "$1" != -* ]] || { echo "gco: ref must not start with '-'"; return 2; }
@@ -2522,7 +2513,6 @@ gco() {
 
 alias amend="git commit --amend"
 
-unalias gcm 2>/dev/null || true
 gcm() {
   [[ $# -gt 0 ]] || { echo "usage: gcm <message>"; return 2; }
 
@@ -2629,8 +2619,8 @@ source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-syntax-highlighting/zsh
 ZSHRC
 
 zsh_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
-mkdir -p "$zsh_state_dir" "$HOME/.cache/zsh" "$HOME/.config/zsh" "$HOME/src"
-chmod 700 "$zsh_state_dir" "$HOME/.cache/zsh"
+mkdir -p "$zsh_state_dir" "$HOME/.config/zsh" "$HOME/src"
+chmod 700 "$zsh_state_dir"
 touch "$zsh_state_dir/history"
 chmod 600 "$zsh_state_dir/history"
 configure_shell_environment
@@ -2736,12 +2726,14 @@ run '~/.tmux/plugins/tpm/tpm'
 
 TMUXCONF
 
-TMUX_SHIM_MARKER="# >>> wsl-bootstrap managed ~/.tmux.conf >>>"
-write_managed_file "$HOME/.tmux.conf" "$TMUX_SHIM_MARKER" 0644 << 'TMUXSHIM'
-# >>> wsl-bootstrap managed ~/.tmux.conf >>>
-source-file ~/.config/tmux/tmux.conf
-# <<< wsl-bootstrap managed ~/.tmux.conf <<<
-TMUXSHIM
+# tmux reads the XDG config itself; a managed ~/.tmux.conf that sources it
+# would load it twice.
+tmux_shim=$'# >>> wsl-bootstrap managed ~/.tmux.conf >>>\nsource-file ~/.config/tmux/tmux.conf\n# <<< wsl-bootstrap managed ~/.tmux.conf <<<'
+if [[ -f "$HOME/.tmux.conf" && ! -L "$HOME/.tmux.conf" && "$(< "$HOME/.tmux.conf")" == "$tmux_shim" ]]; then
+  rm -f -- "$HOME/.tmux.conf"
+elif grep -qxF '# >>> wsl-bootstrap managed ~/.tmux.conf >>>' "$HOME/.tmux.conf" 2> /dev/null; then
+  warn "remove the wsl-bootstrap block from ~/.tmux.conf; tmux already reads ~/.config/tmux/tmux.conf"
+fi
 
 SESSIONIZER_MARKER="# >>> wsl-bootstrap managed tmux-sessionizer >>>"
 write_managed_file "$HOME/.local/bin/tmux-sessionizer" "$SESSIONIZER_MARKER" 0755 << 'SESSIONIZER'

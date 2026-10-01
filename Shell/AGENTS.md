@@ -26,8 +26,9 @@ checks. zsh receives syntax checking only, so test its behavior explicitly.
 - Acquire temporary paths with `mktemp` and install cleanup traps promptly.
   Keep cleanup scoped to resources the script owns. Bootstrap and repair
   scripts must converge on repeat runs and preserve unmanaged files.
-- Explain narrow ShellCheck suppressions at the site. Fix quoting or command
-  structure when it removes the warning.
+- Fix quoting or command structure when it removes a ShellCheck warning. A
+  narrow suppression carries its reason on the directive line,
+  `# shellcheck disable=SC1234 # reason`; `shell:lint` rejects one without it.
 
 Test meaningful behavior through Bats: arguments containing spaces or option
 prefixes, exit status, stderr, failure cleanup, and repeated execution when

@@ -5,11 +5,11 @@ import { argv, stdout } from 'node:process';
 import { assertRecord, validateStrykerReport } from './stryker-report-contract.mjs';
 
 const mode = argv[2];
-const reportPath = argv[3] ?? 'reports/mutation/mutation.json';
+const reportPath = argv[3];
 
 assert.ok(
-  mode === 'full' || mode === 'incremental',
-  'Usage: check-stryker-report.mjs <full|incremental> [report-path]',
+  (mode === 'full' || mode === 'incremental') && reportPath,
+  'Usage: check-stryker-report.mjs <full|incremental> <report-path>',
 );
 
 const report = JSON.parse(await readFile(reportPath, 'utf8'));

@@ -48,8 +48,7 @@ Project code rejects two language features:
 Methods on generic types that only use their receiver's type parameters and
 package-level generic functions remain allowed. Dependencies may still return
 iterator values; materialize them immediately at the call boundary, for example
-with `slices.Collect`. Iterator producer names are not cataloged because the
-structural guards cover the project-owned policy without release-specific lists.
+with `slices.Collect`.
 
 Mise installs `boringlint` from its canonical Go module at a pinned release, so
 its analysis dependencies do not enter the application module. The project runs

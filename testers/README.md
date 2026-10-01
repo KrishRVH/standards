@@ -45,9 +45,8 @@ and every declared fixture exists. Declared mirror files must stay
 byte-for-byte aligned with their template source. Undeclared fixture source and
 tests are intentionally fixture-owned.
 
-Fixture configurations define no `lock` task. After changing a pinned tool
-version or fixture mise config, refresh the affected lockfile from that fixture
-directory with mise's native command:
+After changing a pinned tool version or fixture mise config, refresh the
+affected lockfile from that fixture directory with mise's native command:
 
 ```sh
 MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise lock --platform linux-x64

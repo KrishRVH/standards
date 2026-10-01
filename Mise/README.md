@@ -77,9 +77,8 @@ The task pins its own Python through a `# MISE tools=` header, so run
 `mise lock` after copying it. Keep the file executable; mise does not list a
 file task without the executable bit.
 
-`standards` applies available safe autofixes and runs each detected language's
-local workflow. Some ecosystems expose validation only because they have no
-safe formatter. `standards:check` runs the CI-grade aggregate task, the
+`standards` applies each detected language's safe autofixes. `standards:check`
+runs the CI-grade aggregate task, the
 project's shared `.gitleaks.toml` secret scan, and `hygiene`. `sbom` writes a
 fresh CycloneDX JSON SBOM under `sbom/` for release and audit workflows;
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` control its source metadata. If

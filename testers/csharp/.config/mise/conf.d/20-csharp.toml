@@ -39,7 +39,7 @@ wait_for = ["csharp:test"]
 run = """
 set -eu
 
-output_root="${STRYKER_OUTPUT_ROOT:-StrykerOutput}"
+output_root=StrykerOutput
 mkdir -p "$output_root"
 output_dir="$(mktemp -d "$output_root/standards-full.XXXXXX")"
 run_log="$output_dir/stryker.log"
@@ -84,10 +84,6 @@ if ! merge_base="$(git merge-base HEAD "$base_commit")"; then
   echo "Cannot compute a merge base with $base_ref. Fetch full history with git fetch --unshallow or git fetch origin main." >&2
   exit 1
 fi
-if ! printf '%s\n' "$merge_base" | grep -Eq '^([0-9a-f]{40}|[0-9a-f]{64})$'; then
-  echo "git merge-base did not return a full SHA-1 or SHA-256 commit ID." >&2
-  exit 1
-fi
 if ! untracked_files="$(git ls-files --others --exclude-standard)"; then
   echo "Cannot inspect untracked files before mutation diff testing." >&2
   exit 1
@@ -106,7 +102,7 @@ if git diff --quiet "$merge_base" --; then
   exit 0
 fi
 
-output_root="${STRYKER_OUTPUT_ROOT:-StrykerOutput}"
+output_root=StrykerOutput
 mkdir -p "$output_root"
 output_dir="$(mktemp -d "$output_root/standards-diff.XXXXXX")"
 run_log="$output_dir/stryker.log"

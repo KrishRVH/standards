@@ -81,8 +81,8 @@ run = "bun run knip"
 
 [tasks."ts:preflight"]
 description = "Run every non-mutation TypeScript/JavaScript gate before mutation testing"
-# The static checks run in parallel; tests run after them because lint probes
-# write temporary files under src/ that the static checks would scan.
+# The static checks run in parallel; tests run after them so a test that writes
+# temporary files under src/ cannot race the static scans.
 depends = [
   "ts:lint",
   "ts:type",
@@ -98,12 +98,12 @@ run = "bun run test"
 [tasks."ts:mutants"]
 description = "Run the full mutation sweep; a surviving mutant is a review finding"
 depends = ["ts:preflight"]
-run = "bun scripts/run-stryker.mjs full stryker.config.mjs"
+run = "bun scripts/run-stryker.mjs full"
 
 [tasks."ts:mutants:diff"]
 description = "Run the incremental mutation-testing inner loop"
 depends = ["ts:preflight"]
-run = "bun scripts/run-stryker.mjs incremental stryker.config.mjs"
+run = "bun scripts/run-stryker.mjs incremental"
 
 [tasks."ts:mutants:cache:check"]
 description = "Validate Stryker incremental state before saving it in CI"

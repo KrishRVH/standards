@@ -1,5 +1,7 @@
 [tools]
 java = "temurin-25.0.4+101.0.LTS"
+# Stay below Gradle 9.8: the Detekt plugin calls Configuration.setVisible,
+# which 9.8 deprecates, and --warning-mode=fail rejects that deprecation.
 gradle = "9.7.1"
 ktlint = "1.8.0"
 

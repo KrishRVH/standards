@@ -20,7 +20,8 @@ ordered `reasons`.
 ## Virtual time and interruption
 
 Effect-based tests run at the `bun:test` edge with `Effect.runPromise` and
-provide virtual time explicitly, from `TestClock.layer()` in `effect/testing`.
+provide virtual time explicitly with `testClockLayer` from
+`tests/support/test-clock.ts`, which builds on `TestClock.make()`.
 Fork timed work. Use `Deferred`, `Ref`, latches, or another explicit probe to
 prove the fiber entered the attempt or sleep before calling
 `TestClock.adjust`. `TestClock` keeps its sleep queue private, so
@@ -74,15 +75,15 @@ diagnostic-name drift. The exact per-configured-rule record lives in the
 
 The copied workflow reacts to pull requests, merge-queue groups, pushes to
 `main`, and manual dispatch; performs locked setup and frozen dependency
-installation through the mise task graph; and runs `standards:check`. Local
-contract tests validate these triggers, the required task, immutable action
+installation through the mise task graph; and runs `standards:check`. The
+catalog's tester validates these triggers, the required task, immutable action
 references, and checkout credential hardening. Branch protection remains host
 configuration and requires the workflow's `quality` job.
 
-Documentation drift checks keep routed paths present, stable rule IDs unique,
-and the always-loaded TypeScript fragment under the measured word budget. The
-manifest keeps copied files byte-identical with the tester. Prose-only residuals
-stay explicitly marked `Manual` in the enforcement map.
+The catalog's documentation drift checks keep routed paths present, stable rule
+IDs unique, and the always-loaded TypeScript fragment under the measured word
+budget. The manifest keeps copied files byte-identical with the tester.
+Prose-only residuals stay explicitly marked `Manual` in the enforcement map.
 
 Use mise tasks for project verification. The local gate should include frozen
 install, format, lint, TypeScript, Effect diagnostics, expected diagnostics,

@@ -79,8 +79,8 @@ The root files maintain the catalog. The small standalone projects under
 `testers/` prove each language template through the documented mise layout.
 Each fixture commits `.config/mise/mise.lock` for deterministic Linux tool
 resolution. `standards.manifest.toml` maps profiles to their canonical
-templates, tester fixtures, task fragments, exact mirror files, and the shared
-files a fixture copies.
+templates, tester fixtures, task fragments, exact mirror files, and required
+tester-only files.
 
 Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/` govern
 this repository; they are not project defaults. `docs/IDEAS.md` holds deferred
@@ -239,8 +239,8 @@ mise run secrets
 mise run sbom
 ```
 
-`mise run standards` applies the available safe autofixes, then runs the local
-workflow for each detected language. `mise run standards:check` runs the
+`mise run standards` applies each detected language's safe autofixes.
+`mise run standards:check` runs the
 CI-grade aggregate gate, scans for secrets with the shared `.gitleaks.toml`,
 and runs `hygiene`. `hygiene` prints the tree's size by category and rejects
 history directories, leftover, versioned, or dated file names, handoff notes,
@@ -255,9 +255,8 @@ to control CI spending.
 The Rust, TypeScript, C#, Python, and Swift profiles each contain a copyable
 workflow for downstream projects. Those run automatically for pull requests,
 merge-queue groups, and pushes to `main`, and also support manual dispatch.
-All the workflows use the same locked command surface and pin the locally
-tested mise `2026.9.18`. Configuration `min_version` values are floors, not
-pins.
+All the workflows use the same locked command surface and pin one locally
+tested mise release. Configuration `min_version` values are floors, not pins.
 
 The downstream repository host must protect merges with all of these settings:
 

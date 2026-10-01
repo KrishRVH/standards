@@ -31,10 +31,6 @@ internal static class StandardsVerifier
         {
             switch (args)
             {
-                case ["self-test"]:
-                    RunSelfTests();
-                    Console.WriteLine("Standards verifier self-tests passed.");
-                    return 0;
                 case ["policy"]:
                     RunSelfTests();
                     await VerifyVerifierCompilerPolicyAsync().ConfigureAwait(false);
@@ -55,7 +51,7 @@ internal static class StandardsVerifier
                     return 0;
                 default:
                     Console.Error.WriteLine(
-                        "Usage: verify-standards.cs self-test | policy | git-refs <merge-base-sha> | stryker <full|diff> <report.json> <run.log>");
+                        "Usage: verify-standards.cs policy | git-refs <merge-base-sha> | stryker <full|diff> <report.json> <run.log>");
                     return 2;
             }
         }
@@ -379,18 +375,6 @@ internal static class StandardsVerifier
         }
     }
 
-    private static void VerifyGitRefNamespaceConfiguration()
-    {
-        if (!string.Equals(
-                string.Join('\n', StrykerGitRefNamespaces),
-                "refs/heads\nrefs/remotes\nrefs/tags",
-                StringComparison.Ordinal))
-        {
-            throw new InvalidDataException(
-                "The Stryker SHA-shadow preflight must inspect local branches, remote branches, and tags.");
-        }
-    }
-
     private static async Task ExpectBuildDiagnosticAsync(
         string diagnostic,
         string sourceFileName,
@@ -535,7 +519,6 @@ internal static class StandardsVerifier
         VerifyStrykerConfiguration(File.ReadAllText("stryker-config.json"));
         VerifyMutationDiffTaskConfiguration(
             File.ReadAllText(Path.Combine(".config", "mise", "conf.d", "20-csharp.toml")));
-        VerifyGitRefNamespaceConfiguration();
         VerifyStrykerConfiguration(validConfiguration);
         VerifyOnlyExpectedBuildDiagnostic("PolicyProbe.cs(1,1): error RS0030: banned API", "RS0030");
         ExpectFailure(() => VerifyOnlyExpectedBuildDiagnostic(

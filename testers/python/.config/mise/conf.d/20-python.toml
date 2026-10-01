@@ -55,7 +55,7 @@ run = "uv run python -I scripts/check-suppressions.py"
 [tasks."py:type"]
 description = "Run strict Python type analysis"
 depends = ["py:install"]
-run = "uv run basedpyright --warnings"
+run = "uv run basedpyright"
 
 [tasks."py:security"]
 description = "Run Python security analysis"

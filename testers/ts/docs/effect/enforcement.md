@@ -122,8 +122,8 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Restricted technical detail may remain `unknown` outside the
   public protocol and is redacted before observation.
 - **Enforcement:** TS exhaustive matches; LS —; Lint partial;
-  Neg partial; Unit projection/redaction; Sem observation/redaction; Int —; CI
-  yes; Manual vocabulary review.
+  Neg partial; Unit projection/redaction; Sem observation/redaction (catalog);
+  Int —; CI yes; Manual vocabulary review.
 - **Version:** Project contract; tagged forms use Effect 4.0.0.
 
 ## EFF-007 — Runtime and protocol identifier stability
@@ -203,8 +203,8 @@ vocabulary, or repository-host branch protection.
 - **Exception:** A test is a runtime edge; another adapter needs the same six
   ownership answers.
 - **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
-  diagnostic fixture; Unit adapter exits; Sem runtime disposal; Int host test;
-  CI yes; Manual owner review.
+  diagnostic fixture; Unit adapter exits; Sem runtime disposal (catalog); Int
+  host test; CI yes; Manual owner review.
 - **Version:** Effect 4.0.0; Bun edge also uses platform-bun
   4.0.0.
 
@@ -269,7 +269,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** A proven naturally idempotent or commutative operation with no
   deduplication key requirement.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —;
-  Unit adapter test (catalog); Sem mutation attempts (catalog); Int —;
+  Unit —; Sem mutation attempts (catalog); Int —;
   CI project-specific; Manual provider contract.
 - **Version:** Project/provider contract, not Effect-version-specific.
 
@@ -448,8 +448,8 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Explicit trusted finite source with its bound recorded; DNS/IP
   checks may live in a production network adapter.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit Schema/limits;
-  Sem redirect/body/concurrency; Int local native redirect; CI core tests; Manual
-  production resolver/connect-time SSRF review.
+  Sem redirect/concurrency, body (catalog); Int local native redirect (catalog);
+  CI core tests; Manual production resolver/connect-time SSRF review.
 - **Version:** Bun 1.4.2 Web APIs and Effect 4.0.0 adapters.
 
 ## EFF-026 — Bun process runtime
@@ -502,7 +502,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** A separately scoped upgrade proposal updates the inventory,
   probes, diagnostics, locks, migration notes, and complete gate together.
 - **Enforcement:** TS partial; LS blocking for removed or renamed v3 APIs
-  (`outdatedApi`); Lint —; Neg exact fixture; Unit version probes; Sem
+  (`outdatedApi`); Lint —; Neg exact fixture; Unit —; Sem
   exact-version suite; Int —; CI frozen install and lock/drift checks; Manual
   source hierarchy review.
 - **Version:** Effect 4.0.0, platform-bun 4.0.0, LS 0.87.3,
@@ -525,11 +525,12 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Another CI provider may express the same event, locking, and
   required-check contract; unavailable audits follow an explicit documented
   availability policy rather than silently passing.
-- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit workflow parser;
-  Sem event/command contract; Int hosted run; CI self-executes; Manual branch
-  protection and required-status configuration.
-- **Version:** Workflows pin checkout v7.0.1, mise-action v5.0.1, and the locally
-  tested mise 2026.9.18; the TypeScript gate uses the dependency versions above.
+- **Enforcement:** TS —; LS —; Lint —; Neg —; Unit workflow parser (catalog);
+  Sem event/command contract (catalog); Int hosted run; CI self-executes; Manual
+  branch protection and required-status configuration.
+- **Version:** Workflows pin checkout v7.0.1, mise-action v5.0.1, actions/cache
+  v6.1.0, and the locally tested mise 2026.9.18; the TypeScript gate uses the
+  dependency versions above.
 
 ## EFF-030 — Constructive type modeling
 

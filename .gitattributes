@@ -182,18 +182,3 @@ bun.lockb binary
 # detect tracked source as written so the repository language summary stays
 # descriptive rather than curated.
 *.lock linguist-generated=true
-**/.coverage linguist-generated=true
-**/.phpunit.cache/** linguist-generated=true
-**/__pycache__/** linguist-generated=true
-**/_build/** linguist-generated=true
-**/.godot/** linguist-generated=true
-**/.gradle/** linguist-generated=true
-**/.kotlin/** linguist-generated=true
-**/.stack-work/** linguist-generated=true
-**/.zig-cache/** linguist-generated=true
-**/cover/** linguist-generated=true
-**/deps/** linguist-vendored=true linguist-detectable=false
-**/dist-newstyle/** linguist-generated=true
-**/vendor/** linguist-vendored=true linguist-detectable=false
-**/zig-out/** linguist-generated=true
-**/zig-pkg/** linguist-vendored=true linguist-detectable=false

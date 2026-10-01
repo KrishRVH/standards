@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.23.2/schema/markdownlint-cli2-config-schema.json",
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.23.3/schema/markdownlint-cli2-config-schema.json",
   "globs": ["**/*.{md,mdx}"],
   "gitignore": true,
   "ignores": [
@@ -17,6 +17,8 @@
   ],
   "frontMatter": "^---\\s*\\n[\\s\\S]*?\\n---\\s*",
   "noBanner": true,
+  // Exceptions belong in this reviewed file, as narrow overrides with a reason.
+  "noInlineConfig": true,
   "noProgress": true,
   "config": {
     "default": true,

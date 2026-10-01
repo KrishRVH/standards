@@ -14,9 +14,9 @@ guide's README pointer reaches the adopted guidance.
 
 ## Toolchain and gate
 
-The task fragment pins Swift 6.4.0 through mise's native Swift backend and
-requires mise 2026.9.18 or newer. SwiftPM, Swift Testing,
-and [swift-format](https://github.com/swiftlang/swift-format) come with the
+The task fragment pins the Swift toolchain through mise's native Swift backend
+and requires mise 2026.9.18 or newer. SwiftPM, Swift Testing, and
+[swift-format](https://github.com/swiftlang/swift-format) come with the
 toolchain, so the baseline adds no third-party package dependencies.
 Install the host prerequisites from [Swift's installation
 guide](https://www.swift.org/install/) before `mise install`; Linux archives
@@ -25,7 +25,7 @@ and SDK. Interactive mise activation is optional.
 
 The optional catalog Dagger image is not verified for Swift. A Swift container
 gate needs a reviewed image whose Linux distribution and system libraries match
-a Swift toolchain release. The Swift fixture does not include a Dagger gate.
+a Swift toolchain release.
 
 The standards workflow is:
 
@@ -103,9 +103,7 @@ logic in independently testable modules.
 ## CI and review
 
 The copied workflow runs one locked `quality` job for pull requests, merge
-queues, and pushes to `main`, and supports manual dispatch. Its action pins
-and hardened checkout match the catalog's other automatic profiles.
-The catalog root workflow runs only on manual dispatch.
+queues, and pushes to `main`, and supports manual dispatch.
 
 Replace `@OWNER` in `.github/CODEOWNERS` with a real human, require the `quality`
 job and Code Owner review, dismiss stale approvals on every new commit, and
