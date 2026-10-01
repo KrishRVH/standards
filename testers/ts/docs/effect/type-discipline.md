@@ -29,11 +29,11 @@ type CheckState =
 `Data.taggedEnum` can generate constructors and matchers when a union has
 many variants; a plain union type needs no ceremony.
 
-Handle every variant exhaustively. In a `switch`, the terminal arm returns
-`value satisfies never` — the pattern `src/endpoint-contracts.ts` uses — so
-adding a variant breaks compilation at every unhandled site;
-`typescript/switch-exhaustiveness-check` and a negative type fixture
-guard the pattern. Inside Effect matching, `Match.exhaustive` is the
+Handle every variant exhaustively. The switches in `src/endpoint-contracts.ts`
+return from every case and declare their result types; `noImplicitReturns` and
+`typescript/switch-exhaustiveness-check` reject an unhandled variant. Where a
+terminal arm is needed, `value satisfies never` proves exhaustion; a negative
+type fixture guards that form. Inside Effect matching, `Match.exhaustive` is the
 equivalent terminal.
 
 ## Branded identities

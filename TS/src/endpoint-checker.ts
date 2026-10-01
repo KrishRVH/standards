@@ -82,11 +82,9 @@ function authorizeEndpoint(
   target: EndpointTargetInput,
   policy: CheckedPolicy,
 ): Effect.Effect<CheckedEndpointTarget, EndpointNotAllowed> {
+  // Membership in the normalized policy proves HTTPS; URL.origin omits credentials.
   const authorized =
-    target.url.protocol === 'https:' &&
-    target.url.username === '' &&
-    target.url.password === '' &&
-    policy.allowedOrigins.has(target.url.origin);
+    target.url.username === '' && target.url.password === '' && policy.allowedOrigins.has(target.url.origin);
 
   return authorized
     ? Effect.succeed({ id: target.id, origin: target.url.origin, url: target.url })
@@ -135,8 +133,6 @@ function projectEndpointOutcome(failure: EndpointLocalFailure): EndpointOutcome 
       return { _tag: 'EndpointUnavailable', id: failure.targetId, reason: 'transport' };
     case 'TransientProbeError':
       return { _tag: 'EndpointUnavailable', id: failure.targetId, reason: 'service-unavailable' };
-    default:
-      return failure satisfies never;
   }
 }
 

@@ -19,7 +19,7 @@ const EndpointTargets = Schema.NonEmptyArray(EndpointTargetInput).check(
   Schema.makeFilter((targets) => {
     const ids = new Set(targets.map(({ id }) => id));
 
-    return ids.size === targets.length || 'endpoint ids must be unique';
+    return ids.size === targets.length;
   }),
 );
 
@@ -28,17 +28,14 @@ export const CheckRequest = Schema.Struct({ endpoints: EndpointTargets });
 export type CheckRequest = typeof CheckRequest.Type;
 export type EndpointTargetInput = typeof EndpointTargetInput.Type;
 
-const decodeCheckRequestInput = Schema.decodeUnknownEffect(CheckRequest, { onExcessProperty: 'ignore' });
+const decodeCheckRequestInput = Schema.decodeUnknownEffect(CheckRequest);
 
 export const decodeCheckRequest = Effect.fn('project-name/endpoint-checker.decode-request')((input: unknown) =>
   decodeCheckRequestInput(input),
 );
 
 const RejectedHttpStatus = Schema.Int.check(
-  Schema.makeFilter(
-    (status) => (status >= 100 && status <= 199) || (status >= 400 && status <= 599 && status !== 503),
-    { description: 'an informational or rejected HTTP status excluding the separately classified 503' },
-  ),
+  Schema.makeFilter((status) => (status >= 100 && status <= 199) || (status >= 400 && status <= 599 && status !== 503)),
 );
 const SuccessfulHttpStatus = Schema.Int.check(Schema.isBetween({ minimum: 200, maximum: 299 }));
 const RedirectHttpStatus = Schema.Int.check(Schema.isBetween({ minimum: 300, maximum: 399 }));
@@ -162,8 +159,6 @@ export function projectCheckFailure(failure: CheckFailure): PublicCheckFailure {
         message: 'The endpoint checker is misconfigured.',
         retryDisposition: 'never',
       };
-    default:
-      return failure satisfies never;
   }
 }
 
@@ -177,12 +172,10 @@ export type SafeFailureKind =
   | 'endpoint-unavailable'
   | 'internal-defect'
   | 'invalid-request'
-  | 'protocol-failure'
   | 'workflow-deadline';
 
-// This fixture has no automatic-retry owner producing attempt metadata, so it
-// carries no attempt count and no retry-exhaustion classification. Both must
-// originate from a real retry owner.
+// Retry does not produce attempt metadata here; diagnostics omit attempt counts
+// and retry-exhaustion classification rather than inventing them during projection.
 export interface SafeFailureDiagnostic {
   readonly failureKind: SafeFailureKind;
   readonly operation: 'endpoint-check';
@@ -244,8 +237,6 @@ export function projectCheckDiagnostic(failure: DiagnosticFailure): SafeFailureD
         resource: failure.targetId,
         statusClass: '5xx',
       };
-    default:
-      return failure satisfies never;
   }
 }
 

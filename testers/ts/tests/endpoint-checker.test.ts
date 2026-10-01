@@ -1,25 +1,26 @@
 import { expect, test } from 'bun:test';
-import { Cause, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Ref, Schema } from 'effect';
+import { Cause, Context, Deferred, Duration, Effect, Exit, Fiber, Layer, Option, Ref, Schema, Tracer } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import {
   type CheckedEndpointTarget,
   EndpointProbe,
+  type EndpointProbeService,
   checkEndpoint,
   checkEndpoints,
   makeEndpointProbe,
 } from '../src/endpoint-checker.js';
 import {
   type EndpointHealthy,
-  EndpointNotAllowed,
+  EndpointRedirectRejected,
   EndpointRejected,
   EndpointResults,
   InvalidCheckPolicy,
+  ProbeTransportError,
   TransientProbeError,
   decodeCheckRequest,
   encodeEndpointResults,
   projectCheckDiagnostic,
-  projectCheckFailure,
   projectDefectDiagnostic,
 } from '../src/endpoint-contracts.js';
 import { decodeCheckPolicy, defaultCheckPolicy } from '../src/endpoint-policy.js';
@@ -124,7 +125,10 @@ for (const invalidPolicy of invalidDurationPolicies) {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+      const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
+
+      expect(failure._tag).toBe('InvalidCheckPolicy');
+      expect(failure.reason).toBe('policy input does not match the bounded configuration schema');
       expect(Cause.hasDies(exit.cause)).toBe(false);
       expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
     }
@@ -223,7 +227,10 @@ for (const invalidOrigin of invalidOrigins) {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('InvalidCheckPolicy');
+      const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
+
+      expect(failure._tag).toBe('InvalidCheckPolicy');
+      expect(failure.reason).toBe('allowedOrigins must contain only HTTPS origin values without credentials');
     }
   });
 }
@@ -334,9 +341,15 @@ test('uses normalized origin authorization rather than the display ID', async ()
 });
 
 test('keeps two paths under one origin distinguishable and ordered', async () => {
+  const requests: { readonly url: string; readonly method: string | undefined }[] = [];
   const probe = Layer.succeed(
     EndpointProbe,
-    makeEndpointProbe(() => Promise.resolve(new Response(null, { status: 204 }))),
+    makeEndpointProbe((input, init) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input;
+      requests.push({ url, method: init?.method });
+
+      return Promise.resolve(new Response(null, { status: 204 }));
+    }),
   );
   const results = await Effect.runPromise(
     checkEndpoints({
@@ -351,6 +364,9 @@ test('keeps two paths under one origin distinguishable and ordered', async () =>
     { _tag: 'EndpointHealthy', id: 'primary-api', status: 204 },
     { _tag: 'EndpointHealthy', id: 'secondary-api', status: 204 },
   ]);
+  expect(requests).toHaveLength(2);
+  expect(requests).toContainEqual({ url: 'https://example.com/health/primary', method: 'HEAD' });
+  expect(requests).toContainEqual({ url: 'https://example.com/health/secondary', method: 'HEAD' });
 });
 
 test('changing transport URL does not change the logical endpoint identity', async () => {
@@ -475,6 +491,106 @@ test('classifies an actual 503 response as retryable service unavailability', as
   expect(result).toEqual({ _tag: 'EndpointHealthy', id: 'primary-api', status: 204 });
 });
 
+test('classifies redirect edges, rejected statuses, and overload with the target identity', async () => {
+  for (const status of [300, 399, 400, 503, 599]) {
+    const probe = makeEndpointProbe(() => Promise.resolve(new Response(null, { status })));
+    const exit = await Effect.runPromiseExit(probe.head(checkedTarget('primary-api', 'https://example.com')));
+
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
+
+      expect(failure).toMatchObject({
+        _tag: status < 400 ? 'EndpointRedirectRejected' : status === 503 ? 'TransientProbeError' : 'EndpointRejected',
+        targetId: 'primary-api',
+        ...(status === 503 ? {} : { status }),
+      });
+      expect(Cause.hasDies(exit.cause)).toBe(false);
+      expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
+    }
+  }
+});
+
+test('transport rejection retains the target identity and discards the native failure', async () => {
+  const probe = makeEndpointProbe(() => Promise.reject(new Error('private-transport-detail')));
+  const exit = await Effect.runPromiseExit(probe.head(checkedTarget('primary-api', 'https://example.com')));
+
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    const failure = Option.getOrThrow(Cause.findErrorOption(exit.cause));
+
+    expect(failure).toMatchObject({ _tag: 'ProbeTransportError', targetId: 'primary-api' });
+    expect(JSON.stringify(failure)).not.toContain('private-transport-detail');
+    expect(Cause.hasDies(exit.cause)).toBe(false);
+    expect(Cause.hasInterruptsOnly(exit.cause)).toBe(false);
+  }
+});
+
+test('the default probe layer resolves its namespaced key and forwards HEAD to native fetch', async () => {
+  const requests: { readonly method: string; readonly url: string }[] = [];
+  const server = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch(request) {
+      requests.push({ method: request.method, url: request.url });
+
+      return new Response(null, { status: 204 });
+    },
+  });
+  const url = new URL('/health?probe=one', server.url);
+  const probeKey = Context.Service<EndpointProbe, EndpointProbeService>('project-name/EndpointProbe');
+
+  try {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const context = yield* Layer.build(EndpointProbe.layer);
+        const probe = Context.get(context, probeKey);
+
+        return yield* probe.head(checkedTarget('local-probe', url.href));
+      }).pipe(Effect.scoped),
+    );
+
+    expect(result).toEqual({ _tag: 'EndpointHealthy', id: 'local-probe', status: 204 });
+    expect(requests).toEqual([{ method: 'HEAD', url: url.href }]);
+  } finally {
+    await server.stop(true);
+  }
+});
+
+test('workflow tracing names owned operations without embedding transport detail', async () => {
+  const names: string[] = [];
+  const tracer = Tracer.make({
+    span(options) {
+      names.push(options.name);
+
+      return new Tracer.NativeSpan(options);
+    },
+  });
+  const probe = Layer.succeed(
+    EndpointProbe,
+    makeEndpointProbe(() => Promise.resolve(new Response(null, { status: 204 }))),
+  );
+  await Effect.runPromise(
+    checkEndpoints(oneTarget('primary-api', 'https://example.com/private-path?private-query')).pipe(
+      Effect.provide(probe),
+      Effect.flatMap(encodeEndpointResults),
+      Effect.withSpan('caller-operation'),
+      Effect.withTracer(tracer),
+    ),
+  );
+
+  for (const name of [
+    'project-name/endpoint-checker.check',
+    'project-name/endpoint-checker.decode-policy',
+    'project-name/endpoint-checker.decode-request',
+    'project-name/EndpointProbe.head',
+    'project-name/endpoint-checker.encode-results',
+  ]) {
+    expect(names).toContain(name);
+  }
+  expect(names.some((name) => name.includes('private-path') || name.includes('private-query'))).toBe(false);
+});
+
 test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal', async () => {
   const started = Promise.withResolvers<undefined>();
   let adapterSignal: AbortSignal | undefined;
@@ -521,7 +637,12 @@ test('per-attempt timeout returns AttemptTimedOut and aborts the adapter signal'
   expect(adapterSignal?.aborted).toBe(true);
   expect(Exit.isFailure(result)).toBe(true);
   if (Exit.isFailure(result)) {
-    expect(Option.getOrThrow(Cause.findErrorOption(result.cause))._tag).toBe('AttemptTimedOut');
+    const failure = Option.getOrThrow(Cause.findErrorOption(result.cause));
+
+    expect(failure._tag).toBe('AttemptTimedOut');
+    if (failure._tag === 'AttemptTimedOut') {
+      expect(failure.targetId).toBe('primary-api');
+    }
   }
 });
 
@@ -606,6 +727,7 @@ test('a non-retryable status rejection executes once', async () => {
 
 test('collects every expected endpoint outcome and preserves input order', async () => {
   const attempted: string[] = [];
+  const slowStarted = Promise.withResolvers<undefined>();
   const probe = Layer.succeed(EndpointProbe, {
     head: (target) => {
       attempted.push(target.id);
@@ -615,29 +737,51 @@ test('collects every expected endpoint outcome and preserves input order', async
           return Effect.fail(new TransientProbeError({ targetId: target.id }));
         case 'rejected':
           return Effect.fail(new EndpointRejected({ status: 429, targetId: target.id }));
+        case 'redirected':
+          return Effect.fail(new EndpointRedirectRejected({ status: 307, targetId: target.id }));
+        case 'disconnected':
+          return Effect.fail(new ProbeTransportError({ targetId: target.id }));
+        case 'slow':
+          slowStarted.resolve(undefined);
+
+          return Effect.never;
         default:
           return Effect.succeed(healthy(target));
       }
     },
   });
   const results = await Effect.runPromise(
-    checkEndpoints(
-      {
-        endpoints: [
-          { id: 'temporary', url: 'https://example.com/temporary' },
-          { id: 'healthy', url: 'https://example.com/healthy' },
-          { id: 'rejected', url: 'https://example.com/rejected' },
-        ],
-      },
-      { ...defaultCheckPolicy, concurrency: 1, retries: 0 },
-    ).pipe(Effect.provide(probe)),
+    Effect.gen(function* () {
+      const fiber = yield* checkEndpoints(
+        {
+          endpoints: [
+            { id: 'temporary', url: 'https://example.com/temporary' },
+            { id: 'healthy', url: 'https://example.com/healthy' },
+            { id: 'rejected', url: 'https://example.com/rejected' },
+            { id: 'redirected', url: 'https://example.com/redirected' },
+            { id: 'disconnected', url: 'https://example.com/disconnected' },
+            { id: 'slow', url: 'https://example.com/slow' },
+          ],
+        },
+        { ...defaultCheckPolicy, concurrency: 1, retries: 0, attemptTimeoutMilliseconds: 100 },
+      ).pipe(Effect.provide(probe), Effect.forkChild);
+
+      yield* Effect.promise(() => slowStarted.promise);
+      yield* waitForScheduledSleep(100);
+      yield* TestClock.adjust('100 millis');
+
+      return yield* Fiber.join(fiber);
+    }).pipe(Effect.provide(testClockLayer)),
   );
 
-  expect(attempted).toEqual(['temporary', 'healthy', 'rejected']);
+  expect(attempted).toEqual(['temporary', 'healthy', 'rejected', 'redirected', 'disconnected', 'slow']);
   expect(results).toEqual([
     { _tag: 'EndpointUnavailable', id: 'temporary', reason: 'service-unavailable' },
     { _tag: 'EndpointHealthy', id: 'healthy', status: 204 },
     { _tag: 'EndpointRejected', id: 'rejected', status: 429 },
+    { _tag: 'EndpointRedirectRejected', id: 'redirected', status: 307 },
+    { _tag: 'EndpointUnavailable', id: 'disconnected', reason: 'transport' },
+    { _tag: 'EndpointTimedOut', id: 'slow' },
   ]);
 });
 
@@ -858,33 +1002,6 @@ test('external interruption revokes normal result publication even when fetch ig
   expect(publications).toBe(0);
 });
 
-test('public and telemetry projections are separate, allowlisted, and actionable', () => {
-  const publicFailure = projectCheckFailure(new InvalidCheckPolicy({ reason: 'secret configuration detail' }));
-  const telemetry = projectCheckDiagnostic(new TransientProbeError({ targetId: 'primary-api' }));
-
-  expect(publicFailure).toEqual({
-    code: 'internal_error',
-    message: 'The endpoint checker is misconfigured.',
-    retryDisposition: 'never',
-  });
-  expect(telemetry).toEqual({
-    failureKind: 'endpoint-unavailable',
-    operation: 'endpoint-check',
-    resource: 'primary-api',
-    statusClass: '5xx',
-  });
-  expect(JSON.stringify({ publicFailure, telemetry })).not.toContain('secret configuration detail');
-  expect('retryable' in publicFailure).toBe(false);
-});
-
-test('safe telemetry classifies disallowed endpoints without losing their stable identity', () => {
-  expect(projectCheckDiagnostic(new EndpointNotAllowed({ targetId: 'primary-api' }))).toEqual({
-    failureKind: 'endpoint-not-allowed',
-    operation: 'endpoint-check',
-    resource: 'primary-api',
-  });
-});
-
 test('safe telemetry drops unsafe internal detail instead of using it for classification', () => {
   const query = ['query', 'sentinel'].join('-');
   const header = ['header', 'sentinel'].join('-');
@@ -914,18 +1031,6 @@ test('a defect diagnostic remains distinct from an expected endpoint failure', (
   );
 });
 
-test('Schema-encodes the public outcome and rejects an impossible healthy status', async () => {
-  const healthyOutcome = { _tag: 'EndpointHealthy' as const, id: 'primary-api', status: 204 };
-  const encoded = await Effect.runPromise(encodeEndpointResults([healthyOutcome]));
-  const invalidExit = await Effect.runPromiseExit(encodeEndpointResults([{ ...healthyOutcome, status: 503 }]));
-
-  expect(encoded).toEqual([healthyOutcome]);
-  expect(Exit.isFailure(invalidExit)).toBe(true);
-  if (Exit.isFailure(invalidExit)) {
-    expect(Option.getOrThrow(Cause.findErrorOption(invalidExit.cause))._tag).toBe('SchemaError');
-  }
-});
-
 test('Schema-encodes both unavailable reasons and rejects an unknown reason', async () => {
   const unavailable = [
     { _tag: 'EndpointUnavailable' as const, id: 'primary-api', reason: 'service-unavailable' as const },
@@ -938,16 +1043,4 @@ test('Schema-encodes both unavailable reasons and rejects an unknown reason', as
 
   expect(encoded).toEqual(unavailable);
   expect(Exit.isFailure(unknownReason)).toBe(true);
-});
-
-test('Schema rejects success and overload statuses in the rejected-outcome branch', async () => {
-  const successfulStatus = await Effect.runPromiseExit(
-    encodeEndpointResults([{ _tag: 'EndpointRejected', id: 'primary-api', status: 204 }]),
-  );
-  const separatelyClassifiedStatus = await Effect.runPromiseExit(
-    encodeEndpointResults([{ _tag: 'EndpointRejected', id: 'primary-api', status: 503 }]),
-  );
-
-  expect(Exit.isFailure(successfulStatus)).toBe(true);
-  expect(Exit.isFailure(separatelyClassifiedStatus)).toBe(true);
 });

@@ -27,8 +27,8 @@
     "typecheck": "tsc --pretty -p tsconfig.json"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.0-rc.118",
-    "effect": "4.0.0-rc.118"
+    "@effect/platform-bun": "4.0.0",
+    "effect": "4.0.0"
   },
   "devDependencies": {
     "@effect/language-service": "0.87.3",

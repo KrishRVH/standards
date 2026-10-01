@@ -54,7 +54,7 @@ export default {
   concurrency: 4,
   reporters: ['clear-text', 'progress', 'json'],
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
-  thresholds: { high: 80, low: 60, break: 66 },
+  thresholds: { high: 80, low: 60, break: 99 },
   timeoutMS: 30000,
   bun: { timeout: 60000, testFiles },
 };

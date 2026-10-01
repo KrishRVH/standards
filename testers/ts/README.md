@@ -7,14 +7,14 @@ project guide.
 
 The tested dependency set is exact:
 
-| Package/runtime            | Version      |
-| -------------------------- | ------------ |
-| `effect`                   | 4.0.0-rc.118 |
-| `@effect/platform-bun`     | 4.0.0-rc.118 |
-| `@effect/language-service` | 0.87.3       |
-| TypeScript                 | 6.0.3        |
-| Bun                        | 1.4.2        |
-| `@types/bun`               | 1.4.2        |
+| Package/runtime            | Version |
+| -------------------------- | ------- |
+| `effect`                   | 4.0.0   |
+| `@effect/platform-bun`     | 4.0.0   |
+| `@effect/language-service` | 0.87.3  |
+| TypeScript                 | 6.0.3   |
+| Bun                        | 1.4.2   |
+| `@types/bun`               | 1.4.2   |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version.
@@ -25,11 +25,6 @@ release in lockstep, so keep `effect` and `@effect/platform-bun` on the same
 version; `@effect/language-service` is versioned separately. The
 [published-library overlay](docs/effect/overlays/published-library.md) defines
 the deliberate peer/range alternative.
-
-The pin is the `4.0.0-rc.118` release candidate because
-`@effect/platform-bun@4.0.0` requires `effect@4.0.0`, which npm does not serve.
-Move both packages to the first published 4.x stable through the routine
-upgrade below.
 
 ## Pinned baseline, not a freeze
 
@@ -116,7 +111,10 @@ The canonical endpoint checker is intentionally small:
 - `tests/endpoint-checker.test.ts` asserts exact policy and SchemaError
   failures, target identity, normalized destination rejection, redirect
   classification, cancellation, attempts, non-retry, batch outcomes,
-  concurrency, encoding, and redaction-safe projection behavior.
+  concurrency, native adapter behavior, and operation tracing.
+- `tests/endpoint-contracts.test.ts` verifies ID validation, wire outcome
+  classifications, encoding, and exact redaction-safe public and telemetry
+  projections.
 - `tests/endpoint-properties.test.ts` holds the trust-boundary property
   tests; a counterexample found by a run is pinned there as a deterministic
   example.

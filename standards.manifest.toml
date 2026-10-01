@@ -426,6 +426,7 @@ mirror = [
   "src/main.ts",
   "stryker.config.mjs",
   "tests/endpoint-checker.test.ts",
+  "tests/endpoint-contracts.test.ts",
   "tests/endpoint-properties.test.ts",
   "tests/support/test-clock.ts",
   "tsconfig.json",

@@ -1,4 +1,4 @@
-import { Duration, Effect, Schema } from 'effect';
+import { Duration, Effect, Result, Schema } from 'effect';
 
 import { InvalidCheckPolicy, maximumEndpoints } from './endpoint-contracts.js';
 
@@ -8,9 +8,7 @@ const maximumRetries = 5;
 const PolicyMilliseconds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: maximumPolicyMilliseconds }));
 const RetryDelayMilliseconds = Schema.Int.check(
   Schema.isBetween({ minimum: 0, maximum: maximumPolicyMilliseconds }),
-  Schema.makeFilter((milliseconds) => !Object.is(milliseconds, -0), {
-    description: 'a non-negative millisecond count excluding negative zero',
-  }),
+  Schema.makeFilter((milliseconds) => !Object.is(milliseconds, -0)),
 );
 
 export const CheckPolicyInput = Schema.Struct({
@@ -42,30 +40,26 @@ export const defaultCheckPolicy: CheckPolicyInput = {
   totalDeadlineMilliseconds: 7_000,
 };
 
-type PolicyNormalization =
-  | { readonly _tag: 'Invalid'; readonly reason: string }
-  | { readonly _tag: 'Valid'; readonly policy: CheckedPolicy };
-
 function normalizeAllowedOrigin(input: string): string | undefined {
-  try {
-    const url = new URL(input);
-    const isOriginOnly = url.pathname === '/' && url.search === '' && url.hash === '';
-    const isSafeHttpsOrigin = url.protocol === 'https:' && url.username === '' && url.password === '' && isOriginOnly;
-
-    return isSafeHttpsOrigin ? url.origin : undefined;
-  } catch {
+  if (!URL.canParse(input)) {
     return undefined;
   }
+
+  const url = new URL(input);
+  const isOriginOnly = url.pathname === '/' && url.search === '' && url.hash === '';
+  const isSafeHttpsOrigin = url.protocol === 'https:' && url.username === '' && url.password === '' && isOriginOnly;
+
+  return isSafeHttpsOrigin ? url.origin : undefined;
 }
 
 // This is a total plain-TypeScript calculation. Effect begins when its result
 // enters the typed failure channel below.
-function normalizePolicy(input: CheckPolicyInput): PolicyNormalization {
+function normalizePolicy(input: CheckPolicyInput): Result.Result<CheckedPolicy, string> {
   const origins: string[] = [];
   for (const inputOrigin of input.allowedOrigins) {
     const origin = normalizeAllowedOrigin(inputOrigin);
     if (origin === undefined) {
-      return { _tag: 'Invalid', reason: 'allowedOrigins must contain only HTTPS origin values without credentials' };
+      return Result.fail('allowedOrigins must contain only HTTPS origin values without credentials');
     }
 
     origins.push(origin);
@@ -73,20 +67,17 @@ function normalizePolicy(input: CheckPolicyInput): PolicyNormalization {
 
   const uniqueOrigins = new Set(origins);
   if (uniqueOrigins.size !== origins.length) {
-    return { _tag: 'Invalid', reason: 'allowedOrigins must be unique after normalization' };
+    return Result.fail('allowedOrigins must be unique after normalization');
   }
 
-  return {
-    _tag: 'Valid',
-    policy: {
-      allowedOrigins: uniqueOrigins,
-      attemptTimeout: Duration.millis(input.attemptTimeoutMilliseconds),
-      concurrency: input.concurrency,
-      retries: input.retries,
-      retryDelay: Duration.millis(input.retryDelayMilliseconds),
-      totalDeadline: Duration.millis(input.totalDeadlineMilliseconds),
-    },
-  };
+  return Result.succeed({
+    allowedOrigins: uniqueOrigins,
+    attemptTimeout: Duration.millis(input.attemptTimeoutMilliseconds),
+    concurrency: input.concurrency,
+    retries: input.retries,
+    retryDelay: Duration.millis(input.retryDelayMilliseconds),
+    totalDeadline: Duration.millis(input.totalDeadlineMilliseconds),
+  });
 }
 
 const decodePolicyInput = Schema.decodeUnknownEffect(CheckPolicyInput, { onExcessProperty: 'error' });
@@ -98,9 +89,9 @@ export const decodeCheckPolicy = Effect.fn('project-name/endpoint-checker.decode
     ),
   );
   const normalized = normalizePolicy(decoded);
-  if (normalized._tag === 'Invalid') {
-    return yield* new InvalidCheckPolicy({ reason: normalized.reason });
+  if (Result.isFailure(normalized)) {
+    return yield* new InvalidCheckPolicy({ reason: normalized.failure });
   }
 
-  return normalized.policy;
+  return normalized.success;
 });

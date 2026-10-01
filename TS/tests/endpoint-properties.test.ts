@@ -43,8 +43,17 @@ test('informational rejected statuses carry no status class', () => {
 
       expect(diagnostic.failureKind).toBe('endpoint-rejected');
       expect(diagnostic.statusClass).toBeUndefined();
+      expect(Object.hasOwn(diagnostic, 'statusClass')).toBe(false);
     }),
   );
+});
+
+test('diagnostic status classes exclude values outside HTTP error ranges', () => {
+  for (const status of [99, 200, 399, 600]) {
+    const diagnostic = projectCheckDiagnostic(new EndpointRejected({ status, targetId: 'primary-api' }));
+
+    expect(Object.hasOwn(diagnostic, 'statusClass')).toBe(false);
+  }
 });
 
 test('valid bounded policies decode with exact durations and normalized unique origins', async () => {
