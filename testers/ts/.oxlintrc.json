@@ -15,7 +15,7 @@
     "**/.stryker-tmp/**",
     "**/type-tests/**"
   ],
-  "plugins": ["import", "oxc", "unicorn"],
+  "plugins": [],
   "jsPlugins": [
     "eslint-plugin-regexp",
     {
