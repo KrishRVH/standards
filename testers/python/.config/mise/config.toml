@@ -5,7 +5,7 @@ lockfile = true
 
 [tools]
 gitleaks = "8.30.1"
-syft = "1.52.0"
+syft = "1.54.0"
 
 [tasks.secrets]
 description = "Scan the working tree for secrets"

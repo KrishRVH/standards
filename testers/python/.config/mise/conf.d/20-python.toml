@@ -5,7 +5,7 @@ UV_PYTHON_DOWNLOADS = "never"
 
 [tools]
 python = "3.14.7"
-uv = "0.12.19"
+uv = "0.12.21"
 
 [tasks."py:install"]
 description = "Install Python dependencies"

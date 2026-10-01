@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@mdx-js/mdx": "^3.1.1",
-    "@shikijs/rehype": "^4.4.3",
+    "@shikijs/rehype": "^4.5.0",
     "js-yaml": "^5.4.2",
     "markdownlint-cli2": "^0.23.3",
     "prettier": "^3.9.9",
