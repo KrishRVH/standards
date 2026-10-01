@@ -5,8 +5,8 @@ and wins where the two differ.
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
 `Dagger/`, `C#/`, `Go/`, `Kotlin/`, `Markdown/`, `Python/`, `Rust/`, `Shell/`,
-and `TS/`. Root docs/config maintain this repo. `testers/` smoke-test copied
-standards for every profile. The dormant `standards-archive` repository owns
+`Swift/`, and `TS/`. Root docs/config maintain this repo. `testers/` smoke-test
+copied standards for every profile. The dormant `standards-archive` repository owns
 the other profiles and an independent shared-tooling snapshot.
 
 ## Principles
@@ -49,12 +49,12 @@ to it. Gates run locally before push, and hosted runs are dispatched on
 demand.
 
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
-`Python/.github/`) ship automatic triggers for downstream copies only; they
-are inert here because GitHub executes workflows only from the root
+`Python/.github/`, `Swift/.github/`) ship automatic triggers for downstream
+copies only; they are inert here because GitHub executes workflows only from the root
 `.github/workflows/`. `scripts/check-profile-governance.mjs` validates workflow
 YAML with actionlint, then parses it to enforce automatic triggers, one
 `quality` job, hardened checkout, immutable action pins, CODEOWNERS, and related
-host-setting and pull-request guidance across all four templates.
+host-setting and pull-request guidance across the automatic templates.
 `testers/ts/tests/quality-workflow.test.ts` separately enforces the root
 workflow's manual-only contract and the TypeScript-specific workflow behavior.
 

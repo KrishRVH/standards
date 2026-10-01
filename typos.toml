@@ -5,6 +5,7 @@ locale = "en-us"
 
 [files]
 extend-exclude = [
+  ".build",
   ".cache",
   ".godot",
   ".gradle",

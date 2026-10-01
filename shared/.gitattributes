@@ -66,6 +66,7 @@
 *.php text diff=php
 *.roc text
 *.rs text
+*.swift text
 *.zig text
 *.zon text
 
@@ -93,6 +94,7 @@ Makefile text
 *.ini text
 *.json text
 *.json5 text
+Package.resolved text
 *.jsonc text
 *.lock text
 *.neon text

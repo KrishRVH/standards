@@ -104,6 +104,22 @@ mirror = [
   "tests/project-name.bats",
 ]
 
+[profiles.swift]
+name = "Swift"
+template = "Swift"
+tester = "testers/swift"
+task_prefix = "swift"
+task_fragment = "20-swift.toml"
+mirror = [
+  ".github/CODEOWNERS",
+  ".github/pull_request_template.md",
+  ".github/workflows/quality.yml",
+  ".swift-format",
+  "AGENTS.md",
+  "Package.swift",
+  "README.md",
+]
+
 [profiles.ts]
 name = "TypeScript"
 template = "TS"

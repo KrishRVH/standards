@@ -133,6 +133,7 @@ setup() {
   local workspace="${BATS_TEST_TMPDIR}/nested-generated"
   local directory
   local -a generated_directories=(
+    "${workspace}/project/.build/checkouts/dependency"
     "${workspace}/project/.godot/generated"
     "${workspace}/project/.lua_modules/share"
     "${workspace}/project/.venv/bin"

@@ -88,6 +88,7 @@ test('ignores generated directories in Git repositories', () => {
     {
       'docs/example.md': '# Hello\n',
       'node_modules/invalid.mdx': '# Hello\n\n<Component\n',
+      '.build/checkouts/dependency/invalid.mdx': '# Hello\n\n<Component\n',
     },
     { git: true },
   );

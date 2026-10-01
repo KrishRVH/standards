@@ -4,7 +4,7 @@ Copy only the parts your project needs. This repository is a catalog, not an
 installable package. Its templates cover formatting, linting, static analysis,
 tests, dependency hygiene, and repeatable CI gates.
 
-The maintained profiles are C#, Rust, Python, TypeScript, Shell, Go, Kotlin,
+The maintained profiles are C#, Rust, Python, TypeScript, Shell, Go, Kotlin, Swift,
 and Markdown/MDX. The secondary repository,
 [standards-archive](https://github.com/KrishRVH/standards-archive), preserves
 the other profiles as a dormant catalog.
@@ -158,6 +158,10 @@ Copy each language or tooling folder that the project needs:
   testing, and an agent-driven development doctrine in its `AGENTS.md`.
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
+- `Swift/` — a SwiftPM baseline with a pinned Swift toolchain, native
+  swift-format linting, Swift 6 concurrency checking, warnings as errors,
+  strict memory-safety diagnostics, locked dependency resolution, Swift Testing,
+  coverage reports, and automatic downstream CI.
 - `TS/` — selectively Effect v4-enabled, Bun-backed TypeScript with strict `tsc`,
   typed Oxlint plus Oxfmt as the primary workflow, Effect Schema boundaries
   and diagnostics, semantic and negative tests, mutation testing and knip
@@ -248,7 +252,7 @@ targeted local gates for routine catalog maintenance. Use the aggregate gate
 for releases, CI, and cross-cutting validation. Dispatch hosted runs on demand
 to control CI spending.
 
-The Rust, TypeScript, C#, and Python profiles each contain a copyable
+The Rust, TypeScript, C#, Python, and Swift profiles each contain a copyable
 workflow for downstream projects. Those run automatically for pull requests,
 merge-queue groups, and pushes to `main`, and also support manual dispatch.
 All the workflows use the same locked command surface and pin the locally

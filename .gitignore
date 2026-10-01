@@ -189,6 +189,15 @@ cabal.project.local~
 *.tix
 *.eventlog
 
+# Swift / Xcode generated output
+/.build/
+/testers/**/.build/
+/.swiftpm/cache/
+/testers/**/.swiftpm/cache/
+/DerivedData/
+*.xcuserstate
+xcuserdata/
+
 # JavaScript / TypeScript
 *.tsbuildinfo
 .eslintcache

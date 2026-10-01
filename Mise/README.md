@@ -99,9 +99,11 @@ constrain tools from a developer's global mise configuration.
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C#, Go, Kotlin,
-Markdown/MDX, Python, Rust, Shell, and TypeScript when their project files are
+Markdown/MDX, Python, Rust, Shell, Swift, and TypeScript when their project files are
 detected. Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`;
 TypeScript dispatch requires `package.json` plus `tsconfig.json`.
+Swift dispatch requires `Package.swift`; Xcode app gates need explicit
+project-specific task relationships.
 
 Each language fragment expresses static workflow composition with native mise
 dependencies and structured task references. Shared install, restore,
@@ -136,3 +138,9 @@ Cargo command in workspace and locked modes, builds docs with rustdoc warnings
 denied, and runs the tests with cargo-nextest plus the doctests. Its
 `[tools]` pin cargo-deny through aqua and cargo-machete, cargo-nextest, and
 cargo-mutants through their GitHub release binaries.
+
+The Swift task file uses the native Swift backend and requires mise 2026.9.18
+or newer. The pinned toolchain includes SwiftPM, Swift Testing, and swift-format.
+The gate serializes release compilation and tests with coverage, using locked
+dependency resolution. Read [the Swift profile](../Swift/README.md) for
+distribution-specific Linux locks and Apple-platform adoption.

@@ -1,0 +1,50 @@
+# The native Swift backend and its distro-aware locks are tested with this mise.
+min_version = "2026.9.18"
+
+[tools]
+swift = "6.4.0"
+
+[tasks."swift:lock"]
+description = "Resolve Swift dependencies after manifest changes"
+run = "swift package resolve"
+
+[tasks."swift:update"]
+description = "Upgrade Swift dependencies within manifest requirements"
+run = "swift package update"
+
+[tasks."swift:fmt"]
+description = "Format the Swift manifest, source, and tests"
+run = "swift format format --configuration .swift-format --in-place --recursive Package.swift src tests"
+
+[tasks."swift:fmt:check"]
+description = "Check Swift formatting and source lint rules"
+run = "swift format lint --configuration .swift-format --strict --recursive Package.swift src tests"
+
+[tasks."swift:lint"]
+description = "Compile Swift release products with locked dependencies and strict target settings"
+run = "swift build --configuration release --force-resolved-versions --jobs 4"
+
+[tasks."swift:test"]
+description = "Run Swift tests with locked dependencies"
+run = "swift test --force-resolved-versions --jobs 4"
+
+[tasks."swift:cover"]
+description = "Run Swift tests and export native coverage under .build"
+run = "swift test --force-resolved-versions --jobs 4 --enable-code-coverage"
+
+[tasks."swift:standards"]
+description = "Run the Swift standards workflow with autofixes"
+run = [
+  { task = "swift:fmt" },
+  { task = "swift:lock" },
+]
+
+[tasks."swift:standards:check"]
+description = "Run the Swift standards CI gate"
+# SwiftPM operations share .build and Package.resolved. Run them sequentially
+# to avoid package-lock contention.
+run = [
+  { task = "swift:fmt:check" },
+  { task = "swift:lint" },
+  { task = "swift:cover" },
+]

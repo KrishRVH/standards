@@ -70,6 +70,10 @@ if [ -f go.mod ]; then
   dispatch go
 fi
 
+if [ -f Package.swift ]; then
+  dispatch swift
+fi
+
 if [ -f settings.gradle.kts ] || [ -f build.gradle.kts ]; then
   dispatch kotlin
 fi

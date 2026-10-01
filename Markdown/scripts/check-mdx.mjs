@@ -13,6 +13,7 @@ const SKIP_DIRECTORIES = new Set([
   '.cache',
   '.git',
   '.godot',
+  '.build',
   '.gradle',
   '.kotlin',
   '.lua_modules',

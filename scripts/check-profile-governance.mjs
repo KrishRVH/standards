@@ -7,7 +7,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const AUTOMATIC_PROFILE_PATHS = {
+const MUTATION_PROFILE_PATHS = {
   csharp: [
     '.github/CODEOWNERS',
     'src/Project/Service.cs',
@@ -29,6 +29,14 @@ const AUTOMATIC_PROFILE_PATHS = {
     'packages/app/src/index.ts',
     'src/index.ts',
     'tests/service.test.ts',
+  ],
+};
+const AUTOMATIC_PROFILE_PATHS = {
+  ...MUTATION_PROFILE_PATHS,
+  swift: [
+    '.github/CODEOWNERS',
+    'src/Project/Port.swift',
+    'tests/ProjectTests/PortTests.swift',
   ],
 };
 const FULL_COMMIT_SHA = /^[0-9a-f]{40}$/u;
@@ -487,9 +495,10 @@ async function checkAutomaticProfileGovernance() {
       .split(/\s+/u)
       .join(' ');
     if (
-      !pullRequestTemplate.includes('surviv') ||
-      !pullRequestTemplate.includes('source reason') ||
-      !['classified', 'ignored', 'skipped'].some((word) => pullRequestTemplate.includes(word))
+      Object.hasOwn(MUTATION_PROFILE_PATHS, profileId) &&
+      (!pullRequestTemplate.includes('surviv') ||
+        !pullRequestTemplate.includes('source reason') ||
+        !['classified', 'ignored', 'skipped'].some((word) => pullRequestTemplate.includes(word)))
     ) {
       errors.push(
         `${profileId}: ${displayPath(pullRequestTemplatePath)} must request both surviving ` +

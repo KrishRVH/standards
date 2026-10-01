@@ -30,6 +30,7 @@ AGGREGATE_MARKER_CASES = {
     "py": ("pyproject.toml",),
     "rust": ("Cargo.toml",),
     "shell": (".shellcheckrc",),
+    "swift": ("Package.swift",),
     "ts": ("package.json", "tsconfig.json"),
 }
 DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")

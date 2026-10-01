@@ -10,7 +10,7 @@ project_files() {
     git ls-files -coz --exclude-standard
   else
     find . \
-      -type d \( -name .cache -o -name .elixir_ls -o -name .git \
+      -type d \( -name .build -o -name .cache -o -name .elixir_ls -o -name .git \
       -o -name .godot -o -name .gradle -o -name .kotlin \
       -o -name .lua-language-server -o -name .lua_modules \
       -o -name .next -o -name .nuxt -o -name .phpstan.cache \

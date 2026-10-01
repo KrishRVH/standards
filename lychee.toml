@@ -3,6 +3,7 @@ include_verbatim = false
 no_progress = true
 
 exclude_path = [
+  "(^|/)\\.build/",
   "(^|/)\\.cache/",
   "(^|/)\\.godot/",
   "(^|/)\\.gradle/",

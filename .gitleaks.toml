@@ -6,6 +6,7 @@ useDefault = true
 [allowlist]
 description = "Generated dependency, build, cache, and release-output paths"
 paths = [
+  '''(^|/)\.build/''',
   '''(^|/)\.cache/''',
   '''(^|/)\.elixir_ls/''',
   '''(^|/)\.git/''',
