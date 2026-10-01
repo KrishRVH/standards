@@ -115,7 +115,8 @@ workflow's manual-only contract and the TypeScript-specific workflow behavior.
 
 ## Editing
 
-- Make the smallest coherent change that solves the task.
+- Make the smallest coherent change that solves the task. Record a
+  catalog-wide proposal that is not worth its churn yet in `docs/IDEAS.md`.
 - Root files and `.config/mise/`: repo maintenance.
 - `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
 - Template ignore, attribute, and allowlist files carry broad, generally useful

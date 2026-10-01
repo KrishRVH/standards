@@ -77,7 +77,8 @@ templates, tester fixtures, task fragments, exact mirror files, and the shared
 files a fixture copies.
 
 Root `AGENTS.md`, `.gitignore`, `.gitattributes`, and `.config/mise/` govern
-this repository; they are not project defaults.
+this repository; they are not project defaults. `docs/IDEAS.md` holds deferred
+catalog-wide proposals.
 
 ## Create a Project Baseline
 
