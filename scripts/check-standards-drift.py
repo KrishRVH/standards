@@ -4,6 +4,7 @@
 import filecmp
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -216,6 +217,37 @@ def check_mise_lockfiles(profiles: dict[str, dict[str, object]]) -> list[str]:
         lockfile = ROOT / str(profile["tester"]) / ".config" / "mise" / "mise.lock"
         if not lockfile.is_file():
             errors.append(f"{profile_id}: missing fixture mise lockfile {rel(lockfile)}")
+    return errors
+
+
+def check_runner_distribution_locks(profiles: dict[str, dict[str, object]]) -> list[str]:
+    """A distribution-specific toolchain lock must cover the copied workflow's runner.
+
+    mise rewrites the fixture lock for the host distribution on install, which
+    can drop the CI runner's entry.
+    """
+    errors: list[str] = []
+    for profile_id, profile in profiles.items():
+        workflow = ROOT / str(profile["template"]) / ".github" / "workflows" / "quality.yml"
+        lockfile = ROOT / str(profile["tester"]) / ".config" / "mise" / "mise.lock"
+        if not workflow.is_file() or not lockfile.is_file():
+            continue
+        runner = re.search(r"^\s*runs-on:\s*ubuntu-(\d+)\.(\d+)\s*$", workflow.read_text(encoding="utf-8"), re.M)
+        if runner is None:
+            continue
+        expected = f"ubuntu{runner[1]}.{runner[2]}"
+        for tool, entries in load_toml(lockfile).get("tools", {}).items():
+            if not isinstance(entries, list):
+                continue
+            platforms = {
+                entry.get("options", {}).get(f"{tool}_platform") for entry in entries if isinstance(entry, dict)
+            } - {None}
+            if platforms and expected not in platforms:
+                errors.append(
+                    f"{profile_id}: {rel(lockfile)} locks {tool} for {sorted(platforms)} but not the "
+                    f"workflow runner {expected}; from the fixture run "
+                    f"MISE_{tool.upper()}_PLATFORM={expected} mise lock --platform linux-x64"
+                )
     return errors
 
 
@@ -712,6 +744,7 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
 
     errors.extend(check_tester_inventory(profiles))
     errors.extend(check_mise_lockfiles(profiles))
+    errors.extend(check_runner_distribution_locks(profiles))
     errors.extend(check_aggregate_dispatch(profiles))
     errors.extend(check_root_mise_config(profiles))
     errors.extend(check_root_shared_files())

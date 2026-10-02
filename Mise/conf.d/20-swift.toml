@@ -3,6 +3,7 @@ min_version = "2026.9.18"
 
 [tools]
 swift = "6.4.0"
+"aqua:google/osv-scanner" = "2.6.0"
 
 [tasks."swift:lock"]
 description = "Resolve Swift dependencies after manifest changes"
@@ -13,24 +14,90 @@ description = "Upgrade Swift dependencies within manifest requirements"
 run = "swift package update"
 
 [tasks."swift:fmt"]
-description = "Format the Swift manifest, source, and tests"
-run = "swift format format --configuration .swift-format --in-place --recursive Package.swift src tests"
+description = "Format the Swift manifest, scripts, source, and tests"
+run = "swift format format --configuration .swift-format --in-place --recursive Package.swift scripts src tests"
 
 [tasks."swift:fmt:check"]
 description = "Check Swift formatting and source lint rules"
-run = "swift format lint --configuration .swift-format --strict --recursive Package.swift src tests"
+run = "swift format lint --configuration .swift-format --strict --recursive Package.swift scripts src tests"
+
+[tasks."swift:policy"]
+description = "Check target settings, reasoned exceptions, ambient APIs, and compiler walls"
+run = "swift -swift-version 6 scripts/verify-standards.swift policy"
 
 [tasks."swift:lint"]
 description = "Compile Swift release products with locked dependencies and strict target settings"
-run = "swift build --configuration release --force-resolved-versions --jobs 4"
+run = "swift build --configuration release --force-resolved-versions"
 
 [tasks."swift:test"]
 description = "Run Swift tests with locked dependencies"
-run = "swift test --force-resolved-versions --jobs 4"
+run = "swift test --force-resolved-versions"
 
 [tasks."swift:cover"]
-description = "Run Swift tests and export native coverage under .build"
-run = "swift test --force-resolved-versions --jobs 4 --enable-code-coverage"
+description = "Run Swift tests under Thread Sanitizer, require a test, and summarize coverage"
+run = """
+set -eu
+
+log="$(mktemp)"
+status_file="$(mktemp)"
+trap 'rm -f "$log" "$status_file"' EXIT
+# Stream the run so a hang or timeout still shows its output.
+{
+  status=0
+  swift test --force-resolved-versions --sanitize=thread --enable-code-coverage 2>&1 || status=$?
+  echo "$status" > "$status_file"
+} | tee "$log"
+status="$(cat "$status_file")"
+[ "$status" -eq 0 ] || exit "$status"
+codecov="$(swift test --force-resolved-versions --sanitize=thread --enable-code-coverage --show-codecov-path)"
+swift -swift-version 6 scripts/verify-standards.swift report "$log" "$codecov"
+"""
+
+[tasks."swift:audit"]
+description = "Audit resolved Swift dependencies for known vulnerabilities"
+run = """
+set -eu
+
+if [ ! -f Package.resolved ]; then
+  echo "No Package.resolved; the package has no resolved dependencies to audit."
+  exit 0
+fi
+status=0
+osv-scanner scan source --lockfile Package.resolved || status=$?
+# OSV-Scanner exits 128 when the lockfile pins no packages.
+if [ "$status" -eq 128 ]; then
+  echo "Package.resolved pins no packages to audit."
+  exit 0
+fi
+exit "$status"
+"""
+
+[tasks."swift:api:diff"]
+description = "Report public API breaking changes; default base prefers origin/main"
+run = """
+set -eu
+
+if [ -n "${API_BASE_REF:-}" ]; then
+  base_ref="$API_BASE_REF"
+  if ! base_commit="$(git rev-parse --verify --quiet "$base_ref^{commit}")"; then
+    echo "Cannot resolve explicit API_BASE_REF '$base_ref'." >&2
+    exit 1
+  fi
+elif base_commit="$(git rev-parse --verify --quiet 'refs/remotes/origin/main^{commit}')"; then
+  base_ref="origin/main"
+elif base_commit="$(git rev-parse --verify --quiet 'refs/heads/main^{commit}')"; then
+  base_ref="main"
+else
+  echo "Cannot resolve default base refs/remotes/origin/main or refs/heads/main." >&2
+  exit 1
+fi
+
+if ! merge_base="$(git merge-base HEAD "$base_commit")"; then
+  echo "Cannot compute a merge base with $base_ref. Fetch full history with git fetch --unshallow or git fetch origin main." >&2
+  exit 1
+fi
+swift package diagnose-api-breaking-changes "$merge_base"
+"""
 
 [tasks."swift:standards"]
 description = "Run the Swift standards workflow with autofixes"
@@ -45,6 +112,8 @@ description = "Run the Swift standards CI gate"
 # to avoid package-lock contention.
 run = [
   { task = "swift:fmt:check" },
+  { task = "swift:policy" },
   { task = "swift:lint" },
   { task = "swift:cover" },
+  { task = "swift:audit" },
 ]

@@ -118,6 +118,7 @@ mirror = [
   "AGENTS.md",
   "Package.swift",
   "README.md",
+  "scripts/verify-standards.swift",
 ]
 
 [profiles.ts]

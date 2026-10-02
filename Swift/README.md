@@ -1,7 +1,7 @@
 # Swift Standards
 
-Copy `Package.swift`, `.swift-format`, and `.github/` into a Swift Package
-Manager project. Merge `AGENTS.md` into the copied shared agent guide and put
+Copy `Package.swift`, `.swift-format`, `scripts/`, and `.github/` into a Swift
+Package Manager project. Merge `AGENTS.md` into the copied shared agent guide and put
 `Mise/conf.d/20-swift.toml` in `.config/mise/conf.d/20-swift.toml`. Replace
 `project-name`, `Project`, and `ProjectTests` with the package and module names.
 The manifest maps targets to the catalog's `src/` and `tests/` layout. Adapt
@@ -32,33 +32,76 @@ The standards workflow is:
 ```sh
 mise run swift:standards
 mise run swift:fmt:check
+mise run swift:policy
 mise run swift:lint
 mise run swift:test
 mise run swift:cover
+mise run swift:audit
+mise run swift:api:diff
 mise run swift:standards:check
 ```
 
-The gate checks formatting and source lint rules, builds optimized release
-products, then runs debug tests with coverage. It serializes SwiftPM commands
-because they share `.build` and dependency resolution state. Native coverage
-JSON is exported beneath `.build`; use `swift test --show-codecov-path` to find
-it. Coverage reports carry no percentage threshold.
+The gate checks formatting and source lint rules, runs the policy check, builds
+optimized release products, runs the tests under Thread Sanitizer with
+coverage, and audits resolved dependencies. It serializes SwiftPM commands
+because they share `.build` and dependency resolution state. `swift:cover`
+fails a run that executes no tests and prints line coverage for first-party
+sources; coverage carries no percentage threshold. Thread Sanitizer reports
+data races that `@unchecked Sendable` and other escape hatches let past the
+compiler.
 
 `Package.swift` selects Swift 6 mode, which includes complete concurrency
-checking. Each first-party source and test target uses native warnings-as-errors
-and [strict memory-safety
-checking](<https://developer.apple.com/documentation/packagedescription/swiftsetting/strictmemorysafety(_:)>).
+checking. Each first-party source and test target uses native warnings-as-errors,
+[strict memory-safety
+checking](<https://developer.apple.com/documentation/packagedescription/swiftsetting/strictmemorysafety(_:)>),
+and every upcoming feature that a later language mode enables by default.
 Reuse `strictSettings` when adding targets. These settings avoid `unsafeFlags`,
 which can make library products ineligible for downstream package dependencies.
 Memory-safety checking diagnoses unacknowledged unsafe constructs; it does not
 prove the safety of annotated operations or dependency implementations.
 
+`swift:policy` runs `scripts/verify-standards.swift` with the pinned toolchain.
+It reads targets through `swift package describe` and their settings through
+`swift package dump-package`. Every Swift library, executable, test, and macro
+target must carry unconditional warnings-as-errors, strict memory safety, and
+each required upcoming feature. The policy rejects `unsafeFlags` for any tool,
+`treatWarning`, a `treatAllWarnings` that is not an unconditional error, and a
+package or target language mode below Swift 6. It derives the required
+features from `swiftc -print-supported-features`, so a toolchain upgrade
+reports each new upcoming feature as migration work and a misspelled feature
+name fails. It then compiles one probe per wall with those settings and
+requires errors for an unused value, an unacknowledged unsafe pointer, mutable
+global state, and a bare existential.
+
+The policy also scans `Package.swift`, versioned manifests, `scripts/`, and the
+sources of every Swift and plugin target. `@unchecked Sendable`,
+`nonisolated(unsafe)`, `unowned(unsafe)`, `@preconcurrency`, `@unsafe`,
+`unsafe` expressions, `@exclusivity(unchecked)`, and
+`// swift-format-ignore: Rule` each need their own `//` comment that states the
+reason, on the same line or above it; documentation comments and attributes
+may sit between the reason and the declaration. `@diagnose`,
+`// swift-format-ignore-file`, and an ignore that names no rule fail. Library
+targets also reject `Date()`, `Date.now`, `ContinuousClock()`,
+`SuspendingClock()`, `ProcessInfo.processInfo.environment`, `.random(...)`
+without `using:`, `.shuffled()`, `.randomElement()`, `UUID()`,
+`SystemRandomNumberGenerator()`, `Task { }`, `Task.detached`,
+`DispatchQueue.global()`, `URLSession.shared`, `FileManager.default`,
+`UserDefaults.standard`, and `NotificationCenter.default` unless a reason marks
+the composition point; executables, tests, macros, and plugins are
+composition roots. The scanner reads code line by line without a Swift parser.
+It skips comments and string contents, including interpolations, so it misses
+an escape written inside `\(...)`.
+
 The formatter retains its toolchain defaults and enables documentation checks
 for public declarations plus diagnostics for force unwraps, force tries, and
 implicitly unwrapped optionals. Its native test and UI-lifecycle exceptions
 still apply. `swift:fmt:check` uses `--strict` so every finding fails the gate;
-formatting alone cannot fix all lint findings. Reasons for ignores and compiler
-escape hatches remain a review duty, as described in `AGENTS.md`.
+formatting alone cannot fix all lint findings.
+
+`swift:api:diff` reports public API breaking changes against the merge base
+with `origin/main`, then local `main`; set `API_BASE_REF` to choose another
+base. It is not part of the gate. Fetch full history before using it in a
+shallow clone.
 
 ## Dependencies
 
@@ -72,17 +115,21 @@ Commit `.config/mise/mise.lock` for the platforms where the gate runs.
 [Mise's Swift backend](https://mise.jdx.dev/lang/swift.html) records the Linux
 distribution in its lock options; generate Linux locks for the runner's
 distribution. The catalog fixture locks Ubuntu 24.04 for CI and Ubuntu 26.04
-for local checks. Generate the Ubuntu 24.04 entry from the project directory:
+for local checks. Installing on another distribution rewrites the lock for the
+host and can drop the runner's entry, so check the lock before committing.
+Generate the Ubuntu 24.04 entry from the project directory:
 
 ```sh
 MISE_SWIFT_PLATFORM=ubuntu24.04 mise lock --platform linux-x64
 ```
 
-SwiftPM keeps its native fingerprint and registry signature checks. Review
-transitive dependencies, registry trust, binary artifacts, and build plugins
-when adopting them; plugins execute code during builds. The baseline carries
-no general vulnerability or mutation gate. Add a project-specific tool only
-when its support, findings, and routine cost justify it.
+SwiftPM keeps its native fingerprint and registry signature checks.
+`swift:audit` runs the pinned OSV-Scanner against `Package.resolved` and fails
+on a known vulnerability; a package without external dependencies has nothing
+to audit. Review transitive dependencies, registry trust, binary artifacts, and
+build plugins when adopting them; plugins execute code during builds. The
+baseline carries no mutation gate because no Swift mutation tester is verified
+on Linux.
 
 ## Apple-platform projects
 

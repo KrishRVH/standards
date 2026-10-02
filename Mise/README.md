@@ -139,7 +139,8 @@ denied, and runs the tests with cargo-nextest plus the doctests. Its
 cargo-mutants through their GitHub release binaries.
 
 The Swift task file uses the native Swift backend and requires mise 2026.9.18
-or newer. The pinned toolchain includes SwiftPM, Swift Testing, and swift-format.
-The gate serializes release compilation and tests with coverage, using locked
-dependency resolution. Read [the Swift profile](../Swift/README.md) for
+or newer. The pinned toolchain includes SwiftPM, Swift Testing, and swift-format;
+OSV-Scanner audits resolved dependencies. The gate serializes the policy check,
+release compilation, and tests under Thread Sanitizer with coverage, using
+locked dependency resolution. Read [the Swift profile](../Swift/README.md) for
 distribution-specific Linux locks and Apple-platform adoption.

@@ -1,3 +1,13 @@
-# Replace @OWNER with a real human and configure the host settings in README.md.
-# Source-level safety escapes and diagnostic overrides can live anywhere.
+# The enforcement surface. Replace @OWNER with a real human owner. The leading
+# catch-all is deliberate: source-level safety escapes and formatter ignores
+# can live anywhere, so every change needs the named owner's review. Enable the
+# complete protected-branch checklist in README.md; CODEOWNERS alone does not
+# dismiss stale approvals or prevent bypass. Package.swift is unanchored on
+# purpose: a nested package manifest declares its own target settings.
 * @OWNER
+/.config/mise/ @OWNER
+/.github/ @OWNER
+/.swift-format @OWNER
+/AGENTS.md @OWNER
+Package.swift @OWNER
+/scripts/ @OWNER

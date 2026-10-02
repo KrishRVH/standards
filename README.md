@@ -159,9 +159,11 @@ Copy each language or tooling folder that the project needs:
 - `Shell/` — a Bash-first glue-code baseline with shfmt, ShellCheck, parser
   checks, Bats tests, and a shebang policy for project-owned scripts.
 - `Swift/` — a SwiftPM baseline with a pinned Swift toolchain, native
-  swift-format linting, Swift 6 concurrency checking, warnings as errors,
-  strict memory-safety diagnostics, locked dependency resolution, Swift Testing,
-  coverage reports, and automatic downstream CI.
+  swift-format linting, Swift 6 concurrency checking with Swift 7 upcoming
+  features, warnings as errors, strict memory-safety diagnostics, a policy check
+  for target settings and reasoned exceptions, Swift Testing under Thread
+  Sanitizer, coverage summaries, an OSV dependency audit, and automatic
+  downstream CI.
 - `TS/` — selectively Effect v4-enabled, Bun-backed TypeScript with strict `tsc`,
   typed Oxlint plus Oxfmt as the primary workflow, Effect Schema boundaries
   and diagnostics, semantic and negative tests, mutation testing and knip

@@ -2,6 +2,16 @@
 
 lockfile_version = 3
 
+[[tools."aqua:google/osv-scanner"]]
+version = "2.6.0"
+backend = "aqua:google/osv-scanner"
+specifiers = ["2.6.0"]
+
+[tools."aqua:google/osv-scanner"."platforms.linux-x64"]
+checksum = "sha256:ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108"
+url = "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64"
+url_api = "https://api.github.com/repos/google/osv-scanner/releases/assets/562414718"
+
 [[tools.swift]]
 version = "6.4.0"
 backend = "core:swift"
