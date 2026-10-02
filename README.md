@@ -144,7 +144,7 @@ Copy each language or tooling folder that the project needs:
   coverage, and benchmark tasks.
 - `Kotlin/` — a Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
-- `Markdown/` — a Bun-backed Markdown/MDX baseline with Prettier formatting,
+- `Markdown/` — a Bun-backed Markdown/MDX baseline with Oxfmt formatting,
   markdownlint structure checks, semantic YAML frontmatter validation, MDX
   compile checks through remark/rehype and Shiki, offline local link checks
   with lychee, and low-noise typo checks with typos.

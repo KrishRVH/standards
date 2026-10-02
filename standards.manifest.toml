@@ -42,12 +42,12 @@ task_prefix = "md"
 task_fragment = "20-markdown.toml"
 mirror = [
   ".markdownlint-cli2.jsonc",
+  ".oxfmtrc.json",
   ".prettierignore",
   "content/example.mdx",
   "docs/example.md",
   "lychee.toml",
   "package.json",
-  "prettier.config.mjs",
   "scripts/check-mdx.mjs",
   "scripts/check-mdx.test.mjs",
   "typos.toml",

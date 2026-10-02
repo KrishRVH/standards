@@ -123,7 +123,7 @@ The TypeScript task file is Bun-only. If a project uses pnpm, Yarn, or npm,
 replace it with a project-specific task file. The workflow exposes separate
 Effect diagnostics and agent-oriented overview tasks.
 
-The Markdown/MDX task file is Bun-backed for Prettier, markdownlint, and MDX
+The Markdown/MDX task file is Bun-backed for Oxfmt, markdownlint, and MDX
 compiler dependencies. Local link and typo checks use pinned mise tools. The
 default gate runs lychee offline so CI does not depend on external websites;
 use `md:standards:check:deep` for external link checks and package audit.

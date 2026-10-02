@@ -7,10 +7,10 @@ Copy these files into a project alongside `Mise/conf.d/20-markdown.toml`:
 
 ```text
 .markdownlint-cli2.jsonc
+.oxfmtrc.json
 .prettierignore
 lychee.toml
 package.json
-prettier.config.mjs
 scripts/check-mdx.mjs
 scripts/check-mdx.test.mjs
 typos.toml
@@ -27,9 +27,9 @@ mise run md:standards
 mise run md:standards:check
 ```
 
-`md:standards` runs Prettier and markdownlint autofixes.
+`md:standards` runs Oxfmt and markdownlint autofixes.
 `md:standards:check` runs markdownlint, frontmatter and MDX checks, checker
-tests, Prettier, offline local link checking, and typos. Before relying on
+tests, Oxfmt, offline local link checking, and typos. Before relying on
 `md:standards:check`, generate and commit `bun.lock` with `mise run md:lock`; a
 missing lockfile is a failure. Use the deeper task for external links and
 package auditing:
@@ -45,8 +45,11 @@ mise run md:standards:check:deep
   Markdown and MDX, then checks MDX syntax with JSX, GFM, and Shiki-compatible
   code fences. Frontmatter must be a valid YAML mapping; field schemas remain
   project-specific.
-- Prettier preserves prose wrapping to avoid churn in hand-wrapped posts and
-  docs.
+- Oxfmt formats Markdown and MDX and preserves prose wrapping to avoid churn
+  in hand-wrapped posts and docs. It reads ignore paths from `.gitignore` and
+  `.prettierignore`. The package pins it exactly because pre-1.0 releases can
+  change output. A project that also uses the TypeScript profile keeps that
+  profile's `.oxfmtrc.json`, which sets the same Markdown options.
 - Code fences should always use a language identifier. Keep Shiki/rehype
   metadata after the language, such as `ts title="example.ts" {1}`.
 - The normal link check is offline. Run the deep task for external citations,
