@@ -66,7 +66,7 @@ ecosystem.
 
 ## What to Copy
 
-- `shared/` provides generic top-level project files: `AGENTS.md`, `CLAUDE.md`,
+- `shared/` provides generic top-level project files: `AGENTS.md`,
   `.gitattributes`, `.gitleaks.toml`, and `.gitignore`.
 - `Mise/` provides the `.config/mise` templates and the developer command
   surface.
@@ -94,7 +94,6 @@ Start with the files shared across ecosystems:
 
 ```sh
 cp shared/AGENTS.md /path/to/project/AGENTS.md
-cp shared/CLAUDE.md /path/to/project/CLAUDE.md
 cp shared/.gitattributes /path/to/project/.gitattributes
 cp shared/.gitleaks.toml /path/to/project/.gitleaks.toml
 cp shared/.gitignore /path/to/project/.gitignore
