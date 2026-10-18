@@ -68,6 +68,33 @@ test('a signal-ignorant promise continues after its Effect times out', async () 
   expect(completionCount).toBe(1);
 });
 
+test('one clock adjustment wakes a sleep registered after several scheduler hops', async () => {
+  const wakes = await Effect.runPromise(
+    Effect.gen(function* () {
+      const woke = yield* Ref.make(0);
+      const fiber = yield* Effect.forkChild(
+        Effect.gen(function* () {
+          yield* Effect.sleep('1 second');
+          yield* Ref.update(woke, (count) => count + 1);
+          for (let hop = 0; hop < 5; hop += 1) {
+            yield* Effect.yieldNow;
+          }
+          yield* Effect.sleep('1 second');
+          yield* Ref.update(woke, (count) => count + 1);
+        }),
+      );
+
+      yield* waitForScheduledSleep(1_000);
+      yield* TestClock.adjust('2 seconds');
+      yield* Fiber.interrupt(fiber);
+
+      return yield* Ref.get(woke);
+    }).pipe(Effect.provide(testClockLayer)),
+  );
+
+  expect(wakes).toBe(2);
+});
+
 test('timeout inside retry gives every attempt a budget and includes backoff', async () => {
   const result = await Effect.runPromise(
     Effect.gen(function* () {

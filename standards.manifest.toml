@@ -206,7 +206,6 @@ mirror = [
   "type-tests/nonexhaustive-variant.ts",
   "type-tests/protected-route-unprojected.ts",
   "type-tests/tsconfig.json",
-  "types/text-decoder-options.d.ts",
 ]
 required_tester_files = [
   "tests/agent-documentation.test.ts",

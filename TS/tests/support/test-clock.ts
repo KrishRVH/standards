@@ -1,4 +1,4 @@
-import { Clock, Context, Duration, Effect, Layer } from 'effect';
+import { Clock, Context, Duration, Effect, Layer, Scheduler } from 'effect';
 import { TestClock } from 'effect/testing';
 
 interface ScheduledSleepsService {
@@ -10,28 +10,33 @@ class ScheduledSleeps extends Context.Service<ScheduledSleeps, ScheduledSleepsSe
 ) {}
 
 /**
- * Virtual time for one test. TestClock keeps its sleep queue private, so
- * this clock also records each requested wake time as the sleep registers.
+ * Virtual time for one test. It keeps the scheduler from `TestClock.layer`,
+ * which orders sleeps that forked fibers register after several scheduler
+ * hops. TestClock keeps its sleep queue private, so this clock also records
+ * each requested wake time as the sleep registers.
  */
 export const testClockLayer: Layer.Layer<ScheduledSleeps> = Layer.effectContext(
-  Effect.gen(function* () {
-    const clock = yield* TestClock.make();
-    const wakeTimes: number[] = [];
-    const probedClock: TestClock.TestClock = {
-      ...clock,
-      sleep: (duration) =>
-        Effect.suspend(() => {
-          wakeTimes.push(clock.currentTimeMillisUnsafe() + Duration.toMillis(duration));
+  TestClock.testClockWith((clock) =>
+    Effect.gen(function* () {
+      const scheduler = yield* Scheduler.Scheduler;
+      const wakeTimes: number[] = [];
+      const probedClock: TestClock.TestClock = {
+        ...clock,
+        sleep: (duration) =>
+          Effect.suspend(() => {
+            wakeTimes.push(clock.currentTimeMillisUnsafe() + Duration.toMillis(duration));
 
-          return clock.sleep(duration);
-        }),
-    };
+            return clock.sleep(duration);
+          }),
+      };
 
-    return Context.make(Clock.Clock, probedClock).pipe(
-      Context.add(ScheduledSleeps, ScheduledSleeps.of({ wakeTimes: Effect.sync(() => [...wakeTimes]) })),
-    );
-  }),
-);
+      return Context.make(Clock.Clock, probedClock).pipe(
+        Context.add(Scheduler.Scheduler, scheduler),
+        Context.add(ScheduledSleeps, ScheduledSleeps.of({ wakeTimes: Effect.sync(() => [...wakeTimes]) })),
+      );
+    }),
+  ),
+).pipe(Layer.provide(TestClock.layer()));
 
 /** Wait until the virtual clock records the exact sleep the test intends to control. */
 export const waitForScheduledSleep = (wakeTimeMillis: number): Effect.Effect<void, never, ScheduledSleeps> =>

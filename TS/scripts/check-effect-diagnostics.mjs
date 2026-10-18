@@ -188,7 +188,7 @@ const expected = [
     line: 6,
     name: 'missingEffectContext',
   },
-  // @effect/language-service 0.87.3 reports missingEffectError with the
+  // @effect/language-service 0.87.5 reports missingEffectError with the
   // missingEffectContext name. Re-verify the observed name on every upgrade.
   {
     column: 59,

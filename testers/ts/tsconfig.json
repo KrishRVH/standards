@@ -79,5 +79,5 @@
     "useUnknownInCatchVariables": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*", "tests/**/*", "types/**/*"]
+  "include": ["src/**/*", "tests/**/*"]
 }

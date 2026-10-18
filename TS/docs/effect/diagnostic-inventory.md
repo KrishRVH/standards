@@ -1,6 +1,6 @@
 # Effect language-service diagnostic inventory
 
-This inventory is specific to `@effect/language-service` 0.87.3 running against
+This inventory is specific to `@effect/language-service` 0.87.5 running against
 Effect v4 and the profile configuration in `tsconfig.json`. Re-audit the
 installed source, editor behavior, standalone output, and every fix before
 changing either version.
@@ -9,7 +9,7 @@ The pinned package source map is the evidence for diagnostic name, supported
 Effect generation, and `fixable` metadata. The repository's expected-
 diagnostic harness is the executable CI contract for blocking diagnostics.
 The table below catalogs explicitly configured rules. The harness also pins
-error diagnostics that version 0.87.3 enables by default; their emitted names
+error diagnostics that version 0.87.5 enables by default; their emitted names
 and locations live in `scripts/check-effect-diagnostics.mjs`.
 
 ## Behavior key
@@ -62,13 +62,13 @@ one without reviewing the listed semantic effect and running the boundary test.
 | `processEnv`                    | Off     | No                                | Bootstrap/tooling adapters may own environment access.                                        |
 | `processEnvInEffect`            | E       | No                                | Workflow configuration uses Effect Config/Redacted; bootstrap exceptions stay outside.        |
 | `returnEffectInGen`             | E       | Yes: add `yield*`                 | Fix flattens a nested Effect and changes execution; inspect intent.                           |
-| `runEffectInsideEffect`         | E       | Yes: use a runtime                | Fix changes runtime requirements/ownership; move execution to a named edge when possible.     |
+| `runEffectInsideEffect`         | E       | Yes: run with current services    | Fix reuses the captured context; the run still escapes parent supervision. Use a named edge.  |
 | `strictEffectProvide`           | Off     | No                                | Legitimate feature/request roots make the heuristic too broad.                                |
 | `unknownInEffectCatch`          | E       | No                                | Requires narrowing unknown catches; owned untyped adapters may classify once.                 |
 | `unsafeEffectTypeAssertion`     | E       | Yes: remove assertion             | Removal exposes the honest `E`/`R`; repair callers rather than reasserting.                   |
 
 `schemaSyncInEffect`, `scopeInLayerEffect`, `missingEffectServiceDependency`,
-and `nonObjectEffectServiceType` analyze only Effect v3 code in 0.87.3, so this
+and `nonObjectEffectServiceType` analyze only Effect v3 code in 0.87.5, so this
 profile leaves them unconfigured. `Layer.effect` excludes `Scope` from its
 requirements by construction; a synchronous Schema decode inside a workflow is
 a review item under EFF-020.
@@ -79,7 +79,7 @@ The normal editor and CI project must report zero configured error/warning
 diagnostics. The isolated invalid project proves 37 error locations and a
 nonzero standalone exit; every fixture file must produce at least one.
 
-One pinned discrepancy is intentional evidence: 0.87.3 reports the
+One pinned discrepancy is intentional evidence: 0.87.5 reports the
 `missingEffectError` fixture under the name `missingEffectContext`. The
 harness preserves that observed name until a separately reviewed upgrade.
 `outdatedApi` reports twice per offending file: once at the v3 API and once at

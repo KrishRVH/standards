@@ -24,7 +24,7 @@ assert.equal(
 );
 assert.equal(report.config.concurrency, 4, 'Stryker must use exactly four mutation workers.');
 assert.equal(report.config.timeoutMS, 30000, 'Stryker core must use 30 seconds of absolute timeout deviation.');
-assert.equal(report.config.bun?.timeout, 60000, 'The Bun test runner must use a 60-second hard child timeout.');
+assert.equal(report.config.bun?.timeout, 60000, 'The Bun test runner must give the dry run a 60-second budget.');
 assert.ok(mutants.length > 0, 'Stryker report contains no mutants.');
 
 const timeoutCount = mutants.filter((mutant) => mutant.status === 'Timeout').length;

@@ -21,14 +21,15 @@ ordered `reasons`.
 
 Effect-based tests run at the `bun:test` edge with `Effect.runPromise` and
 provide virtual time explicitly with `testClockLayer` from
-`tests/support/test-clock.ts`, which builds on `TestClock.make()`.
-Fork timed work. Use `Deferred`, `Ref`, latches, or another explicit probe to
-prove the fiber entered the attempt or sleep before calling
-`TestClock.adjust`. `TestClock` keeps its sleep queue private, so
-`tests/support/test-clock.ts` supplies `testClockLayer`, a `TestClock` that
-records each requested wake time, and `waitForScheduledSleep` for the sleep
-case. Use real time only in a bounded isolated subprocess when process signals
-or real host time are the subject.
+`tests/support/test-clock.ts`. It builds on `TestClock.layer()`, so forked
+fibers run under its scheduler and one `TestClock.adjust` also wakes a sleep
+registered after several scheduler hops. `TestClock` keeps its sleep queue
+private, so `testClockLayer` also records each requested wake time for
+`waitForScheduledSleep`. Fork timed work. Use `waitForScheduledSleep`,
+`Deferred`, `Ref`, latches, or another explicit probe to prove the fiber entered
+the attempt or sleep before calling `TestClock.adjust`. Use real time only in a
+bounded isolated subprocess when process signals or real host time are the
+subject.
 
 Gate a slow finalizer with a `Deferred` rather than a virtual sleep. The pinned
 `TestClock` forks its warning fiber interruptibly, so a pending interrupt can
@@ -69,7 +70,7 @@ behavior, editor/CI match, quick-fix meaning, and false-positive risk. Do not
 bulk-apply quick fixes. A narrow suppression names safety reason, owner/version,
 and removal condition; the harness rejects stale suppressions and
 diagnostic-name drift. The exact per-configured-rule record lives in the
-[0.87.3 diagnostic inventory](diagnostic-inventory.md).
+[0.87.5 diagnostic inventory](diagnostic-inventory.md).
 
 ## CI and documentation contracts
 

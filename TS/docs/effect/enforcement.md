@@ -60,8 +60,8 @@ vocabulary, or repository-host branch protection.
   owner and removal condition.
 - **Enforcement:** TS blocking; LS blocking; Lint blocking;
   Neg diagnostic fixture; Unit partial; Sem —; Int —; CI yes; Manual residual.
-- **Version:** TS 6.0.3, LS 0.87.3, Oxlint 1.86.0,
-  oxlint-tsgolint 7.0.2003, typescript-eslint 8.71.0.
+- **Version:** TS 6.0.3, LS 0.87.5, Oxlint 1.88.0,
+  oxlint-tsgolint 7.0.2004, typescript-eslint 8.71.2.
 
 ## EFF-003 — Accurate exported Effect contracts
 
@@ -76,7 +76,7 @@ vocabulary, or repository-host branch protection.
   policy with a test.
 - **Enforcement:** TS blocking; LS blocking; Lint —; Neg diagnostic
   fixture; Unit typed exits; Sem partial; Int —; CI yes; Manual residual.
-- **Version:** Effect 4.0.0, LS 0.87.3, TS 6.0.3.
+- **Version:** Effect 4.0.5, LS 0.87.5, TS 6.0.3.
 
 ## EFF-004 — Lazy side effects
 
@@ -91,7 +91,7 @@ vocabulary, or repository-host branch protection.
   suppressed and tested.
 - **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
   diagnostic fixture; Unit —; Sem adapter test; Int —; CI yes; Manual residual.
-- **Version:** Effect 4.0.0, LS 0.87.3.
+- **Version:** Effect 4.0.5, LS 0.87.5.
 
 ## EFF-005 — Expected failure, defect, and interruption
 
@@ -107,7 +107,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS partial; Lint —; Neg diagnostic
   fixture; Unit exact Cause tests; Sem finalizer/interruption tests (catalog);
   Int partial; CI yes; Manual residual.
-- **Version:** Effect 4.0.0 flat Cause reasons.
+- **Version:** Effect 4.0.5 flat Cause reasons.
 
 ## EFF-006 — Separate error representations
 
@@ -124,7 +124,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS exhaustive matches; LS —; Lint partial;
   Neg partial; Unit projection/redaction; Sem observation/redaction (catalog);
   Int —; CI yes; Manual vocabulary review.
-- **Version:** Project contract; tagged forms use Effect 4.0.0.
+- **Version:** Project contract; tagged forms use Effect 4.0.5.
 
 ## EFF-007 — Runtime and protocol identifier stability
 
@@ -142,7 +142,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS partial; Lint —; Neg —;
   Unit duplicate-key and wire tests (catalog); Sem context probe (catalog);
   Int —; CI yes; Manual scope review.
-- **Version:** Effect 4.0.0 Context behavior; compatibility is
+- **Version:** Effect 4.0.5 Context behavior; compatibility is
   project-specific.
 
 ## EFF-008 — Non-generic runtime service identity
@@ -156,7 +156,7 @@ vocabulary, or repository-host branch protection.
 - **Exception:** Explicit concrete identifiers and service types.
 - **Enforcement:** TS partial; LS blocking; Lint —; Neg diagnostic
   fixture; Unit —; Sem —; Int —; CI yes; Manual residual.
-- **Version:** Effect 4.0.0, LS 0.87.3.
+- **Version:** Effect 4.0.5, LS 0.87.5.
 
 ## EFF-009 — Scoped layer construction
 
@@ -173,7 +173,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS blocking (`Layer.effect` excludes `Scope` from its
   requirements); LS —; Lint —; Neg —; Unit finalization (catalog); Sem
   lifecycle test (catalog); Int —; CI yes; Manual release-registration review.
-- **Version:** Effect 4.0.0 `Layer.effect` Scope semantics.
+- **Version:** Effect 4.0.5 `Layer.effect` Scope semantics.
 
 ## EFF-010 — Deliberate layer and runtime roots
 
@@ -189,7 +189,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for graph shapes; Lint —;
   Neg diagnostic fixture; Unit acquisition counts (catalog); Sem layer
   topology (catalog); Int —; CI yes; Manual hot-path review.
-- **Version:** Effect 4.0.0 shared layer memoization, LS 0.87.3.
+- **Version:** Effect 4.0.5 shared layer memoization, LS 0.87.5.
 
 ## EFF-011 — Named runtime edges
 
@@ -205,8 +205,8 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking; Lint floating-Promise check; Neg
   diagnostic fixture; Unit adapter exits; Sem runtime disposal (catalog); Int
   host test; CI yes; Manual owner review.
-- **Version:** Effect 4.0.0; Bun edge also uses platform-bun
-  4.0.0.
+- **Version:** Effect 4.0.5; Bun edge also uses platform-bun
+  4.0.5.
 
 ## EFF-012 — Async cancellation contracts
 
@@ -222,7 +222,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit adapter
   tests; Sem interruption/continuation tests; Int native API test (catalog);
   CI yes; Manual remote-commit analysis.
-- **Version:** Effect 4.0.0 and the pinned host API.
+- **Version:** Effect 4.0.5 and the pinned host API.
 
 ## EFF-013 — Attempt and workflow budgets
 
@@ -237,7 +237,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS —; Lint —; Neg —; Unit policy decode;
   Sem `TestClock` ordering/sleep tests; Int —; CI yes; Manual provider budget
   ownership.
-- **Version:** Effect 4.0.0 timeout waits for loser
+- **Version:** Effect 4.0.5 timeout waits for loser
   termination/finalizers.
 
 ## EFF-014 — One retry owner
@@ -255,7 +255,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit classifier;
   Sem exact attempts/non-retry tests plus reconcile tests (catalog); Int —;
   CI yes; Manual cross-layer and provider audit.
-- **Version:** Effect 4.0.0: `{ times: n }` permits at most `n + 1`
+- **Version:** Effect 4.0.5: `{ times: n }` permits at most `n + 1`
   attempts.
 
 ## EFF-015 — Stable mutation idempotency identity
@@ -290,7 +290,7 @@ vocabulary, or repository-host branch protection.
   JSX/TSX; Neg —; Unit linter/controller (catalog); Sem task
   shutdown/failure/publication (catalog); Int —; CI yes; Manual framework
   lifecycle and owner review.
-- **Version:** Effect 4.0.0 ManagedRuntime fiber scope and FiberSet
+- **Version:** Effect 4.0.5 ManagedRuntime fiber scope and FiberSet
   behavior.
 
 ## EFF-017 — Bounded concurrency and capacity
@@ -306,7 +306,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit limit decode;
   Sem maximum-concurrency/order/sibling tests; Int —; CI yes; Manual capacity
   and overload review.
-- **Version:** Effect 4.0.0 collection semantics (`mode: "result"`).
+- **Version:** Effect 4.0.5 collection semantics (`mode: "result"`).
 
 ## EFF-018 — Resource scope and release
 
@@ -323,7 +323,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial (a caller-owned `Scope` stays in `R`); LS —;
   Lint —; Neg —; Unit releases (catalog); Sem success/failure/interruption
   (catalog); Int host resource (catalog); CI yes; Manual lifetime review.
-- **Version:** Effect 4.0.0 finalizer ordering and Cause behavior.
+- **Version:** Effect 4.0.5 finalizer ordering and Cause behavior.
 
 ## EFF-019 — Shutdown policy for blocking close
 
@@ -344,7 +344,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS —; Lint —; Neg —; Unit close policy (catalog);
   Sem slow/failing finalizer plus rejected/stalled body cancellation (catalog);
   Int process shutdown (catalog); CI yes; Manual criticality review.
-- **Version:** Effect 4.0.0 timeout/finalizer semantics.
+- **Version:** Effect 4.0.5 timeout/finalizer semantics.
 
 ## EFF-020 — Schema trust and wire boundaries
 
@@ -362,7 +362,7 @@ vocabulary, or repository-host branch protection.
   constructors; Lint partial; Neg diagnostic fixture; Unit
   SchemaError/policy/encoding; Sem boundary tests; Int —; CI yes; Manual
   sync-decode and schema-domain review.
-- **Version:** Effect Schema 4.0.0, LS 0.87.3.
+- **Version:** Effect Schema 4.0.5, LS 0.87.5.
 
 ## EFF-021 — Secret containment
 
@@ -378,7 +378,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS blocking for Effect environment access;
   Lint partial; Neg diagnostic fixture; Unit redaction; Sem
   captured diagnostics (catalog); Int —; CI secret scan; Manual provider adapter review.
-- **Version:** Effect 4.0.0 Config/Redacted; LS 0.87.3.
+- **Version:** Effect 4.0.5 Config/Redacted; LS 0.87.5.
 
 ## EFF-022 — Exhaustive handling and one observer
 
@@ -399,7 +399,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS exhaustive switch; LS partial; Lint switch check; Neg HTTP fixture; Unit status/projector; Sem
   log-count/interruption/cleanup observation (catalog); Int —; CI yes; Manual server
   boundary severity/vocabulary.
-- **Version:** Effect 4.0.0, TS 6.0.3; HTTP vocabulary is
+- **Version:** Effect 4.0.5, TS 6.0.3; HTTP vocabulary is
   application-specific.
 
 ## EFF-023 — Exact boundary assertions
@@ -432,7 +432,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS blocking for ambient time, randomness, and timers
   in workflows; Lint —; Neg diagnostic fixture; Unit —; Sem test pattern; Int
   subprocess exception; CI yes; Manual readiness review.
-- **Version:** Effect 4.0.0 `effect/testing` TestClock, LS 0.87.3.
+- **Version:** Effect 4.0.5 `effect/testing` TestClock, LS 0.87.5.
 
 ## EFF-025 — Untrusted resource and destination limits
 
@@ -450,7 +450,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS partial; LS —; Lint —; Neg —; Unit Schema/limits;
   Sem redirect/concurrency, body (catalog); Int local native redirect (catalog);
   CI core tests; Manual production resolver/connect-time SSRF review.
-- **Version:** Bun 1.4.2 Web APIs and Effect 4.0.0 adapters.
+- **Version:** Bun 1.4.3 Web APIs and Effect 4.0.5 adapters.
 
 ## EFF-026 — Bun process runtime
 
@@ -466,8 +466,8 @@ vocabulary, or repository-host branch protection.
   using another explicit scoped runtime edge.
 - **Enforcement:** TS partial; LS —; Lint partial; Neg —; Unit —;
   Sem —; Int SIGTERM subprocess (catalog); CI yes; Manual entrypoint review.
-- **Version:** `@effect/platform-bun` 4.0.0 with Effect 4.0.0,
-  Bun 1.4.2.
+- **Version:** `@effect/platform-bun` 4.0.5 with Effect 4.0.5,
+  Bun 1.4.3.
 
 ## EFF-027 — Narrow diagnostic suppressions
 
@@ -483,7 +483,7 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS —; LS blocking for stale next-line suppression; Lint —;
   Neg exact diagnostic fixture; Unit harness; Sem —; Int —; CI yes; Manual
   reason/quick-fix review.
-- **Version:** LS 0.87.3; re-audit all names, severities, exits, and fixes on
+- **Version:** LS 0.87.5; re-audit all names, severities, exits, and fixes on
   upgrade.
 
 ## EFF-028 — Exact Effect v4 dependency evidence
@@ -505,8 +505,8 @@ vocabulary, or repository-host branch protection.
   (`outdatedApi`); Lint —; Neg exact fixture; Unit —; Sem
   exact-version suite; Int —; CI frozen install and lock/drift checks; Manual
   source hierarchy review.
-- **Version:** Effect 4.0.0, platform-bun 4.0.0, LS 0.87.3,
-  TypeScript 6.0.3, Bun 1.4.2.
+- **Version:** Effect 4.0.5, platform-bun 4.0.5, LS 0.87.5,
+  TypeScript 6.0.3, Bun 1.4.3.
 
 ## EFF-029 — Automatic mandatory quality gate
 
@@ -551,5 +551,5 @@ vocabulary, or repository-host branch protection.
 - **Enforcement:** TS blocking for exhaustion; LS —; Lint blocking for
   unsafe/object-literal/non-null assertions and switch exhaustiveness; Neg
   exhaustiveness fixture; Unit —; Sem —; Int —; CI yes; Manual modeling review.
-- **Version:** TS 6.0.3, Oxlint 1.86.0, oxlint-tsgolint 7.0.2003,
-  typescript-eslint 8.71.0; the modeling rule itself is not version-specific.
+- **Version:** TS 6.0.3, Oxlint 1.88.0, oxlint-tsgolint 7.0.2004,
+  typescript-eslint 8.71.2; the modeling rule itself is not version-specific.

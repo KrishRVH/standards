@@ -9,12 +9,12 @@ The tested dependency set is exact:
 
 | Package/runtime            | Version |
 | -------------------------- | ------- |
-| `effect`                   | 4.0.0   |
-| `@effect/platform-bun`     | 4.0.0   |
-| `@effect/language-service` | 0.87.3  |
+| `effect`                   | 4.0.5   |
+| `@effect/platform-bun`     | 4.0.5   |
+| `@effect/language-service` | 0.87.5  |
 | TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.2   |
-| `@types/bun`               | 1.4.2   |
+| Bun                        | 1.4.3   |
+| `@types/bun`               | 1.4.3   |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version.
@@ -57,10 +57,11 @@ and the upstream
 maps them to their v4 forms.
 
 TypeScript remains at 6.0.3 because `typescript-eslint` 8.71 accepts only
-TypeScript below 6.1, and `@effect/language-service` targets TypeScript 6;
-TypeScript 7 needs the separate `@effect/tsgo` language service. Upgrade the
-compiler when those consumers support it and the full gate passes; do not add
-a second compiler to work around their version contracts.
+TypeScript below 6.1, the Stryker Bun runner accepts only TypeScript below 7,
+and `@effect/language-service` targets TypeScript 6; TypeScript 7 needs the
+separate `@effect/tsgo` language service. Upgrade the compiler when those
+consumers support it and the full gate passes; do not add a second compiler to
+work around their version contracts.
 
 ## Integrating into an existing project
 
@@ -139,7 +140,7 @@ correctness and ownership diagnostics are errors. Shape/style opportunities
 are editor suggestions. Outside-Effect native APIs and native boundary
 adapters remain allowed when their contract is explicit.
 
-The standalone command omits `--strict`: in language service 0.87.3, strict
+The standalone command omits `--strict`: in language service 0.87.5, strict
 only makes warnings affect the exit code; it does not promote messages or
 suggestions. The expected-diagnostic harness proves configured blockers fail
 and catches silently ignored diagnostic-name drift. `outdatedApi` is an error,
@@ -197,12 +198,10 @@ The directive scanner still covers all eight JavaScript-like suffixes so
 tooling and configuration files cannot bypass the exception protocol.
 The audit gate also covers development dependencies, so `package.json` pins a
 patched release of `qs`, which Stryker's `typed-rest-client` otherwise pins to
-a vulnerable version. The runner-scoped `smol-toml` override fixes
-[GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2)
-until the runner updates its pinned dependency. Remove an override once no
-dependency resolves a vulnerable version without it. The countersigned escape
-for an advisory with no fixed release is a `--ignore <advisory-id>` flag added
-to the `audit` script, removed once the fix ships.
+a vulnerable version. Remove the override once no dependency resolves a
+vulnerable version without it. The countersigned escape for an advisory with
+no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
+script, removed once the fix ships.
 
 `ts:knip` fails on unused declared dependencies, unused files, and unused
 exports from both entry and non-entry modules. It ignores exports used inside
@@ -228,10 +227,12 @@ instead of racing. The full task bypasses cached outcomes, requires
 mutant with a positive completed-test count; timeouts alone are not fresh-test
 evidence. Because Stryker scores timeouts as detected, the report gate permits
 at most one percent (with a one-mutant minimum allowance); every remaining
-timeout needs investigation and a handoff explanation. Stryker core receives
-30 seconds of absolute timeout deviation under the Bun runner's 60-second hard
-child timeout. Mutation concurrency is fixed at four: enough workers to keep the
-sweep short while Bun children and a parallel aggregate fixture retain CPU
+timeout needs investigation and a handoff explanation. Stryker core sizes each
+mutant run's timeout from the measured test time plus 30 seconds of absolute
+deviation, and the Bun runner ends the run just before it. The 60-second
+`bun.timeout` budgets only the dry run, which the runner extends by a 30-second
+drain allowance. Mutation concurrency is fixed at four: enough workers to keep
+the sweep short while Bun children and a parallel aggregate fixture retain CPU
 capacity, so ordinary host load cannot cheaply improve the score.
 `ts:mutants:diff` requires `force=false` and `incremental=true`; its evidence
 may be newly tested or compatibly reused from Stryker's incremental state. A
@@ -295,11 +296,7 @@ export, and TypeScript emit-syntax walls that are part of this profile.
 
 `skipLibCheck` is false. This costs some feedback time but checks dependency
 declarations. Re-enable it only after measuring a material project-specific
-cost and record which declaration mismatch becomes invisible. Effect's own
-declarations reference one DOM-only global, `TextDecoderOptions`;
-`types/text-decoder-options.d.ts` declares its WHATWG shape instead of adding
-the browser `DOM` lib to a server profile. Delete that file once `tsc` passes
-without it.
+cost and record which declaration mismatch becomes invisible.
 
 `moduleResolution: "bundler"`, Bun types, and the Bun package manager are
 application-profile choices. Browser, React Native, and published-library
@@ -327,7 +324,7 @@ then checks its own output. After any tool-version change, run
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
 subprocesses resolve through Bun's PATH shim. Mutation orchestration and tests
-also run under Bun. Stryker core 10.0.0 and Bun runner 1.4.0 pass the full
+also run under Bun. Stryker core 10.0.0 and Bun runner 1.6.0 pass the full
 fixture together. Keep this pairing covered by the full mutation gate when
 upgrading either tool.
 
