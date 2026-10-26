@@ -48,12 +48,13 @@ TOOL
     *) ;;
   esac
   # shellcheck disable=SC2016 # The child zsh expands its own parameters.
-  run env -i HOME="$fixture" CARGO_HOME="$fixture/.cargo" TERM=xterm-256color \
+  run env -i HOME="$fixture" CARGO_HOME="$fixture/.cargo" TERM=xterm-256color EDITOR=nvim \
     PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
     zsh -f -i -c '
       word_motion() {
         local key
+        [[ "$(bindkey -lL main)" == "bindkey -A emacs main" ]] || return 1
         for key in "^[[1;5D" "^[[1;3D"; do
           [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
         done
@@ -137,12 +138,13 @@ SHIM
   [[ "$(< "$fixture/calls")" == *"mise activate zsh"* ]]
   : > "$fixture/calls"
   # shellcheck disable=SC2016 # The child zsh expands its own parameters.
-  run env -i HOME="$fixture" TERM=xterm-256color \
+  run env -i HOME="$fixture" TERM=xterm-256color EDITOR=nvim \
     PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
     zsh -f -i -c '
       word_motion() {
         local key
+        [[ "$(bindkey -lL main)" == "bindkey -A emacs main" ]] || return 1
         for key in "^[[1;5D" "^[[1;3D"; do
           [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
         done

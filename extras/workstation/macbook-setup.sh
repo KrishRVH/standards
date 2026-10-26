@@ -861,6 +861,9 @@ command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)
 
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
+# Emacs keys whatever EDITOR this shell inherited; zsh picks vi keys when it
+# names vi, as EDITOR=nvim below does for every nested shell.
+bindkey -e
 # Ctrl/Alt+Left/Right move by word; unbound, they insert ;5D-style escape debris.
 bindkey '^[[1;5D' backward-word '^[[1;5C' forward-word
 bindkey '^[[1;3D' backward-word '^[[1;3C' forward-word
