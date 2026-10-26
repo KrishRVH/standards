@@ -52,9 +52,9 @@ function displayPath(path) {
   return relative(ROOT, path).replaceAll('\\', '/');
 }
 
-function actionlintErrors(document, description) {
+function jactionlintErrors(document, description) {
   const result = Bun.spawnSync({
-    cmd: ['actionlint', '-'],
+    cmd: ['jactionlint', '--profile', 'default', '--no-ignores', '--strict-exit', '-'],
     stdin: new TextEncoder().encode(document),
     stderr: 'pipe',
     stdout: 'pipe',
@@ -66,16 +66,12 @@ function actionlintErrors(document, description) {
   const diagnostic = result.stdout.toString().trim() || result.stderr.toString().trim();
   return [
     diagnostic === ''
-      ? `${description} failed actionlint with exit code ${result.exitCode}`
-      : `${description} is not a valid GitHub Actions workflow:\n${diagnostic}`,
+      ? `${description} failed jactionlint with exit code ${result.exitCode}`
+      : `${description} failed jactionlint:\n${diagnostic}`,
   ];
 }
 
 function parseWorkflow(document, description) {
-  const errors = actionlintErrors(document, description);
-  if (errors.length !== 0) {
-    return { errors, workflow: undefined };
-  }
   try {
     const workflow = Bun.YAML.parse(document);
     if (!isRecord(workflow)) {
@@ -207,12 +203,15 @@ function isImmutableActionReference(target) {
 }
 
 function workflowContractErrors(document, description) {
+  // The contract checks run even when jactionlint fails, so its findings never
+  // hide theirs.
+  const errors = jactionlintErrors(document, description);
   const parsed = parseWorkflow(document, description);
+  errors.push(...parsed.errors);
   if (parsed.workflow === undefined) {
-    return parsed.errors;
+    return errors;
   }
 
-  const errors = [...parsed.errors];
   const triggers = parsed.workflow.on;
   if (!isRecord(triggers)) {
     errors.push(`${description} must contain one top-level on mapping`);
@@ -349,25 +348,92 @@ async function checkParserContracts() {
   const secureWorkflow = `on:
   pull_request:
   push:
+    branches: [main]
   workflow_dispatch:
   merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: \${{ github.event_name == 'pull_request' }}
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@${commit}
         with:
           persist-credentials: false
 `;
-  if (workflowContractErrors(secureWorkflow, 'secure fixture').length !== 0) {
-    errors.push('governance parser rejected a secure workflow');
+  const secureErrors = workflowContractErrors(secureWorkflow, 'secure fixture');
+  if (secureErrors.length !== 0) {
+    errors.push(`governance parser rejected a secure workflow:\n${secureErrors.join('\n')}`);
+  }
+
+  // The policy rules come only from jactionlint's default profile, and the
+  // checker applies no ignore comment.
+  const withoutTimeout = secureWorkflow.replace('    timeout-minutes: 10\n', '');
+  for (const [rule, fixture, failure] of [
+    [
+      '[missing-permissions]',
+      secureWorkflow.replace('permissions:\n  contents: read\n', ''),
+      "does not enforce jactionlint's [missing-permissions] rule",
+    ],
+    ['[missing-timeout]', withoutTimeout, "does not enforce jactionlint's [missing-timeout] rule"],
+    [
+      '[missing-timeout]',
+      withoutTimeout.replace('  quality:\n', '  quality: # jactionlint ignore=missing-timeout\n'),
+      'honored a jactionlint ignore comment',
+    ],
+  ]) {
+    if (!workflowContractErrors(fixture, 'policy fixture').some((error) => error.includes(rule))) {
+      errors.push(`governance parser ${failure}`);
+    }
+  }
+
+  for (const [fixture, expected] of [
+    [
+      secureWorkflow.replace(
+        'on:\n  pull_request:\n  push:\n    branches: [main]\n  workflow_dispatch:\n  merge_group:\n',
+        'on: [pull_request, push, workflow_dispatch, merge_group]\n',
+      ),
+      'must contain one top-level on mapping',
+    ],
+    [secureWorkflow.replace('  merge_group:\n', ''), 'missing merge_group trigger'],
+    [
+      secureWorkflow.replace('  merge_group:\n', '  merge_group:\n  pull_request_target:\n'),
+      'must not use pull_request_target',
+    ],
+    [
+      `${secureWorkflow}  other:\n    runs-on: ubuntu-26.04\n    timeout-minutes: 10\n    steps:\n      - run: echo other\n`,
+      'exactly one quality job',
+    ],
+    [
+      secureWorkflow.replace('persist-credentials: false', 'persist-credentials: true'),
+      'must set persist-credentials: false',
+    ],
+    [
+      secureWorkflow.replace('        with:\n          persist-credentials: false\n', ''),
+      'must set persist-credentials: false',
+    ],
+  ]) {
+    if (
+      !workflowContractErrors(fixture, 'contract fixture').some((error) => error.includes(expected))
+    ) {
+      errors.push(`governance parser accepted a workflow that breaks: ${expected}`);
+    }
   }
 
   for (const duplicate of [
     secureWorkflow.replace('  push:\n', '  push:\n  push:\n'),
     secureWorkflow.replace('  quality:\n', '  quality:\n  quality:\n'),
   ]) {
-    if (workflowContractErrors(duplicate, 'duplicate-key fixture').length === 0) {
+    // Bun.YAML keeps the last duplicate, so only jactionlint's rule catches it.
+    if (
+      !workflowContractErrors(duplicate, 'duplicate-key fixture').some((error) =>
+        error.includes('[duplicate-key]'),
+      )
+    ) {
       errors.push('governance parser accepted a duplicate workflow mapping key');
     }
   }
@@ -393,7 +459,11 @@ jobs:
       `      - uses: actions/checkout@${commit}`,
       `      - uses: ${JSON.stringify(target)}\n      - uses: actions/checkout@${commit}`,
     );
-    if (workflowContractErrors(malformed, 'malformed-action fixture').length === 0) {
+    if (
+      !workflowContractErrors(malformed, 'malformed-action fixture').some((error) =>
+        error.includes('immutable'),
+      )
+    ) {
       errors.push(
         `governance parser accepted malformed external action reference ${JSON.stringify(target)}`,
       );
@@ -424,7 +494,7 @@ async function checkAutomaticProfileGovernance() {
   const rootWorkflowPath = join(ROOT, '.github', 'workflows', 'quality.yml');
   try {
     const rootWorkflow = await readFile(rootWorkflowPath, 'utf8');
-    errors.push(...actionlintErrors(rootWorkflow, displayPath(rootWorkflowPath)));
+    errors.push(...jactionlintErrors(rootWorkflow, displayPath(rootWorkflowPath)));
   } catch {
     errors.push(`missing root workflow ${displayPath(rootWorkflowPath)}`);
   }

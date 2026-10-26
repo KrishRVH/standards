@@ -51,10 +51,11 @@ demand.
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`, `Swift/.github/`) ship automatic triggers for downstream
 copies only; they are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. `scripts/check-profile-governance.mjs` validates workflow
-YAML with actionlint, then parses it to enforce automatic triggers, one
-`quality` job, hardened checkout, immutable action pins, CODEOWNERS, and related
-host-setting and pull-request guidance across the automatic templates.
+`.github/workflows/`. `scripts/check-profile-governance.mjs` lints workflow
+YAML with jactionlint's default profile, then parses it to enforce automatic
+triggers, one `quality` job, hardened checkout, immutable action pins,
+CODEOWNERS, and related host-setting and pull-request guidance across the
+automatic templates.
 `testers/ts/tests/quality-workflow.test.ts` separately enforces the root
 workflow's manual-only contract and the TypeScript-specific workflow behavior.
 

@@ -1,4 +1,4 @@
-min_version = "2026.7.0"
+min_version = "2026.9.18"
 monorepo_root = true
 
 [monorepo]
@@ -7,15 +7,21 @@ lockfile = false
 
 [settings]
 # Sized for the maintainer's 32-thread workstation, where this root gate
-# routinely runs end to end. Fixture tasks stay bounded below by their own
-# tool concurrency settings (for example the TypeScript Stryker workers).
+# routinely runs end to end. Within a fixture task, tools such as the
+# TypeScript Stryker runner set their own concurrency.
 jobs = 8
 lockfile = true
 
+[env]
+# Root-run Rust fixture tasks lose mise's Rust under MISE_LOCKED=1 (README);
+# rustup then reads the fixture's rust-toolchain.toml unless an inherited
+# RUSTUP_TOOLCHAIN outranks it.
+RUSTUP_TOOLCHAIN = false
+
 [tools]
-actionlint = "1.7.12"
+"github:jdx/jactionlint" = "2.3.0"
 gitleaks = "8.30.1"
-python = "3.14.7"
+python = "3.15.1"
 
 [tasks.secrets]
 description = "Scan the standards repository for secrets"

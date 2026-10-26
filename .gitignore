@@ -65,7 +65,6 @@ mise.*.local.lock
 /dagger/.turbo/
 /dagger/dist/
 /testers/**/dagger/.turbo/
-/testers/**/dagger/dist/
 
 # Ada / SPARK generated output
 /alire/build_hash_inputs
@@ -235,13 +234,6 @@ __pycache__/
 *.py[codz]
 *.egg-info/
 /htmlcov/
-/testers/**/.coverage
-/testers/**/.mypy_cache/
-/testers/**/.pytest_cache/
-/testers/**/.ruff_cache/
-/testers/**/.venv/
-/testers/**/__pycache__/
-/testers/**/*.egg-info/
 /testers/**/htmlcov/
 
 # Rust

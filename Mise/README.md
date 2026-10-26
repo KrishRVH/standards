@@ -4,10 +4,12 @@ Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
 `.config/mise/tasks/hygiene`, and the selected `conf.d/*.toml` files to
 `.config/mise/conf.d/`.
 
-The copyable configuration requires mise `2026.6.12` or newer for structured
-task references and checksum-backed HTTP tool locks. It is a minimum, not an
-executable pin. A language fragment that needs a later release sets its own
-`min_version`.
+The copyable configuration requires mise `2026.9.16` or newer for structured
+task references, checksum-backed HTTP tool locks, the `hygiene` task's
+`# MISE` header, and lockfile format 3, which `mise lock` writes for a new
+lockfile. Releases 2026.8.11 through 2026.9.15 reject that format, so their
+locked installs fail. It is a minimum, not an executable pin. A language
+fragment that needs a later release sets its own `min_version`.
 
 Use `mise run` for project workflows so a developer can build, format, or test
 without knowing the underlying toolchain. Dagger is optional; when a project
@@ -19,11 +21,9 @@ specific invocation needs the project's pinned tool or environment and no
 suitable task exists. Final verification uses the project's mise gates.
 
 `mise run` supplies its own tool environment. Interactive activation and shims
-are optional choices for automatic tool selection. The WSL bootstrap enables
-cached interactive activation with shims disabled; macOS keeps native runtime
-paths without activation. Prompt, history, navigation, and completion tools run
-directly. See the [workstation guide](../extras/workstation/README.md) for shell
-defaults and latency checks.
+are optional choices for automatic tool selection. The
+[workstation guide](../extras/workstation/README.md) describes the bootstrap's
+shell defaults and latency checks.
 
 The command surface starts strict. Keep the language tasks that fit the project
 and relax or remove checks that do not match its risk, lifecycle, or team
@@ -132,8 +132,8 @@ The C# template enables locked package restore in project MSBuild properties:
 package locks are created by default, and CI restore runs in locked mode. Lint
 and test run Release builds with analyzer warnings promoted to failures.
 
-The Rust task file reads the compiler pin from `rust-toolchain.toml`, runs every
-Cargo command in workspace and locked modes, builds docs with rustdoc warnings
+The Rust task file reads the compiler pin from `rust-toolchain.toml`, runs the
+workspace's Cargo checks with `--locked`, builds docs with rustdoc warnings
 denied, and runs the tests with cargo-nextest plus the doctests. Its
 `[tools]` pin cargo-deny through aqua and cargo-machete, cargo-nextest, and
 cargo-mutants through their GitHub release binaries.

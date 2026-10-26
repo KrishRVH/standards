@@ -113,10 +113,8 @@ Keep only the language fragments from `conf.d` that the project uses. For
 example, a Python and TypeScript project would retain `20-python.toml` and
 `20-ts.toml`.
 
-The copyable configuration requires mise `2026.6.12` or newer for structured
-task references and checksum-backed HTTP tool locks. This is a minimum
-version, not a pin on the mise executable. A language fragment that needs a
-later release sets its own `min_version`.
+[mise usage](Mise/README.md) gives the minimum mise release for the copied
+configuration and its fragments, and the reasons for it.
 
 ### 3. Add Dagger isolation if needed
 
@@ -282,9 +280,10 @@ container. The task definitions remain in mise.
 
 ## Maintain the Catalog
 
-The repository root requires mise `2026.7.0` or newer for its explicit
-per-project lockfile policy in the monorepo. This is a minimum version, not a
-pin on the mise executable. The root `.config/mise/mise.lock` pins actionlint,
+The repository root requires mise `2026.9.18` or newer, the highest fixture
+floor, which the Swift fixture's native backend sets. The root gate runs every
+fixture, and mise does not enforce a fixture's own `min_version` when its tasks
+run from the monorepo root. The root `.config/mise/mise.lock` pins jactionlint,
 gitleaks, Python, and the root Markdown and Shell tools. `bun.lock` pins the
 Markdown JavaScript dependencies.
 
@@ -320,6 +319,16 @@ standalone configuration. The root gate runs every fixture through the native
 `//testers/...:standards:check` path wildcard, so one scheduler attributes
 output to each project.
 
+Under `MISE_LOCKED=1`, which the root workflow sets, mise 2026.10.19 checks the
+Rust fixture's `rust-toolchain.toml` against the root lockfile instead of the
+fixture's when the fixture's tasks run from the root. It logs two
+`rust@<version> is not in the lockfile` warnings and leaves Rust out of those
+tasks' environment. `mise install` still installs the locked toolchain, and the
+tasks run the rustup `cargo` already on `PATH`, which GitHub-hosted runners
+provide. rustup selects the toolchain from the same `rust-toolchain.toml`,
+because the root configuration unsets an inherited `RUSTUP_TOOLCHAIN`, which
+would otherwise outrank that file.
+
 To run an optional isolated proof, use the Dagger entrypoint of the
 representative Python fixture:
 
@@ -333,10 +342,12 @@ dispatch, fixture configurations, Dagger fragments, full-configuration shared
 files, and declared mirror files in sync, and runs the `hygiene` task against
 seeded clean and dirty trees. `scripts/check-ignore-contracts.py`
 exercises mutation-output ignore scope with Git's matcher.
-`scripts/check-profile-governance.mjs` validates downstream workflow YAML with
-actionlint, then parses it to enforce the workflow, Code Owners, host-setting,
-and pull-request contracts. Fixture source and tests outside the declared
-mirrors stay small.
+`scripts/check-profile-governance.mjs` lints the root and downstream workflow
+YAML with jactionlint's default profile, which adds security and policy rules
+to the correctness checks. It honors no jactionlint ignore comment and fails on
+a finding of any level. It then parses the downstream YAML to enforce the
+workflow, Code Owners, host-setting, and pull-request contracts. Fixture source
+and tests outside the declared mirrors stay small.
 
 When adding or changing a profile:
 

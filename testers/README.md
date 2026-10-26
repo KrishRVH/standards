@@ -51,3 +51,6 @@ affected lockfile from that fixture directory with mise's native command:
 ```sh
 MISE_TRUSTED_CONFIG_PATHS="$PWD/../.." mise lock --platform linux-x64
 ```
+
+Off an Ubuntu 26.04 host, refresh the Swift fixture with the procedure in
+[the Swift profile](../Swift/README.md#dependencies).

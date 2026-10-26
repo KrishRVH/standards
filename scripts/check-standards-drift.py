@@ -280,8 +280,8 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
     except tomllib.TOMLDecodeError as error:
         return [f"invalid TOML in {rel(config)}: {error}"]
 
-    if data.get("min_version") != "2026.6.12":
-        errors.append(f'{rel(config)} must set min_version = "2026.6.12"')
+    if data.get("min_version") != "2026.9.16":
+        errors.append(f'{rel(config)} must set min_version = "2026.9.16"')
 
     tasks = data.get("tasks", {})
     if not isinstance(tasks, dict):
@@ -611,6 +611,21 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
     return errors
 
 
+def highest_fixture_floor() -> str | None:
+    """The highest min_version among the fixtures' mise configurations."""
+    floors: list[str] = []
+    fixture_configs = ROOT.glob("testers/*/.config/mise/config.toml")
+    fixture_fragments = ROOT.glob("testers/*/.config/mise/conf.d/*.toml")
+    for config in (*fixture_configs, *fixture_fragments):
+        try:
+            floor = load_toml(config).get("min_version")
+        except tomllib.TOMLDecodeError:
+            continue
+        if isinstance(floor, str) and re.fullmatch(r"\d+(?:\.\d+)*", floor):
+            floors.append(floor)
+    return max(floors, key=lambda version: tuple(int(part) for part in version.split(".")), default=None)
+
+
 def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors: list[str] = []
     config = ROOT / ".config" / "mise" / "config.toml"
@@ -619,8 +634,11 @@ def check_root_mise_config(profiles: dict[str, dict[str, object]]) -> list[str]:
     except tomllib.TOMLDecodeError as error:
         return [f"invalid TOML in {rel(config)}: {error}"]
 
-    if data.get("min_version") != "2026.7.0":
-        errors.append(f'{rel(config)} must set min_version = "2026.7.0"')
+    # mise skips a fixture's own min_version when the root runs its tasks, so the
+    # root carries the highest one.
+    floor = highest_fixture_floor()
+    if data.get("min_version") != floor:
+        errors.append(f'{rel(config)} must set min_version = "{floor}", the highest fixture floor')
     if data.get("monorepo_root") is not True:
         errors.append(f"{rel(config)} must set monorepo_root = true")
 
