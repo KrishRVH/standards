@@ -102,6 +102,7 @@ mirror = [
   "scripts/project-name.sh",
   "scripts/shell-standards.sh",
   "tests/project-name.bats",
+  "tests/shell-standards.bats",
 ]
 
 [profiles.swift]

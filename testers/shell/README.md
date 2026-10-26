@@ -9,7 +9,8 @@ project. Merge `AGENTS.md` into the project guide. Put `Mise/config.toml` in
 `.config/mise/`, `Mise/tasks/hygiene` in `.config/mise/tasks/`, and
 `Mise/conf.d/20-shell.toml` in `.config/mise/conf.d/`, and copy
 `shared/.gitignore` so generated files stay outside discovery. Replace the
-greeting script and tests with the project's glue.
+greeting script and its tests in `tests/project-name.bats` with the project's
+glue; `tests/shell-standards.bats` tests the standards runner.
 
 ```sh
 mise run shell:standards
@@ -33,9 +34,9 @@ Default checks:
   `# shellcheck disable=SC1234 # reason`.
 - Bats runs behavior tests and prints a failing test's captured output.
 
-ShellCheck does not parse zsh, and shfmt's zsh support is experimental and
-incomplete. The workflow skips zsh formatting and static analysis, then
-validates its syntax with `zsh -n`.
+ShellCheck does not parse zsh, and shfmt's zsh support is incomplete. The
+workflow skips zsh formatting and static analysis, then validates its syntax
+with `zsh -n`.
 
 Project-owned shell files under `scripts/`, `bin/`, `ci/`, `tools/`, and `dev/`
 must use a recognized shebang to declare their dialect, including executable
