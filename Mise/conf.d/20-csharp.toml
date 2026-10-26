@@ -1,5 +1,5 @@
 [tools]
-dotnet = "10.0.401"
+dotnet = "10.0.403"
 "dotnet:dotnet-stryker" = { version = "5.0.0", depends = "dotnet" }
 
 [tasks."csharp:restore"]

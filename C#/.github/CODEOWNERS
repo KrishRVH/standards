@@ -5,8 +5,7 @@
 # does not dismiss stale approvals or prevent bypass. Directory.Build.props,
 # Directory.Packages.props, and .editorconfig are unanchored on purpose:
 # MSBuild and the analyzers resolve them nearest-first, so a nested copy
-# shadows the wall. If the mise task fragment (20-csharp.toml) lives outside
-# /.config/mise/, add its path here.
+# shadows the wall.
 * @OWNER
 /.config/mise/ @OWNER
 .editorconfig @OWNER
