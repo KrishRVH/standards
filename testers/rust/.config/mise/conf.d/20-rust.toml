@@ -23,33 +23,27 @@ run = "cargo fmt --all -- --check"
 
 # Cargo tasks share one build-directory lock, so the gate orders them from the
 # cheapest check to the full test run instead of letting them contend for it.
-# rust:policy and rust:mutants run beside them: the policy self-tests mostly wait
-# on shutdown timeouts, and cargo-mutants builds in its own copy of the tree.
+# rust:policy and rust:mutants run beside them, and cargo-mutants builds in its
+# own copy of the tree. rust:policy's `cargo test` builds also take the shared
+# lock; the rest of its time goes to the lock self-test's shutdown timeouts and
+# to Clippy on the lint-wall probe, which uses a separate target directory.
+# tests/lint_wall.rs replays only rust:lint's run value: keep it one plain
+# command line that passes Cargo only the arguments the test lists, set no key
+# but description and run, and define rust:lint in no other mise file.
 [tasks."rust:lint"]
 description = "Run Clippy for all Rust workspace targets/features"
 run = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings -F clippy::allow_attributes -F clippy::allow_attributes_without_reason"
 
 [tasks."rust:policy"]
-description = "Self-test the mutation verifiers and prove the configured state wall"
+description = "Self-test the mutation verifiers and prove the configured lint wall fires"
 run = """
 set -eu
 
 sh scripts/verify-mutants.sh --self-test
 sh scripts/mutants-lock.sh --self-test
+cargo test --locked --all-features --test lint_wall -- --ignored
 
-probe_log="$(mktemp)"
-trap 'rm -f "$probe_log"' EXIT
-if clippy-driver policy-fixtures/disallowed-mutex.rs --edition=2024 --error-format=json -D clippy::disallowed_types >"$probe_log" 2>&1; then
-  echo "Clippy accepted the configured disallowed Mutex type." >&2
-  exit 1
-fi
-if ! grep -q '"code":"clippy::disallowed_types"' "$probe_log"; then
-  cat "$probe_log" >&2
-  echo "The Mutex policy probe failed for an unexpected reason." >&2
-  exit 1
-fi
-
-echo "The mutation verifiers and configured Clippy state wall passed."
+echo "The mutation verifiers and configured lint wall passed."
 """
 
 [tasks."rust:doc"]

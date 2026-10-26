@@ -79,12 +79,13 @@ mirror = [
   "Cargo.toml",
   "clippy.toml",
   "deny.toml",
-  "policy-fixtures/disallowed-mutex.rs",
+  "policy-fixtures/lint-wall.rs.in",
   "rust-toolchain.toml",
   "rustfmt.toml",
   "scripts/mutants-lock.sh",
   "scripts/verify-mutants.sh",
   "tests/allow_policy.rs",
+  "tests/lint_wall.rs",
   "tests/mutation_report_policy.rs",
 ]
 

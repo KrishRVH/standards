@@ -2,6 +2,7 @@
 
 use std::env::{self, VarError};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
@@ -359,7 +360,7 @@ impl TestReport {
             std::process::id()
         ));
         if let Err(error) = fs::remove_dir_all(&root)
-            && error.kind() != std::io::ErrorKind::NotFound
+            && error.kind() != io::ErrorKind::NotFound
         {
             return Err(format!(
                 "cannot clear synthetic mutation report directory: {error}"
@@ -383,11 +384,11 @@ impl TestReport {
 
 impl Drop for TestReport {
     fn drop(&mut self) {
-        if let Err(error) = fs::remove_dir_all(&self.root)
-            && error.kind() != std::io::ErrorKind::NotFound
-        {
-            eprintln!("cannot remove {}: {error}", self.root.display());
-        }
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "Drop cannot return the failure; a leftover temporary directory does not change a test's result"
+        )]
+        let _ = fs::remove_dir_all(&self.root);
     }
 }
 

@@ -29,12 +29,18 @@ primitives need a deliberate profile adaptation; see [the profile boundary](READ
   state. Before proposing a shared lock, name the value and explain why it
   cannot live on the owner or arrive as an event.
 - Locks, cells, atomics, `Rc`, and their ecosystem equivalents require the same
-  ownership justification. Routing through an unlisted dependency does not
-  change that obligation.
-- Immutable `Arc` snapshots and configuration are permitted. `OnceLock` is
-  permitted for compute-once immutable constants independent of runtime state
-  and configuration. External APIs that require restricted primitives still
-  need a reasoned exception at the use site.
+  ownership justification. Before using one that `clippy.toml` does not list,
+  from `std` or a dependency, add it to `disallowed-types` in the same change,
+  then justify the use site with the reasoned expectation.
+- Immutable `Arc` snapshots and configuration are permitted. `OnceLock` and
+  `LazyLock` are permitted for compute-once immutable constants independent of
+  runtime state and configuration. External APIs that require restricted
+  primitives still need a reasoned exception at the use site.
+- Prefer borrows, moves, and shorter borrows over clones made only to satisfy
+  the borrow checker. Deliberate copies of small immutable data and permitted
+  snapshot sharing are fine.
+- In async code, move blocking work off executor threads and bound CPU work
+  between yield points.
 
 ## Invariants and errors
 
@@ -42,30 +48,80 @@ Carry invariants in types: newtypes at trust boundaries, enums for variants,
 and narrow inputs instead of unreachable match arms. An always-present value
 has a non-optional type. A function you own returns `T` rather than
 `Result<T, Infallible>`; retain `Infallible` when an external trait requires it.
+Use an enum for a parameter that selects a mode or strategy; keep boolean
+data, including setter values, as `bool`.
+
+Represent filesystem paths with `Path` and `PathBuf`; convert them to text
+explicitly at presentation boundaries. Keep custom equality, ordering, and
+hashing consistent, and test their laws. Redact secrets in `Debug` and
+`Display`, and test the redaction. Omit `get_` on simple getters. Name `as_`,
+`to_`, and `into_` conversions by cost and ownership, as the
+[Rust API Guidelines](https://rust-lang.github.io/api-guidelines/naming.html#ad-hoc-conversions-follow-as_-to_-into_-conventions-c-conv)
+define them.
 
 Handle external failures with typed errors or explicit failure events.
-Use iterators or checked access for indexing. Choose `checked_`,
+Discard a `#[must_use]` value only with `let _ =` under a reasoned
+`clippy::let_underscore_must_use` expectation; `_ =`, `drop(...)`, an unused
+`_name` binding, and an empty error arm are discards the gate cannot see.
+Implement `std::error::Error` for custom error types, preserve wrapped causes
+through `source()`, and attach the operation and non-sensitive path or value
+context. Use iterators or checked access for indexing. Choose `checked_`,
 `saturating_`, or `wrapping_` arithmetic according to the domain.
 
-Production assertions are panic sites too. Use a typed error for a reachable
-failure; reserve `debug_assert!` for internal contracts whose removal cannot
-make release behavior incorrect. Never let a panic cross an FFI boundary.
+Write program output through fallible I/O, such as `writeln!` on a locked
+handle. Propagate or explicitly handle write and flush errors, and return
+failures from `main`. Establish intentional ordering at the output boundary;
+hash iteration order must not reach output.
+
+Outside test code, never call `assert!`, `assert_eq!`, or `assert_ne!`; a
+`# Panics` section documents the panic but does not remove it, and
+`tests/allow_policy.rs` rejects the calls. Return a typed error instead,
+including where `manual_assert` suggests `assert!`; a justified panic uses
+`expect` as described under exceptions. An assertion in a `const` or `static`
+initializer or an inline `const` block runs at compile time and is allowed,
+unless a closure, function, `async` block, or macro definition there holds it.
+Reserve `debug_assert!` for internal contracts whose removal cannot make
+release behavior incorrect. Never let a panic cross an FFI boundary.
+
+Put teardown that flushes, sends, syncs, commits, or waits for other work in a
+consuming method that returns `Result`, such as `close`, `finish`, or `join`,
+and call it on every success path. `Drop` is only the fallback: it never
+panics and never waits on another thread, task, process, or peer, so it does
+not join, receive from a channel, wait on a lock or child process, call
+`block_on`, sleep, retry, or do network I/O, even with a timeout. It may
+release what the value owns, including best-effort removal of local files as
+`tempfile::TempDir` does; nothing bounds how long that takes.
 
 ## Exceptions and workspace policy
 
 `#[allow]` is forbidden. Use one lint in a reasoned
-`#[expect(lint, reason = "...")]` on the smallest enclosing item. Name the
-invariant that holds and why restructuring would be worse. Lint groups and
-crate-level expectations outside test crates silence too much; review them as
-policy violations. Stale expectations fail the lint gate.
+`#[expect(lint, reason = "...")]` on the smallest enclosing statement or item.
+Name the invariant that holds and why restructuring would be worse.
+Expectations on lint groups or several lints, crate-level expectations
+outside test targets, and module-wide expectations of a panic lint such as
+`clippy::unwrap_used` outside test code silence too much;
+`tests/allow_policy.rs` rejects them.
+Stale expectations fail the lint gate. Lint levels come only from
+`[workspace.lints]` and reasoned expectations; `rust:policy` rejects inherited
+compiler flags and Cargo configuration that lower them.
 
 For a justified panic assertion, use `expect` with a message naming the
-invariant. Tests may unwrap, expect, panic, and index on invariants they
-establish; test arithmetic still needs a reasoned expectation.
+invariant. Clippy's test exemptions cover `#[test]` functions and items under
+a `#[cfg(test)]` attribute: they may print, and may unwrap, expect, panic, and
+index on invariants they establish. Other test code, such as a top-level
+integration-test helper, has no exemption. There, a fallible helper returns
+`Result`. No test exemption covers arithmetic, and test code takes no
+arithmetic expectation. Prefer literal expected values. Where Clippy reports
+test arithmetic, use `checked_` methods, with `expect` naming the invariant
+where a test exemption applies and `?` in a `Result`-returning helper
+elsewhere. Only a test of an operator implementation itself takes a reasoned
+expectation, on the item Clippy reports. Doc examples use `?`, not
+`unwrap()`, because Clippy does not lint doctests.
 
 `unsafe_code = "forbid"` has no local escape. Work requiring unsafe needs
-explicit human authorization to change the profile to `deny`; each unsafe
-block then carries a reasoned expectation and a `SAFETY` comment.
+explicit human authorization to change the profile to `deny`; in that change,
+also set `undocumented_unsafe_blocks = "deny"` in `[workspace.lints.clippy]`.
+Each unsafe block then carries a reasoned expectation and a `SAFETY` comment.
 
 Every workspace package, including the root package, declares
 `[lints] workspace = true`. Release profiles belong in the root manifest;

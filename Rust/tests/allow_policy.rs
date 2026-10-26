@@ -1,19 +1,89 @@
-//! Executable contract for the first-party Rust attribute policy.
+//! Executable contract for the first-party Rust source policy: suppression
+//! attributes, expectation scope, assertions outside test code, and workspace
+//! lint inheritance.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::env;
 use std::fs;
 use std::io;
+use std::mem;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
-use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Spacing, TokenStream, TokenTree};
 use serde::Deserialize;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::{Expr, Lit, Meta, Token};
 
 const ROOT_EXCLUDED_DIRECTORIES: [&str; 4] = ["mutants.out", "mutants.out.old", "target", "vendor"];
+
+/// The lint groups of the pinned toolchain, as `rustc`, `clippy-driver`, and
+/// `rustdoc` list them with `-W help`. An expectation on a group silences
+/// every lint in it.
+const LINT_GROUPS: [&str; 24] = [
+    "clippy::all",
+    "clippy::cargo",
+    "clippy::complexity",
+    "clippy::correctness",
+    "clippy::nursery",
+    "clippy::pedantic",
+    "clippy::perf",
+    "clippy::restriction",
+    "clippy::style",
+    "clippy::suspicious",
+    "deprecated_safe",
+    "future_incompatible",
+    "keyword_idents",
+    "let_underscore",
+    "nonstandard_style",
+    "refining_impl_trait",
+    "rust_2018_compatibility",
+    "rust_2018_idioms",
+    "rust_2021_compatibility",
+    "rust_2024_compatibility",
+    "rustdoc::all",
+    "unknown_or_malformed_diagnostic_attributes",
+    "unused",
+    "warnings",
+];
+
+/// The lints that keep `#[allow]` out; expecting them reopens that door.
+const ALLOW_ATTRIBUTE_LINTS: [&str; 2] = [
+    "clippy::allow_attributes",
+    "clippy::allow_attributes_without_reason",
+];
+
+/// The Cargo target kind whose roots may carry a crate-level expectation.
+/// Benches, examples, and build scripts are not test crates.
+const TEST_TARGET_KIND: &str = "test";
+
+/// The denied restriction lints whose findings are panic sites in
+/// expressions. A module-wide expectation of one silences every such site in
+/// the module.
+const PANIC_LINTS: [&str; 10] = [
+    "clippy::arithmetic_side_effects",
+    "clippy::exit",
+    "clippy::expect_used",
+    "clippy::indexing_slicing",
+    "clippy::panic",
+    "clippy::string_slice",
+    "clippy::todo",
+    "clippy::unimplemented",
+    "clippy::unreachable",
+    "clippy::unwrap_used",
+];
+
+/// Assertion macros that stay in release builds; `debug_assert!` and its
+/// variants are not among them.
+const ASSERTION_MACROS: [&str; 3] = ["assert", "assert_eq", "assert_ne"];
+
+/// Keywords that start an item or a `let` statement, whose generic arguments
+/// may hold commas. `mod`, `const`, and `static` have their own handling.
+const ITEM_KEYWORDS: [&str; 9] = [
+    "enum", "extern", "fn", "impl", "let", "struct", "trait", "type", "use",
+];
 
 #[derive(Deserialize)]
 struct CargoMetadataDocument {
@@ -30,6 +100,7 @@ struct CargoPackage {
 
 #[derive(Deserialize)]
 struct CargoTarget {
+    kind: Vec<String>,
     src_path: PathBuf,
 }
 
@@ -38,6 +109,103 @@ struct CargoWorkspaceInputs {
     enumeration_roots: BTreeSet<PathBuf>,
     package_roots: BTreeSet<PathBuf>,
     target_sources: Vec<PathBuf>,
+    non_test_crate_roots: BTreeSet<PathBuf>,
+    test_crate_roots: BTreeSet<PathBuf>,
+}
+
+/// What the module walk knows about the code at one token level.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct CodeContext {
+    /// Inside a Cargo test target, an item under a `cfg` that requires `test`,
+    /// or a function with a `test` attribute.
+    test: bool,
+    /// Inside a `const` or `static` initializer or an inline `const` block,
+    /// which runs at compile time.
+    compile_time: bool,
+}
+
+/// The strictest panic-lint expectation among some attributes.
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+enum PanicExpectation {
+    #[default]
+    Absent,
+    /// Of a panic lint that test code may expect module-wide.
+    Panic,
+    /// Of `clippy::arithmetic_side_effects`, which test code may not expect.
+    Arithmetic,
+}
+
+/// What the outer attributes since the last item or statement boundary say.
+#[derive(Default)]
+struct OuterAttributes {
+    test: bool,
+    /// A `path` attribute, which the source-reference check rejects.
+    custom_path: bool,
+    expectation: PanicExpectation,
+}
+
+/// How much of an item or statement the walk has read.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum ItemKind {
+    /// No item keyword yet, as in a match arm, a field, or an element, which
+    /// a comma ends.
+    #[default]
+    Unknown,
+    /// An item or `let` statement, whose generic arguments may hold commas.
+    Item,
+    /// A `const` or `static` item before its `=`.
+    Constant,
+    /// A `const` or `static` item's initializer.
+    Initializer,
+}
+
+/// What the walk knows about the code since the last item or statement
+/// boundary.
+#[derive(Default)]
+struct ItemState {
+    attributes: OuterAttributes,
+    kind: ItemKind,
+    /// A closure, function, `async` block, or macro definition inside
+    /// compile-time code, whose body can run at run time.
+    run_time: bool,
+}
+
+/// A source file in a module tree, and the directory where its `mod name;`
+/// declarations find `name.rs` or `name/mod.rs`.
+struct ModuleSource {
+    path: PathBuf,
+    child_directory: PathBuf,
+}
+
+/// One token level of the module walk.
+struct TokenLevel<'walk> {
+    trees: Vec<TokenTree>,
+    source: &'walk ModuleSource,
+    context: CodeContext,
+    /// A module body, whose inner attributes apply to the whole module. The
+    /// crate root's top level is not one, because the crate-level check
+    /// covers it.
+    module_scope: bool,
+    item: ItemState,
+}
+
+/// An attribute and the index of its bracket group.
+struct Attribute {
+    tokens: TokenStream,
+    meta: Option<Meta>,
+    inner: bool,
+    end: usize,
+}
+
+/// Findings that need the module tree to tell test code apart, counted per
+/// file.
+#[derive(Default)]
+struct ModuleFindings {
+    /// Each walked file with its context.
+    visited: BTreeSet<(PathBuf, CodeContext)>,
+    module_expectations: BTreeMap<PathBuf, usize>,
+    assertions: BTreeMap<PathBuf, usize>,
+    unresolved_modules: BTreeMap<PathBuf, usize>,
 }
 
 fn allow_policy_violation_count(source: &str) -> Result<usize, proc_macro2::LexError> {
@@ -53,38 +221,21 @@ fn allow_violations_in_tokens(tokens: &TokenStream) -> usize {
             count = count.saturating_add(allow_violations_in_tokens(&group.stream()));
         }
 
-        let TokenTree::Punct(pound) = token else {
+        let Some(attribute) = attribute_at(&token_trees, index) else {
             continue;
         };
-        if pound.as_char() != '#' {
-            continue;
-        }
-
-        let mut following = token_trees.iter().skip(index.saturating_add(1));
-        let Some(mut next) = following.next() else {
-            continue;
-        };
-        if matches!(next, TokenTree::Punct(punctuation) if punctuation.as_char() == '!') {
-            let Some(after_bang) = following.next() else {
-                continue;
-            };
-            next = after_bang;
-        }
-
-        let TokenTree::Group(attribute) = next else {
-            continue;
-        };
-        if attribute.delimiter() != Delimiter::Bracket {
-            continue;
-        }
-        let attribute_tokens: Vec<_> = attribute.stream().into_iter().collect();
+        let attribute_tokens: Vec<_> = attribute.tokens.clone().into_iter().collect();
         let fixed_doc_value = matches!(
             attribute_tokens.as_slice(),
             [TokenTree::Ident(name), TokenTree::Punct(equals), ..]
                 if ident_is_name(name, "doc") && equals.as_char() == '='
         );
-        if (contains_macro_metavariable(&attribute.stream()) && !fixed_doc_value)
-            || syn::parse2::<Meta>(attribute.stream()).is_ok_and(|meta| meta_contains_allow(&meta))
+        if (contains_macro_metavariable(&attribute.tokens) && !fixed_doc_value)
+            || attribute.meta.is_some_and(|meta| {
+                meta_contains(&meta, |meta| {
+                    path_is_ident(meta.path(), "allow") || is_broad_expectation(meta)
+                })
+            })
         {
             count = count.saturating_add(1);
         }
@@ -116,72 +267,29 @@ fn source_references(tokens: &TokenStream) -> Vec<SourceReference> {
             references.extend(source_references(&group.stream()));
         }
 
-        if let TokenTree::Ident(identifier) = token {
-            let preceded_by_dollar = index
-                .checked_sub(1)
-                .and_then(|previous| token_trees.get(previous))
-                .is_some_and(|previous| {
-                    matches!(previous, TokenTree::Punct(punctuation) if punctuation.as_char() == '$')
-                });
-            let bang = token_trees.get(index.saturating_add(1));
-            let arguments = token_trees.get(index.saturating_add(2));
-            if ident_is_name(identifier, "include")
-                && !preceded_by_dollar
-                && matches!(bang, Some(TokenTree::Punct(punctuation)) if punctuation.as_char() == '!')
-            {
-                if let Some(TokenTree::Group(arguments)) = arguments {
-                    references.push(literal_include_reference(arguments));
-                } else {
-                    references.push(SourceReference::OpaqueInclude);
-                }
-            }
+        let previous = index
+            .checked_sub(1)
+            .and_then(|previous| token_trees.get(previous));
+        if let TokenTree::Ident(identifier) = token
+            && ident_is_name(identifier, "include")
+            && is_punct(token_trees.get(index.saturating_add(1)), '!')
+            && !is_punct(previous, '$')
+        {
+            references.push(match token_trees.get(index.saturating_add(2)) {
+                Some(TokenTree::Group(arguments)) => literal_include_reference(arguments),
+                _ => SourceReference::OpaqueInclude,
+            });
         }
 
-        let TokenTree::Punct(pound) = token else {
-            continue;
-        };
-        if pound.as_char() != '#' {
-            continue;
-        }
-
-        let mut following = token_trees.iter().skip(index.saturating_add(1));
-        let Some(mut next) = following.next() else {
-            continue;
-        };
-        if matches!(next, TokenTree::Punct(punctuation) if punctuation.as_char() == '!') {
-            let Some(after_bang) = following.next() else {
-                continue;
-            };
-            next = after_bang;
-        }
-        let TokenTree::Group(attribute) = next else {
-            continue;
-        };
-        if attribute.delimiter() == Delimiter::Bracket
-            && syn::parse2::<Meta>(attribute.stream())
-                .is_ok_and(|meta| meta_contains_custom_path(&meta))
+        if attribute_at(&token_trees, index)
+            .and_then(|attribute| attribute.meta)
+            .is_some_and(|meta| meta_contains(&meta, is_path_attribute))
         {
             references.push(SourceReference::CustomModulePath);
         }
     }
 
     references
-}
-
-fn meta_contains_custom_path(meta: &Meta) -> bool {
-    if path_is_ident(meta.path(), "path") {
-        return true;
-    }
-    let Meta::List(list) = meta else {
-        return false;
-    };
-    if !path_is_ident(&list.path, "cfg_attr") {
-        return false;
-    }
-
-    Punctuated::<Meta, Token![,]>::parse_terminated
-        .parse2(list.tokens.clone())
-        .is_ok_and(|metas| metas.iter().skip(1).any(meta_contains_custom_path))
 }
 
 fn literal_include_reference(arguments: &proc_macro2::Group) -> SourceReference {
@@ -204,8 +312,9 @@ fn ident_is_name(identifier: &proc_macro2::Ident, expected: &str) -> bool {
     identifier.strip_prefix("r#").unwrap_or(&identifier) == expected
 }
 
-fn meta_contains_allow(meta: &Meta) -> bool {
-    if path_is_ident(meta.path(), "allow") {
+/// Matches an attribute directly or nested at any depth in `cfg_attr`.
+fn meta_contains(meta: &Meta, matches: fn(&Meta) -> bool) -> bool {
+    if matches(meta) {
         return true;
     }
     let Meta::List(list) = meta else {
@@ -215,9 +324,542 @@ fn meta_contains_allow(meta: &Meta) -> bool {
         return false;
     }
 
+    // Skip the predicate as raw tokens: `true` and `false` are not `Meta`.
+    let attributes: TokenStream = list
+        .tokens
+        .clone()
+        .into_iter()
+        .skip_while(|token| !matches!(token, TokenTree::Punct(comma) if comma.as_char() == ','))
+        .skip(1)
+        .collect();
+    Punctuated::<Meta, Token![,]>::parse_terminated
+        .parse2(attributes)
+        .is_ok_and(|metas| metas.iter().any(|meta| meta_contains(meta, matches)))
+}
+
+/// An expectation must name one lint that is neither a group nor a lint that
+/// keeps `#[allow]` out.
+fn is_broad_expectation(meta: &Meta) -> bool {
+    let lints = expected_lints(meta);
+    lints.len() > 1
+        || lints.iter().any(|lint| {
+            LINT_GROUPS.contains(&lint.as_str()) || ALLOW_ATTRIBUTE_LINTS.contains(&lint.as_str())
+        })
+}
+
+fn expects_arithmetic(meta: &Meta) -> bool {
+    expected_lints(meta)
+        .iter()
+        .any(|lint| lint == "clippy::arithmetic_side_effects")
+}
+
+/// The lints an `expect` attribute names; empty for any other attribute.
+fn expected_lints(meta: &Meta) -> Vec<String> {
+    let Meta::List(list) = meta else {
+        return Vec::new();
+    };
+    if !path_is_ident(&list.path, "expect") {
+        return Vec::new();
+    }
     Punctuated::<Meta, Token![,]>::parse_terminated
         .parse2(list.tokens.clone())
-        .is_ok_and(|metas| metas.iter().skip(1).any(meta_contains_allow))
+        .map(|arguments| {
+            arguments
+                .iter()
+                .filter_map(|argument| match argument {
+                    Meta::Path(path) => Some(lint_name(path)),
+                    Meta::List(_) | Meta::NameValue(_) => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn lint_name(path: &syn::Path) -> String {
+    path.segments
+        .iter()
+        .map(|segment| {
+            let identifier = segment.ident.to_string();
+            identifier
+                .strip_prefix("r#")
+                .unwrap_or(&identifier)
+                .to_owned()
+        })
+        .collect::<Vec<_>>()
+        .join("::")
+}
+
+/// Counts the crate-level `#![expect]` attributes of a crate root, direct or
+/// nested in `cfg_attr`, that `matches` accepts. Inner attributes inside
+/// modules and items are deeper in the token tree and stay out of the count.
+fn crate_level_expectation_count(tokens: &TokenStream, matches: fn(&Meta) -> bool) -> usize {
+    let token_trees: Vec<TokenTree> = tokens.clone().into_iter().collect();
+    (0..token_trees.len())
+        .filter_map(|index| attribute_at(&token_trees, index))
+        .filter(|attribute| {
+            attribute.inner
+                && attribute
+                    .meta
+                    .as_ref()
+                    .is_some_and(|meta| meta_contains(meta, matches))
+        })
+        .count()
+}
+
+fn is_expectation(meta: &Meta) -> bool {
+    path_is_ident(meta.path(), "expect")
+}
+
+fn expects_panic_lint(meta: &Meta) -> bool {
+    expected_lints(meta)
+        .iter()
+        .any(|lint| PANIC_LINTS.contains(&lint.as_str()))
+}
+
+/// `#[test]`, a test attribute such as `#[tokio::test]`, or a `cfg` that
+/// requires `test`.
+fn marks_test(meta: &Meta) -> bool {
+    if meta
+        .path()
+        .segments
+        .last()
+        .is_some_and(|segment| ident_is_name(&segment.ident, "test"))
+    {
+        return true;
+    }
+    let Meta::List(list) = meta else {
+        return false;
+    };
+    path_is_ident(&list.path, "cfg")
+        && syn::parse2::<Meta>(list.tokens.clone())
+            .is_ok_and(|predicate| cfg_requires_test(&predicate))
+}
+
+fn cfg_requires_test(predicate: &Meta) -> bool {
+    match predicate {
+        Meta::Path(path) => path_is_ident(path, "test"),
+        Meta::List(list) if path_is_ident(&list.path, "all") => {
+            Punctuated::<Meta, Token![,]>::parse_terminated
+                .parse2(list.tokens.clone())
+                .is_ok_and(|predicates| predicates.iter().any(cfg_requires_test))
+        },
+        Meta::List(_) | Meta::NameValue(_) => false,
+    }
+}
+
+fn count_in(counts: &mut BTreeMap<PathBuf, usize>, path: &Path) {
+    let count = counts.entry(path.to_path_buf()).or_default();
+    *count = count.saturating_add(1);
+}
+
+impl PanicExpectation {
+    fn of(meta: &Meta) -> Self {
+        if meta_contains(meta, expects_arithmetic) {
+            Self::Arithmetic
+        } else if meta_contains(meta, expects_panic_lint) {
+            Self::Panic
+        } else {
+            Self::Absent
+        }
+    }
+
+    /// Whether the expectation is too broad for a whole module.
+    fn forbidden_module_wide(self, test: bool) -> bool {
+        match self {
+            Self::Absent => false,
+            Self::Panic => !test,
+            Self::Arithmetic => true,
+        }
+    }
+}
+
+/// Walks one crate's module tree from its root.
+fn walk_crate(crate_root: &Path, test: bool, findings: &mut ModuleFindings) -> io::Result<()> {
+    let Some(directory) = crate_root.parent() else {
+        return Ok(());
+    };
+    let source = ModuleSource {
+        path: crate_root.to_path_buf(),
+        child_directory: directory.to_path_buf(),
+    };
+    let context = CodeContext {
+        test,
+        compile_time: false,
+    };
+    walk_module_file(&source, context, false, findings)
+}
+
+fn walk_module_file(
+    source: &ModuleSource,
+    context: CodeContext,
+    module_scope: bool,
+    findings: &mut ModuleFindings,
+) -> io::Result<()> {
+    if !findings
+        .visited
+        .insert((fs::canonicalize(&source.path)?, context))
+    {
+        return Ok(());
+    }
+    // scan_source_file reports a file that does not tokenize.
+    let Ok(tokens) = TokenStream::from_str(&fs::read_to_string(&source.path)?) else {
+        return Ok(());
+    };
+    walk_tokens(&tokens, source, context, module_scope, findings)
+}
+
+/// Walks one token level, whose leading inner attributes apply to all of it.
+fn walk_tokens(
+    tokens: &TokenStream,
+    source: &ModuleSource,
+    context: CodeContext,
+    module_scope: bool,
+    findings: &mut ModuleFindings,
+) -> io::Result<()> {
+    let trees: Vec<TokenTree> = tokens.clone().into_iter().collect();
+    let test = context.test || leading_inner_attributes(&trees).iter().any(marks_test);
+    let mut level = TokenLevel {
+        trees,
+        source,
+        context: CodeContext { test, ..context },
+        module_scope,
+        item: ItemState::default(),
+    };
+    level.walk(findings)
+}
+
+fn is_punct(token: Option<&TokenTree>, character: char) -> bool {
+    matches!(token, Some(TokenTree::Punct(punctuation)) if punctuation.as_char() == character)
+}
+
+/// The `!` of a macro call, which `!=` is not.
+fn is_macro_bang(token: Option<&TokenTree>) -> bool {
+    matches!(token, Some(TokenTree::Punct(bang)) if bang.as_char() == '!' && bang.spacing() == Spacing::Alone)
+}
+
+fn is_path_attribute(meta: &Meta) -> bool {
+    path_is_ident(meta.path(), "path")
+}
+
+fn is_assertion_macro(identifier: &proc_macro2::Ident) -> bool {
+    ASSERTION_MACROS
+        .iter()
+        .any(|name| ident_is_name(identifier, name))
+}
+
+fn attribute_at(trees: &[TokenTree], index: usize) -> Option<Attribute> {
+    if !is_punct(trees.get(index), '#') {
+        return None;
+    }
+    let inner = is_punct(trees.get(index.saturating_add(1)), '!');
+    let end = index.saturating_add(if inner { 2 } else { 1 });
+    match trees.get(end) {
+        Some(TokenTree::Group(group)) if group.delimiter() == Delimiter::Bracket => {
+            Some(Attribute {
+                tokens: group.stream(),
+                meta: syn::parse2(group.stream()).ok(),
+                inner,
+                end,
+            })
+        },
+        _ => None,
+    }
+}
+
+fn leading_inner_attributes(trees: &[TokenTree]) -> Vec<Meta> {
+    let mut metas = Vec::new();
+    let mut index = 0_usize;
+    while let Some(attribute) = attribute_at(trees, index)
+        && attribute.inner
+    {
+        metas.extend(attribute.meta);
+        index = attribute.end.saturating_add(1);
+    }
+    metas
+}
+
+impl TokenLevel<'_> {
+    fn walk(&mut self, findings: &mut ModuleFindings) -> io::Result<()> {
+        let mut index = 0_usize;
+        while let Some(token) = self.trees.get(index).cloned() {
+            let consumed = match &token {
+                TokenTree::Punct(punctuation) => {
+                    self.punctuation(index, punctuation.as_char(), findings)
+                },
+                TokenTree::Ident(identifier) => self.identifier(index, identifier, findings)?,
+                TokenTree::Group(group) => {
+                    walk_tokens(&group.stream(), self.source, self.here(), false, findings)?;
+                    // A brace group ends an item, except inside a constant.
+                    if group.delimiter() == Delimiter::Brace
+                        && !matches!(self.item.kind, ItemKind::Constant | ItemKind::Initializer)
+                    {
+                        self.item = ItemState::default();
+                    }
+                    0
+                },
+                TokenTree::Literal(_) => 0,
+            };
+            index = index.saturating_add(consumed).saturating_add(1);
+        }
+        Ok(())
+    }
+
+    fn here(&self) -> CodeContext {
+        CodeContext {
+            test: self.context.test || self.item.attributes.test,
+            compile_time: (self.context.compile_time || self.item.kind == ItemKind::Initializer)
+                && !self.item.run_time,
+        }
+    }
+
+    fn previous(&self, index: usize) -> Option<&TokenTree> {
+        index
+            .checked_sub(1)
+            .and_then(|previous| self.trees.get(previous))
+    }
+
+    /// Handles punctuation and returns how many further tokens it consumed.
+    fn punctuation(
+        &mut self,
+        index: usize,
+        character: char,
+        findings: &mut ModuleFindings,
+    ) -> usize {
+        match character {
+            '#' => self.attribute(index, findings),
+            ';' => {
+                self.item = ItemState::default();
+                0
+            },
+            ',' if self.item.kind == ItemKind::Unknown => {
+                self.item = ItemState::default();
+                0
+            },
+            '=' if self.item.kind == ItemKind::Constant => {
+                self.item.kind = ItemKind::Initializer;
+                0
+            },
+            '|' if self.here().compile_time && self.starts_closure(index) => {
+                self.item.run_time = true;
+                0
+            },
+            _ => 0,
+        }
+    }
+
+    /// A `|` that opens closure parameters. An operator or pattern alternative
+    /// follows an operand instead.
+    fn starts_closure(&self, index: usize) -> bool {
+        match self.previous(index) {
+            None => true,
+            Some(TokenTree::Punct(previous)) => !['|', '?'].contains(&previous.as_char()),
+            Some(TokenTree::Ident(previous)) => previous == "move" || previous == "return",
+            Some(TokenTree::Group(_) | TokenTree::Literal(_)) => false,
+        }
+    }
+
+    /// Handles the attribute whose `#` is at `index` and returns how many
+    /// further tokens it consumed.
+    fn attribute(&mut self, index: usize, findings: &mut ModuleFindings) -> usize {
+        let Some(attribute) = attribute_at(&self.trees, index) else {
+            return 0;
+        };
+        let consumed = attribute.end.saturating_sub(index);
+        let Some(meta) = &attribute.meta else {
+            return consumed;
+        };
+        let expectation = PanicExpectation::of(meta);
+        if attribute.inner {
+            if self.module_scope && expectation.forbidden_module_wide(self.context.test) {
+                count_in(&mut findings.module_expectations, &self.source.path);
+            }
+        } else {
+            let attributes = &mut self.item.attributes;
+            attributes.test |= marks_test(meta);
+            attributes.custom_path |= meta_contains(meta, is_path_attribute);
+            attributes.expectation = attributes.expectation.max(expectation);
+        }
+        consumed
+    }
+
+    /// Handles an identifier and returns how many further tokens it consumed.
+    fn identifier(
+        &mut self,
+        index: usize,
+        identifier: &proc_macro2::Ident,
+        findings: &mut ModuleFindings,
+    ) -> io::Result<usize> {
+        let next = self.trees.get(index.saturating_add(1));
+        if is_macro_bang(next) && !is_punct(self.previous(index), '$') {
+            self.macro_call(index, identifier, findings)?;
+            return Ok(0);
+        }
+        // An import that renames one, as in `use std::assert as check;`.
+        if is_assertion_macro(identifier)
+            && matches!(next, Some(TokenTree::Ident(rename)) if rename == "as")
+        {
+            self.count_assertion(findings);
+        }
+        // Keywords only: a raw identifier such as `r#mod` is not one.
+        let keyword = identifier.to_string();
+        match keyword.as_str() {
+            "mod" => return self.module(index, findings),
+            "const" | "static" => return self.constant(index, findings),
+            // Their bodies can run at run time even inside compile-time code.
+            "fn" | "async" => self.item.run_time |= self.here().compile_time,
+            _ => {},
+        }
+        if ITEM_KEYWORDS.contains(&keyword.as_str()) && self.item.kind == ItemKind::Unknown {
+            self.item.kind = ItemKind::Item;
+        }
+        Ok(0)
+    }
+
+    fn macro_call(
+        &mut self,
+        index: usize,
+        identifier: &proc_macro2::Ident,
+        findings: &mut ModuleFindings,
+    ) -> io::Result<()> {
+        if ident_is_name(identifier, "include") {
+            return self.include(index, findings);
+        }
+        if ident_is_name(identifier, "macro_rules") {
+            // A macro body runs wherever the macro expands.
+            self.item.run_time |= self.here().compile_time;
+        } else if is_assertion_macro(identifier) {
+            self.count_assertion(findings);
+        }
+        Ok(())
+    }
+
+    fn count_assertion(&self, findings: &mut ModuleFindings) {
+        let here = self.here();
+        if !here.test && !here.compile_time {
+            count_in(&mut findings.assertions, &self.source.path);
+        }
+    }
+
+    /// Walks a literal `include!` input in place of the call.
+    fn include(&self, index: usize, findings: &mut ModuleFindings) -> io::Result<()> {
+        if let Some(TokenTree::Group(arguments)) = self.trees.get(index.saturating_add(2))
+            && let SourceReference::LiteralInclude(relative) = literal_include_reference(arguments)
+            && let Some(directory) = self.source.path.parent()
+        {
+            let included = ModuleSource {
+                path: directory.join(relative),
+                child_directory: self.source.child_directory.clone(),
+            };
+            if included.path.is_file() {
+                walk_module_file(&included, self.here(), self.module_scope, findings)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Handles `const` or `static` and returns how many further tokens it
+    /// consumed. An inline `const` block and an item's initializer run at
+    /// compile time; a `const fn` does not.
+    fn constant(&mut self, index: usize, findings: &mut ModuleFindings) -> io::Result<usize> {
+        let next = self.trees.get(index.saturating_add(1));
+        if let Some(TokenTree::Group(block)) = next
+            && block.delimiter() == Delimiter::Brace
+        {
+            let context = CodeContext {
+                compile_time: true,
+                ..self.here()
+            };
+            walk_tokens(&block.stream(), self.source, context, false, findings)?;
+            return Ok(1);
+        }
+        // `*const`, `&raw const`, `'static`, and const generic parameters.
+        let follows_raw =
+            matches!(self.previous(index), Some(TokenTree::Ident(previous)) if previous == "raw");
+        let follows_punctuation = ['*', '<', ',', '\'']
+            .into_iter()
+            .any(|character| is_punct(self.previous(index), character));
+        let qualifies_function = matches!(next, Some(TokenTree::Ident(following))
+            if ["fn", "unsafe", "async", "extern"].contains(&following.to_string().as_str()));
+        if !follows_raw && !follows_punctuation && !qualifies_function {
+            self.item.kind = ItemKind::Constant;
+        }
+        Ok(0)
+    }
+
+    /// Handles `mod` and returns how many further tokens it consumed. The
+    /// module's inline body or file takes the declaration's test context.
+    fn module(&mut self, index: usize, findings: &mut ModuleFindings) -> io::Result<usize> {
+        let context = CodeContext {
+            test: self.here().test,
+            compile_time: false,
+        };
+        let attributes = mem::take(&mut self.item.attributes);
+        if attributes.expectation.forbidden_module_wide(context.test) {
+            count_in(&mut findings.module_expectations, &self.source.path);
+        }
+        // A macro can name the module with a metavariable, whose file the
+        // walk cannot find.
+        let after = |offset: usize| index.saturating_add(offset);
+        let (name, body_index) = match (self.trees.get(after(1)), self.trees.get(after(2))) {
+            (Some(TokenTree::Ident(name)), _) => (name.to_string(), after(2)),
+            (Some(TokenTree::Punct(dollar)), Some(TokenTree::Ident(name)))
+                if dollar.as_char() == '$' =>
+            {
+                (format!("${name}"), after(3))
+            },
+            _ => return Ok(0),
+        };
+        let name = name.strip_prefix("r#").unwrap_or(&name);
+        let child_directory = self.source.child_directory.join(name);
+        match self.trees.get(body_index) {
+            Some(TokenTree::Group(body)) if body.delimiter() == Delimiter::Brace => {
+                let inline = ModuleSource {
+                    path: self.source.path.clone(),
+                    child_directory,
+                };
+                walk_tokens(&body.stream(), &inline, context, true, findings)?;
+                self.item = ItemState::default();
+                Ok(body_index.saturating_sub(index))
+            },
+            Some(TokenTree::Punct(semicolon)) if semicolon.as_char() == ';' => {
+                // The source-reference check rejects a `path` attribute.
+                if !attributes.custom_path {
+                    self.module_file(name, child_directory, context, findings)?;
+                }
+                Ok(body_index.saturating_sub(index).saturating_sub(1))
+            },
+            _ => Ok(0),
+        }
+    }
+
+    /// Walks the file of `mod name;`, which must exist as `name.rs` or
+    /// `name/mod.rs`.
+    fn module_file(
+        &self,
+        name: &str,
+        child_directory: PathBuf,
+        context: CodeContext,
+        findings: &mut ModuleFindings,
+    ) -> io::Result<()> {
+        let files: Vec<PathBuf> = [
+            self.source.child_directory.join(format!("{name}.rs")),
+            child_directory.join("mod.rs"),
+        ]
+        .into_iter()
+        .filter(|path| path.is_file())
+        .collect();
+        if files.is_empty() {
+            count_in(&mut findings.unresolved_modules, &self.source.path);
+        }
+        for path in files {
+            let file = ModuleSource {
+                path,
+                child_directory: child_directory.clone(),
+            };
+            walk_module_file(&file, context, true, findings)?;
+        }
+        Ok(())
+    }
 }
 
 fn path_is_ident(path: &syn::Path, expected: &str) -> bool {
@@ -343,6 +985,8 @@ fn project_policy_violations(root: &Path) -> io::Result<Vec<String>> {
         mut enumeration_roots,
         mut package_roots,
         target_sources,
+        non_test_crate_roots,
+        test_crate_roots,
     } = cargo_workspace_inputs(root, &canonical_root, &mut violations);
     package_roots.insert(canonical_root.clone());
     enumeration_roots.insert(canonical_root.clone());
@@ -382,6 +1026,55 @@ fn project_policy_violations(root: &Path) -> io::Result<Vec<String>> {
     let mut visited = BTreeSet::new();
     for source_file in source_files {
         scan_source_file(&source_file, &canonical_root, &mut visited, &mut violations)?;
+    }
+    for crate_root in &non_test_crate_roots {
+        // scan_source_file reports a crate root that does not tokenize.
+        let Ok(tokens) = TokenStream::from_str(&fs::read_to_string(crate_root)?) else {
+            continue;
+        };
+        let count = crate_level_expectation_count(&tokens, is_expectation);
+        if count != 0 {
+            violations.push(format!(
+                "{} has crate-level #![expect] attributes ({count}); outside test targets, put each expectation on the smallest enclosing statement or item",
+                crate_root.display()
+            ));
+        }
+    }
+    for crate_root in &test_crate_roots {
+        let Ok(tokens) = TokenStream::from_str(&fs::read_to_string(crate_root)?) else {
+            continue;
+        };
+        if crate_level_expectation_count(&tokens, expects_arithmetic) != 0 {
+            violations.push(format!(
+                "{} has a crate-level arithmetic expectation; test code takes no arithmetic expectation, so use checked_ methods (AGENTS.md)",
+                crate_root.display()
+            ));
+        }
+    }
+    let mut findings = ModuleFindings::default();
+    for crate_root in &non_test_crate_roots {
+        walk_crate(crate_root, false, &mut findings)?;
+    }
+    for crate_root in &test_crate_roots {
+        walk_crate(crate_root, true, &mut findings)?;
+    }
+    for (path, count) in &findings.module_expectations {
+        violations.push(format!(
+            "{} has module-wide expectations of panic lints ({count}); outside test code, put each on the smallest enclosing statement or item, and use checked_ methods for test arithmetic (AGENTS.md)",
+            path.display()
+        ));
+    }
+    for (path, count) in &findings.unresolved_modules {
+        violations.push(format!(
+            "{} declares modules whose files the policy scanner cannot find ({count}); name each module literally and keep its file at name.rs or name/mod.rs",
+            path.display()
+        ));
+    }
+    for (path, count) in &findings.assertions {
+        violations.push(format!(
+            "{} calls assert!, assert_eq!, or assert_ne! outside test code ({count}); return a typed error instead (AGENTS.md)",
+            path.display()
+        ));
     }
     violations.sort();
     Ok(violations)
@@ -536,6 +1229,11 @@ fn cargo_workspace_inputs(
             ) {
                 if let Some(parent) = source.parent() {
                     inputs.enumeration_roots.insert(parent.to_path_buf());
+                }
+                if target.kind.iter().any(|kind| kind != TEST_TARGET_KIND) {
+                    inputs.non_test_crate_roots.insert(source);
+                } else {
+                    inputs.test_crate_roots.insert(source);
                 }
                 inputs.target_sources.push(target.src_path.clone());
             }
@@ -773,7 +1471,10 @@ fn scan_source_file(
 
     let count = allow_violations_in_tokens(&tokens);
     if count != 0 {
-        violations.push(format!("{} ({count})", canonical_path.display()));
+        violations.push(format!(
+            "{} has #[allow] attributes, broad #[expect] attributes, or attributes forwarded from macro metavariables ({count}); use one lint in a reasoned #[expect] on the smallest enclosing statement or item (AGENTS.md)",
+            canonical_path.display()
+        ));
     }
 
     for reference in source_references(&tokens) {
@@ -872,6 +1573,552 @@ fn rejects_crate_inner_allow_with_a_reason() {
     let source = "#![allow(clippy::unwrap_used, reason = \"claimed exception\")]\nfn main() {}";
     assert_eq!(
         allow_policy_violation_count(source).expect("valid Rust tokens"),
+        1
+    );
+}
+
+#[test]
+fn rejects_expectations_naming_several_lints() {
+    let source = r#"
+        #[expect(clippy::unwrap_used, clippy::indexing_slicing, reason = "claimed exception")]
+        fn direct() {}
+
+        #[cfg_attr(test, expect(dead_code, unused_variables, reason = "claimed exception"))]
+        fn conditional() {}
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        2
+    );
+}
+
+#[test]
+fn rejects_expectations_naming_lint_groups() {
+    let source = r#"
+        #![expect(warnings, reason = "claimed exception")]
+
+        #[expect(clippy::pedantic, reason = "claimed exception")]
+        fn clippy_group() {}
+
+        #[cfg_attr(test, expect(rust_2018_idioms, reason = "claimed exception"))]
+        fn rustc_group() {}
+
+        #[expect(rustdoc::all, reason = "claimed exception")]
+        fn rustdoc_group() {}
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        4
+    );
+}
+
+#[test]
+fn rejects_expectations_on_the_allow_attribute_lints() {
+    let source = r#"
+        #[expect(clippy::allow_attributes, reason = "claimed exception")]
+        fn bare_allow() {}
+
+        #[cfg_attr(test, expect(clippy::allow_attributes_without_reason, reason = "claimed exception"))]
+        fn unexplained_allow() {}
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        2
+    );
+}
+
+#[test]
+fn accepts_single_lint_reasoned_expectations() {
+    let source = r#"
+        #[expect(clippy::unwrap_used, reason = "the parser accepted this input")]
+        fn direct() {}
+
+        #[cfg_attr(test, expect(dead_code, reason = "only tests call this"))]
+        fn conditional() {}
+
+        #[expect(rust_2024_prelude_collisions, reason = "an edition lint, not its group")]
+        fn edition_lint() {}
+
+        mod module {
+            #[expect(clippy::module_inception, reason = "Clippy reports the module itself")]
+            mod module {}
+        }
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        0
+    );
+}
+
+#[test]
+fn lint_groups_match_the_toolchain() {
+    let mut toolchain_groups = BTreeSet::new();
+    for tool in ["clippy-driver", "rustdoc"] {
+        let output = Command::new(tool)
+            .args(["-W", "help"])
+            .current_dir(project_root())
+            .output()
+            .unwrap_or_else(|error| panic!("cannot run {tool}: {error}"));
+        assert!(
+            output.status.success(),
+            "{tool} -W help failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        toolchain_groups.extend(lint_group_names(&String::from_utf8_lossy(&output.stdout)));
+    }
+    let listed: BTreeSet<String> = LINT_GROUPS.map(str::to_owned).into();
+    assert_eq!(
+        listed, toolchain_groups,
+        "LINT_GROUPS must list every lint group of the pinned toolchain"
+    );
+}
+
+/// Reads the name column of each `Lint groups` table in `-W help` output.
+fn lint_group_names(help: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut in_groups = false;
+    let mut in_table = false;
+    for line in help.lines().map(str::trim) {
+        if line.starts_with("Lint groups") {
+            in_groups = true;
+            in_table = false;
+        } else if in_groups && line.starts_with("----") {
+            in_table = true;
+        } else if in_table {
+            if let Some(name) = line.split_whitespace().next() {
+                names.push(name.replace('-', "_"));
+            } else {
+                in_groups = false;
+                in_table = false;
+            }
+        }
+    }
+    names
+}
+
+#[test]
+fn rejects_crate_level_expectations_outside_test_targets() {
+    let crate_roots = [
+        "src/lib.rs",
+        "src/main.rs",
+        "src/bin/tool.rs",
+        "build.rs",
+        "examples/demo.rs",
+        "benches/speed.rs",
+    ];
+    let violations = fixture_violations(
+        "crate-level-expectations",
+        &crate_roots.map(|crate_root| {
+            (
+                crate_root,
+                "#![cfg_attr(unix, expect(clippy::unwrap_used, reason = \"claimed crate-wide exception\"))]\nfn main() {}",
+            )
+        }),
+    )
+    .expect("fixture project should be readable");
+
+    assert_eq!(violations.len(), crate_roots.len(), "{violations:?}");
+    for crate_root in crate_roots {
+        assert!(
+            violations.iter().any(|violation| {
+                violation.contains(crate_root) && violation.contains("crate-level #![expect]")
+            }),
+            "crate-level expectation in {crate_root} was not rejected: {violations:?}"
+        );
+    }
+}
+
+#[test]
+fn accepts_crate_level_expectations_in_test_targets() {
+    let violations = fixture_violations(
+        "test-target-expectations",
+        &[
+            ("src/lib.rs", ""),
+            (
+                "tests/integration.rs",
+                "#![expect(clippy::unwrap_used, reason = \"tests unwrap values they constructed\")]\n",
+            ),
+        ],
+    )
+    .expect("fixture project should be readable");
+
+    assert!(
+        violations.is_empty(),
+        "unexpected violations: {violations:?}"
+    );
+}
+
+#[test]
+fn rejects_crate_level_arithmetic_expectations_in_test_targets() {
+    let violations = fixture_violations(
+        "test-target-arithmetic",
+        &[
+            ("src/lib.rs", ""),
+            (
+                "tests/properties.rs",
+                "#![expect(\n    clippy::arithmetic_side_effects,\n    reason = \"value is drawn from 0..=u32::MAX / 2, so value * 2 cannot overflow\"\n)]\n",
+            ),
+            (
+                "tests/conditional.rs",
+                "#![cfg_attr(unix, expect(clippy::arithmetic_side_effects, reason = \"bounded\"))]\n",
+            ),
+        ],
+    )
+    .expect("fixture project should be readable");
+
+    assert_eq!(violations.len(), 2, "{violations:?}");
+    for crate_root in ["tests/properties.rs", "tests/conditional.rs"] {
+        assert!(
+            violations.iter().any(|violation| {
+                violation.contains(crate_root) && violation.contains("arithmetic expectation")
+            }),
+            "arithmetic expectation in {crate_root} was not rejected: {violations:?}"
+        );
+    }
+}
+
+#[test]
+fn rejects_module_wide_panic_expectations_outside_test_code() {
+    let violations = fixture_violations(
+        "module-expectations",
+        &[
+            (
+                "src/lib.rs",
+                r#"
+                mod imp;
+                #[expect(clippy::unwrap_used, reason = "claimed module-wide exception")]
+                mod outer {}
+                mod inline {
+                    #![cfg_attr(unix, expect(clippy::indexing_slicing, reason = "claimed module-wide exception"))]
+                }
+                macro_rules! module {
+                    ($name:ident) => {
+                        #[expect(clippy::unwrap_used, reason = "claimed module-wide exception")]
+                        mod $name {}
+                    };
+                }
+                #[cfg(test)]
+                mod tests {
+                    #![expect(clippy::unwrap_used, reason = "tests unwrap values they constructed")]
+                }
+                #[cfg(test)]
+                mod arithmetic_tests {
+                    #![expect(clippy::arithmetic_side_effects, reason = "claimed module-wide exception")]
+                }
+                #[expect(clippy::module_inception, reason = "the inner module mirrors its parent")]
+                mod checks {
+                    mod checks {}
+                }
+                #[expect(clippy::unwrap_used, reason = "the caller validated the text")]
+                pub fn parse(text: &str) -> u8 {
+                    text.parse().unwrap()
+                }
+                "#,
+            ),
+            (
+                "src/imp.rs",
+                "#![expect(clippy::unwrap_used, reason = \"claimed module-wide exception\")]\n",
+            ),
+            (
+                "tests/integration.rs",
+                "mod common;\n#[expect(clippy::arithmetic_side_effects, reason = \"claimed module-wide exception\")]\nmod more {}\n",
+            ),
+            (
+                "tests/common/mod.rs",
+                "#![expect(clippy::unwrap_used, reason = \"helpers unwrap fixtures they wrote\")]\n",
+            ),
+        ],
+    )
+    .expect("fixture project should be readable");
+
+    assert_eq!(violations.len(), 3, "{violations:?}");
+    for (file, count) in [
+        ("src/lib.rs", 4),
+        ("src/imp.rs", 1),
+        ("tests/integration.rs", 1),
+    ] {
+        assert!(
+            violations.iter().any(|violation| {
+                violation.contains(file)
+                    && violation.contains(&format!("expectations of panic lints ({count})"))
+            }),
+            "module-wide expectations in {file} were not counted: {violations:?}"
+        );
+    }
+}
+
+#[test]
+fn rejects_assertions_outside_test_code() {
+    let violations = fixture_violations(
+        "assertions",
+        &[
+            (
+                "src/lib.rs",
+                r#"
+                mod checks;
+                mod nested;
+                mod directory;
+                mod inner_tests;
+                #[cfg(test)]
+                mod tests;
+                mod inline {
+                    pub(crate) fn check(value: u8) {
+                        assert_eq!(value, 1);
+                    }
+                    mod deeper;
+                }
+                include!("body.rs");
+                use std::assert as check;
+                macro_rules! require {
+                    ($condition:expr) => {
+                        std::assert!($condition)
+                    };
+                }
+                macro_rules! call {
+                    ($assert:ident) => {
+                        $assert!(true)
+                    };
+                }
+                static LAZY: std::sync::LazyLock<u8> = std::sync::LazyLock::new(|| {
+                    assert_ne!(1, 2);
+                    1
+                });
+                static TABLE: [u8; 2] = {
+                    assert!(u8::MAX == 255);
+                    [1, 2]
+                };
+                const _: () = assert!(u8::MAX == 255);
+                const _: () = if usize::BITS >= 32 { assert!(true) } else { assert!(true) };
+                const _: () = {
+                    const fn nonzero(value: u8) -> bool {
+                        value != 0
+                    }
+                    assert!(nonzero(1));
+                };
+                const _: () = {
+                    macro_rules! expand {
+                        ($condition:expr) => {
+                            assert!($condition)
+                        };
+                    }
+                };
+                pub const HOOK: fn(u8) = {
+                    fn hook(value: u8) {
+                        assert!(value > 0);
+                    }
+                    hook
+                };
+                const _: () = include!("shared.rs");
+                pub fn shared() {
+                    include!("shared.rs")
+                }
+                pub const fn checked() -> u8 {
+                    const { assert!(usize::BITS >= 32) };
+                    debug_assert!(true);
+                    1
+                }
+                pub fn pair() -> (u8, u8) {
+                    (1, const { assert!(usize::BITS >= 32); 2 })
+                }
+                pub fn compare(assert: u8) -> bool {
+                    assert != 0
+                }
+                pub const unsafe fn first() {}
+                pub fn items<const N: usize>() -> impl Iterator<Item = u8> {
+                    assert!(N > 0);
+                    [].into_iter()
+                }
+                pub fn classify(event: Event) -> u8 {
+                    match event {
+                        #[cfg(test)]
+                        Event::Probe => 0,
+                        Event::Value(value) => {
+                            assert!(value > 0);
+                            value
+                        }
+                    }
+                }
+                #[cfg(test)]
+                impl<A, B> Pair<A, B> {
+                    fn check(&self) {
+                        assert!(true);
+                    }
+                }
+                #[cfg(all(test, unix))]
+                fn unix_test_helper() {
+                    assert!(true);
+                }
+                #[cfg(any(test, feature = "testing"))]
+                fn shared_helper() {
+                    assert!(true);
+                }
+                "#,
+            ),
+            (
+                "src/checks.rs",
+                r"
+                pub(crate) fn check(value: u8) {
+                    assert!(value > 0);
+                }
+                const HOOK: fn(u8) = move |value| assert!(value > 0);
+                #[test]
+                fn checks_value() {
+                    assert!(true);
+                }
+                #[tokio::test]
+                async fn checks_asynchronously() {
+                    assert!(true);
+                }
+                ",
+            ),
+            ("src/nested.rs", "mod sub;\n"),
+            (
+                "src/nested/sub.rs",
+                "pub fn sub() {\n    assert!(true);\n}\n",
+            ),
+            (
+                "src/directory/mod.rs",
+                "pub fn directory() {\n    assert!(true);\n}\n",
+            ),
+            (
+                "src/inline/deeper.rs",
+                "pub fn deeper() {\n    assert!(true);\n}\n",
+            ),
+            (
+                "src/body.rs",
+                "pub fn included() {\n    assert!(true);\n}\n",
+            ),
+            ("src/shared.rs", "assert!(true)\n"),
+            (
+                "src/inner_tests.rs",
+                "#![cfg(test)]\nfn helper() {\n    assert!(true);\n}\n",
+            ),
+            ("src/tests.rs", "fn helper() {\n    assert!(true);\n}\n"),
+            ("tests/integration.rs", "mod common;\n"),
+            (
+                "tests/common/mod.rs",
+                "pub fn helper() {\n    assert!(true);\n}\n",
+            ),
+        ],
+    )
+    .expect("fixture project should be readable");
+
+    let expected = [
+        ("src/lib.rs", 9),
+        ("src/checks.rs", 2),
+        ("src/nested/sub.rs", 1),
+        ("src/directory/mod.rs", 1),
+        ("src/inline/deeper.rs", 1),
+        ("src/body.rs", 1),
+        ("src/shared.rs", 1),
+    ];
+    assert_eq!(violations.len(), expected.len(), "{violations:?}");
+    for (file, count) in expected {
+        assert!(
+            violations.iter().any(|violation| {
+                violation.contains(file)
+                    && violation.contains(&format!("outside test code ({count})"))
+            }),
+            "assertions in {file} were not counted: {violations:?}"
+        );
+    }
+}
+
+#[test]
+fn rejects_module_declarations_the_walk_cannot_resolve() {
+    let violations = fixture_violations(
+        "unresolved-modules",
+        &[
+            (
+                "src/lib.rs",
+                r#"
+                mod missing;
+                macro_rules! declare {
+                    ($name:ident) => {
+                        mod $name;
+                    };
+                }
+                #[path = "elsewhere.rs"]
+                mod custom;
+                #[cfg(windows)]
+                mod platform;
+                "#,
+            ),
+            ("src/elsewhere.rs", ""),
+            ("src/platform.rs", ""),
+        ],
+    )
+    .expect("fixture project should be readable");
+
+    assert_eq!(violations.len(), 2, "{violations:?}");
+    assert!(
+        violations
+            .iter()
+            .any(|violation| violation.contains("cannot find (2)")),
+        "unresolved modules were not counted: {violations:?}"
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|violation| violation.contains("uses #[path]")),
+        "the custom module path was not rejected: {violations:?}"
+    );
+}
+
+#[test]
+fn panic_lints_are_denied_by_the_workspace() {
+    let source =
+        fs::read_to_string(project_root().join("Cargo.toml")).expect("manifest should be readable");
+    let manifest: toml::Value = toml::from_str(&source).expect("manifest should parse");
+    let clippy = manifest
+        .get("workspace")
+        .and_then(|workspace| workspace.get("lints"))
+        .and_then(|lints| lints.get("clippy"));
+    for lint in PANIC_LINTS {
+        let name = lint
+            .strip_prefix("clippy::")
+            .expect("PANIC_LINTS names Clippy lints");
+        let level = clippy.and_then(|lints| lints.get(name)).and_then(|value| {
+            value
+                .as_str()
+                .or_else(|| value.get("level").and_then(toml::Value::as_str))
+        });
+        assert_eq!(
+            level,
+            Some("deny"),
+            "PANIC_LINTS lists {lint}, which [workspace.lints.clippy] must deny"
+        );
+    }
+}
+
+#[test]
+fn rejects_policy_attributes_behind_boolean_cfg_attr_predicates() {
+    let source = r#"
+        #[cfg_attr(true, allow(dead_code))]
+        fn allowed() {}
+
+        #[cfg_attr(true, expect(clippy::unwrap_used, clippy::indexing_slicing, reason = "claimed exception"))]
+        fn several() {}
+
+        #[cfg_attr(true, cfg_attr(false, expect(clippy::pedantic, reason = "claimed exception")))]
+        fn group() {}
+        "#;
+    assert_eq!(
+        allow_policy_violation_count(source).expect("valid Rust tokens"),
+        3
+    );
+    let crate_root =
+        "#![cfg_attr(true, expect(clippy::unwrap_used, reason = \"claimed exception\"))]";
+    assert_eq!(
+        crate_level_expectation_count(
+            &TokenStream::from_str(crate_root).expect("valid Rust tokens"),
+            is_expectation
+        ),
+        1
+    );
+    let module = "#[cfg_attr(true, path = \"payload.inc\")] mod payload;";
+    assert_eq!(
+        source_references(&TokenStream::from_str(module).expect("valid Rust tokens")).len(),
         1
     );
 }
@@ -1557,8 +2804,16 @@ fn follows_internal_directory_symlinks_and_rejects_external_targets() {
     );
 }
 
+/// Cargo reruns a copied tree's up-to-date test binary, whose compile-time
+/// `CARGO_MANIFEST_DIR` still names the original tree, so the value Cargo
+/// sets at run time wins.
+fn project_root() -> PathBuf {
+    env::var_os("CARGO_MANIFEST_DIR")
+        .map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")), PathBuf::from)
+}
+
 fn policy_fixture_root(name: &str) -> io::Result<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+    let root = project_root()
         .join("target/allow-policy-fixtures")
         .join(format!("{}-{name}", std::process::id()));
     fs::create_dir_all(&root)?;
@@ -1575,21 +2830,42 @@ fn write_fixture_lock(root: &Path, package_names: &[&str]) -> io::Result<()> {
     fs::write(root.join("Cargo.lock"), lock)
 }
 
+/// Writes a one-package fixture project with the given files and returns its
+/// policy violations.
+fn fixture_violations(name: &str, files: &[(&str, &str)]) -> io::Result<Vec<String>> {
+    let root = policy_fixture_root(name)?;
+    fs::write(
+        root.join("Cargo.toml"),
+        format!(
+            "[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[workspace]\n[workspace.lints]\n[lints]\nworkspace = true\n"
+        ),
+    )?;
+    write_fixture_lock(&root, &[name])?;
+    for (path, source) in files {
+        let path = root.join(path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, source)?;
+    }
+    project_policy_violations(&root)
+}
+
 #[test]
 fn project_sources_contain_no_policy_violations() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let violations = project_policy_violations(root).expect("project files should be readable");
+    let root = project_root();
+    let violations = project_policy_violations(&root).expect("project files should be readable");
 
     assert!(
         violations.is_empty(),
-        "allow attributes and macro-emitted attribute metavariables are forbidden; use narrow, reasoned #[expect]: {}",
+        "first-party sources break the source policy; each violation names its fix: {}",
         violations.join(", ")
     );
 }
 
 #[test]
 fn mutation_tasks_preserve_workspace_and_base_resolution_contracts() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = project_root();
     let task_path = root.join(".config/mise/conf.d/20-rust.toml");
     let tasks =
         fs::read_to_string(&task_path).expect("the copied Rust task fragment should be readable");

@@ -1,11 +1,19 @@
 # Clippy reads the MSRV from Cargo.toml's `rust-version`; a second pin here
 # would override it and drift silently on a toolchain bump.
 
+# An application profile makes no external compatibility promise. The default
+# `true` exempts `pub` items from lints such as `rc_buffer`,
+# `unnecessary_wraps` (which backs the AGENTS.md rule against
+# `Result<T, Infallible>`), `wrong_self_convention`, and
+# `trivially_copy_pass_by_ref`.
+avoid-breaking-exported-api = false
+
 # The panic-free wall applies to production code; tests may assert invariants
-# the test itself established.
+# the test itself established, and print to the test runner's captured output.
 allow-expect-in-tests = true
 allow-indexing-slicing-in-tests = true
 allow-panic-in-tests = true
+allow-print-in-tests = true
 allow-unwrap-in-tests = true
 
 # Shared-mutable-state doctrine (AGENTS.md): state lives in one place as a
@@ -20,6 +28,8 @@ disallowed-types = [
     { path = "std::rc::Rc", reason = "shared ownership hides the owner; give the value one owner and pass it as an event or borrow (AGENTS.md ownership and state)" },
     { path = "std::cell::RefCell", reason = "runtime borrow panics replace compile-time ownership; restructure so the owner mutates directly (AGENTS.md ownership and state)" },
     { path = "std::cell::Cell", reason = "interior mutability hides writes; restructure so the owner mutates directly (AGENTS.md ownership and state)" },
+    { path = "std::cell::OnceCell", reason = "a lazily set cell hides when state is written; compute the value where the owner is built (AGENTS.md ownership and state)" },
+    { path = "std::cell::LazyCell", reason = "a lazily set cell hides when state is written; compute the value where the owner is built (AGENTS.md ownership and state)" },
     { path = "std::sync::atomic::AtomicBool", reason = "ambient flags are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
     { path = "std::sync::atomic::AtomicI8", reason = "ambient counters are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
     { path = "std::sync::atomic::AtomicI16", reason = "ambient counters are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
@@ -34,14 +44,16 @@ disallowed-types = [
     { path = "std::sync::atomic::AtomicUsize", reason = "ambient counters are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
     # Ecosystem equivalents inherit the doctrine unchanged: routing around a
     # disallowed std primitive through a dependency is a violation, not an
-    # escape. These entries are inert until the crate enters the graph.
-    { path = "tokio::sync::Mutex", reason = "send the event to the task that owns the state over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
-    { path = "tokio::sync::RwLock", reason = "send the event to the task that owns the state over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
-    { path = "parking_lot::Mutex", reason = "send the event to the state's owning thread over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
-    { path = "parking_lot::RwLock", reason = "send the event to the state's owning thread over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
-    { path = "dashmap::DashMap", reason = "a concurrent map is shared mutable state; give the map one owner and send it events (AGENTS.md ownership and state)" },
-    { path = "crossbeam_utils::atomic::AtomicCell", reason = "ambient cells are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
-    { path = "portable_atomic::AtomicU64", reason = "an atomic behind a dependency is still ambient state; put the value on the root model (AGENTS.md ownership and state)" },
+    # escape. `allow-invalid` keeps each entry quiet until its crate and the
+    # feature that exports the path enter the graph; Clippy rejects the type
+    # from then on.
+    { path = "tokio::sync::Mutex", allow-invalid = true, reason = "send the event to the task that owns the state over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
+    { path = "tokio::sync::RwLock", allow-invalid = true, reason = "send the event to the task that owns the state over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
+    { path = "parking_lot::Mutex", allow-invalid = true, reason = "send the event to the state's owning thread over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
+    { path = "parking_lot::RwLock", allow-invalid = true, reason = "send the event to the state's owning thread over a channel instead of reaching into state through a lock (AGENTS.md ownership and state)" },
+    { path = "dashmap::DashMap", allow-invalid = true, reason = "a concurrent map is shared mutable state; give the map one owner and send it events (AGENTS.md ownership and state)" },
+    { path = "crossbeam_utils::atomic::AtomicCell", allow-invalid = true, reason = "ambient cells are state; put the value on the root model and thread it to use sites (AGENTS.md ownership and state)" },
+    { path = "portable_atomic::AtomicU64", allow-invalid = true, reason = "an atomic behind a dependency is still ambient state; put the value on the root model (AGENTS.md ownership and state)" },
 ]
 
 disallowed-macros = [

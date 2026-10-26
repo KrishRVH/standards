@@ -6,6 +6,8 @@
 # on purpose: member crate manifests carry the `[lints] workspace = true`
 # opt-in, so adding one is a wall edit too. If the mise task fragment
 # (20-rust.toml) lives outside /.config/mise/, add its path here.
+# tests/allow_policy.rs and tests/lint_wall.rs read it from
+# .config/mise/conf.d/; move their path with it.
 * @OWNER
 /.cargo/ @OWNER
 /.config/mise/ @OWNER

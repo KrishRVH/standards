@@ -12,14 +12,16 @@ publish = false
 [dev-dependencies]
 # Property tests are the default posture at trust boundaries; see AGENTS.md.
 proptest = "1.12.0"
-# The allow-policy integration test tokenizes Rust syntax, including attributes
-# inside macro bodies, without mistaking comments or literals for code.
+# The policy tests tokenize Rust syntax, including attributes inside macro
+# bodies, without mistaking comments or literals for code, and read the JSON
+# that Cargo, mise, and cargo-mutants write.
 proc-macro2 = "=1.0.107"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 syn = { version = "=3.0.9", features = ["full"] }
-# Cargo permits explicit target source paths with arbitrary extensions; parse
-# manifests so the policy scanner still sees those compiler inputs.
+# The policy tests read Cargo manifests, Cargo configuration, and the mise task
+# fragment. Cargo permits explicit target source paths with arbitrary
+# extensions, so the source scan parses manifests to see those compiler inputs.
 toml = "=1.1.8"
 
 # The lint wall lives at workspace scope so growth cannot silently shed it:
@@ -33,8 +35,14 @@ toml = "=1.1.8"
 # `#[allow]` is banned below.
 [workspace.lints.rust]
 future_incompatible = { level = "deny", priority = -1 }
+# 2018-edition idioms: borrows stay visible in paths (`Formatter<'_>`, not
+# `Formatter`), and unused `extern crate` items and inferable outlives bounds
+# go.
+rust_2018_idioms = { level = "deny", priority = -1 }
 # Public API is a context budget: anything `pub` is documented and reachable,
-# or it is not `pub`.
+# or it is not `pub`. Public types implement `Debug` so failures can show them;
+# hand-written impls redact secrets (AGENTS.md).
+missing_debug_implementations = "deny"
 missing_docs = "deny"
 unexpected_cfgs = "deny"
 unreachable_pub = "deny"
@@ -59,8 +67,8 @@ allow_attributes = "deny"
 allow_attributes_without_reason = "deny"
 
 # Panic-free production code: a reachable panic is an invariant the types
-# failed to carry. Tests are exempt from unwrap/expect/panic/indexing only,
-# via the four clippy.toml `allow-*-in-tests` knobs; the rest apply everywhere.
+# failed to carry. Test code is exempt only through clippy.toml's
+# `allow-*-in-tests` knobs, within the boundary AGENTS.md states.
 arithmetic_side_effects = "deny"
 dbg_macro = "deny"
 exit = "deny"
@@ -74,10 +82,24 @@ unimplemented = "deny"
 unreachable = "deny"
 unwrap_used = "deny"
 
-# Results are handled or visibly, reasons-attached discarded.
+# Results are handled or visibly, reasons-attached discarded. These lints see
+# only `let _ =`, `.ok()`, and `map_err(|_| ...)`; AGENTS.md names the one
+# sanctioned discard.
 let_underscore_must_use = "deny"
 map_err_ignore = "deny"
 unused_result_ok = "deny"
+
+# Program output is fallible I/O (AGENTS.md): the print macros panic when the
+# stream closes. clippy.toml lets test code print to the test runner's capture.
+print_stderr = "deny"
+print_stdout = "deny"
+
+# Immutable `Arc` snapshots are the permitted sharing (AGENTS.md): clone them
+# with `Arc::clone` so shared ownership is visible at the call site, and share
+# `Arc<str>` or `Arc<[T]>` rather than a growable buffer behind a second
+# pointer.
+clone_on_ref_ptr = "deny"
+rc_buffer = "deny"
 
 # Dependency hygiene.
 wildcard_dependencies = "deny"
