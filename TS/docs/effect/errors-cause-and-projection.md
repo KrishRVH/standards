@@ -12,7 +12,10 @@ exhaustive matches recover expected failures; they do not catch defects or
 relabel interruption.
 
 A `Cause` is a flat list of `reasons`, each `Fail`, `Die`, or `Interrupt`.
-Inspect the complete `Exit`/`Cause` at the handling owner when parallel
+When the runtime combines an expected failure with a defect, such as a crashing
+finalizer or a dying concurrent sibling, the defect takes precedence: each
+`Fail` becomes a `Die` that keeps its error, so typed recovery does not match
+it. Inspect the complete `Exit`/`Cause` at the handling owner when parallel
 branches or finalizers can contribute more than one reason:
 `Cause.hasInterruptsOnly`, `Cause.hasDies`, `Cause.findErrorOption`, and
 `cause.reasons.filter(Cause.isFailReason)` answer the usual questions.

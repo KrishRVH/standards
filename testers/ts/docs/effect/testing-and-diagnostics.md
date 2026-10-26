@@ -81,10 +81,11 @@ catalog's tester validates these triggers, the required task, immutable action
 references, and checkout credential hardening. Branch protection remains host
 configuration and requires the workflow's `quality` job.
 
-The catalog's documentation drift checks keep routed paths present, stable rule
-IDs unique, and the always-loaded TypeScript fragment under the measured word
-budget. The manifest keeps copied files byte-identical with the tester.
-Prose-only residuals stay explicitly marked `Manual` in the enforcement map.
+The catalog's documentation drift checks keep routed paths present, give every
+stable rule ID one complete record in the enforcement map, and keep the
+always-loaded TypeScript fragment under the measured word budget. The manifest
+keeps copied files byte-identical with the tester. Prose-only residuals stay
+explicitly marked `Manual` in the enforcement map.
 
 Use mise tasks for project verification. The local gate should include frozen
 install, format, lint, TypeScript, Effect diagnostics, expected diagnostics,

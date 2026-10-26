@@ -20,12 +20,12 @@
  *   the reporting surface; only `break` is load-bearing.
  * - The pinned Stryker core and Bun runner run under Bun for both mutation
  *   orchestration and tests; the full gate verifies this version pairing.
- * - Stryker core sizes each mutant run's timeout from its measured-run factor
- *   plus 30 seconds of absolute deviation, and the Bun runner ends the run
- *   just before it. Ordinary host load must not turn survivors into
- *   score-inflating timeouts. `bun.timeout` budgets only the dry run, which
- *   the runner extends by a 30-second drain allowance; 60 seconds keeps a
- *   loaded host from failing it.
+ * - Stryker core sizes each mutant run's timeout from the measured test time
+ *   scaled by its timeout factor, plus 30 seconds of absolute deviation, and
+ *   the Bun runner ends the run just before it. Ordinary host load must not
+ *   turn survivors into score-inflating timeouts. `bun.timeout` budgets only
+ *   the dry run, which the runner extends by a 30-second drain allowance; 60
+ *   seconds keeps a loaded host from failing it.
  * - Four mutation workers keep the sweep short while leaving capacity for
  *   Bun's child processes and for a second fixture gate in the repository
  *   aggregate; CPU-count concurrency oversubscribes the host and makes timeout

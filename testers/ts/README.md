@@ -9,12 +9,12 @@ The tested dependency set is exact:
 
 | Package/runtime            | Version |
 | -------------------------- | ------- |
-| `effect`                   | 4.0.5   |
-| `@effect/platform-bun`     | 4.0.5   |
+| `effect`                   | 4.0.6   |
+| `@effect/platform-bun`     | 4.0.6   |
 | `@effect/language-service` | 0.87.5  |
 | TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.3   |
-| `@types/bun`               | 1.4.3   |
+| Bun                        | 1.4.4   |
+| `@types/bun`               | 1.4.4   |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version.
@@ -50,18 +50,14 @@ A future Effect major is handled as one separately scoped migration per
 EFF-028: update the inventory, canonical examples, diagnostics configuration,
 semantic suites, and locks together, so the profile lands on the new major
 with the same closed feedback loop it has today. Evidence comes from Effect 4
-alone: v3 APIs, examples, and documentation describe a different runtime. The
-language service's `outdatedApi` diagnostic blocks removed or renamed v3 APIs,
-and the upstream
-[migration guide](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md)
-maps them to their v4 forms.
+alone: v3 APIs, examples, and documentation describe a different runtime.
 
-TypeScript remains at 6.0.3 because `typescript-eslint` 8.71 accepts only
-TypeScript below 6.1, the Stryker Bun runner accepts only TypeScript below 7,
-and `@effect/language-service` targets TypeScript 6; TypeScript 7 needs the
-separate `@effect/tsgo` language service. Upgrade the compiler when those
-consumers support it and the full gate passes; do not add a second compiler to
-work around their version contracts.
+TypeScript remains at 6.0.3, the newest 6.x release, although 7.0.2 is
+stable: `typescript-eslint` 8.72 accepts only TypeScript below 6.1, the Stryker
+Bun runner 1.6 accepts only TypeScript below 7, and `@effect/language-service`
+targets TypeScript 6; TypeScript 7 needs the separate `@effect/tsgo` language
+service. Upgrade the compiler when those consumers support it and the full gate
+passes; do not add a second compiler to work around their version contracts.
 
 ## Integrating into an existing project
 
@@ -78,8 +74,9 @@ has TypeScript tooling:
   it, and treat any red result as the concrete migration work list. The pins
   are the catalog's tested evidence floor, not a ceiling.
 - A project still on Effect v3 migrates to v4 first, following the upstream
-  migration guide, as its own scoped change. With v4 installed, the gate's
-  `outdatedApi` and TypeScript errors list the remaining v3 call sites.
+  [migration guide](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md),
+  as its own scoped change. With v4 installed, the gate's `outdatedApi` and
+  TypeScript errors list the remaining v3 call sites.
 - Conformance is the green gate, not visual similarity to this catalog.
 
 ## Profile boundary
@@ -116,9 +113,9 @@ The canonical endpoint checker is intentionally small:
 - `tests/endpoint-contracts.test.ts` verifies ID validation, wire outcome
   classifications, encoding, and exact redaction-safe public and telemetry
   projections.
-- `tests/endpoint-properties.test.ts` holds the trust-boundary property
-  tests; a counterexample found by a run is pinned there as a deterministic
-  example.
+- `tests/endpoint-properties.test.ts` holds the trust-boundary `fast-check`
+  property tests. Fast-check keeps no regression corpus, so a counterexample
+  found by a run is pinned there as a deterministic example.
 - The copyable profile includes the expected-diagnostic harness because it
   guards the configured language-service contract. The tester alone adds the
   larger fixture-owned semantic probes so the downstream seed remains readable.
@@ -195,7 +192,11 @@ Application source is compiler-owned and uses `.cts`, `.mts`, `.ts`, or `.tsx`;
 and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
 `.mjs` files under `src/` fail lint instead of silently escaping typechecking.
 The directive scanner still covers all eight JavaScript-like suffixes so
-tooling and configuration files cannot bypass the exception protocol.
+tooling and configuration files cannot bypass the exception protocol. It uses
+the existing TypeScript ESLint parser to identify comments outside the linter,
+including after template interpolation and inside JSX expressions. A lint
+directive cannot disable the exception protocol itself.
+
 The audit gate also covers development dependencies, so `package.json` pins a
 patched release of `qs`, which Stryker's `typed-rest-client` otherwise pins to
 a vulnerable version. Remove the override once no dependency resolves a
@@ -206,47 +207,48 @@ script, removed once the fix ships.
 `ts:knip` fails on unused declared dependencies, unused files, and unused
 exports from both entry and non-entry modules. It ignores exports used inside
 their own module (`ignoreExportsUsedInFile`), which contract schemas and
-projection types rely on. The directive checker uses the existing TypeScript
-ESLint parser to identify comments outside the linter, including after template
-interpolation and inside JSX expressions. A lint directive cannot disable the
-exception protocol itself.
+projection types rely on.
+
 `ts:preflight` runs every non-mutation gate before Stryker can touch source.
 `ts:mutants` then audits whether the tests would notice wrong code in Stryker's
 isolated sandbox. Stryker runs only the test files that import `src/` directly,
 because every static mutant reruns that whole list; tooling and contract tests
 belong to the preflight gate, and a unit test must import source itself to
-count toward the score. Its `break`
-threshold is a coarse regression alarm pinned at the measured floor, not a
-per-mutant guarantee — survivors in changed code are dispositioned in
-review. Both mutation tasks run `stryker.config.mjs` and acquire
-the project-scoped `reports/.stryker-mutation.lock` before replacing the
-machine report. The lock is held while Stryker and the report checker access
-the shared report and incremental state; a second run fails immediately
-instead of racing. The full task bypasses cached outcomes, requires
-`force=true` in the report, and requires at least one killed or surviving
-mutant with a positive completed-test count; timeouts alone are not fresh-test
-evidence. Because Stryker scores timeouts as detected, the report gate permits
-at most one percent (with a one-mutant minimum allowance); every remaining
-timeout needs investigation and a handoff explanation. Stryker core sizes each
-mutant run's timeout from the measured test time plus 30 seconds of absolute
-deviation, and the Bun runner ends the run just before it. The 60-second
-`bun.timeout` budgets only the dry run, which the runner extends by a 30-second
-drain allowance. Mutation concurrency is fixed at four: enough workers to keep
-the sweep short while Bun children and a parallel aggregate fixture retain CPU
-capacity, so ordinary host load cannot cheaply improve the score.
+count toward the score. Its `break` threshold is a coarse regression alarm
+pinned at the measured floor, not a per-mutant guarantee — survivors in changed
+code are dispositioned in review.
+
+Both mutation tasks run `stryker.config.mjs` and acquire the project-scoped
+`reports/.stryker-mutation.lock` before replacing the machine report. The lock
+is held while Stryker and the report checker access the shared report and
+incremental state; a second run fails immediately instead of racing. A stale
+lock fails closed: first verify that no mutation process is running, then
+remove `reports/.stryker-mutation.lock` manually and rerun.
+
+The full task bypasses cached outcomes, requires `force=true` in the report,
+and requires at least one killed or surviving mutant with a positive
+completed-test count; timeouts alone are not fresh-test evidence.
 `ts:mutants:diff` requires `force=false` and `incremental=true`; its evidence
-may be newly tested or compatibly reused from Stryker's incremental state. A
-stale lock fails closed: first verify that no mutation process is running,
-then remove `reports/.stryker-mutation.lock` manually and rerun. Property tests
-use `fast-check`; a counterexample
-found by a property run is pinned as a deterministic example test because
-fast-check keeps no regression corpus. On large projects, swap `ts:mutants`
-for `ts:mutants:diff` in the PR gate and move the full sweep to a scheduled
-job; the shipped workflow restores and saves only
-`reports/stryker-incremental.json`, fingerprints the tool and configuration
-inputs, and saves structurally usable state after successful or failed gates but not
-cancelled runs. Without that cache, a fresh CI checkout makes
-`ts:mutants:diff` a cold full sweep.
+may be newly tested or compatibly reused from Stryker's incremental state.
+
+Because Stryker scores timeouts as detected, the report gate permits at most
+one percent (with a one-mutant minimum allowance); every remaining timeout
+needs investigation and a handoff explanation. Stryker core sizes each mutant
+run's timeout from the measured test time, scaled by its timeout factor, plus
+30 seconds of absolute deviation, and the Bun runner ends the run just before
+it. The 60-second `bun.timeout` budgets only the dry run, which the runner
+extends by a 30-second drain allowance. Mutation concurrency is fixed at four:
+enough workers to keep the sweep short while Bun children and a parallel
+aggregate fixture retain CPU capacity, so ordinary host load cannot cheaply
+improve the score.
+
+On large projects, swap `ts:mutants` for `ts:mutants:diff` in the PR gate and
+move the full sweep to a scheduled job. The shipped workflow restores and saves
+only `reports/stryker-incremental.json`, fingerprints the tool and
+configuration inputs, and saves state that `ts:mutants:cache:check` finds
+structurally usable after successful or failed gates but not cancelled runs.
+Without that cache, a fresh CI checkout makes `ts:mutants:diff` a cold full
+sweep.
 
 The recommended fast repair loop is format check, lint, TypeScript, Effect
 diagnostics, semantic tests, audit, knip, incremental mutants, then the
@@ -262,7 +264,7 @@ locked `mise run standards:check` gate for every pull request, every push to
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
-The workflow pins mise 2026.9.18. The configuration's 2026.6.12 minimum is the
+The workflow pins mise 2026.10.19. The configuration's 2026.9.16 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
 `.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
@@ -278,11 +280,10 @@ required jobs, but they do not replace this static and deterministic gate.
 
 ## Tooling choices
 
-The committed primary workflow is typed Oxlint plus Oxfmt. Oxlint uses the
-`oxlint-tsgolint` TypeScript 7 backend for type-aware lint rules while the
-project remains on TypeScript 6.0.3, the tested version supported by
-`@effect/language-service`. `tsc` stays authoritative for compilation and the
-Effect language service keeps its own diagnostics gate.
+The committed primary workflow is typed Oxlint plus Oxfmt. Oxlint runs its
+type-aware rules on the `oxlint-tsgolint` TypeScript 7 backend, while `tsc`
+6.0.3 stays authoritative for compilation and the Effect language service
+keeps its own diagnostics gate.
 
 The primary lint config keeps `typescript/no-floating-promises` at
 `ignoreVoid: false`; writing `void runtime.runPromise(...)` is not accepted as
@@ -314,17 +315,17 @@ formatter differences never rewrite the canonical Oxc fixture.
 The catalog maintains and validates both lint-and-format workflows, but a
 copied profile's default gate runs only the primary workflow. The primary
 standards gate also owns type checks, tests, audits, knip, and mutation testing.
-Do not run both repair loops over one working tree. The root
-`mise run standards:eslint-prettier:check` task proves that the secondary
-workflow still accepts the canonical source, converges in scratch space, and
-then checks its own output. After any tool-version change, run
+Do not run both repair loops over one working tree. The catalog's root
+`standards:eslint-prettier:check` task proves that the secondary workflow still
+accepts the canonical source, converges in scratch space, and then checks its
+own output. After any tool-version change, run
 `mise run ts:lock` and the relevant standards gate.
 
 ## Runtime note
 
 `bunfig.toml` sets `[run] bun = true`, so package scripts and `node` shebang
 subprocesses resolve through Bun's PATH shim. Mutation orchestration and tests
-also run under Bun. Stryker core 10.0.0 and Bun runner 1.6.0 pass the full
+also run under Bun. Stryker core 10.1.1 and Bun runner 1.6.0 pass the full
 fixture together. Keep this pairing covered by the full mutation gate when
 upgrading either tool.
 

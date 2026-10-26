@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "audit": "bun audit --audit-level=low",
     "directives:check": "bun run scripts/check-directives.mjs",
@@ -27,29 +27,29 @@
     "typecheck": "tsc --pretty -p tsconfig.json"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.5",
-    "effect": "4.0.5"
+    "@effect/platform-bun": "4.0.6",
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@effect/language-service": "0.87.5",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/js": "10.0.1",
     "@hughescr/stryker-bun-runner": "1.6.0",
-    "@stryker-mutator/core": "10.0.0",
-    "@types/bun": "1.4.3",
+    "@stryker-mutator/core": "10.1.1",
+    "@types/bun": "1.4.4",
     "eslint": "10.13.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-jsx-a11y-x": "0.2.0",
     "eslint-plugin-regexp": "3.3.1",
     "fast-check": "4.10.2",
     "globals": "17.13.0",
-    "knip": "6.41.0",
-    "oxfmt": "0.73.0",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2004",
+    "knip": "6.43.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2005",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.2"
+    "typescript-eslint": "8.72.0"
   },
   "overrides": {
     "qs": "6.16.1"

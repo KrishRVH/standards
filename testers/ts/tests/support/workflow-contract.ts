@@ -299,7 +299,7 @@ const manualDispatchOnlyFragments: typeof lockedGateFragments = [
   },
 ];
 
-const generatedProfileFragments: typeof lockedGateFragments = [
+const typeScriptProfileFragments: typeof lockedGateFragments = [
   {
     matches: (workflow) => workflow.includes('run: mise run ts:install'),
     violation: 'locked dependency installation is not explicit',
@@ -338,7 +338,7 @@ const violationsFor = (workflow: string, contracts: typeof lockedGateFragments):
   contracts.flatMap(({ matches, violation }) => (matches(workflow) ? [] : [violation]));
 
 export const qualityWorkflowViolations = (workflow: string): readonly string[] =>
-  violationsFor(workflow, [...automaticTriggerFragments, ...lockedGateFragments, ...generatedProfileFragments]);
+  violationsFor(workflow, [...automaticTriggerFragments, ...lockedGateFragments, ...typeScriptProfileFragments]);
 
 export const rootQualityWorkflowViolations = (workflow: string): readonly string[] =>
   violationsFor(workflow, [...manualDispatchOnlyFragments, ...lockedGateFragments]);

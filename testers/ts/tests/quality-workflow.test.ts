@@ -34,13 +34,13 @@ const templateWorkflow = (): Promise<string> =>
 const catalogWorkflow = (): Promise<string> =>
   readFile(new URL('../../../.github/workflows/quality.yml', import.meta.url), 'utf8');
 
-test('the generated quality workflow automatically runs the locked mandatory gate', async () => {
+test('the template quality workflow automatically runs the locked mandatory gate', async () => {
   const workflow = await templateWorkflow();
 
   expect(qualityWorkflowViolations(workflow)).toEqual([]);
 });
 
-test('the generated quality workflow requires merge-queue validation', async () => {
+test('the template quality workflow requires merge-queue validation', async () => {
   const workflow = await templateWorkflow();
   const withoutMergeGroup = workflow.replace('  merge_group:\n', '');
 
@@ -49,7 +49,7 @@ test('the generated quality workflow requires merge-queue validation', async () 
   );
 });
 
-test('the generated quality workflow rejects floating external action tags', async () => {
+test('the template quality workflow rejects floating external action tags', async () => {
   const workflow = await templateWorkflow();
   const withFloatingCheckout = workflow.replace(/actions\/checkout@[0-9a-f]{40}/u, 'actions/checkout@v7');
 
@@ -176,7 +176,7 @@ const parallelLayouts = [
 ] as const;
 
 for (const layout of parallelLayouts) {
-  test(`the generated workflow rejects a mutable external action in a ${layout.name} parallel group`, async () => {
+  test(`the template workflow rejects a mutable external action in a ${layout.name} parallel group`, async () => {
     const workflow = await templateWorkflow();
     const violations = qualityWorkflowViolations(withParallelGroup(workflow, layout.mutableAction));
 
@@ -184,7 +184,7 @@ for (const layout of parallelLayouts) {
     expect(violations).not.toContain(checkoutCredentialsViolation);
   });
 
-  test(`the generated workflow rejects an unhardened checkout in a ${layout.name} parallel group`, async () => {
+  test(`the template workflow rejects an unhardened checkout in a ${layout.name} parallel group`, async () => {
     const workflow = await templateWorkflow();
     const violations = qualityWorkflowViolations(withParallelGroup(workflow, layout.unhardenedCheckout));
 
@@ -244,7 +244,7 @@ const hiddenCheckoutSpellings = [
 ] as const;
 
 for (const spelling of hiddenCheckoutSpellings) {
-  test(`the generated workflow recognizes and rejects a mutable checkout hidden behind a ${spelling.name}`, async () => {
+  test(`the template workflow recognizes and rejects a mutable checkout hidden behind a ${spelling.name}`, async () => {
     const workflow = await templateWorkflow();
     const withHardenedCheckout = workflow.replace(
       '      - name: Install pinned tools\n',

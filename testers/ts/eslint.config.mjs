@@ -116,10 +116,11 @@ export default defineConfig(
       },
     },
     rules: {
-      // Keep source syntax erasable so the transpiler owns JavaScript output.
+      // State belongs to a service, layer, or root model, not to module or global bindings.
       'standards/no-module-mutable-binding': 'error',
-      'standards/no-typescript-emit-syntax': 'error',
       'standards/no-global-mutation': 'error',
+      // Keep source syntax erasable so the transpiler owns JavaScript output.
+      'standards/no-typescript-emit-syntax': 'error',
 
       'array-callback-return': 'error',
       eqeqeq: 'error',

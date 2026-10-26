@@ -160,19 +160,27 @@ test('a slow finalizer delays the interrupted Exit until release completes', asy
   }
 });
 
-test('a finalizer defect is retained after the use failure', async () => {
-  const exit = await Effect.runPromiseExit(
-    Effect.acquireRelease(Effect.succeed('resource'), () => Effect.die('release-defect')).pipe(
-      Effect.flatMap(() => Effect.fail(new UseFailure())),
-      Effect.scoped,
-    ),
+test('a finalizer defect follows the use failure and converts it to a defect', async () => {
+  const scopedUse = Effect.acquireRelease(Effect.succeed('resource'), () => Effect.die('release-defect')).pipe(
+    Effect.flatMap(() => Effect.fail(new UseFailure())),
+    Effect.scoped,
+  );
+  const exit = await Effect.runPromiseExit(scopedUse);
+  const recovery = await Effect.runPromiseExit(
+    scopedUse.pipe(Effect.catchTag('UseFailure', () => Effect.succeed('recovered'))),
   );
 
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
-    expect(exit.cause.reasons.map(({ _tag }) => _tag)).toEqual(['Fail', 'Die']);
-    expect(exit.cause.reasons.filter(Cause.isFailReason).map(({ error }) => error._tag)).toEqual(['UseFailure']);
-    expect(exit.cause.reasons.filter(Cause.isDieReason).map(({ defect }) => defect)).toEqual(['release-defect']);
+    expect(exit.cause.reasons.map(({ _tag }) => _tag)).toEqual(['Die', 'Die']);
+    const [useDefect, releaseDefect] = exit.cause.reasons.filter(Cause.isDieReason).map(({ defect }) => defect);
+    expect(useDefect).toBeInstanceOf(UseFailure);
+    expect(releaseDefect).toBe('release-defect');
+  }
+  // Typed recovery cannot swallow the crashing finalizer.
+  expect(Exit.isFailure(recovery)).toBe(true);
+  if (Exit.isFailure(recovery)) {
+    expect(recovery.cause.reasons.map(({ _tag }) => _tag)).toEqual(['Die', 'Die']);
   }
 });
 

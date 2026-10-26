@@ -66,7 +66,8 @@ only at a boundary that owns the complete use.
 Pinned behavior: acquisition plus finalizer registration is uninterruptible;
 added finalizers run with interruption disabled; default Scope close is reverse
 order and sequential; a finalizer defect stays in the Cause, after the use
-failure in its `reasons`.
+failure in its `reasons`, and takes
+[precedence](errors-cause-and-projection.md#preserve-cause-classes) over it.
 
 Potentially blocking close operations need an owner policy. A timeout outside a
 Scope is not a hard wall because interruption waits for finalizers. Preserve
