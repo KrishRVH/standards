@@ -7,22 +7,22 @@ name = "project-name"
 version = "0.1.0"
 description = "A strict Python project."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.15"
 license = "LicenseRef-Proprietary"
 authors = [{ name = "Project contributors" }]
 dependencies = []
 
 [dependency-groups]
 dev = [
-  "bandit[toml]>=1.9.4",
-  "basedpyright>=1.40.1",
-  "coverage[toml]>=7.16.2",
+  "bandit>=1.9.4",
+  "basedpyright>=1.40.2",
+  "coverage>=7.17.0",
   "deptry>=0.25.1",
-  "hypothesis>=6.168.3",
+  "hypothesis>=6.170.11",
   "mutmut>=3.8.0",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "ruff>=0.16.10",
+  "ruff>=0.17.2",
 ]
 deep = [
   "interrogate>=1.7.0",
@@ -40,10 +40,9 @@ packages = ["src/project_name"]
 # that tree out of Ruff while still checking legitimate nested mutants/ names.
 extend-exclude = ["mutants/**"]
 line-length = 100
-required-version = ">=0.16.9"
+required-version = ">=0.17.2"
 show-fixes = true
 src = ["src", "tests"]
-target-version = "py314"
 unsafe-fixes = false
 
 [tool.ruff.format]
@@ -104,7 +103,7 @@ known-first-party = ["project_name"]
 
 [tool.basedpyright]
 include = ["scripts", "src", "tests"]
-pythonVersion = "3.14"
+pythonVersion = "3.15"
 pythonPlatform = "All"
 venvPath = "."
 venv = ".venv"
@@ -124,7 +123,7 @@ reportUnusedCallResult = "none"
 
 [tool.mypy]
 files = ["scripts", "src", "tests"]
-python_version = "3.14"
+python_version = "3.15"
 explicit_package_bases = true
 mypy_path = ["src", "."]
 strict = true
@@ -141,7 +140,7 @@ show_error_code_links = true
 show_error_codes = true
 show_error_end = true
 
-[tool.pytest.ini_options]
+[tool.pytest]
 addopts = [
   "--strict-config",
   "--strict-markers",
