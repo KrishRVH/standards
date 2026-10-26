@@ -51,13 +51,14 @@ demand.
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`, `Swift/.github/`) ship automatic triggers for downstream
 copies only; they are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. `scripts/check-profile-governance.mjs` lints workflow
-YAML with jactionlint's default profile, then parses it to enforce automatic
-triggers, one `quality` job, hardened checkout, immutable action pins,
-CODEOWNERS, and related host-setting and pull-request guidance across the
-automatic templates.
-`testers/ts/tests/quality-workflow.test.ts` separately enforces the root
-workflow's manual-only contract and the TypeScript-specific workflow behavior.
+`.github/workflows/`. `scripts/check-profile-governance.mjs` lints the root and
+template workflows with jactionlint's default profile, then parses them. Each
+must run `mise run standards:check` in locked mode from one `quality` job, with
+hardened checkout and immutable action pins. The root workflow declares only
+`workflow_dispatch`; each automatic template declares its triggers and
+pull-request cancellation and ships CODEOWNERS plus host-setting and
+pull-request guidance. `testers/ts/tests/quality-workflow.test.ts` covers the
+TypeScript workflow's dependency install and Stryker cache steps.
 
 ## Editing
 

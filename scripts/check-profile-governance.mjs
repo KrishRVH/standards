@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-/** Check the host-enforced governance contracts shipped by automatic profiles. */
+/** Check the catalog workflow and the governance contracts its automatic profiles ship. */
 
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
@@ -43,6 +43,10 @@ const FULL_COMMIT_SHA = /^[0-9a-f]{40}$/u;
 const IMMUTABLE_DOCKER_ACTION = /^docker:\/\/(.+)@sha256:[0-9a-f]{64}$/u;
 const DOCKER_NAME_COMPONENT = /^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*$/u;
 const DOCKER_TAG = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u;
+const AUTOMATIC_TRIGGERS = ['pull_request', 'push', 'workflow_dispatch', 'merge_group'];
+const CONCURRENCY_GROUP =
+  'quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}';
+const CANCEL_PULL_REQUEST_RUNS = "${{ github.event_name == 'pull_request' }}";
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -84,39 +88,50 @@ function parseWorkflow(document, description) {
   }
 }
 
-function workflowUses(workflow, description) {
-  const jobs = workflow.jobs;
-  if (!isRecord(jobs)) {
-    return { errors: [`${description} must contain a jobs mapping`], uses: [] };
-  }
-
-  const errors = [];
-  const uses = [];
-  for (const [jobName, job] of Object.entries(jobs)) {
-    if (!isRecord(job)) {
-      errors.push(`${description} job ${JSON.stringify(jobName)} must be a mapping`);
-      continue;
-    }
-    if (Object.hasOwn(job, 'uses')) {
-      uses.push({ container: job, reference: job.uses });
-    }
-
-    if (job.steps === undefined) {
-      continue;
-    }
-    if (!Array.isArray(job.steps)) {
-      errors.push(`${description} job ${JSON.stringify(jobName)} steps must be a sequence`);
-      continue;
-    }
-    for (const [index, step] of job.steps.entries()) {
-      if (!isRecord(step)) {
-        errors.push(`${description} job ${JSON.stringify(jobName)} step ${index} must be a mapping`);
-      } else if (Object.hasOwn(step, 'uses')) {
-        uses.push({ container: step, reference: step.uses });
+function collectSteps(steps, location, errors) {
+  const collected = [];
+  // A YAML alias can reuse a parallel group or nest one inside itself, so each
+  // group is walked once; jactionlint rejects nested and recursive groups.
+  const walked = new WeakSet();
+  const groups = [steps];
+  while (groups.length > 0) {
+    const group = groups.pop();
+    if (!Array.isArray(group)) {
+      errors.push(`${location} steps must be a sequence`);
+    } else if (!walked.has(group)) {
+      walked.add(group);
+      for (const step of group) {
+        if (!isRecord(step)) {
+          errors.push(`${location} steps must be mappings`);
+        } else {
+          collected.push(step);
+          if (Object.hasOwn(step, 'parallel')) {
+            groups.push(step.parallel);
+          }
+        }
       }
     }
   }
-  return { errors, uses };
+  return collected;
+}
+
+function workflowJobs(workflow, description) {
+  if (!isRecord(workflow.jobs)) {
+    return { errors: [`${description} must contain a jobs mapping`], jobs: [] };
+  }
+
+  const errors = [];
+  const jobs = [];
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    const location = `${description} job ${JSON.stringify(name)}`;
+    if (!isRecord(job)) {
+      errors.push(`${location} must be a mapping`);
+    } else {
+      const steps = job.steps === undefined ? [] : collectSteps(job.steps, location, errors);
+      jobs.push({ job, name, steps });
+    }
+  }
+  return { errors, jobs };
 }
 
 function isNormalizedLocalReference(target) {
@@ -202,21 +217,15 @@ function isImmutableActionReference(target) {
   );
 }
 
-function workflowContractErrors(document, description) {
-  // The contract checks run even when jactionlint fails, so its findings never
-  // hide theirs.
-  const errors = jactionlintErrors(document, description);
-  const parsed = parseWorkflow(document, description);
-  errors.push(...parsed.errors);
-  if (parsed.workflow === undefined) {
-    return errors;
-  }
-
-  const triggers = parsed.workflow.on;
+// Automatic templates validate every pull request, merge-queue entry, and push
+// to main, and cancel only a pull request's superseded runs.
+function automaticRunErrors(workflow, description) {
+  const errors = [];
+  const triggers = workflow.on;
   if (!isRecord(triggers)) {
     errors.push(`${description} must contain one top-level on mapping`);
   } else {
-    for (const trigger of ['pull_request', 'push', 'workflow_dispatch', 'merge_group']) {
+    for (const trigger of AUTOMATIC_TRIGGERS) {
       if (!Object.hasOwn(triggers, trigger)) {
         errors.push(`${description} missing ${trigger} trigger`);
       }
@@ -224,37 +233,108 @@ function workflowContractErrors(document, description) {
     if (Object.hasOwn(triggers, 'pull_request_target')) {
       errors.push(`${description} must not use pull_request_target`);
     }
+    if (Object.hasOwn(triggers, 'pull_request') && triggers.pull_request !== null) {
+      errors.push(`${description} must not filter pull_request events`);
+    }
+    if (
+      Object.hasOwn(triggers, 'push') &&
+      JSON.stringify(triggers.push) !== JSON.stringify({ branches: ['main'] })
+    ) {
+      errors.push(`${description} push trigger must select only the main branch`);
+    }
   }
 
-  const jobs = parsed.workflow.jobs;
-  if (!isRecord(jobs) || Object.keys(jobs).length !== 1 || !isRecord(jobs.quality)) {
+  const concurrency = workflow.concurrency;
+  if (
+    !isRecord(concurrency) ||
+    concurrency.group !== CONCURRENCY_GROUP ||
+    concurrency['cancel-in-progress'] !== CANCEL_PULL_REQUEST_RUNS
+  ) {
+    errors.push(`${description} must cancel only superseded pull-request runs`);
+  }
+  return errors;
+}
+
+// The catalog runs its gate locally before push and dispatches hosted runs on
+// demand, so its own workflow declares exactly workflow_dispatch.
+function manualRunErrors(workflow, description) {
+  const triggers = workflow.on;
+  return isRecord(triggers) &&
+    Object.keys(triggers).length === 1 &&
+    Object.hasOwn(triggers, 'workflow_dispatch')
+    ? []
+    : [`${description} must declare exactly the workflow_dispatch trigger`];
+}
+
+// Every workflow runs the locked gate from one stable quality check, with
+// hardened checkout and immutable action references.
+function gateContractErrors(workflow, description) {
+  const { errors, jobs } = workflowJobs(workflow, description);
+  const quality =
+    isRecord(workflow.jobs) && Object.keys(workflow.jobs).length === 1
+      ? jobs.find(({ name }) => name === 'quality')
+      : undefined;
+  if (quality === undefined) {
     errors.push(`${description} must contain exactly one quality job`);
+  } else {
+    if (quality.job.name !== 'quality') {
+      errors.push(`${description} quality job must keep the check name quality for branch protection`);
+    }
+    if (!isRecord(quality.job.env) || quality.job.env.MISE_LOCKED !== '1') {
+      errors.push(`${description} quality job must set MISE_LOCKED to '1'`);
+    }
+    if (
+      !quality.steps.some(
+        ({ run }) => typeof run === 'string' && run.trim() === 'mise run standards:check',
+      )
+    ) {
+      errors.push(`${description} quality job must run mise run standards:check`);
+    }
   }
 
-  const collected = workflowUses(parsed.workflow, description);
-  errors.push(...collected.errors);
-  const checkoutSteps = collected.uses.filter(
-    ({ reference }) => typeof reference === 'string' && reference.startsWith('actions/checkout@'),
+  const actionUsers = jobs
+    .flatMap(({ job, steps }) => [job, ...steps])
+    .filter((container) => Object.hasOwn(container, 'uses'));
+  const checkouts = actionUsers.filter(
+    ({ uses }) => typeof uses === 'string' && /^actions\/checkout@/iu.test(uses),
   );
   if (
-    checkoutSteps.length === 0 ||
-    checkoutSteps.some(({ container }) => {
-      const inputs = container.with;
-      if (!isRecord(inputs)) {
-        return true;
-      }
-      return inputs['persist-credentials'] !== false && inputs['persist-credentials'] !== 'false';
-    })
+    checkouts.length === 0 ||
+    checkouts.some(
+      (step) =>
+        !isRecord(step.with) ||
+        (step.with['persist-credentials'] !== false && step.with['persist-credentials'] !== 'false'),
+    )
   ) {
     errors.push(`every checkout in ${description} must set persist-credentials: false`);
   }
 
-  for (const { reference } of collected.uses) {
-    if (typeof reference !== 'string' || !isImmutableActionReference(reference)) {
+  for (const { uses } of actionUsers) {
+    if (typeof uses !== 'string' || !isImmutableActionReference(uses)) {
       errors.push(`every external action in ${description} must use an immutable reference`);
     }
   }
   return errors;
+}
+
+function workflowStructureErrors(document, description, runContract) {
+  const parsed = parseWorkflow(document, description);
+  if (parsed.workflow === undefined) {
+    return parsed.errors;
+  }
+  return [
+    ...runContract(parsed.workflow, description),
+    ...gateContractErrors(parsed.workflow, description),
+  ];
+}
+
+function workflowContractErrors(document, description, runContract) {
+  // The contract checks run even when jactionlint fails, so its findings never
+  // hide theirs.
+  return [
+    ...jactionlintErrors(document, description),
+    ...workflowStructureErrors(document, description, runContract),
+  ];
 }
 
 function parseCodeownerRules(document) {
@@ -345,29 +425,60 @@ async function codeownerContractErrors(document, candidates, description) {
 async function checkParserContracts() {
   const errors = [];
   const commit = '0123456789abcdef0123456789abcdef01234567';
-  const secureWorkflow = `on:
-  pull_request:
-  push:
-    branches: [main]
-  workflow_dispatch:
-  merge_group:
-permissions:
+  const digest = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  const checkout = `actions/checkout@${commit}`;
+  const automaticTriggers =
+    'on:\n  pull_request:\n  push:\n    branches: [main]\n  workflow_dispatch:\n  merge_group:\n';
+  const secureWorkflow = `${automaticTriggers}permissions:
   contents: read
 concurrency:
-  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: \${{ github.event_name == 'pull_request' }}
+  group: ${CONCURRENCY_GROUP}
+  cancel-in-progress: ${CANCEL_PULL_REQUEST_RUNS}
 jobs:
   quality:
+    name: quality
     runs-on: ubuntu-26.04
     timeout-minutes: 10
+    env:
+      MISE_LOCKED: '1'
     steps:
-      - uses: actions/checkout@${commit}
+      - uses: ${checkout}
         with:
           persist-credentials: false
+      - run: mise run standards:check
 `;
-  const secureErrors = workflowContractErrors(secureWorkflow, 'secure fixture');
-  if (secureErrors.length !== 0) {
-    errors.push(`governance parser rejected a secure workflow:\n${secureErrors.join('\n')}`);
+  const manualWorkflow = secureWorkflow.replace(automaticTriggers, 'on:\n  workflow_dispatch:\n');
+  const withStep = (workflow, step) => workflow.replace('    steps:\n', `    steps:\n${step}\n`);
+  const withAction = (workflow, reference) =>
+    withStep(workflow, `      - uses: ${JSON.stringify(reference)}`);
+  const withReusableWorkflow = (workflow, reference) =>
+    `${workflow}  contract:\n    uses: ${JSON.stringify(reference)}\n`;
+  const immutable = 'immutable reference';
+  const credentials = 'persist-credentials: false';
+
+  const reports = (fixture, fragment, runContract) =>
+    workflowStructureErrors(fixture, 'contract fixture', runContract).some((error) =>
+      error.includes(fragment),
+    );
+  const rejects = (label, fixture, fragment, runContract = automaticRunErrors) => {
+    if (!reports(fixture, fragment, runContract)) {
+      errors.push(`governance parser accepted ${label}`);
+    }
+  };
+  const accepts = (label, fixture, fragment, runContract = automaticRunErrors) => {
+    if (reports(fixture, fragment, runContract)) {
+      errors.push(`governance parser rejected ${label}`);
+    }
+  };
+
+  for (const [fixture, runContract] of [
+    [secureWorkflow, automaticRunErrors],
+    [manualWorkflow, manualRunErrors],
+  ]) {
+    const secureErrors = workflowContractErrors(fixture, 'secure fixture', runContract);
+    if (secureErrors.length !== 0) {
+      errors.push(`governance parser rejected a secure workflow:\n${secureErrors.join('\n')}`);
+    }
   }
 
   // The policy rules come only from jactionlint's default profile, and the
@@ -385,96 +496,233 @@ jobs:
       withoutTimeout.replace('  quality:\n', '  quality: # jactionlint ignore=missing-timeout\n'),
       'honored a jactionlint ignore comment',
     ],
+    // Bun.YAML keeps the last duplicate, so only jactionlint's rule catches it.
+    [
+      '[duplicate-key]',
+      secureWorkflow.replace('  push:\n', '  push:\n  push:\n'),
+      'accepted a duplicate trigger key',
+    ],
+    [
+      '[duplicate-key]',
+      secureWorkflow.replace('  quality:\n', '  quality:\n  quality:\n'),
+      'accepted a duplicate job key',
+    ],
+    [
+      '[recursive-alias]',
+      withStep(secureWorkflow, '      - parallel: &steps\n          - parallel: *steps'),
+      'accepted a recursive parallel group',
+    ],
   ]) {
-    if (!workflowContractErrors(fixture, 'policy fixture').some((error) => error.includes(rule))) {
+    if (
+      !workflowContractErrors(fixture, 'policy fixture', automaticRunErrors).some((error) =>
+        error.includes(rule),
+      )
+    ) {
       errors.push(`governance parser ${failure}`);
     }
   }
 
-  for (const [fixture, expected] of [
+  for (const [label, fixture, fragment] of [
     [
+      'an on sequence',
       secureWorkflow.replace(
-        'on:\n  pull_request:\n  push:\n    branches: [main]\n  workflow_dispatch:\n  merge_group:\n',
+        automaticTriggers,
         'on: [pull_request, push, workflow_dispatch, merge_group]\n',
       ),
-      'must contain one top-level on mapping',
+      'one top-level on mapping',
     ],
-    [secureWorkflow.replace('  merge_group:\n', ''), 'missing merge_group trigger'],
+    ['a missing merge_group trigger', secureWorkflow.replace('  merge_group:\n', ''), 'merge_group'],
     [
+      'pull_request_target',
       secureWorkflow.replace('  merge_group:\n', '  merge_group:\n  pull_request_target:\n'),
-      'must not use pull_request_target',
+      'pull_request_target',
     ],
     [
+      'a filtered pull_request trigger',
+      secureWorkflow.replace('  pull_request:\n', '  pull_request:\n    branches: [main]\n'),
+      'must not filter pull_request',
+    ],
+    [
+      'a push trigger beyond main',
+      secureWorkflow.replace('branches: [main]', 'branches: [main, release]'),
+      'push trigger',
+    ],
+    [
+      'cancellation of main-branch runs',
+      secureWorkflow.replace(`cancel-in-progress: ${CANCEL_PULL_REQUEST_RUNS}`, 'cancel-in-progress: true'),
+      'superseded pull-request runs',
+    ],
+    [
+      'a second job',
       `${secureWorkflow}  other:\n    runs-on: ubuntu-26.04\n    timeout-minutes: 10\n    steps:\n      - run: echo other\n`,
       'exactly one quality job',
     ],
+    ['an unnamed quality check', secureWorkflow.replace('    name: quality\n', ''), 'check name'],
+    ['an unlocked gate', secureWorkflow.replace("MISE_LOCKED: '1'", "MISE_LOCKED: '0'"), 'MISE_LOCKED'],
     [
-      secureWorkflow.replace('persist-credentials: false', 'persist-credentials: true'),
-      'must set persist-credentials: false',
+      'a workflow without the gate',
+      secureWorkflow.replace('mise run standards:check', 'mise run lint'),
+      'mise run standards:check',
     ],
     [
-      secureWorkflow.replace('        with:\n          persist-credentials: false\n', ''),
-      'must set persist-credentials: false',
+      'a credential-persisting checkout',
+      secureWorkflow.replace(credentials, 'persist-credentials: true'),
+      credentials,
+    ],
+    [
+      'a checkout without inputs',
+      secureWorkflow.replace(`        with:\n          ${credentials}\n`, ''),
+      credentials,
+    ],
+    [
+      'a block-scalar checkout input',
+      secureWorkflow.replace(
+        `          ${credentials}\n`,
+        `          fetch-depth: |\n            ${credentials}\n`,
+      ),
+      credentials,
+    ],
+    ['a differently cased checkout', withAction(secureWorkflow, `Actions/Checkout@${commit}`), credentials],
+    ['a floating action tag', secureWorkflow.replace(checkout, 'actions/checkout@v7'), immutable],
+    [
+      'a mutable action behind an explicit YAML key',
+      withStep(secureWorkflow, '      - ? uses\n        : jdx/mise-action@v4'),
+      immutable,
     ],
   ]) {
-    if (
-      !workflowContractErrors(fixture, 'contract fixture').some((error) => error.includes(expected))
-    ) {
-      errors.push(`governance parser accepted a workflow that breaks: ${expected}`);
-    }
+    rejects(label, fixture, fragment);
   }
 
-  for (const duplicate of [
-    secureWorkflow.replace('  push:\n', '  push:\n  push:\n'),
-    secureWorkflow.replace('  quality:\n', '  quality:\n  quality:\n'),
+  for (const [trigger, yaml] of [
+    ['merge_group', '  merge_group:'],
+    ['schedule', "  schedule:\n    - cron: '0 0 * * *'"],
   ]) {
-    // Bun.YAML keeps the last duplicate, so only jactionlint's rule catches it.
-    if (
-      !workflowContractErrors(duplicate, 'duplicate-key fixture').some((error) =>
-        error.includes('[duplicate-key]'),
-      )
-    ) {
-      errors.push('governance parser accepted a duplicate workflow mapping key');
-    }
+    rejects(
+      `a manual workflow with a ${trigger} trigger`,
+      manualWorkflow.replace('  workflow_dispatch:\n', `  workflow_dispatch:\n${yaml}\n`),
+      'exactly the workflow_dispatch trigger',
+      manualRunErrors,
+    );
   }
-
-  const explicitMutableKey = secureWorkflow.replace(
-    `      - uses: actions/checkout@${commit}`,
-    `      - ? uses\n        : jdx/mise-action@v4\n      - uses: actions/checkout@${commit}`,
+  rejects(
+    'a manual workflow with a credential-persisting checkout',
+    manualWorkflow.replace(credentials, 'persist-credentials: true'),
+    credentials,
+    manualRunErrors,
   );
-  if (
-    !workflowContractErrors(explicitMutableKey, 'explicit-key fixture').some((error) =>
-      error.includes('immutable'),
-    )
-  ) {
-    errors.push('governance parser ignored a mutable action behind an explicit YAML key');
-  }
 
-  for (const target of [
+  // Same-repository references resolve at the running commit; external ones
+  // name a full commit or an image digest.
+  for (const [reference, place] of [
+    ['$/.github/actions/contract', withAction],
+    ['./.github/actions/contract', withAction],
+    ['$/.github/workflows/contract.yml', withReusableWorkflow],
+    ['./.github/workflows/contract.yml', withReusableWorkflow],
+    [`docker://alpine@sha256:${digest}`, withAction],
+    [`docker://alpine:3.20@sha256:${digest}`, withAction],
+    [`docker://registry.example.com:5000/owner/image:stable@sha256:${digest}`, withAction],
+  ]) {
+    accepts(`action reference ${reference}`, place(secureWorkflow, reference), immutable);
+  }
+  for (const reference of [
     `owner/../action@${commit}`,
     `owner/./action@${commit}`,
     `owner\\action@${commit}`,
+    '$',
+    `$actions/contract@${commit}`,
+    `$$/actions/contract@${commit}`,
+    '$/',
+    '$//actions/contract',
+    '$/actions//contract',
+    '$/actions/../contract',
+    '$/actions/./contract',
+    '$/actions\\contract',
+    '$/actions contract',
+    '$/actions/contract/',
+    '$/actions/contract@v1',
+    `$/actions/contract@${commit}`,
+    './',
+    './/actions/contract',
+    './../outside',
+    './actions//contract',
+    './actions/../contract',
+    './actions/./contract',
+    './actions\\contract',
+    './actions contract',
+    './actions/contract/',
+    './actions/contract@v1',
+    `./actions/contract@${commit}`,
+    'docker://alpine',
+    'docker://alpine:3.20',
+    `docker://@sha256:${digest}`,
+    'docker://alpine@sha256:',
+    `docker://alpine@sha256:${digest.slice(1)}`,
+    `docker://alpine@sha256:${digest}0`,
+    `docker://alpine@sha256:${digest.toUpperCase()}`,
+    `docker://alpine@SHA256:${digest}`,
+    `docker://alpine@sha256:${digest}@extra`,
+    `docker://alpine//child@sha256:${digest}`,
+    `docker://alpine/../child@sha256:${digest}`,
+    `docker://alpine\\child@sha256:${digest}`,
+    `docker://alpine child@sha256:${digest}`,
+    `docker://\${{github.repository}}@sha256:${digest}`,
   ]) {
-    const malformed = secureWorkflow.replace(
-      `      - uses: actions/checkout@${commit}`,
-      `      - uses: ${JSON.stringify(target)}\n      - uses: actions/checkout@${commit}`,
-    );
-    if (
-      !workflowContractErrors(malformed, 'malformed-action fixture').some((error) =>
-        error.includes('immutable'),
-      )
-    ) {
-      errors.push(
-        `governance parser accepted malformed external action reference ${JSON.stringify(target)}`,
-      );
+    for (const place of [withAction, withReusableWorkflow]) {
+      rejects(`action reference ${JSON.stringify(reference)}`, place(secureWorkflow, reference), immutable);
     }
   }
 
-  const blockScalarDecoy = secureWorkflow.replace(
-    `      - uses: actions/checkout@${commit}`,
-    `      - run: |\n          uses: example/action@v1\n      - uses: actions/checkout@${commit}`,
+  for (const [layout, mutableGroup, unhardenedGroup] of [
+    [
+      'block',
+      '      - parallel:\n          - parallel:\n              - uses: example/action@v1',
+      `      - parallel:\n          - uses: ${checkout}`,
+    ],
+    [
+      'flow',
+      '      - { parallel: [ { parallel: [ { uses: example/action@v1 } ] } ] }',
+      `      - { parallel: [ { uses: ${checkout} } ] }`,
+    ],
+  ]) {
+    const mutable = withStep(secureWorkflow, mutableGroup);
+    const unhardened = withStep(secureWorkflow, unhardenedGroup);
+    rejects(`a mutable action in a ${layout} parallel group`, mutable, immutable);
+    accepts(`a ${layout} parallel group's pinned action as a checkout`, mutable, credentials);
+    rejects(`an unhardened checkout in a ${layout} parallel group`, unhardened, credentials);
+    accepts(`a ${layout} parallel group's pinned checkout as mutable`, unhardened, immutable);
+  }
+  const reusedGroup = withStep(
+    secureWorkflow,
+    `      - parallel: &shared\n          - uses: ${checkout}\n            with:\n              ${credentials}\n      - parallel: *shared`,
   );
-  if (workflowContractErrors(blockScalarDecoy, 'block-scalar fixture').length !== 0) {
+  accepts('a reused parallel group of pinned actions', reusedGroup, immutable);
+  accepts('a reused parallel group of hardened checkouts', reusedGroup, credentials);
+
+  for (const [spelling, hardened, mutable] of [
+    [
+      'quoted and spaced key',
+      `      - "uses" : ${checkout}\n        "with" : { "persist-credentials" : false }`,
+      '      - "uses" : actions/checkout@v7',
+    ],
+    [
+      'flow mapping key',
+      `      - { 'uses': ${checkout}, with: { 'persist-credentials': false } }`,
+      "      - { 'uses': actions/checkout@v7 }",
+    ],
+    [
+      'Unicode-escaped key',
+      `      - "u\\u0073es": ${checkout}\n        with: { persist-credentials: false }`,
+      '      - "u\\u0073es": actions/checkout@v7',
+    ],
+  ]) {
+    for (const fragment of [immutable, credentials]) {
+      accepts(`a hardened checkout behind a ${spelling}`, withStep(secureWorkflow, hardened), fragment);
+      rejects(`a mutable checkout behind a ${spelling}`, withStep(secureWorkflow, mutable), fragment);
+    }
+  }
+
+  const blockScalarDecoy = withStep(secureWorkflow, '      - run: |\n          uses: example/action@v1');
+  if (workflowContractErrors(blockScalarDecoy, 'block-scalar fixture', automaticRunErrors).length !== 0) {
     errors.push('governance parser treated block-scalar contents as workflow structure');
   }
 
@@ -489,12 +737,14 @@ jobs:
   return errors;
 }
 
-async function checkAutomaticProfileGovernance() {
+async function checkGovernance() {
   const errors = await checkParserContracts();
   const rootWorkflowPath = join(ROOT, '.github', 'workflows', 'quality.yml');
   try {
     const rootWorkflow = await readFile(rootWorkflowPath, 'utf8');
-    errors.push(...jactionlintErrors(rootWorkflow, displayPath(rootWorkflowPath)));
+    errors.push(
+      ...workflowContractErrors(rootWorkflow, displayPath(rootWorkflowPath), manualRunErrors),
+    );
   } catch {
     errors.push(`missing root workflow ${displayPath(rootWorkflowPath)}`);
   }
@@ -541,7 +791,7 @@ async function checkAutomaticProfileGovernance() {
       ),
     );
     errors.push(
-      ...workflowContractErrors(workflow, displayPath(workflowPath)).map(
+      ...workflowContractErrors(workflow, displayPath(workflowPath), automaticRunErrors).map(
         (error) => `${profileId}: ${error}`,
       ),
     );
@@ -579,7 +829,7 @@ async function checkAutomaticProfileGovernance() {
   return errors;
 }
 
-const errors = await checkAutomaticProfileGovernance();
+const errors = await checkGovernance();
 if (errors.length !== 0) {
   for (const error of errors) {
     console.error(error);

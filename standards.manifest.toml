@@ -233,7 +233,6 @@ required_tester_files = [
   "tests/support/operation-controller.ts",
   "tests/support/oxlint-probe.ts",
   "tests/support/runtime-lease.ts",
-  "tests/support/workflow-contract.ts",
   "tests/tooling-policy.test.ts",
 ]
 dagger = true
