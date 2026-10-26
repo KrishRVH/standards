@@ -42,23 +42,20 @@ startup from a parent environment with stale shims.
 
 ## CI
 
-This repository's own CI is manual-only by budget constraint. The root
-`.github/workflows/quality.yml` triggers on `workflow_dispatch` and nothing
-else; do not add `push`, `pull_request`, `schedule`, or `merge_group` triggers
-to it. Gates run locally before push, and hosted runs are dispatched on
-demand.
+This repository has no CI. It is a reference catalog with no releases, so
+every gate runs locally before push. Do not add a workflow under the root
+`.github/`; `scripts/check-profile-governance.mjs` fails if one appears.
 
 Template workflows (`Rust/.github/`, `TS/.github/`, `C#/.github/`,
 `Python/.github/`, `Swift/.github/`) ship automatic triggers for downstream
-copies only; they are inert here because GitHub executes workflows only from the root
-`.github/workflows/`. `scripts/check-profile-governance.mjs` lints the root and
-template workflows with jactionlint's default profile, then parses them. Each
-must run `mise run standards:check` in locked mode from one `quality` job, with
-hardened checkout and immutable action pins. The root workflow declares only
-`workflow_dispatch`; each automatic template declares its triggers and
-pull-request cancellation and ships CODEOWNERS plus host-setting and
-pull-request guidance. `testers/ts/tests/quality-workflow.test.ts` covers the
-TypeScript workflow's dependency install and Stryker cache steps.
+copies only. GitHub runs workflows only from the root `.github/workflows/`, so
+they stay inert here. `scripts/check-profile-governance.mjs` lints them with
+jactionlint's default profile, then parses them. Each must run
+`mise run standards:check` in locked mode from one `quality` job, declare its
+triggers and pull-request cancellation, use hardened checkout and immutable
+action pins, and ship CODEOWNERS plus host-setting and pull-request guidance.
+`testers/ts/tests/quality-workflow.test.ts` covers the TypeScript workflow's
+dependency install and Stryker cache steps.
 
 ## Editing
 
@@ -94,6 +91,6 @@ TypeScript workflow's dependency install and Stryker cache steps.
 - Run `mise run standards:drift` after changing a template, shared task,
   manifest entry, or fixture configuration. Run the closest root check for
   other changed root files, such as `mise run md:standards:check` for Markdown.
-- Run the aggregate `mise run standards:check` for release/CI validation,
-  changes to shared or aggregate infrastructure that can affect unrelated
-  fixtures, or when the user explicitly requests it.
+- Run the aggregate `mise run standards:check` before landing changes to
+  shared or aggregate infrastructure that can affect unrelated fixtures, or
+  when the user explicitly requests it.

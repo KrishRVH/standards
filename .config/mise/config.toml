@@ -48,7 +48,7 @@ run = [
 ]
 
 [tasks."standards:check"]
-description = "Run the standards repository CI gate"
+description = "Run the standards repository gate"
 # Scan the tree before fixture gates write temporary probe files into it.
 depends = ["secrets", "hygiene"]
 run = [

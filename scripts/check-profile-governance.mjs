@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-/** Check the catalog workflow and the governance contracts its automatic profiles ship. */
+/** Check that the catalog ships no workflow and the governance contracts its automatic profiles ship. */
 
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -255,17 +255,6 @@ function automaticRunErrors(workflow, description) {
   return errors;
 }
 
-// The catalog runs its gate locally before push and dispatches hosted runs on
-// demand, so its own workflow declares exactly workflow_dispatch.
-function manualRunErrors(workflow, description) {
-  const triggers = workflow.on;
-  return isRecord(triggers) &&
-    Object.keys(triggers).length === 1 &&
-    Object.hasOwn(triggers, 'workflow_dispatch')
-    ? []
-    : [`${description} must declare exactly the workflow_dispatch trigger`];
-}
-
 // Every workflow runs the locked gate from one stable quality check, with
 // hardened checkout and immutable action references.
 function gateContractErrors(workflow, description) {
@@ -317,23 +306,23 @@ function gateContractErrors(workflow, description) {
   return errors;
 }
 
-function workflowStructureErrors(document, description, runContract) {
+function workflowStructureErrors(document, description) {
   const parsed = parseWorkflow(document, description);
   if (parsed.workflow === undefined) {
     return parsed.errors;
   }
   return [
-    ...runContract(parsed.workflow, description),
+    ...automaticRunErrors(parsed.workflow, description),
     ...gateContractErrors(parsed.workflow, description),
   ];
 }
 
-function workflowContractErrors(document, description, runContract) {
+function workflowContractErrors(document, description) {
   // The contract checks run even when jactionlint fails, so its findings never
   // hide theirs.
   return [
     ...jactionlintErrors(document, description),
-    ...workflowStructureErrors(document, description, runContract),
+    ...workflowStructureErrors(document, description),
   ];
 }
 
@@ -447,7 +436,6 @@ jobs:
           persist-credentials: false
       - run: mise run standards:check
 `;
-  const manualWorkflow = secureWorkflow.replace(automaticTriggers, 'on:\n  workflow_dispatch:\n');
   const withStep = (workflow, step) => workflow.replace('    steps:\n', `    steps:\n${step}\n`);
   const withAction = (workflow, reference) =>
     withStep(workflow, `      - uses: ${JSON.stringify(reference)}`);
@@ -456,29 +444,24 @@ jobs:
   const immutable = 'immutable reference';
   const credentials = 'persist-credentials: false';
 
-  const reports = (fixture, fragment, runContract) =>
-    workflowStructureErrors(fixture, 'contract fixture', runContract).some((error) =>
+  const reports = (fixture, fragment) =>
+    workflowStructureErrors(fixture, 'contract fixture').some((error) =>
       error.includes(fragment),
     );
-  const rejects = (label, fixture, fragment, runContract = automaticRunErrors) => {
-    if (!reports(fixture, fragment, runContract)) {
+  const rejects = (label, fixture, fragment) => {
+    if (!reports(fixture, fragment)) {
       errors.push(`governance parser accepted ${label}`);
     }
   };
-  const accepts = (label, fixture, fragment, runContract = automaticRunErrors) => {
-    if (reports(fixture, fragment, runContract)) {
+  const accepts = (label, fixture, fragment) => {
+    if (reports(fixture, fragment)) {
       errors.push(`governance parser rejected ${label}`);
     }
   };
 
-  for (const [fixture, runContract] of [
-    [secureWorkflow, automaticRunErrors],
-    [manualWorkflow, manualRunErrors],
-  ]) {
-    const secureErrors = workflowContractErrors(fixture, 'secure fixture', runContract);
-    if (secureErrors.length !== 0) {
-      errors.push(`governance parser rejected a secure workflow:\n${secureErrors.join('\n')}`);
-    }
+  const secureErrors = workflowContractErrors(secureWorkflow, 'secure fixture');
+  if (secureErrors.length !== 0) {
+    errors.push(`governance parser rejected a secure workflow:\n${secureErrors.join('\n')}`);
   }
 
   // The policy rules come only from jactionlint's default profile, and the
@@ -514,7 +497,7 @@ jobs:
     ],
   ]) {
     if (
-      !workflowContractErrors(fixture, 'policy fixture', automaticRunErrors).some((error) =>
+      !workflowContractErrors(fixture, 'policy fixture').some((error) =>
         error.includes(rule),
       )
     ) {
@@ -592,24 +575,6 @@ jobs:
   ]) {
     rejects(label, fixture, fragment);
   }
-
-  for (const [trigger, yaml] of [
-    ['merge_group', '  merge_group:'],
-    ['schedule', "  schedule:\n    - cron: '0 0 * * *'"],
-  ]) {
-    rejects(
-      `a manual workflow with a ${trigger} trigger`,
-      manualWorkflow.replace('  workflow_dispatch:\n', `  workflow_dispatch:\n${yaml}\n`),
-      'exactly the workflow_dispatch trigger',
-      manualRunErrors,
-    );
-  }
-  rejects(
-    'a manual workflow with a credential-persisting checkout',
-    manualWorkflow.replace(credentials, 'persist-credentials: true'),
-    credentials,
-    manualRunErrors,
-  );
 
   // Same-repository references resolve at the running commit; external ones
   // name a full commit or an image digest.
@@ -722,7 +687,7 @@ jobs:
   }
 
   const blockScalarDecoy = withStep(secureWorkflow, '      - run: |\n          uses: example/action@v1');
-  if (workflowContractErrors(blockScalarDecoy, 'block-scalar fixture', automaticRunErrors).length !== 0) {
+  if (workflowContractErrors(blockScalarDecoy, 'block-scalar fixture').length !== 0) {
     errors.push('governance parser treated block-scalar contents as workflow structure');
   }
 
@@ -739,14 +704,13 @@ jobs:
 
 async function checkGovernance() {
   const errors = await checkParserContracts();
-  const rootWorkflowPath = join(ROOT, '.github', 'workflows', 'quality.yml');
-  try {
-    const rootWorkflow = await readFile(rootWorkflowPath, 'utf8');
+  // The catalog runs every gate locally. GitHub runs only root workflows, so
+  // the template copies stay inert here.
+  const rootWorkflows = join(ROOT, '.github', 'workflows');
+  for (const name of await readdir(rootWorkflows).catch(() => [])) {
     errors.push(
-      ...workflowContractErrors(rootWorkflow, displayPath(rootWorkflowPath), manualRunErrors),
+      `${displayPath(join(rootWorkflows, name))}: the catalog verifies locally and ships no workflow`,
     );
-  } catch {
-    errors.push(`missing root workflow ${displayPath(rootWorkflowPath)}`);
   }
 
   const manifestPath = join(ROOT, 'standards.manifest.toml');
@@ -791,7 +755,7 @@ async function checkGovernance() {
       ),
     );
     errors.push(
-      ...workflowContractErrors(workflow, displayPath(workflowPath), automaticRunErrors).map(
+      ...workflowContractErrors(workflow, displayPath(workflowPath)).map(
         (error) => `${profileId}: ${error}`,
       ),
     );

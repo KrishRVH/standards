@@ -246,10 +246,9 @@ history directories, leftover, versioned, or dated file names, handoff notes,
 and references to undefined tasks. Adapt its constants and add language-aware
 project rules at the end of its checks.
 
-The root `.github/workflows/quality.yml` supports manual dispatch only. Use
-targeted local gates for routine catalog maintenance. Use the aggregate gate
-for releases, CI, and cross-cutting validation. Dispatch hosted runs on demand
-to control CI spending.
+This catalog has no CI of its own: every gate runs locally before push. Use
+targeted gates for routine catalog maintenance and the aggregate gate for
+cross-cutting validation.
 
 The Rust, TypeScript, C#, Python, and Swift profiles each contain a copyable
 workflow for downstream projects. Those run automatically for pull requests,
@@ -303,8 +302,7 @@ Run `mise run standards:drift` after you change a template, shared task,
 manifest entry, or fixture configuration. For other root files, run the closest
 root check. For example, use `mise run md:standards:check` for Markdown.
 
-Use `mise run standards:check` for release or CI validation, when explicitly
-requested, and after changes to shared or aggregate infrastructure that can
+Use `mise run standards:check` when explicitly requested and after changes to shared or aggregate infrastructure that can
 affect unrelated fixtures. The aggregate gate first scans for secrets and runs
 `hygiene`, before fixture tests write temporary probe files into the tree. It
 then validates the TypeScript ESLint and Prettier secondary workflow, checks
@@ -319,15 +317,14 @@ standalone configuration. The root gate runs every fixture through the native
 `//testers/...:standards:check` path wildcard, so one scheduler attributes
 output to each project.
 
-Under `MISE_LOCKED=1`, which the root workflow sets, mise 2026.10.19 checks the
-Rust fixture's `rust-toolchain.toml` against the root lockfile instead of the
-fixture's when the fixture's tasks run from the root. It logs two
-`rust@<version> is not in the lockfile` warnings and leaves Rust out of those
-tasks' environment. `mise install` still installs the locked toolchain, and the
-tasks run the rustup `cargo` already on `PATH`, which GitHub-hosted runners
-provide. rustup selects the toolchain from the same `rust-toolchain.toml`,
-because the root configuration unsets an inherited `RUSTUP_TOOLCHAIN`, which
-would otherwise outrank that file.
+Under `MISE_LOCKED=1`, mise 2026.10.19 checks the Rust fixture's
+`rust-toolchain.toml` against the root lockfile instead of the fixture's when
+the fixture's tasks run from the root. It logs two `rust@<version> is not in
+the lockfile` warnings and leaves Rust out of those tasks' environment.
+`mise install` still installs the locked toolchain, and the tasks run the
+rustup `cargo` already on `PATH`. rustup selects the toolchain from the same
+`rust-toolchain.toml`, because the root configuration unsets an inherited
+`RUSTUP_TOOLCHAIN`, which would otherwise outrank that file.
 
 To run an optional isolated proof, use the Dagger entrypoint of the
 representative Python fixture:
@@ -342,10 +339,10 @@ dispatch, fixture configurations, Dagger fragments, full-configuration shared
 files, and declared mirror files in sync, and runs the `hygiene` task against
 seeded clean and dirty trees. `scripts/check-ignore-contracts.py`
 exercises mutation-output ignore scope with Git's matcher.
-`scripts/check-profile-governance.mjs` lints the root and downstream workflow
-YAML with jactionlint's default profile, which adds security and policy rules
-to the correctness checks. It honors no jactionlint ignore comment and fails on
-a finding of any level. It then parses the downstream YAML to enforce the
+`scripts/check-profile-governance.mjs` fails if the catalog ships a root
+workflow. It lints the downstream workflow YAML with jactionlint's default
+profile, which adds security and policy rules to the correctness checks, honors
+no jactionlint ignore comment, and fails on a finding of any level. It then parses the downstream YAML to enforce the
 workflow, Code Owners, host-setting, and pull-request contracts. Fixture source
 and tests outside the declared mirrors stay small.
 
