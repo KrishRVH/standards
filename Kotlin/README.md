@@ -34,6 +34,10 @@ mise run kotlin:locks
 
 `kotlin:locks` refreshes both files. Use `kotlin:verification-metadata` only
 when verification metadata needs to be regenerated without rewriting locks.
+Run either task with an empty Gradle user home, such as
+`GRADLE_USER_HOME="$(mktemp -d)" mise run kotlin:locks`. A warm cache can omit
+metadata files, such as the `junit-bom` POM, that a cold CI cache downloads and
+verifies.
 
 Gradle's generated `gradle.lockfile` header may mention `./gradlew`; in this
 template, regenerate it through `mise run kotlin:locks`.

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     id("dev.detekt") version "2.0.0-alpha.6"
     `java-library`
 }
@@ -14,17 +14,14 @@ dependencyLocking {
 kotlin {
     jvmToolchain(25)
     explicitApi()
-}
-
-dependencies {
-    testImplementation(kotlin("test"))
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         allWarningsAsErrors.set(true)
         freeCompilerArgs.add("-Xjsr305=strict")
     }
+}
+
+dependencies {
+    testImplementation(kotlin("test"))
 }
 
 tasks.test {
