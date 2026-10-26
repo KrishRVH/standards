@@ -38,6 +38,12 @@ package auditing:
 mise run md:standards:check:deep
 ```
 
+The audit covers development dependencies, so `package.json` overrides `katex`.
+markdownlint imports it through `micromark-extension-math`, whose `^0.16` range
+has no release patched for advisory GHSA-238p-pmpm-9mq7. markdownlint only
+parses math, so the override moves `katex` to a patched release. Remove the
+override once no dependency resolves a vulnerable version without it.
+
 ## Posture
 
 - Markdown and MDX are not the same language. markdownlint handles mechanical

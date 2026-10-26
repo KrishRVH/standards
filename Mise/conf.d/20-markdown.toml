@@ -1,7 +1,7 @@
 [tools]
-bun = "1.4.3"
+bun = "1.4.4"
 lychee = "0.24.2"
-typos = "1.50.3"
+typos = "1.51.1"
 
 [tasks."md:install"]
 description = "Install Bun-managed Markdown/MDX dependencies"
