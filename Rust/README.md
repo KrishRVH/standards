@@ -96,8 +96,9 @@ remain legal because only their documentation value is forwarded. It rejects
 `allow_attributes` lint, and crate-level `#![expect]` attributes at the root of
 every workspace target except tests, whose roots still may not expect
 `clippy::arithmetic_side_effects`. Companion tests fail when the pinned
-toolchain's lint groups no longer match the scanner's list and when
-`[workspace.lints.clippy]` stops denying a panic lint the scanner lists.
+toolchain's lint groups no longer match the scanner's list, and when the lints
+`[workspace.lints.clippy]` denies by name differ from the scanner's panic,
+non-panic, and allow-attribute lists, so a newly denied lint must be classified.
 
 To tell test code from production code, the test walks each target's module
 tree from its root through `mod` declarations and literal `include!` inputs. A
@@ -106,8 +107,9 @@ one a macro names through a metavariable. Test code is a Cargo test target, an
 item under a `cfg` that requires `test`, such as `#[cfg(test)]`,
 `#[cfg(all(test, unix))]`, or a module's leading `#![cfg(test)]`, and a
 function with a `test` attribute such as `#[tokio::test]`. Outside test code,
-the test rejects module-wide expectations of a panic lint, whether an inner
-`#![expect]` in a module or an outer `#[expect]` on a `mod` item; in test
+the test rejects expectations of a panic lint that cover a module, `impl`, or
+`trait` block, whether an inner `#![expect]` in its body or an outer
+`#[expect]` on the item; in test
 code, it rejects them for `clippy::arithmetic_side_effects`. Outside test
 code, it also rejects calls to `assert!`, `assert_eq!`, and `assert_ne!`,
 including calls in `macro_rules!` bodies and imports that rename them. An
@@ -149,7 +151,10 @@ passes Clippy, every variable Cargo reads flags from, such as `RUSTFLAGS` or
 the Cargo configuration of the project root, its parent directories, and
 `$CARGO_HOME`, with their includes. A Cargo `[env]` entry for `CLIPPY_ARGS`
 fails too, because with `force = true` it replaces the gate's Clippy
-arguments. `-W` passes because the gate's `-D warnings` outranks it.
+arguments. So does a `CLIPPY_CONF_DIR`, inherited or set by a Cargo `[env]`
+entry, that names a directory other than the project root, because Clippy
+would read that directory's `clippy.toml` instead. `-W` passes because the
+gate's `-D warnings` outranks it.
 
 The probe package takes `[workspace.lints]`, `edition`, and `rust-version` from
 `Cargo.toml`, resolving workspace-inherited fields, and Clippy reads the

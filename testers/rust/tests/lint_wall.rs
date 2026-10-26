@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -282,10 +282,16 @@ fn flag_settings<'config>(
     }
 }
 
+/// Cargo `[env]` entries that replace part of the gate's Clippy setup.
+const CLIPPY_ENV_OVERRIDES: [(&str, &str); 2] = [
+    ("CLIPPY_ARGS", "the gate's Clippy arguments when forced"),
+    ("CLIPPY_CONF_DIR", "the gate's clippy.toml"),
+];
+
 /// Reports lint-lowering flags in a Cargo configuration file and the files it
-/// includes, and an `[env]` entry for `CLIPPY_ARGS`, which replaces the gate's
-/// Clippy arguments when forced. A missing optional include is skipped; Cargo
-/// fails on any other missing include, and so does this check.
+/// includes, and each `[env]` entry that replaces part of the gate's Clippy
+/// setup. A missing optional include is skipped; Cargo fails on any other
+/// missing include, and so does this check.
 fn config_violations(path: &Path, visited: &mut BTreeSet<PathBuf>, violations: &mut Vec<String>) {
     let Ok(canonical) = fs::canonicalize(path) else {
         violations.push(format!("{} cannot be resolved", path.display()));
@@ -318,18 +324,15 @@ fn config_violations(path: &Path, visited: &mut BTreeSet<PathBuf>, violations: &
             violations.push(format!("{}: {key} = {}", path.display(), flags.join(" ")));
         }
     }
-    if config
-        .get("env")
-        .and_then(Value::as_table)
-        .is_some_and(|env| {
-            env.keys()
-                .any(|key| key.eq_ignore_ascii_case("CLIPPY_ARGS"))
-        })
-    {
-        violations.push(format!(
-            "{}: [env] sets CLIPPY_ARGS, which replaces the gate's Clippy arguments when forced",
-            path.display()
-        ));
+    if let Some(env) = config.get("env").and_then(Value::as_table) {
+        for (name, replaced) in CLIPPY_ENV_OVERRIDES {
+            if env.keys().any(|key| key.eq_ignore_ascii_case(name)) {
+                violations.push(format!(
+                    "{}: [env] sets {name}, which replaces {replaced}",
+                    path.display()
+                ));
+            }
+        }
     }
     let includes = config
         .get("include")
@@ -355,12 +358,30 @@ fn config_violations(path: &Path, visited: &mut BTreeSet<PathBuf>, violations: &
     }
 }
 
-/// Reports every inherited flag source that lowers a lint level for the gate.
+/// Clippy reads `clippy.toml` from `CLIPPY_CONF_DIR`, resolved from the
+/// project root where Cargo runs the gate, so any other directory replaces the
+/// gate's configuration.
+fn clippy_conf_dir_violation(root: &Path, directory: Option<&OsStr>) -> Option<String> {
+    let directory = directory?;
+    (fs::canonicalize(root.join(directory)).ok() != fs::canonicalize(root).ok()).then(|| {
+        format!(
+            "CLIPPY_CONF_DIR={} replaces the gate's clippy.toml",
+            directory.to_string_lossy()
+        )
+    })
+}
+
+/// Reports every inherited setting that lowers a lint level for the gate or
+/// replaces its Clippy configuration.
 fn lint_level_violations(root: &Path) -> Vec<String> {
     let cargo_home = env::var_os("CARGO_HOME")
         .map(PathBuf::from)
         .or_else(|| env::home_dir().map(|home| home.join(".cargo")));
     let mut violations = flag_variable_violations(env::vars_os());
+    violations.extend(clippy_conf_dir_violation(
+        root,
+        env::var_os("CLIPPY_CONF_DIR").as_deref(),
+    ));
     let mut visited = BTreeSet::new();
     for path in cargo_config_files(root, cargo_home.as_deref()) {
         config_violations(&path, &mut visited, &mut violations);
@@ -546,7 +567,7 @@ fn reports_cargo_configuration_that_lowers_lints_through_includes() {
         cargo.join("extra.toml"),
         "include = [\"config.toml\"]\n\n\
          [build]\nrustdocflags = \"-Arustdoc::all\"\n\n\
-         [env]\nclippy_args = { value = \"\", force = true }\n\n\
+         [env]\nclippy_args = { value = \"\", force = true }\nclippy_conf_dir = \"lints\"\n\n\
          [target.'cfg(unix)']\nrustflags = [\"--cap-lints\", \"warn\"]\n",
     )
     .expect("write extra.toml");
@@ -565,6 +586,10 @@ fn reports_cargo_configuration_that_lowers_lints_through_includes() {
             format!("{}: rustflags = --cap-lints warn", extra.display()),
             format!(
                 "{}: [env] sets CLIPPY_ARGS, which replaces the gate's Clippy arguments when forced",
+                extra.display()
+            ),
+            format!(
+                "{}: [env] sets CLIPPY_CONF_DIR, which replaces the gate's clippy.toml",
                 extra.display()
             ),
             format!(
@@ -625,6 +650,25 @@ fn reads_cargo_configuration_from_each_parent_and_cargo_home() {
     let found = cargo_config_files(&project, Some(&cargo_home));
     for file in files {
         assert!(found.contains(&file), "Cargo reads {}", file.display());
+    }
+}
+
+#[test]
+fn rejects_a_clippy_configuration_outside_the_project_root() {
+    let root = fixture_directory("clippy-conf").expect("create the fixture");
+    fs::create_dir_all(root.join("lints")).expect("create the alternate directory");
+    let violation = |directory: &str| clippy_conf_dir_violation(&root, Some(OsStr::new(directory)));
+    assert_eq!(clippy_conf_dir_violation(&root, None), None);
+    assert_eq!(violation("."), None);
+    assert_eq!(violation(&root.to_string_lossy()), None);
+    assert_eq!(violation("lints/.."), None);
+    for directory in ["lints", "missing", ".."] {
+        assert_eq!(
+            violation(directory),
+            Some(format!(
+                "CLIPPY_CONF_DIR={directory} replaces the gate's clippy.toml"
+            ))
+        );
     }
 }
 
@@ -699,9 +743,8 @@ fn gate_clippy_reports_exactly_the_marked_probe_diagnostics() {
     // Inside target/, source scans, packaging, and mutation never see the
     // probe, while rustup and Cargo still resolve this project's toolchain and
     // configuration. Its own target directory keeps it off the shared build
-    // lock. Clippy reads the configuration the gate reads: an inherited
-    // CLIPPY_CONF_DIR, resolved from the project root where Cargo runs the
-    // gate's Clippy, or else the project root.
+    // lock. Clippy reads the gate's configuration at the project root; the
+    // policy check above rejects a CLIPPY_CONF_DIR that names another one.
     let workspace = root.join("target/lint-wall-probe");
     fs::create_dir_all(workspace.join("src")).expect("create the probe workspace");
     fs::write(
@@ -716,10 +759,7 @@ fn gate_clippy_reports_exactly_the_marked_probe_diagnostics() {
             .args(arguments)
             .current_dir(&workspace)
             .env("CARGO_TARGET_DIR", workspace.join("target"))
-            .env(
-                "CLIPPY_CONF_DIR",
-                env::var_os("CLIPPY_CONF_DIR").map_or_else(|| root.clone(), |dir| root.join(dir)),
-            )
+            .env("CLIPPY_CONF_DIR", &root)
             .output()
             .unwrap_or_else(|error| panic!("cannot run {program}: {error}"))
     };

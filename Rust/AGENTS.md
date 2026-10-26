@@ -98,8 +98,9 @@ release what the value owns, including best-effort removal of local files as
 `#[expect(lint, reason = "...")]` on the smallest enclosing statement or item.
 Name the invariant that holds and why restructuring would be worse.
 Expectations on lint groups or several lints, crate-level expectations
-outside test targets, and module-wide expectations of a panic lint such as
-`clippy::unwrap_used` outside test code silence too much;
+outside test targets, and expectations of a panic lint such as
+`clippy::unwrap_used` on a whole module, `impl`, or `trait` outside test code
+silence too much;
 `tests/allow_policy.rs` rejects them.
 Stale expectations fail the lint gate. Lint levels come only from
 `[workspace.lints]` and reasoned expectations; `rust:policy` rejects inherited

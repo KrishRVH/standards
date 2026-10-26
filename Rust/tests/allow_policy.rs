@@ -75,6 +75,23 @@ const PANIC_LINTS: [&str; 10] = [
     "clippy::unwrap_used",
 ];
 
+/// The other Clippy lints the workspace denies by name. Their findings are not
+/// panic sites, so a module-wide expectation of one stays allowed. Every lint
+/// denied by name sits in this list, `PANIC_LINTS`, or `ALLOW_ATTRIBUTE_LINTS`,
+/// so denying a new one forces that classification.
+const NON_PANIC_LINTS: [&str; 10] = [
+    "clippy::clone_on_ref_ptr",
+    "clippy::dbg_macro",
+    "clippy::let_underscore_must_use",
+    "clippy::map_err_ignore",
+    "clippy::mem_forget",
+    "clippy::print_stderr",
+    "clippy::print_stdout",
+    "clippy::rc_buffer",
+    "clippy::unused_result_ok",
+    "clippy::wildcard_dependencies",
+];
+
 /// Assertion macros that stay in release builds; `debug_assert!` and its
 /// variants are not among them.
 const ASSERTION_MACROS: [&str; 3] = ["assert", "assert_eq", "assert_ne"];
@@ -168,6 +185,9 @@ struct ItemState {
     /// A closure, function, `async` block, or macro definition inside
     /// compile-time code, whose body can run at run time.
     run_time: bool,
+    /// An `impl` or `trait` item, whose body spans many functions as a
+    /// module does.
+    block: bool,
 }
 
 /// A source file in a module tree, and the directory where its `mod name;`
@@ -588,7 +608,14 @@ impl TokenLevel<'_> {
                 },
                 TokenTree::Ident(identifier) => self.identifier(index, identifier, findings)?,
                 TokenTree::Group(group) => {
-                    walk_tokens(&group.stream(), self.source, self.here(), false, findings)?;
+                    let block_body = group.delimiter() == Delimiter::Brace && self.item.block;
+                    walk_tokens(
+                        &group.stream(),
+                        self.source,
+                        self.here(),
+                        block_body,
+                        findings,
+                    )?;
                     // A brace group ends an item, except inside a constant.
                     if group.delimiter() == Delimiter::Brace
                         && !matches!(self.item.kind, ItemKind::Constant | ItemKind::Initializer)
@@ -708,6 +735,18 @@ impl TokenLevel<'_> {
             // Their bodies can run at run time even inside compile-time code.
             "fn" | "async" => self.item.run_time |= self.here().compile_time,
             _ => {},
+        }
+        // After another keyword, `impl` names a type, as in `-> impl Trait`.
+        if ["impl", "trait"].contains(&keyword.as_str()) && self.item.kind == ItemKind::Unknown {
+            self.item.block = true;
+            if self
+                .item
+                .attributes
+                .expectation
+                .forbidden_module_wide(self.here().test)
+            {
+                count_in(&mut findings.module_expectations, &self.source.path);
+            }
         }
         if ITEM_KEYWORDS.contains(&keyword.as_str()) && self.item.kind == ItemKind::Unknown {
             self.item.kind = ItemKind::Item;
@@ -1060,7 +1099,7 @@ fn project_policy_violations(root: &Path) -> io::Result<Vec<String>> {
     }
     for (path, count) in &findings.module_expectations {
         violations.push(format!(
-            "{} has module-wide expectations of panic lints ({count}); outside test code, put each on the smallest enclosing statement or item, and use checked_ methods for test arithmetic (AGENTS.md)",
+            "{} has module-, impl-, or trait-wide expectations of panic lints ({count}); outside test code, put each on the smallest enclosing statement or item, and use checked_ methods for test arithmetic (AGENTS.md)",
             path.display()
         ));
     }
@@ -1848,6 +1887,57 @@ fn rejects_module_wide_panic_expectations_outside_test_code() {
 }
 
 #[test]
+fn rejects_impl_and_trait_wide_panic_expectations_outside_test_code() {
+    let violations = fixture_violations(
+        "block-expectations",
+        &[(
+            "src/lib.rs",
+            r#"
+            pub struct Parser;
+            #[expect(clippy::unwrap_used, reason = "claimed impl-wide exception")]
+            impl Parser {}
+            impl Parser {
+                #![expect(clippy::indexing_slicing, reason = "claimed impl-wide exception")]
+                pub fn first(values: &[u8]) -> u8 {
+                    values[0]
+                }
+            }
+            pub trait Parse {
+                #![expect(clippy::unwrap_used, reason = "claimed trait-wide exception")]
+                fn parse(text: &str) -> u8 {
+                    text.parse().unwrap()
+                }
+            }
+            #[expect(clippy::panic, reason = "claimed impl-wide exception")]
+            unsafe impl Sync for Parser {}
+            impl Parser {
+                #[expect(clippy::unwrap_used, reason = "the caller validated the text")]
+                pub fn parse(text: &str) -> u8 {
+                    text.parse().unwrap()
+                }
+            }
+            pub fn values() -> impl Iterator<Item = u8> {
+                #![expect(clippy::unwrap_used, reason = "the literal parses")]
+                Some("1".parse::<u8>().unwrap()).into_iter()
+            }
+            #[cfg(test)]
+            impl Parser {
+                #![expect(clippy::unwrap_used, reason = "tests unwrap values they constructed")]
+            }
+            "#,
+        )],
+    )
+    .expect("fixture project should be readable");
+
+    assert_eq!(violations.len(), 1, "{violations:?}");
+    assert!(
+        violations[0].contains("src/lib.rs")
+            && violations[0].contains("expectations of panic lints (4)"),
+        "impl- and trait-wide expectations were not counted: {violations:?}"
+    );
+}
+
+#[test]
 fn rejects_assertions_outside_test_code() {
     let violations = fixture_violations(
         "assertions",
@@ -2066,29 +2156,39 @@ fn rejects_module_declarations_the_walk_cannot_resolve() {
 }
 
 #[test]
-fn panic_lints_are_denied_by_the_workspace() {
+fn denied_clippy_lints_are_classified_by_panic_scope() {
     let source =
         fs::read_to_string(project_root().join("Cargo.toml")).expect("manifest should be readable");
     let manifest: toml::Value = toml::from_str(&source).expect("manifest should parse");
     let clippy = manifest
         .get("workspace")
         .and_then(|workspace| workspace.get("lints"))
-        .and_then(|lints| lints.get("clippy"));
-    for lint in PANIC_LINTS {
-        let name = lint
-            .strip_prefix("clippy::")
-            .expect("PANIC_LINTS names Clippy lints");
-        let level = clippy.and_then(|lints| lints.get(name)).and_then(|value| {
-            value
-                .as_str()
-                .or_else(|| value.get("level").and_then(toml::Value::as_str))
-        });
-        assert_eq!(
-            level,
-            Some("deny"),
-            "PANIC_LINTS lists {lint}, which [workspace.lints.clippy] must deny"
-        );
-    }
+        .and_then(|lints| lints.get("clippy"))
+        .and_then(toml::Value::as_table)
+        .expect("[workspace.lints.clippy] should be a table");
+    let denied: BTreeSet<String> = clippy
+        .iter()
+        .filter(|(_, value)| {
+            matches!(
+                value
+                    .as_str()
+                    .or_else(|| value.get("level").and_then(toml::Value::as_str)),
+                Some("deny" | "forbid")
+            )
+        })
+        .map(|(name, _)| format!("clippy::{name}"))
+        .filter(|lint| !LINT_GROUPS.contains(&lint.as_str()))
+        .collect();
+    let classified: BTreeSet<String> = PANIC_LINTS
+        .iter()
+        .chain(&NON_PANIC_LINTS)
+        .chain(&ALLOW_ATTRIBUTE_LINTS)
+        .map(|lint| (*lint).to_owned())
+        .collect();
+    assert_eq!(
+        denied, classified,
+        "each lint [workspace.lints.clippy] denies must sit in PANIC_LINTS, NON_PANIC_LINTS, or ALLOW_ATTRIBUTE_LINTS, and each listed lint must be denied"
+    );
 }
 
 #[test]
