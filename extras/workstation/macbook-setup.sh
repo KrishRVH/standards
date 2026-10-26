@@ -861,6 +861,10 @@ command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)
 
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
 
+# Ctrl/Alt+Left/Right move by word; unbound, they insert ;5D-style escape debris.
+bindkey '^[[1;5D' backward-word '^[[1;5C' forward-word
+bindkey '^[[1;3D' backward-word '^[[1;3C' forward-word
+
 alias cls=clear
 alias sz='exec zsh'
 alias ls='ls -G'

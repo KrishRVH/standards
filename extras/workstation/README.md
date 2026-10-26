@@ -69,7 +69,8 @@ installing a terminal environment does not imply an authenticated agent client.
 Run `mise run shell:standards:check` from the catalog root. The workstation
 tests execute both generated zsh configurations with fake host binaries and
 inherited mise shims. They cover direct utility dispatch, initialization,
-reload, retained paths with spaces, and default or customized mise data paths.
+reload, Ctrl/Alt+Left/Right word motion, retained paths with spaces, and
+default or customized mise data paths.
 They also exercise the shared environment in POSIX sh, Bash, and zsh, including
 project tool precedence, preserved Java settings, empty PATH entries, and
 idempotent startup loaders. WSL cases cover Windows PATH trimming and opt-in

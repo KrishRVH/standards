@@ -2399,6 +2399,9 @@ typeset -U path fpath
 zmodload zsh/datetime
 zmodload zsh/complist
 bindkey -e
+# Ctrl/Alt+Left/Right move by word; unbound, they insert ;5D-style escape debris.
+bindkey '^[[1;5D' backward-word '^[[1;5C' forward-word
+bindkey '^[[1;3D' backward-word '^[[1;3C' forward-word
 KEYTIMEOUT=10
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS INTERACTIVE_COMMENTS

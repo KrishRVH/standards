@@ -52,8 +52,19 @@ TOOL
     PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
     zsh -f -i -c '
+      word_motion() {
+        local key
+        for key in "^[[1;5D" "^[[1;3D"; do
+          [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
+        done
+        for key in "^[[1;5C" "^[[1;3C"; do
+          [[ "$(bindkey "$key")" == *" forward-word" ]] || return 1
+        done
+      }
       source "$1"
+      word_motion || exit 3
       source "$1"
+      word_motion || exit 3
       [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
       [[ ":$PATH:" != *":$2/shims:"* ]] || exit 1
       for hook in $precmd_functions; do "$hook"; done
@@ -130,9 +141,20 @@ SHIM
     PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
     zsh -f -i -c '
+      word_motion() {
+        local key
+        for key in "^[[1;5D" "^[[1;3D"; do
+          [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
+        done
+        for key in "^[[1;5C" "^[[1;3C"; do
+          [[ "$(bindkey "$key")" == *" forward-word" ]] || return 1
+        done
+      }
       source "$HOME/.config/shell/env.sh"
       source "$HOME/ZSHRC"
+      word_motion || exit 3
       source "$HOME/ZSHRC"
+      word_motion || exit 3
       [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
       [[ ":$PATH:" != *":$1/shims:"* ]] || exit 2
       for hook in $precmd_functions; do "$hook"; done
