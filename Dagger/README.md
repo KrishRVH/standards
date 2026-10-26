@@ -19,7 +19,10 @@ mise run dagger:standards:check
 ```
 
 Run other Dagger commands with the pinned version through `mise exec`, for
-example `mise exec -- dagger develop` after you change the module.
+example `mise exec -- dagger develop` after you change the module or the CLI
+pin. `dagger.json` names the pinned release as its `engineVersion`, which
+`dagger develop` advances; without it, the engine runs the module under legacy
+compatibility behavior.
 
 The module starts from the Debian variant of the official mise image, at the
 `-debian` tag and immutable multi-architecture digest pinned in
