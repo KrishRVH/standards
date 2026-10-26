@@ -1,6 +1,7 @@
 import { type Directory, argument, dag, func, object } from '@dagger.io/dagger';
 
-const MISE_IMAGE = 'jdxcode/mise:2026.9.18@sha256:67514a972b2bddd0eca59b8c4baf4e106fc4e9f9de11233bc2305414bf672ee3';
+const MISE_IMAGE =
+  'jdxcode/mise:2026.10.19-debian@sha256:9b8995abd457c975a4f5150b423f6569ee5a01960662ffa4c06c859867e59a21';
 
 const SOURCE_IGNORES = [
   '.build',
@@ -88,8 +89,6 @@ export class ProjectStandards {
       .container()
       .from(MISE_IMAGE)
       .withoutEntrypoint()
-      // Ignore the image's moving global Node/Python selectors; resolve only project pins.
-      .withEnvVariable('MISE_IGNORED_CONFIG_PATHS', '/mise/config.toml')
       .withEnvVariable('MISE_LOCKED', '1')
       .withMountedCache('/mise/installs', dag.cacheVolume('mise-tools'))
       .withMountedCache('/mise/cache', dag.cacheVolume('mise-cache'))
