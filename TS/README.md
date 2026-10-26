@@ -214,9 +214,10 @@ projection types rely on.
 isolated sandbox. Stryker runs only the test files that import `src/` directly,
 because every static mutant reruns that whole list; tooling and contract tests
 belong to the preflight gate, and a unit test must import source itself to
-count toward the score. Its `break` threshold is a coarse regression alarm
-pinned at the measured floor, not a per-mutant guarantee — survivors in changed
-code are dispositioned in review.
+count toward the score. Its `break` threshold is pinned at the measured floor.
+The template's 100 fails on any surviving or uncovered mutant; a project that
+measures lower pins its own floor, a coarse regression alarm under which
+survivors in changed code are dispositioned in review.
 
 Both mutation tasks run `stryker.config.mjs` and acquire the project-scoped
 `reports/.stryker-mutation.lock` before replacing the machine report. The lock

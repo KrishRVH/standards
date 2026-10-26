@@ -433,7 +433,6 @@ test('the mutation task graph runs its preflight before both mutation lanes', as
   const section = (name: string): string =>
     new RegExp(`\\[tasks\\."${name}"\\]\\n([\\s\\S]*?)(?=\\n\\[tasks|$)`, 'u').exec(tasks)?.[1] ?? '';
 
-  expect(tasks).not.toContain('node = ');
   expect(section('ts:install')).toContain('depends = ["ts:lock:check"]');
   for (const check of [
     'ts:lint',

@@ -6,11 +6,12 @@
  *   suite gains a test that kills it, the code loses the branch the suite
  *   cannot reach, or a `// Stryker disable next-line all: <reason>` comment
  *   classifies it as unobservable — a wall edit requiring human countersign.
- * - `thresholds.break` is a coarse regression alarm pinned at the measured
- *   floor, not a per-mutant guarantee: an aggregate score proves no
- *   individual mutant dead. Raising it as mutants die is normal work;
- *   lowering it is a wall edit that requires human countersign. Survivors in
- *   changed code are dispositioned in review, not amortized into the score.
+ * - `thresholds.break` is pinned at the measured floor. The template's 100
+ *   fails the gate on any surviving or uncovered mutant; a project that
+ *   measures lower pins its own floor, which is then a coarse regression
+ *   alarm, and survivors in changed code are dispositioned in review. Raising
+ *   it as mutants die is normal work; lowering it is a wall edit that requires
+ *   human countersign.
  * - `src/main.*` is the composition root under every supported source suffix:
  *   side-effectful wiring with no unit seam, verified by the preflight gates.
  * - `inPlace: false` mutates a sandbox copy, so an interrupted run cannot
@@ -57,7 +58,7 @@ export default {
   concurrency: 4,
   reporters: ['clear-text', 'progress', 'json'],
   jsonReporter: { fileName: 'reports/mutation/mutation.json' },
-  thresholds: { high: 80, low: 60, break: 99 },
+  thresholds: { high: 80, low: 60, break: 100 },
   timeoutMS: 30000,
   bun: { timeout: 60000, testFiles },
 };
