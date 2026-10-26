@@ -1,9 +1,9 @@
-# The native Swift backend and its distro-aware locks are tested with this mise.
+# The native Swift backend and its distro-aware locks need at least this mise.
 min_version = "2026.9.18"
 
 [tools]
-swift = "6.4.0"
-"aqua:google/osv-scanner" = "2.6.0"
+swift = "6.4.1"
+"aqua:google/osv-scanner" = "2.7.0"
 
 [tasks."swift:lock"]
 description = "Resolve Swift dependencies after manifest changes"

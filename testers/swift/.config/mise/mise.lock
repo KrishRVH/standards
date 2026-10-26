@@ -3,34 +3,24 @@
 lockfile_version = 3
 
 [[tools."aqua:google/osv-scanner"]]
-version = "2.6.0"
+version = "2.7.0"
 backend = "aqua:google/osv-scanner"
-specifiers = ["2.6.0"]
+specifiers = ["2.7.0"]
 
 [tools."aqua:google/osv-scanner"."platforms.linux-x64"]
-checksum = "sha256:ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108"
-url = "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64"
-url_api = "https://api.github.com/repos/google/osv-scanner/releases/assets/562414718"
+checksum = "sha256:160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b"
+checksum_source = "mise-versions"
+url = "https://github.com/google/osv-scanner/releases/download/v2.7.0/osv-scanner_linux_amd64"
+url_api = "https://api.github.com/repos/google/osv-scanner/releases/assets/632251666"
 
 [[tools.swift]]
-version = "6.4.0"
+version = "6.4.1"
 backend = "core:swift"
-specifiers = ["6.4.0"]
+specifiers = ["6.4.1"]
 
 [tools.swift.options]
 swift_platform = "ubuntu26.04"
 
 [tools.swift."platforms.linux-x64"]
-checksum = "blake3:9c20f3b4f3a039b112fb50402228c455692cd15fab5792a6c7646529be324250"
-url = "https://download.swift.org/swift-6.4.0-release/ubuntu2604/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-ubuntu26.04.tar.gz"
-
-[[tools.swift]]
-version = "6.4.0"
-backend = "core:swift"
-specifiers = ["6.4.0"]
-
-[tools.swift.options]
-swift_platform = "ubuntu24.04"
-
-[tools.swift."platforms.linux-x64"]
-url = "https://download.swift.org/swift-6.4.0-release/ubuntu2404/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-ubuntu24.04.tar.gz"
+checksum = "sha256:a0c60246b2582d2cf7a5fee98e276dc363a948b34246ec8ef055f002a04c32ab"
+url = "https://download.swift.org/swift-6.4.1-release/ubuntu2604/swift-6.4.1-RELEASE/swift-6.4.1-RELEASE-ubuntu26.04.tar.gz"

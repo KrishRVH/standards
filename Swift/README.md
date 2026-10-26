@@ -83,7 +83,7 @@ may sit between the reason and the declaration. `@diagnose`,
 `// swift-format-ignore-file`, and an ignore that names no rule fail. Library
 targets also reject `Date()`, `Date.now`, `ContinuousClock()`,
 `SuspendingClock()`, `ProcessInfo.processInfo.environment`, `.random(...)`
-without `using:`, `.shuffled()`, `.randomElement()`, `UUID()`,
+without `using:`, `.shuffle()`, `.shuffled()`, `.randomElement()`, `UUID()`,
 `SystemRandomNumberGenerator()`, `Task { }`, `Task.detached`,
 `DispatchQueue.global()`, `URLSession.shared`, `FileManager.default`,
 `UserDefaults.standard`, and `NotificationCenter.default` unless a reason marks
@@ -113,14 +113,15 @@ Both build and test tasks use `--force-resolved-versions`, so a missing or stale
 resolution for external dependencies fails rather than being repaired in CI.
 Commit `.config/mise/mise.lock` for the platforms where the gate runs.
 [Mise's Swift backend](https://mise.jdx.dev/lang/swift.html) records the Linux
-distribution in its lock options; generate Linux locks for the runner's
-distribution. The catalog fixture locks Ubuntu 24.04 for CI and Ubuntu 26.04
-for local checks. Installing on another distribution rewrites the lock for the
-host and can drop the runner's entry, so check the lock before committing.
-Generate the Ubuntu 24.04 entry from the project directory:
+distribution in its lock options and keeps one Swift entry per version and
+lock platform, so lock the distribution of the workflow's Ubuntu 26.04 runner.
+Plain `mise lock` writes that entry on an Ubuntu 26.04 host. On another
+distribution, installing or locking can replace it with the host's entry, so
+check the lock before committing; there, lock the runner's entry from the
+project directory:
 
 ```sh
-MISE_SWIFT_PLATFORM=ubuntu24.04 mise lock --platform linux-x64
+MISE_SWIFT_PLATFORM=ubuntu26.04 mise lock --platform linux-x64
 ```
 
 SwiftPM keeps its native fingerprint and registry signature checks.
@@ -134,7 +135,7 @@ on Linux.
 ## Apple-platform projects
 
 The fixture checks a portable SwiftPM package on Linux. The copied workflow
-targets Ubuntu 24.04.
+targets Ubuntu 26.04.
 For packages using Apple frameworks, select their minimum deployment platforms
 in the manifest, lock mise tools for macOS, and run the gate on macOS. A Swift
 toolchain pin does not pin Xcode or an Apple SDK.
