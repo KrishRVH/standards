@@ -85,23 +85,24 @@ check_wsl_cached_startup() {
     custom) data_dir="$fixture/custom mise" ;;
     *) return 2 ;;
   esac
-  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.cache/zsh" \
-    "$fixture/.local/state/zsh" "$data_dir/shims" "$fixture/Project Tools"
-  for tool in mise starship zoxide atuin fzf tokei; do
+  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.cache/bash" \
+    "$fixture/.local/state/bash" "$data_dir/shims" "$fixture/Project Tools"
+  for tool in mise starship zoxide atuin tokei; do
     cat > "$fixture/.local/bin/$tool" << 'TOOL'
 #!/bin/sh
 tool=${0##*/}
 printf '%s %s\n' "$tool" "$*" >> "$WORKSTATION_CALLS"
 case "$tool $*" in
-  'mise activate zsh')
+  'mise activate bash')
     cat <<'INIT'
+export PATH=/generation-time-only
 _fixture_mise_hook() { mise hook-env; }
-precmd_functions=(${precmd_functions:#_fixture_mise_hook} _fixture_mise_hook)
-print -r -- 'cached mise' >> "$WORKSTATION_CALLS"
+PROMPT_COMMAND=(_fixture_mise_hook)
+printf '%s\n' 'cached mise' >> "$WORKSTATION_CALLS"
 INIT
     ;;
-  'starship init zsh --print-full-init'|'zoxide init zsh'|'atuin init zsh --disable-up-arrow --disable-ai'|'fzf --zsh')
-    printf 'print -r -- "cached %s" >> "$WORKSTATION_CALLS"\n' "$tool"
+  'starship init bash --print-full-init'|'zoxide init bash'|'atuin init bash --disable-up-arrow --disable-ai')
+    printf 'echo "cached %s" >> "$WORKSTATION_CALLS"\n' "$tool"
     ;;
 esac
 TOOL
@@ -112,11 +113,7 @@ exit 99
 SHIM
     chmod +x "$fixture/.local/bin/$tool" "$data_dir/shims/$tool"
   done
-  for tool in zsh-autosuggestions zsh-syntax-highlighting; do
-    mkdir -p "$fixture/.local/share/wsl-bootstrap/zsh/plugins/$tool"
-    : > "$fixture/.local/share/wsl-bootstrap/zsh/plugins/$tool/$tool.zsh"
-  done
-  for tool in SHELLENV REFRESH ZSHRC; do
+  for tool in SHELLENV REFRESH BASHRC; do
     awk -v delimiter="$tool" '
       $0 ~ "<<[[:space:]]*." delimiter "." { body = 1; next }
       body && $0 == delimiter { exit }
@@ -135,36 +132,36 @@ SHIM
   run env -i HOME="$fixture" PATH="$fixture/.local/bin:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" bash "$fixture/REFRESH"
   [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" == *"mise activate zsh"* ]]
+  [[ "$(< "$fixture/calls")" == *"mise activate bash"* ]]
   : > "$fixture/calls"
-  # shellcheck disable=SC2016 # The child zsh expands its own parameters.
+  # shellcheck disable=SC2016 # The child bash expands its own parameters.
   run env -i HOME="$fixture" TERM=xterm-256color EDITOR=nvim \
     PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
-    zsh -f -i -c '
+    bash --noprofile --norc -i -c '
       word_motion() {
         local key
-        [[ "$(bindkey -lL main)" == "bindkey -A emacs main" ]] || return 1
-        for key in "^[[1;5D" "^[[1;3D"; do
-          [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
+        [[ $SHELLOPTS == *emacs* ]] || return 1
+        for key in "\e[1;5D" "\e[1;3D"; do
+          [[ "$(bind -p)" == *"\"$key\": backward-word"* ]] || return 1
         done
-        for key in "^[[1;5C" "^[[1;3C"; do
-          [[ "$(bindkey "$key")" == *" forward-word" ]] || return 1
+        for key in "\e[1;5C" "\e[1;3C"; do
+          [[ "$(bind -p)" == *"\"$key\": forward-word"* ]] || return 1
         done
       }
       source "$HOME/.config/shell/env.sh"
-      source "$HOME/ZSHRC"
+      source "$HOME/BASHRC"
       word_motion || exit 3
-      source "$HOME/ZSHRC"
+      source "$HOME/BASHRC"
       word_motion || exit 3
       [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
       [[ ":$PATH:" != *":$1/shims:"* ]] || exit 2
-      for hook in $precmd_functions; do "$hook"; done
+      for hook in "${PROMPT_COMMAND[@]}"; do eval "$hook"; done
       tokei
       mise run build
     ' -- "$data_dir"
   [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" == $'cached mise\ncached zoxide\ncached starship\ncached mise\ncached zoxide\ncached starship\nmise hook-env\ntokei \nmise run build' ]]
+  [[ "$(< "$fixture/calls")" == $'cached mise\ncached zoxide\ncached starship\nmise hook-env\ntokei \nmise run build' ]]
 }
 
 @test "WSL shell loads cached integrations and invokes host tools with inherited mise shims" {
@@ -210,61 +207,6 @@ SHIM
   done
 }
 
-@test "WSL environment leaves completion initialization to the interactive config" {
-  local fixture="${BATS_TEST_TMPDIR}/completion"
-  mkdir -p "$fixture"
-  printf '%s\n' 'zmodload zsh/zprof' 'export USER_SETTING=preserved' > "$fixture/.zshenv"
-  chmod 0600 "$fixture/.zshenv"
-  awk '
-    /^configure_zshenv\(\) \{/ { body = 1 }
-    body { print }
-    body && /^\}/ { exit }
-  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/configure.sh"
-  # shellcheck disable=SC2016 # Parameters belong to the isolated shells.
-  run env -i HOME="$fixture" ZDOTDIR="$fixture" PATH=/usr/bin:/bin \
-    bash -c '
-      source "$HOME/configure.sh"
-      configure_zshenv
-      configure_zshenv
-      [[ "$(grep -cx skip_global_compinit=1 "$HOME/.zshenv")" == 1 ]] || exit 1
-      zsh -ic '\''
-        [[ "$USER_SETTING" == preserved ]] || exit 1
-        autoload -Uz compinit
-        compinit -D -i
-        zprof
-      '\''
-    '
-  [[ "$status" -eq 0 ]]
-  [[ "$output" = *"compinit"* ]]
-  [[ "$(awk '$NF == "compinit" && $1 ~ /^[0-9]+\)$/ {print $2; exit}' <<< "$output")" == 1 ]]
-  [[ "$(stat -c '%a' "$fixture/.zshenv" 2> /dev/null || stat -f '%Lp' "$fixture/.zshenv")" == 600 ]]
-}
-
-@test "WSL completion audit runs on first start and again after 24 hours" {
-  local fixture="$BATS_TEST_TMPDIR/completion-audit"
-  mkdir -p "$fixture"
-  awk '
-    /^autoload -Uz compinit$/ { body = 1; next }
-    body { print }
-    body && /^fi$/ { exit }
-  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/completion.zsh"
-  [[ -s "$fixture/completion.zsh" ]]
-  # A stub records each mode; like compinit -i, it leaves an existing dump alone.
-  # shellcheck disable=SC2016 # Parameters belong to the isolated zsh.
-  run zsh -f -c '
-    zmodload zsh/datetime
-    compinit() { print -r -- "$1"; [[ -e $3 ]] || : >| "$3"; }
-    _zsh_cache=$1
-    source "$1/completion.zsh"
-    source "$1/completion.zsh"
-    touch -t "$(strftime %Y%m%d%H%M $((EPOCHSECONDS - 90000)))" "$1/zcompdump"
-    source "$1/completion.zsh"
-    source "$1/completion.zsh"
-  ' -- "$fixture"
-  [[ "$status" -eq 0 ]]
-  [[ "$output" == $'-i\n-C\n-i\n-C' ]]
-}
-
 @test "WSL setup removes only its own ~/.tmux.conf shim" {
   local fixture="$BATS_TEST_TMPDIR/tmux-shim"
   mkdir -p "$fixture/managed" "$fixture/edited"
@@ -293,16 +235,16 @@ SHIM
 
 @test "WSL setup syntax-checks every generated startup file and helper" {
   local fixture="$BATS_TEST_TMPDIR/syntax" broken file
-  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell"
+  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.config/bash" "$fixture/.config/blesh"
   awk '
     /^# Syntax checks validate/ { body = 1 }
     body && /^echo / { exit }
     body { print }
   ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/check.sh"
   [[ -s "$fixture/check.sh" ]]
-  for broken in none toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht .zshrc .config/shell/env.sh; do
+  for broken in none toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht .config/bash/interactive.bash .config/blesh/init.sh .config/shell/env.sh; do
     for file in .local/bin/toolhelp .local/bin/wsl-shell-refresh .local/bin/tmux-sessionizer \
-      .local/bin/tmux-cht .zshrc .config/shell/env.sh; do
+      .local/bin/tmux-cht .config/bash/interactive.bash .config/blesh/init.sh .config/shell/env.sh; do
       if [[ "$file" == "$broken" || "$file" == ".local/bin/$broken" ]]; then
         printf 'if then\n' > "$fixture/$file"
       else
@@ -316,35 +258,6 @@ SHIM
       [[ "$status" -ne 0 ]]
     fi
   done
-}
-
-@test "refusing an unmanaged WSL shell leaves its completion environment intact" {
-  local fixture="${BATS_TEST_TMPDIR}/unmanaged"
-  mkdir -p "$fixture"
-  printf '%s\n' '# Personal shell using Ubuntu completion.' > "$fixture/.zshrc"
-  cp "$fixture/.zshrc" "$fixture/expected"
-  awk '
-    /^(write_managed_file|configure_zshenv)\(\) \{/ { body = 1 }
-    body { print }
-    body && /^\}/ { body = 0 }
-  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/helpers.sh"
-  awk '
-    /^configure_zshenv$/ || /^ZSHRC_MARKER=/ { body = 1 }
-    /^ZSH_PATH=/ { exit }
-    body { print }
-  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/configure.sh"
-  # shellcheck disable=SC2016 # The isolated shell expands its own HOME.
-  run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -e -c '
-    source "$HOME/helpers.sh"
-    make_tmpfile() { mktemp "$HOME/write.XXXXXX"; }
-    warn() { printf "%s\n" "$*" >&2; }
-    die() { warn "$@"; exit 1; }
-    source "$HOME/configure.sh"
-  '
-  [[ "$status" -ne 0 ]]
-  [[ "$output" == *"refusing to overwrite unmanaged file"* ]]
-  cmp -s "$fixture/.zshrc" "$fixture/expected"
-  [[ ! -e "$fixture/.zshenv" ]]
 }
 
 # Standard system installation paths are intentionally visible to these shell
@@ -411,16 +324,18 @@ SHIM
       configure_shell_environment
       configure_shell_environment
       [[ ! -e "$HOME/.profile" ]] || exit 1
-      for file in .zshenv .bash_profile .bashrc; do
+      for file in .bash_profile .bashrc; do
         [[ "$(grep -c "config/shell/env.sh" "$HOME/$file")" == 1 ]] || exit 2
       done
       source "$HOME/.bash_profile"
       [[ "$USER_SETTING" == preserved ]] || exit 3
-      loader=.zshenv
+      loader=.bashrc
       if [[ "$1" = macbook-setup.sh ]]; then
+        [[ "$(grep -c "config/shell/env.sh" "$HOME/.zshenv")" == 1 ]] || exit 2
         [[ "$(grep -c "config/shell/env.sh" "$HOME/.zprofile")" == 1 ]] || exit 2
         loader=.zprofile
       else
+        [[ ! -e "$HOME/.zshenv" ]] || exit 2
         [[ ! -e "$HOME/.zprofile" ]] || exit 2
       fi
       rm "$HOME/$loader"
@@ -430,7 +345,7 @@ SHIM
     ' -- "$script"
     [[ "$status" -eq 0 ]]
     [[ "$(stat -c '%a' "$fixture/.bash_profile" 2> /dev/null || stat -f '%Lp' "$fixture/.bash_profile")" == 600 ]]
-    rm -f "$fixture/.zshenv" "$fixture/.zprofile"
+    rm -f "$fixture/.zshenv" "$fixture/.zprofile" "$fixture/.bashrc"
   done
 }
 
@@ -513,13 +428,13 @@ SHIM
     fixture="$BATS_TEST_TMPDIR/history-$layout"
     mkdir -p "$fixture"
     state_home=""
-    history_dir="$fixture/.local/state/zsh"
+    history_dir="$fixture/.local/state/bash"
     if [[ "$layout" == custom ]]; then
       state_home="$fixture/state with spaces"
-      history_dir="$state_home/zsh"
+      history_dir="$state_home/bash"
     fi
     awk '
-      /^ZSHRC$/ { body = 1; next }
+      /^BASHRC$/ { body = 1; next }
       body && /^configure_shell_environment$/ { exit }
       body { print }
     ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/prepare.sh"
@@ -537,5 +452,187 @@ SHIM
       bash -e "$fixture/prepare.sh"
     [[ "$status" -eq 0 ]]
     [[ "$(< "$history_dir/history")" == 'saved command' ]]
+  done
+}
+
+@test "WSL Bash login loaders preserve profiles and quiet child environments" {
+  local fixture="$BATS_TEST_TMPDIR/bash-login" profile
+  mkdir -p "$fixture/.config/bash"
+  awk '
+    /^configure_shell_environment\(\) \{/ { body = 1 }
+    body { print }
+    body && /^\}/ { exit }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/configure.sh"
+  awk '
+    /<<[[:space:]]*.BASHRC./ { body = 1; next }
+    body && /^BASHRC$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/.config/bash/interactive.bash"
+  for profile in .profile .bash_login .bash_profile; do
+    printf 'export USER_SETTING=preserved\n' > "$fixture/$profile"
+    # shellcheck disable=SC2016 # Parameters belong to the isolated Bash.
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -e -c '
+      source "$HOME/configure.sh"
+      write_managed_file() { mkdir -p "${1%/*}"; cat > "$1"; }
+      die() { echo "$*" >&2; exit 1; }
+      configure_shell_environment
+      configure_shell_environment
+      source "$HOME/$1"
+      [[ $USER_SETTING == preserved ]]
+      [[ $(grep -c config/bash/interactive.bash "$HOME/$1") == 1 ]]
+      [[ ! -e "$HOME/.zshenv" ]]
+      PATH=/stale/shims:/usr/bin:/bin bash -ec '\''
+        [[ $PATH == *"$HOME/.local/bin"* ]]
+        [[ ! ${_WSL_BASH_LOADED:-} ]]
+      '\''
+      BASH_ENV=/custom/env.sh
+      source "$HOME/.config/shell/env.sh"
+      [[ $BASH_ENV == /custom/env.sh ]]
+    ' -- "$profile"
+    [[ "$status" -eq 0 ]]
+  done
+}
+
+@test "WSL toolhelp completion offers commands tools and categories" {
+  local fixture="$BATS_TEST_TMPDIR/toolhelp"
+  mkdir -p "$fixture"
+  awk '
+    /<<[[:space:]]*.TOOLHELP_COMPLETION./ { body = 1; next }
+    body && /^TOOLHELP_COMPLETION$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/completion.bash"
+  # shellcheck disable=SC2016 # The isolated Bash supplies completion parameters.
+  run bash -c '
+    source "$1"
+    COMP_WORDS=(toolhelp bas); COMP_CWORD=1; _toolhelp
+    [[ ${COMPREPLY[*]} == bash ]] || exit 1
+    COMP_WORDS=(toolhelp category wo); COMP_CWORD=2; _toolhelp
+    [[ ${COMPREPLY[*]} == "workflow workspace" ]] || exit 2
+    COMP_WORDS=(toolhelp ca); COMP_CWORD=1; _toolhelp
+    [[ ${COMPREPLY[*]} == "categories category cargo-binstall" ]] || exit 3
+  ' -- "$fixture/completion.bash"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "WSL loads managed completions on demand with a custom data directory" {
+  [[ -r /usr/share/bash-completion/bash_completion ]] || skip "requires Ubuntu bash-completion"
+  local fixture="$BATS_TEST_TMPDIR/lazy-completion"
+  mkdir -p "$fixture/data/bash-completion/completions" "$fixture/data"
+  awk '
+    /<< .BASHRC./ { body = 1; next }
+    body && /^BASHRC$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/interactive.bash"
+  cat > "$fixture/data/bash-completion/completions/workstation-probe" << 'COMPLETION'
+_fixture_complete() { COMPREPLY=(working); }
+complete -F _fixture_complete workstation-probe
+COMPLETION
+  # shellcheck disable=SC2016 # Expand only inside the fixture shell.
+  run env -i HOME="$fixture" XDG_DATA_HOME="$fixture/data" PATH=/usr/bin:/bin \
+    bash --noprofile --norc -ic '
+      source "$HOME/interactive.bash"
+      declare -F _fixture_complete && exit 1
+      _completion_loader workstation-probe
+      [[ $? == 124 ]] || exit 2
+      [[ $(complete -p workstation-probe) == *"-F _fixture_complete"* ]] || exit 3
+      _fixture_complete
+      [[ ${COMPREPLY[*]} == working ]] || exit 4
+    '
+  [[ "$status" -eq 0 ]]
+}
+
+@test "WSL completion generation preserves personal files and refreshes managed files" {
+  local script="$BATS_TEST_DIRNAME/../wsl-setup.sh" helper
+  for helper in atomic_install_file write_managed_file generate_completion; do
+    source /dev/stdin <<< "$(sed -n "/^$helper()/,/^}/p" "$script")"
+  done
+  make_tmpfile() { mktemp "$BATS_TEST_TMPDIR/completion.XXXXXX"; }
+  warn() { printf '%s\n' "$*" >&2; }
+  die() { return 1; }
+  local personal="$BATS_TEST_TMPDIR/personal" managed="$BATS_TEST_TMPDIR/managed"
+  printf '%s\n' '# personal completion' > "$personal"
+  generate_completion "$personal" printf '%s\n' '# replacement'
+  [[ "$(< "$personal")" == '# personal completion' ]]
+  generate_completion "$managed" printf '%s\n' '# first version'
+  generate_completion "$managed" printf '%s\n' '# refreshed version'
+  [[ "$(< "$managed")" == *'# refreshed version' ]]
+  [[ "$(< "$managed")" != *'# first version'* ]]
+}
+
+@test "WSL terminal startup enables Atuin before Starship without an opt-in" {
+  [[ $OSTYPE == linux* ]] || skip "requires util-linux script"
+  command -v script > /dev/null || skip "requires util-linux script"
+  local fixture="$BATS_TEST_TMPDIR/terminal"
+  mkdir -p "$fixture/.local/share/blesh" "$fixture/.cache/bash" "$fixture/.local/bin"
+  awk '
+    /<< .BASHRC./ { body = 1; next }
+    body && /^BASHRC$/ { exit }
+    body { print }
+  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/interactive.bash"
+  # shellcheck disable=SC2016 # These scripts expand HOME in the fixture shell.
+  {
+    printf '%s\n' 'BLE_VERSION=test' 'ble-attach() { echo attach >> "$HOME/calls"; }' > "$fixture/.local/share/blesh/ble.sh"
+    printf '%s\n' 'echo atuin >> "$HOME/calls"' > "$fixture/.cache/bash/atuin.bash"
+    printf '%s\n' 'echo starship >> "$HOME/calls"' > "$fixture/.cache/bash/starship.bash"
+  }
+  printf '#!/bin/sh\nexit 0\n' > "$fixture/.local/bin/starship"
+  chmod +x "$fixture/.local/bin/starship"
+  cat > "$fixture/rc" << 'RC'
+source "$HOME/interactive.bash"
+source "$HOME/interactive.bash"
+exit
+RC
+  # shellcheck disable=SC2016 # The terminal child expands its fixture HOME.
+  run env -i HOME="$fixture" SHELL=/bin/bash TERM=xterm-256color \
+    PATH="$fixture/.local/bin:/usr/bin:/bin" script -q -e -c 'bash --noprofile --rcfile "$HOME/rc" -i' /dev/null
+  [[ "$status" -eq 0 ]]
+  [[ "$(< "$fixture/calls")" == $'atuin\nstarship\nattach' ]]
+}
+
+@test "WSL fuzzy directory selection runs directory-change hooks before returning" {
+  local fixture="$BATS_TEST_TMPDIR/fcd"
+  mkdir -p "$fixture/project with spaces"
+  awk '/<< .BASHRC./ { body = 1; next } body && /^BASHRC$/ { exit } body { print }' \
+    "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/interactive.bash"
+  # shellcheck disable=SC2016 # The fixture shell expands its own HOME and PWD.
+  run env -i HOME="$fixture" PATH=/usr/bin:/bin bash --noprofile --norc -ic '
+    source "$HOME/interactive.bash"
+    fd() { printf "%s\n" "$HOME/project with spaces"; }
+    fzf() { cat; }
+    cd() { builtin cd "$@" && export TOOLCHAIN_DIRECTORY="$PWD"; }
+    fcd
+    [[ $PWD == "$HOME/project with spaces" && $TOOLCHAIN_DIRECTORY == "$PWD" ]]
+  '
+  [[ "$status" -eq 0 ]]
+}
+
+@test "WSL Atuin defaults honor native config paths and preserve user configuration" {
+  local fixture="$BATS_TEST_TMPDIR/atuin" layout config_dir
+  mkdir -p "$fixture"
+  awk '/^# Atuin stays local/ { body = 1 } body { print } body && /^fi$/ { exit }' \
+    "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/configure.sh"
+  for layout in default xdg override; do
+    local -a extra_env=()
+    case "$layout" in
+      default) config_dir="$fixture/.config/atuin" ;;
+      xdg)
+        config_dir="$fixture/xdg config/atuin"
+        extra_env+=("XDG_CONFIG_HOME=$fixture/xdg config")
+        ;;
+      override)
+        config_dir="$fixture/atuin config"
+        extra_env+=("ATUIN_CONFIG_DIR=$config_dir")
+        ;;
+      *) return 2 ;;
+    esac
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin "${extra_env[@]}" bash -e "$fixture/configure.sh"
+    [[ "$status" -eq 0 && -s "$config_dir/config.toml" ]]
+    printf 'enter_accept = true\n' > "$config_dir/config.toml"
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin "${extra_env[@]}" bash -e "$fixture/configure.sh"
+    [[ "$status" -eq 0 && "$(< "$config_dir/config.toml")" == 'enter_accept = true' ]]
+    rm "$config_dir/config.toml"
+    ln -s "$fixture/absent-target" "$config_dir/config.toml"
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin "${extra_env[@]}" bash -e "$fixture/configure.sh"
+    [[ "$status" -eq 0 && -L "$config_dir/config.toml" && ! -e "$fixture/absent-target" ]]
   done
 }

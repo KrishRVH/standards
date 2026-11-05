@@ -6,7 +6,7 @@ IFS=$'\n\t'
 # - apt base tools plus a curated modern CLI baseline
 # - upstream GitHub-release binaries checked against published digests when available
 # - rustup + cargo-binstall-backed Rust CLI tools
-# - native Zsh + two focused plugins + cached integrations + compact Starship
+# - Bash + ble.sh + cached integrations + compact Starship
 # - managed `toolhelp` command, completions, Git defaults, tmux helpers
 # - optional LazyVim starter config (only if ~/.config/nvim is missing)
 #
@@ -344,8 +344,9 @@ configure_shell_environment() {
   local file profile="$HOME/.profile"
   # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
   local loader='[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"'
+  [[ ! -e "$HOME/.bash_login" && ! -L "$HOME/.bash_login" ]] || profile="$HOME/.bash_login"
   [[ ! -e "$HOME/.bash_profile" && ! -L "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
-  for file in "$HOME/.zshenv" "$profile" "$HOME/.bashrc"; do
+  for file in "$profile" "$HOME/.bashrc"; do
     if [[ -L "$file" || (-e "$file" && ! -f "$file") ]]; then
       die "refusing to modify non-regular shell startup file: $file"
     fi
@@ -362,6 +363,8 @@ export VISUAL="${VISUAL:-$EDITOR}"
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 export GOPATH="${GOPATH:-$HOME/go}"
 export LESS="${LESS:--FRX}"
+# Child noninteractive Bash sessions inherit the same quiet environment.
+export BASH_ENV="${BASH_ENV:-$HOME/.config/shell/env.sh}"
 
 # Preserve caller-selected toolchains (e.g. a venv or mise exec). Insert native
 # fallbacks before system paths, and deduplicate without spawning utilities.
@@ -407,21 +410,19 @@ export PATH="${PATH%:}"
 unset _host_prefix _host_tail _host_rest _host_entry _host_system _host_path
 # <<< wsl-bootstrap managed shell environment <<<
 SHELLENV
-  for file in "$HOME/.zshenv" "$profile" "$HOME/.bashrc"; do
+  for file in "$profile" "$HOME/.bashrc"; do
     if ! grep -qxF "$loader" "$file" 2> /dev/null; then
       printf '\n%s\n' "$loader" >> "$file" || return 1
     fi
   done
-}
-
-configure_zshenv() {
-  local path="$HOME/.zshenv"
-  if [[ -L "$path" || (-e "$path" && ! -f "$path") ]]; then
-    die "refusing to modify non-regular zsh environment file: $path"
-  fi
-  if ! grep -qxF 'skip_global_compinit=1' "$path" 2> /dev/null; then
-    printf '\n# User completion initializes once, after custom paths are set.\nskip_global_compinit=1\n' >> "$path"
-  fi
+  # Login profiles need the interactive config even when they do not source .bashrc.
+  # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
+  local interactive_loader='[ -z "${BASH_VERSION:-}" ] || [ ! -r "$HOME/.config/bash/interactive.bash" ] || . "$HOME/.config/bash/interactive.bash"'
+  for file in "$profile" "$HOME/.bashrc"; do
+    if ! grep -qxF "$interactive_loader" "$file" 2> /dev/null; then
+      printf '\n%s\n' "$interactive_loader" >> "$file" || return 1
+    fi
+  done
 }
 
 normalize_git_url() {
@@ -708,7 +709,7 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
     libssl-dev libsqlite3-dev libncurses-dev libicu-dev
     libcurl4-openssl-dev libreadline-dev libxml2-dev libzip-dev libsodium-dev
     libpq-dev libonig-dev libgd-dev gettext zlib1g-dev
-    tmux zsh fzf ripgrep jq bc tree fd-find bat wl-clipboard
+    tmux bash bash-completion gawk fzf ripgrep jq bc tree fd-find bat wl-clipboard
     btop shellcheck lnav age trash-cli
     python3 python3-venv pipx sqlite3 dnsutils iproute2 psmisc
     strace time locales lsof
@@ -956,35 +957,44 @@ git_config_default alias.dft '-c diff.external=difft diff'
 git_config_default alias.dshow '-c diff.external=difft show --ext-diff'
 git_config_default alias.dlog '-c diff.external=difft log -p --ext-diff'
 
-ZSH_COMPLETIONS_DIR="$HOME/.local/share/wsl-bootstrap/zsh/site-functions"
-mkdir -p "$ZSH_COMPLETIONS_DIR"
+bash_completion_user_dir="${BASH_COMPLETION_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion}"
+BASH_COMPLETIONS_DIR="${bash_completion_user_dir%%:*}/completions"
+mkdir -p "$BASH_COMPLETIONS_DIR"
 
 generate_completion() {
   local path="$1"
   shift
-  local tmp
+  local tmp marker='# >>> wsl-bootstrap managed completion >>>'
 
+  # This is the user's standard completion directory, not a private cache.
+  if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
+    warn "keeping unmanaged completion: $path"
+    return 0
+  fi
   tmp="$(make_tmpfile)"
-  if "$@" > "$tmp" 2> /dev/null && [[ -s "$tmp" ]]; then
-    atomic_install_file "$tmp" "$path" 0644
+  if "$@" > "$tmp" 2> /dev/null && [[ -s "$tmp" ]] && bash -n "$tmp"; then
+    {
+      printf '%s\n' "$marker"
+      cat "$tmp"
+    } | write_managed_file "$path" "$marker" 0644
   else
     warn "could not generate completion: $(command_string "$@")"
   fi
   rm -f "$tmp"
 }
 
-has delta && generate_completion "$ZSH_COMPLETIONS_DIR/_delta" delta --generate-completion zsh
-has just && generate_completion "$ZSH_COMPLETIONS_DIR/_just" just --completions zsh
-has watchexec && generate_completion "$ZSH_COMPLETIONS_DIR/_watchexec" watchexec --completions zsh
-has ast-grep && generate_completion "$ZSH_COMPLETIONS_DIR/_ast-grep" ast-grep completions zsh
-has mlr && generate_completion "$ZSH_COMPLETIONS_DIR/_mlr" mlr completion zsh
-has jj && generate_completion "$ZSH_COMPLETIONS_DIR/_jj" jj util completion zsh
-has gh && generate_completion "$ZSH_COMPLETIONS_DIR/_gh" gh completion -s zsh
+has delta && generate_completion "$BASH_COMPLETIONS_DIR/delta" delta --generate-completion bash
+has just && generate_completion "$BASH_COMPLETIONS_DIR/just" just --completions bash
+has watchexec && generate_completion "$BASH_COMPLETIONS_DIR/watchexec" watchexec --completions bash
+has ast-grep && generate_completion "$BASH_COMPLETIONS_DIR/ast-grep" ast-grep completions bash
+has mlr && generate_completion "$BASH_COMPLETIONS_DIR/mlr" mlr completion bash
+has jj && generate_completion "$BASH_COMPLETIONS_DIR/jj" jj util completion bash
+has gh && generate_completion "$BASH_COMPLETIONS_DIR/gh" gh completion -s bash
 # Docker Desktop's Linux completion symlink is unavailable while it is stopped.
 if has docker.exe; then
-  generate_completion "$ZSH_COMPLETIONS_DIR/_docker" docker.exe completion zsh
+  generate_completion "$BASH_COMPLETIONS_DIR/docker" docker.exe completion bash
 elif has docker; then
-  generate_completion "$ZSH_COMPLETIONS_DIR/_docker" docker completion zsh
+  generate_completion "$BASH_COMPLETIONS_DIR/docker" docker completion bash
 fi
 
 TOOLHELP_MARKER="# >>> wsl-bootstrap managed toolhelp >>>"
@@ -999,7 +1009,7 @@ readonly -a TOOLS=(
   bat eza delta difftastic tokei
   jq yq mlr sd ast-grep
   hyperfine just watchexec shellcheck shfmt
-  zsh atuin tldr mise starship cargo-binstall
+  bash atuin tldr mise starship cargo-binstall
   jj gh lazygit
   btop dust duf lnav
   xh
@@ -1016,7 +1026,7 @@ declare -Ar CATEGORY=(
   [bat]=viewing [eza]=viewing [delta]=viewing [difftastic]=viewing [tokei]=viewing
   [jq]=data [yq]=data [mlr]=data [sd]=data [ast-grep]=data
   [hyperfine]=workflow [just]=workflow [watchexec]=workflow [shellcheck]=workflow [shfmt]=workflow
-  [zsh]=shell [atuin]=shell [tldr]=shell [mise]=shell [starship]=shell [cargo-binstall]=shell
+  [bash]=shell [atuin]=shell [tldr]=shell [mise]=shell [starship]=shell [cargo-binstall]=shell
   [jj]=vcs [gh]=vcs [lazygit]=vcs
   [btop]=system [dust]=system [duf]=system [lnav]=system
   [xh]=network
@@ -1044,7 +1054,7 @@ declare -Ar SUMMARY=(
   [watchexec]='rerun commands when files change'
   [shellcheck]='static analysis for shell scripts'
   [shfmt]='parser-backed shell formatter'
-  [zsh]='your interactive shell; Bash/POSIX sh remain script baselines'
+  [bash]='your interactive shell; Bash/POSIX sh remain script baselines'
   [atuin]='structured, searchable shell history'
   [tldr]='example-first command reminders that complement man pages'
   [mise]='polyglot tool-version, environment, and task manager'
@@ -1293,9 +1303,9 @@ Examples:
   fedit                  # managed helper: pick a file and open it
   fcd                    # managed helper: pick a directory and cd
 
-Zsh bindings:
-  Ctrl-T selects a file. Alt-C selects a directory. Atuin owns Ctrl-R so shell
-  history remains contextual rather than using fzf's flat history picker.
+Bash bindings:
+  Ctrl-T selects a file. Alt-C selects a directory. Ctrl-R searches Atuin
+  history; Up and Down navigate the shell history.
 DOC
       ;;
     zoxide)
@@ -1360,7 +1370,7 @@ Examples:
 
 Keep ls when:
   Writing scripts, depending on exact GNU/POSIX flags, or operating remotely.
-  The managed ls aliases are interactive Zsh conveniences only.
+  The managed ls aliases are interactive Bash conveniences only.
 DOC
       ;;
     delta)
@@ -1643,13 +1653,11 @@ Examples:
 
 Notes:
   Check the chosen style into CI rather than relying on each developer's memory.
-  shfmt support for Zsh is experimental; use zsh -n for syntax checks and
-  review Zsh formatting separately.
 DOC
       ;;
-    zsh)
+    bash)
       cat <<'DOC'
-ZSH — interactive shell retained by this setup
+BASH — interactive shell
 
 Purpose:
   Provide a configurable interactive environment with completion, autosuggest,
@@ -1661,13 +1669,13 @@ Use it when:
   Nushell, Oils/YSH, Xonsh, or PowerShell shell environment.
 
 Examples:
-  exec zsh              # replace the shell and clear old hooks
-  sz                    # managed reload alias
-  bindkey               # inspect active key bindings
+  exec bash              # restart the shell and its hooks
+  sb                    # managed reload alias
+  bind -P               # inspect active Readline key bindings
 
 Script rule:
   Use #!/usr/bin/env bash for Bash scripts or /bin/sh for deliberately POSIX
-  scripts. Do not assume interactive Zsh features in repositories or CI.
+  scripts. Do not assume interactive Bash features in repositories or CI.
 DOC
       ;;
     atuin)
@@ -1749,7 +1757,7 @@ Purpose:
   context using one fast prompt configuration.
 
 Use it when:
-  You want useful ambient state without maintaining a large Zsh theme framework.
+  You want useful ambient state without maintaining a large Bash theme framework.
 
 Examples:
   starship explain
@@ -2232,40 +2240,24 @@ main "$@"
 # <<< wsl-bootstrap managed toolhelp <<<
 TOOLHELP_SCRIPT
 
-TOOLHELP_COMPLETION_MARKER="# >>> wsl-bootstrap managed _toolhelp >>>"
-write_managed_file "$ZSH_COMPLETIONS_DIR/_toolhelp" "$TOOLHELP_COMPLETION_MARKER" 0644 << 'TOOLHELP_COMPLETION'
-#compdef toolhelp
-# >>> wsl-bootstrap managed _toolhelp >>>
-
+TOOLHELP_COMPLETION_MARKER="# >>> wsl-bootstrap managed toolhelp completion >>>"
+write_managed_file "$BASH_COMPLETIONS_DIR/toolhelp" "$TOOLHELP_COMPLETION_MARKER" 0644 << 'TOOLHELP_COMPLETION'
+# >>> wsl-bootstrap managed toolhelp completion >>>
 _toolhelp() {
-  local -a commands tools categories
-  commands=(
-    'list:list managed tools'
-    'categories:list tool categories'
-    'category:list tools in one category'
-    'search:search tool names and summaries'
-    'all:show the complete reference'
-  )
-  tools=(
-    rg fd fzf zoxide bat eza delta difftastic tokei jq yq mlr sd ast-grep
-    hyperfine just watchexec shellcheck shfmt zsh atuin tldr mise starship
+  local choices
+  choices="rg fd fzf zoxide bat eza delta difftastic tokei jq yq mlr sd ast-grep
+    hyperfine just watchexec shellcheck shfmt bash atuin tldr mise starship
     cargo-binstall jj gh lazygit btop dust duf lnav xh ouch zstd trash age
-    tmux herdr nvim dagger
-  )
-  categories=(search viewing data workflow shell vcs system network files workspace)
-
-  if (( CURRENT == 2 )); then
-    _describe -t commands 'command' commands
-    _describe -t tools 'tool' tools
-  elif [[ "${words[2]}" == category || "${words[2]}" == list ]]; then
-    _describe -t categories 'category' categories
-  else
-    _describe -t tools 'tool' tools
+    tmux herdr nvim dagger"
+  if [[ ${COMP_WORDS[1]:-} == category || ${COMP_WORDS[1]:-} == list ]] && (( COMP_CWORD > 1 )); then
+    choices="search viewing data workflow shell vcs system network files workspace"
+  elif (( COMP_CWORD == 1 )); then
+    choices="list categories category search all $choices"
   fi
+  mapfile -t COMPREPLY < <(compgen -W "$choices" -- "${COMP_WORDS[COMP_CWORD]}")
 }
-
-_toolhelp "$@"
-# <<< wsl-bootstrap managed _toolhelp <<<
+complete -F _toolhelp toolhelp
+# <<< wsl-bootstrap managed toolhelp completion <<<
 TOOLHELP_COMPLETION
 
 # Keep common Windows entry points without scanning its entire PATH. Symlinks
@@ -2278,19 +2270,21 @@ for windows_command in wsl.exe cmd.exe powershell.exe explorer.exe clip.exe note
   fi
 done
 
-# --- native zsh, cached integrations, and Starship ---------------------------
-
-ZSH_PLUGIN_DIR="$HOME/.local/share/wsl-bootstrap/zsh/plugins"
-mkdir -p "$ZSH_PLUGIN_DIR"
-git_repo https://github.com/zsh-users/zsh-autosuggestions "$ZSH_PLUGIN_DIR/zsh-autosuggestions"
-git_repo https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting"
+# --- Bash, ble.sh, cached integrations, and Starship -----------------------
+BLE_SOURCE="$HOME/.local/share/wsl-bootstrap/ble.sh"
+git_repo https://github.com/akinomyoga/ble.sh "$BLE_SOURCE"
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
+  retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" git -C "$BLE_SOURCE" submodule update --init --recursive --depth=1
+  make -C "$BLE_SOURCE" install PREFIX="$HOME/.local"
+fi
+[[ -r "$HOME/.local/share/blesh/ble.sh" ]] || die "missing ble.sh; run the full bootstrap first"
 
 write_managed_file "$HOME/.local/bin/wsl-shell-refresh" '# >>> wsl-bootstrap managed shell refresh >>>' 0755 << 'REFRESH'
 #!/usr/bin/env bash
 set -euo pipefail
 # >>> wsl-bootstrap managed shell refresh >>>
 # Refresh after manually upgrading an integrated tool. No work on shell startup.
-cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/bash"
 mkdir -p "$cache"
 chmod 700 "$cache"
 exec 8> "$cache/refresh.lock"
@@ -2301,21 +2295,23 @@ emit() {
   local name=$1
   shift
   if command -v "$name" >/dev/null 2>&1; then
-    "$@" > "$scratch/$name.zsh"
-    zsh -n "$scratch/$name.zsh"
-    chmod 600 "$scratch/$name.zsh"
-    mv -f "$scratch/$name.zsh" "$cache/$name.zsh"
+    "$@" > "$scratch/$name.bash"
+    if [[ $name == mise ]]; then
+      # Bash activation emits a generation-time PATH reset before its hooks.
+      # Host paths already come from env.sh; preserve the caller's toolchains.
+      sed -i '/^export PATH=/d' "$scratch/$name.bash"
+    fi
+    bash -n "$scratch/$name.bash"
+    chmod 600 "$scratch/$name.bash"
+    mv -f "$scratch/$name.bash" "$cache/$name.bash"
   fi
 }
-emit starship starship init zsh --print-full-init
-emit zoxide zoxide init zsh
-emit atuin atuin init zsh --disable-up-arrow --disable-ai
+emit starship starship init bash --print-full-init
+emit zoxide zoxide init bash
+emit atuin atuin init bash --disable-up-arrow --disable-ai
 # Suppress the generation-time PATH snapshot; the emitted shell code captures
 # the caller's PATH when it is sourced. Never bake this installer's PATH in.
-emit mise env __MISE_ORIG_PATH=bootstrap-generation mise activate zsh
-emit fzf fzf --zsh
-# Installed completion definitions can change while the directory stays the same.
-rm -f -- "$cache/zcompdump" "$cache/zcompdump.zwc"
+emit mise env __MISE_ORIG_PATH=bootstrap-generation mise activate bash
 REFRESH
 # Interactive activation selects real runtime directories, so disable mise's
 # shim boundary and automatic command installation.
@@ -2326,7 +2322,6 @@ write_managed_file "$HOME/.config/starship.toml" '# >>> wsl-bootstrap managed st
 # >>> wsl-bootstrap managed starship >>>
 "$schema" = 'https://starship.rs/config-schema.json'
 add_newline = false
-scan_timeout = 10
 command_timeout = 150
 follow_symlinks = false
 format = '$username$hostname$directory$git_branch$git_commit$git_state$python$cmd_duration$jobs$line_break$character'
@@ -2374,62 +2369,68 @@ vimcmd_symbol = '[❮](bold purple)'
 STARSHIP
 
 # Atuin stays local unless explicitly configured by the user.
-if [[ ! -e "$HOME/.config/atuin/config.toml" ]]; then
-  mkdir -p "$HOME/.config/atuin"
-  cat > "$HOME/.config/atuin/config.toml" << 'ATUIN'
+atuin_config_dir="${ATUIN_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/atuin}"
+if [[ ! -e "$atuin_config_dir/config.toml" && ! -L "$atuin_config_dir/config.toml" ]]; then
+  mkdir -p "$atuin_config_dir"
+  cat > "$atuin_config_dir/config.toml" << 'ATUIN'
 auto_sync = false
 update_check = false
 search_mode = "fuzzy"
 style = "compact"
 inline_height = 16
 show_help = false
+keymap_cursor = { emacs = "steady-bar", vim_insert = "steady-bar" }
 enter_accept = false
 ATUIN
 fi
 
 "$HOME/.local/bin/wsl-shell-refresh"
 
-ZSHRC_MARKER="# >>> wsl-bootstrap managed zshrc >>>"
-write_managed_file "$HOME/.zshrc" "$ZSHRC_MARKER" 0644 << 'ZSHRC'
-# >>> wsl-bootstrap managed zshrc >>>
-[[ -o interactive ]] || return
+# ble.sh loads its native configuration during initialization.
+write_managed_file "${XDG_CONFIG_HOME:-$HOME/.config}/blesh/init.sh" '# >>> wsl-bootstrap managed blesh >>>' 0644 << 'BLERC'
+# >>> wsl-bootstrap managed blesh >>>
+# Keep automatic suggestions cheap; programmable completion runs on Tab.
+bleopt complete_auto_complete_opts=syntax-disabled
+bleopt complete_auto_delay=50
+bleopt highlight_timeout_sync=10
+bleopt highlight_filename=
+# DECSCUSR 6 is a steady thin bar, both at the prompt and during commands.
+bleopt term_cursor_external=6
+blehook/eval-after-load keymap_emacs 'ble-bind -m emacs --cursor 6'
+# fzf supplies explicit file/directory pickers; Bash owns Tab completion.
+declare -F fzf-file-widget >/dev/null && ble-import integration/fzf-key-bindings
+# <<< wsl-bootstrap managed blesh <<<
+BLERC
 
-# ~/.zshenv provides the environment to every Zsh, including agent commands.
-typeset -U path fpath
-zmodload zsh/datetime
-zmodload zsh/complist
-bindkey -e
-# Ctrl/Alt+Left/Right move by word; unbound, they insert ;5D-style escape debris.
-bindkey '^[[1;5D' backward-word '^[[1;5C' forward-word
-bindkey '^[[1;3D' backward-word '^[[1;3C' forward-word
-KEYTIMEOUT=10
-WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS INTERACTIVE_COMMENTS
-setopt NO_BEEP NO_FLOW_CONTROL
-HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
-HISTSIZE=100000
-SAVEHIST=100000
-setopt EXTENDED_HISTORY SHARE_HISTORY HIST_IGNORE_DUPS HIST_FIND_NO_DUPS
-setopt HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_SAVE_NO_DUPS HIST_EXPIRE_DUPS_FIRST
+BASHRC_MARKER="# >>> wsl-bootstrap managed bashrc >>>"
+write_managed_file "$HOME/.config/bash/interactive.bash" "$BASHRC_MARKER" 0644 << 'BASHRC'
+# >>> wsl-bootstrap managed bashrc >>>
+[[ $- == *i* ]] || return 0
+# Login profiles may also source .bashrc. Initialize hooks only once per shell.
+[[ ${_WSL_BASH_LOADED:-0} == 0 ]] || return 0
+_WSL_BASH_LOADED=1
+[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"
 
-_zsh_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-fpath=("$HOME/.local/share/wsl-bootstrap/zsh/site-functions" $fpath)
-autoload -Uz compinit
-# Audit completion directories at most once a day; compinit -i leaves a valid
-# dump untouched, so touch it to restart the 24-hour window.
-_zsh_dump=("$_zsh_cache"/zcompdump(N.mh-24))
-if (( $#_zsh_dump )); then
-  compinit -C -d "$_zsh_cache/zcompdump"
-else
-  compinit -i -d "$_zsh_cache/zcompdump"
-  touch "$_zsh_cache/zcompdump"
-fi
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
-zstyle ':completion:*' use-cache on
-zstyle ':completion:*' cache-path "$_zsh_cache/completion"
-zstyle ':completion:*:descriptions' format '%F{cyan}%d%f'
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+# Native bindings and completion registration run before ble.sh wraps builtins.
+[[ -r /usr/share/bash-completion/bash_completion ]] && source /usr/share/bash-completion/bash_completion
+
+set -o emacs
+bind '"\e[1;5D": backward-word'
+bind '"\e[1;5C": forward-word'
+bind '"\e[1;3D": backward-word'
+bind '"\e[1;3C": forward-word'
+bind '"\e[A": previous-history'
+bind '"\e[B": next-history'
+shopt -s autocd histappend checkwinsize cmdhist lithist histverify
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth
+HISTIGNORE=
+# Append new entries without rereading or deduplicating the whole history.
+PROMPT_COMMAND+=('history -a')
+
+_bash_cache="${XDG_CACHE_HOME:-$HOME/.cache}/bash"
 
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -2438,25 +2439,16 @@ export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:---height=40% --layout=reverse --bor
 export FZF_CTRL_T_OPTS="${FZF_CTRL_T_OPTS:---preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null'}"
 export FZF_ALT_C_OPTS="${FZF_ALT_C_OPTS:---preview 'eza --tree --level=2 --color=always {} 2>/dev/null'}"
 
-# Generated once by the bootstrap, not eval'd from subprocesses on each launch.
-# Atuin follows fzf so Ctrl-R searches Atuin; Up retains normal shell history.
-for _zsh_integration in mise zoxide fzf atuin starship; do
-  # Line-editor integrations require a terminal, including in `zsh -ic` calls.
-  if [[ $_zsh_integration == (fzf|atuin) && ( ! -t 0 || ! -t 1 ) ]]; then
-    continue
-  fi
-  [[ ! -r "$_zsh_cache/$_zsh_integration.zsh" ]] || source "$_zsh_cache/$_zsh_integration.zsh"
+# Generated during setup; no generators or update checks run during startup.
+for _bash_integration in mise zoxide; do
+  [[ ! -r "$_bash_cache/$_bash_integration.bash" ]] || source "$_bash_cache/$_bash_integration.bash"
 done
-# No right-side modules: avoid a second Starship process for every prompt.
-RPROMPT=
-(( $+commands[starship] )) || PROMPT='%F{cyan}%~%f %(?.%F{green}.%F{red})❯%f '
-unset _zsh_integration _zsh_cache _zsh_dump
 
-ZSH_AUTOSUGGEST_STRATEGY=(history)
-ZSH_AUTOSUGGEST_USE_ASYNC=1
-ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=200
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
-source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [[ -t 0 && -t 1 ]]; then
+  # Use Ubuntu's upstream fzf bindings without its additional completion layer.
+  source /usr/share/doc/fzf/examples/key-bindings.bash
+  source "$HOME/.local/share/blesh/ble.sh" --attach=none
+fi
 
 alias g=git
 alias gst='git status --short --branch'
@@ -2465,7 +2457,7 @@ alias gd='git diff'
 alias gl='git log --oneline --graph --decorate -20'
 
 alias cls=clear
-alias sz='exec zsh'
+alias sb='exec bash'
 alias vi=nvim
 alias vim=nvim
 alias ..='cd ..'
@@ -2500,7 +2492,7 @@ fcd() {
   selected="$(fd --type d --hidden --follow --exclude .git . "$root" | \
     fzf --prompt='cd> ' --preview 'eza --tree --level=2 --color=always {} 2>/dev/null' || true)"
   [[ -n "$selected" ]] || return 0
-  builtin cd -- "$selected"
+  cd -- "$selected"
 }
 
 gcob() {
@@ -2615,26 +2607,35 @@ Type 'man tmux' for authoritative documentation.
 HELP
 }
 # Personal customizations survive bootstrap reruns.
-[[ ! -r "$HOME/.config/zsh/local.zsh" ]] || source "$HOME/.config/zsh/local.zsh"
-# Highlighting must see all widgets and user bindings.
-source "$HOME/.local/share/wsl-bootstrap/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-# <<< wsl-bootstrap managed zshrc <<<
-ZSHRC
+[[ ! -r "$HOME/.config/bash/local.bash" ]] || source "$HOME/.config/bash/local.bash"
+# Atuin owns Ctrl-R and records commands with their directory and exit status.
+if [[ -t 0 && -t 1 ]]; then
+  [[ ! -r "$_bash_cache/atuin.bash" ]] || source "$_bash_cache/atuin.bash"
+fi
+# Starship initializes last so it can account for the other prompt hooks.
+if [[ -r "$_bash_cache/starship.bash" ]] && command -v starship >/dev/null 2>&1; then
+  source "$_bash_cache/starship.bash"
+else
+  PS1='\w \$ '
+fi
+unset _bash_integration _bash_cache
+[[ ! ${BLE_VERSION:-} ]] || ble-attach
+# <<< wsl-bootstrap managed bashrc <<<
+BASHRC
 
-zsh_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
-mkdir -p "$zsh_state_dir" "$HOME/.config/zsh" "$HOME/src"
-chmod 700 "$zsh_state_dir"
-touch "$zsh_state_dir/history"
-chmod 600 "$zsh_state_dir/history"
+bash_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/bash"
+mkdir -p "$bash_state_dir" "$HOME/.config/bash" "$HOME/src"
+chmod 700 "$bash_state_dir"
+touch "$bash_state_dir/history"
+chmod 600 "$bash_state_dir/history"
 configure_shell_environment
-configure_zshenv
 
-ZSH_PATH="$(command -v zsh || true)"
-if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -n "$ZSH_PATH" ]]; then
-  grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells > /dev/null
+BASH_PATH="$(command -v bash || true)"
+if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" && -n "$BASH_PATH" ]]; then
+  grep -qxF "$BASH_PATH" /etc/shells || echo "$BASH_PATH" | sudo tee -a /etc/shells > /dev/null
   current_shell="$(getent passwd "$USER" | cut -d: -f7 || true)"
-  if [[ "$current_shell" != "$ZSH_PATH" ]]; then
-    sudo chsh -s "$ZSH_PATH" "$USER"
+  if [[ "$current_shell" != "$BASH_PATH" ]]; then
+    sudo chsh -s "$BASH_PATH" "$USER"
   fi
 fi
 
@@ -2668,7 +2669,7 @@ set -as terminal-features ",xterm*:RGB"
 if-shell 'infocmp -x tmux-256color >/dev/null 2>&1' 'set -g default-terminal "tmux-256color"' 'set -g default-terminal "screen-256color"'
 
 # General.
-set -g default-shell /usr/bin/zsh
+set -g default-shell /usr/bin/bash
 set -g mouse on
 set -g base-index 1
 set -g pane-base-index 1
@@ -2780,7 +2781,7 @@ write_managed_file "$HOME/.local/bin/tmux-cht" "$CHT_MARKER" 0755 << 'CHT'
 set -euo pipefail
 # >>> wsl-bootstrap managed tmux-cht >>>
 
-topics=(bash zsh tmux git docker kubectl terraform go rust python node typescript react sql)
+topics=(bash tmux git docker kubectl terraform go rust python node typescript react sql)
 selected="$(printf '%s\n' "${topics[@]}" | fzf --height=40% --reverse --prompt='cht> ' || true)"
 [[ -n "$selected" ]] || exit 0
 
@@ -2874,13 +2875,13 @@ write_managed_file "$HOME/.local/share/wsl-bootstrap/README.md" '<!-- wsl-bootst
 
 The `wsl-setup.sh` script generates the managed shell, Starship, tmux,
 completion and helper files. Personal shell additions belong
-in `~/.config/zsh/local.zsh`, which the bootstrap never overwrites.
+in `~/.config/bash/local.bash`, which the bootstrap never overwrites.
 
 ## Daily use
 
-- Open a new terminal or run `exec zsh -l` to load the setup.
+- Open a new terminal or run `exec bash -l` to load the setup.
 - Keep repositories under `~/src` on the Linux filesystem.
-- `Ctrl-R`: local Atuin history search; Up: normal history; Right: accept a suggestion.
+- `Ctrl-R`: Atuin history search; Up: normal history; Right: accept a suggestion.
 - `Ctrl-T`: fuzzy file picker; `Alt-C`: fuzzy directory picker; `z`: directory jumping.
 - `gst`: Git status; `lg`: LazyGit; `fedit`: fuzzy edit; `tm`: attach/create tmux.
 - `toolhelp`: installed tool reference; `tmux_help`: key bindings.
@@ -2893,13 +2894,18 @@ BOOTSTRAP_CONFIGURE_ONLY=1 bash /path/to/wsl-setup.sh  # regenerate without pack
 wsl-shell-refresh                                      # refresh cached init after a manual tool upgrade
 ```
 
-`~/.zshenv` supplies a quiet environment to `zsh -c` and `zsh -lc`.
-`.profile`, or `.bash_profile` when it exists, supplies the same native tool
-paths to Bash login sessions.
-Interactive aliases and prompt hooks live only in `.zshrc`.
-The bootstrap uses native Zsh completion with a daily security audit, two
-focused plugins, and cached upstream initialization scripts. Shell startup
-runs no update checks.
+The first available login file (`.bash_profile`, `.bash_login`, or `.profile`)
+and `.bashrc` load the shared environment and managed interactive configuration.
+Existing startup files are preserved. `BASH_ENV` supplies the quiet environment
+to child noninteractive Bash sessions; a caller-provided `BASH_ENV` is preserved.
+Independent agent launchers can source `~/.config/shell/env.sh` explicitly.
+Starship renders the prompt; native Bash completion loads command scripts on demand.
+ble.sh supplies syntax highlighting and history suggestions, configured in
+`~/.config/blesh/init.sh`. fzf supplies Ctrl-T and Alt-C pickers; Bash owns Tab. Programmable
+completion runs on Tab, keeping external completers out of the typing path.
+The shell uses a steady thin cursor. Cached integrations load without update checks.
+Atuin records command history and provides Ctrl-R search by default.
+Setup never clears command history.
 
 Cargo/Rust use rustup, and standalone CLIs execute directly from native
 binaries. Mise manages Node LTS and switches runtime directories interactively.
@@ -2917,7 +2923,7 @@ venv, slow-command duration and job count. A green/red prompt shows success or
 failure. Worktree status scans and unused runtime/version modules are omitted.
 The prompt uses ordinary Unicode and does not require a Nerd Font.
 To customize a managed setting permanently, edit its template in the script.
-For a separate prompt config, set `STARSHIP_CONFIG` in `~/.config/zsh/local.zsh`.
+For a separate prompt config, set `STARSHIP_CONFIG` in `~/.config/bash/local.bash`.
 
 Inotify ceilings support concurrent editors and agents. The bootstrap preserves
 higher existing limits and leaves WSL memory/network defaults in place.
@@ -2928,7 +2934,7 @@ does not install an engine. Git identity and service logins remain user choices.
 
 - https://mise.jdx.dev/dev-tools/shims.html
 - https://starship.rs/config/
-- https://zsh.sourceforge.io/Doc/Release/Completion-System.html
+- https://github.com/akinomyoga/ble.sh
 - https://learn.microsoft.com/en-us/windows/wsl/filesystems
 GUIDE
 
@@ -2936,6 +2942,7 @@ GUIDE
 for generated_script in toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht; do
   bash -n "$HOME/.local/bin/$generated_script"
 done
-zsh -n "$HOME/.zshrc"
+bash -n "$HOME/.config/bash/interactive.bash"
+bash -n "${XDG_CONFIG_HOME:-$HOME/.config}/blesh/init.sh"
 sh -n "$HOME/.config/shell/env.sh"
 echo "done — run toolhelp for the managed CLI reference"
