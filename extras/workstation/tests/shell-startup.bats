@@ -512,7 +512,22 @@ COMPLETION
     chmod +x "$fixture/.local/bin/starship"
     cat > "$fixture/rc" << 'RC'
 enable() { [[ $1 == -f && $3 == flyline ]] && echo editor >> "$HOME/calls"; }
-flyline() { :; }
+flyline() {
+  [[ $1 == set-cursor ]] || return 0
+  local arg
+  case " $* " in
+    *' --backend terminal '* | *' --backend=terminal '*)
+      for arg; do
+        case "$arg" in
+          --style | --style=* | --effect*)
+            echo 'flyline set-cursor: --style, --effect, --effect-speed, and --effect-easing require --backend flyline' >&2
+            return 2
+            ;;
+        esac
+      done
+      ;;
+  esac
+}
 source "$HOME/interactive.bash"
 source "$HOME/interactive.bash"
 exit
@@ -521,6 +536,7 @@ RC
     run env -i HOME="$fixture" HOMEBREW_PREFIX="$fixture/brew" SHELL=/bin/bash TERM=xterm-256color \
       PATH="$fixture/.local/bin:/usr/bin:/bin" script -q -e -c 'bash --noprofile --rcfile "$HOME/rc" -i' /dev/null
     [[ "$status" -eq 0 ]]
+    [[ "$output" != *'require --backend flyline'* ]]
     [[ "$(< "$fixture/calls")" == $'atuin\nstarship\neditor\npersonal' ]]
   done
 }

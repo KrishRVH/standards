@@ -985,7 +985,7 @@ if [[ -t 0 && -t 1 ]] && enable -f "$HOMEBREW_PREFIX/opt/flyline/lib/bash/flylin
   # Run terminal initialization immediately; deferred startup can delay Enter.
   flyline --set-delayed-startup-ms 0 --enable-easter-eggs false
   flyline mouse --mode disabled
-  flyline set-cursor --backend terminal --effect none --interpolate none
+  flyline set-cursor --backend terminal --interpolate none
   printf '\e[6 q'
   flyline editor --show-inline-history-metadata false --auto-close-chars false
   flyline suggestions --auto-suggest false --auto-suggest-inline false
