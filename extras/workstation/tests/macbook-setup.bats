@@ -14,35 +14,6 @@ file_mode() {
   fi
 }
 
-@test "managed block updates preserve existing file permissions" {
-  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
-  local target="${BATS_TEST_TMPDIR}/zshrc"
-  local expected="${BATS_TEST_TMPDIR}/expected-zshrc"
-
-  printf '%s\n' 'export PRIVATE_SETTING=value' > "$target"
-  chmod 0600 "$target"
-
-  run bash -c '
-    source "$1"
-    put_managed_block "$2" "# >>> loader >>>" "# <<< loader <<<" 0644 <<"BLOCK"
-# >>> loader >>>
-source managed.zsh
-# <<< loader <<<
-BLOCK
-  ' -- "$MACBOOK_SETUP_SCRIPT" "$target"
-
-  [[ "$status" -eq 0 ]]
-  [[ "$(file_mode "$target")" = "600" ]]
-
-  printf '%s\n' \
-    'export PRIVATE_SETTING=value' \
-    '' \
-    '# >>> loader >>>' \
-    'source managed.zsh' \
-    '# <<< loader <<<' > "$expected"
-  cmp -s "$expected" "$target"
-}
-
 @test "managed block removal keeps other content and deletes a file it emptied" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
   local shared="${BATS_TEST_TMPDIR}/shared-tmux.conf" only="${BATS_TEST_TMPDIR}/only-tmux.conf"
@@ -62,29 +33,6 @@ BLOCK
   [[ "$(< "$shared")" == 'set -g mouse on' ]]
   [[ "$(file_mode "$shared")" = "600" ]]
   [[ ! -e "$only" ]]
-}
-
-@test "managed block updates reject a lone end marker" {
-  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
-  local target="${BATS_TEST_TMPDIR}/zshrc"
-  local marker="# <<< loader <<<"
-
-  printf '%s\n' "$marker" > "$target"
-  chmod 0600 "$target"
-
-  run bash -c '
-    source "$1"
-    put_managed_block "$2" "# >>> loader >>>" "# <<< loader <<<" 0644 <<"BLOCK"
-# >>> loader >>>
-source managed.zsh
-# <<< loader <<<
-BLOCK
-  ' -- "$MACBOOK_SETUP_SCRIPT" "$target"
-
-  [[ "$status" -ne 0 ]]
-  [[ "$output" = *"contains end marker but not begin marker"* ]]
-  [[ "$(file_mode "$target")" = "600" ]]
-  [[ "$(< "$target")" = "$marker" ]]
 }
 
 @test "Rust bootstrap installs stable and honors the update switch" {
@@ -165,4 +113,101 @@ BREW
       grep -qx install "$fixture/calls-$allow"
     fi
   done
+}
+
+@test "macOS login shell uses Homebrew Bash and changes only when needed" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
+  local fixture="$BATS_TEST_TMPDIR/login"
+  mkdir -p "$fixture/brew/bin"
+  ln -s "$(command -v bash)" "$fixture/brew/bin/bash"
+  run bash -c '
+    source "$1"
+    HOMEBREW_PREFIX="$2/brew" USER=fixture
+    current=/bin/zsh registered=0 changes=0
+    dscl() { local IFS=" "; [[ "$*" == ". -read /Users/fixture UserShell" ]] || return 1; printf "UserShell: %s\n" "$current"; }
+    grep() { local IFS=" "; [[ "$*" == "-qxF $HOMEBREW_PREFIX/bin/bash /etc/shells" && $registered == 1 ]]; }
+    ensure_sudo() { return 0; }
+    chsh() {
+      local IFS=" "
+      [[ "$*" == "-s $HOMEBREW_PREFIX/bin/bash fixture" ]] || return 1
+      current="$HOMEBREW_PREFIX/bin/bash"
+      changes=$((changes+1))
+    }
+    sudo() { local IFS=" "; [[ "$*" == "tee -a /etc/shells" ]] || return 1; cat > "$HOMEBREW_PREFIX/registered"; }
+    set_bash_login_shell || exit 1
+    [[ $(cat "$HOMEBREW_PREFIX/registered") == "$HOMEBREW_PREFIX/bin/bash" ]] || exit 2
+    registered=1
+    set_bash_login_shell || exit 3
+    [[ $changes == 1 ]] || exit 4
+    dscl() { return 1; }
+    if set_bash_login_shell; then exit 5; fi
+    [[ $changes == 1 ]] || exit 6
+  ' -- "$MACBOOK_SETUP_SCRIPT" "$fixture"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "macOS shell migration keeps Zsh usable until Bash configuration and chsh succeed" {
+  run bash -c '
+    source "$1"
+    write_bash_config() { return 1; }
+    set_bash_login_shell() { echo chsh; }
+    retire_zsh_config() { echo retire; }
+    if configure_bash; then exit 1; fi
+    write_bash_config() { return 0; }
+    set_bash_login_shell() { return 1; }
+    if configure_bash; then exit 2; fi
+  ' -- "$MACBOOK_SETUP_SCRIPT"
+  [[ "$status" -eq 0 ]]
+  [[ -z "$output" ]]
+}
+
+@test "macOS Bash configuration preserves profiles and personal Zsh settings on rerun" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
+  local fixture="$BATS_TEST_TMPDIR/config"
+  mkdir -p "$fixture/brew/bin" "$fixture/brew/opt/flyline/lib/bash"
+  ln -s "$(command -v bash)" "$fixture/brew/bin/bash"
+  touch "$fixture/brew/opt/flyline/lib/bash/flyline"
+  printf '%s\n' 'export PERSONAL_SETTING=retained' > "$fixture/.bash_login"
+  printf '%s\n' 'alias personal=true' \
+    '# >>> macbook-bootstrap managed zsh loader >>>' \
+    'source old-managed.zsh' \
+    '# <<< macbook-bootstrap managed zsh loader <<<' > "$fixture/.zshrc"
+  # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
+  run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -c '
+    source "$1"
+    HOMEBREW_PREFIX="$HOME/brew"
+    write_bash_config || exit 1
+    write_bash_config || exit 2
+    [[ ! -e "$HOME/.profile" && ! -e "$HOME/.bash_profile" ]] || exit 3
+    [[ $(grep -c "config/bash/interactive.bash" "$HOME/.bash_login") == 1 ]] || exit 4
+    [[ $(grep -c "config/shell/env.sh" "$HOME/.bash_login") == 1 ]] || exit 5
+    source "$HOME/.bash_login"
+    [[ $PERSONAL_SETTING == retained ]] || exit 6
+    grep -q old-managed "$HOME/.zshrc" || exit 7
+    retire_zsh_config || exit 8
+    [[ $(cat "$HOME/.zshrc") == "alias personal=true" ]] || exit 9
+    [[ -r "$HOME/.local/state/bash/history" ]] || exit 10
+    [[ $BASH_ENV == "$HOME/.config/shell/env.sh" ]] || exit 11
+  ' -- "$MACBOOK_SETUP_SCRIPT"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "macOS fresh shells retain the selected Homebrew prefix including spaces and quotes" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
+  local fixture="$BATS_TEST_TMPDIR/prefix" prefix="$BATS_TEST_TMPDIR/prefix/brew's tools"
+  mkdir -p "$prefix/bin"
+  # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
+  run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -c '
+    source "$1"
+    HOMEBREW_PREFIX="$2"
+    configure_shell_environment
+  ' -- "$MACBOOK_SETUP_SCRIPT" "$prefix"
+  [[ "$status" -eq 0 ]]
+  # shellcheck disable=SC2016 # The fresh POSIX shell must recover the prefix from disk.
+  run env -i HOME="$fixture" PATH=/usr/bin:/bin sh -c '
+    . "$HOME/.config/shell/env.sh"
+    [ "$HOMEBREW_PREFIX" = "$1" ] || exit 1
+    case "$PATH" in "$1/bin:"*) ;; *) exit 2 ;; esac
+  ' -- "$prefix"
+  [[ "$status" -eq 0 ]]
 }

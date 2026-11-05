@@ -2,6 +2,8 @@
 check-file = true
 check-filename = true
 locale = "en-us"
+# Flyline names these public style keys with British spelling.
+extend-ignore-re = ['\b(?:un)?recognised-command\b']
 
 [files]
 extend-exclude = [

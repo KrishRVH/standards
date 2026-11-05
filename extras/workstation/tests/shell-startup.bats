@@ -2,82 +2,8 @@
 # shellcheck disable=SC2154 # Bats supplies BATS_TEST_TMPDIR and BATS_TEST_DIRNAME.
 
 # Exercise the generated shell code without running either machine installer.
-check_macos_startup() {
-  local script="$BATS_TEST_DIRNAME/../macbook-setup.sh" layout="$1"
-  local fixture="${BATS_TEST_TMPDIR}/shell" data_dir tool
-  mkdir -p "$fixture/.cargo/bin" "$fixture/Project Tools"
-  : > "$fixture/calls"
-  case "$layout" in
-    default) data_dir="$fixture/.local/share/mise" ;;
-    xdg) data_dir="$fixture/data/mise" ;;
-    custom) data_dir="$fixture/custom mise" ;;
-    *) return 2 ;;
-  esac
-  mkdir -p "$data_dir/shims"
-  for tool in mise starship zoxide atuin tokei; do
-    cat > "$data_dir/shims/$tool" << 'SHIM'
-#!/bin/sh
-echo "unexpected mise dispatch: $0 $*" >> "$WORKSTATION_CALLS"
-exit 99
-SHIM
-    chmod +x "$data_dir/shims/$tool"
-    cat > "$fixture/.cargo/bin/$tool" << 'TOOL'
-#!/bin/sh
-echo "${0##*/}" >> "$WORKSTATION_CALLS"
-TOOL
-    chmod +x "$fixture/.cargo/bin/$tool"
-  done
-
-  awk '
-    /<<[[:space:]]*.ZSHCONFIG./ { body = 1; next }
-    body && /^ZSHCONFIG$/ { exit }
-    body { print }
-  ' "$script" > "$fixture/startup.zsh"
-  [[ -s "$fixture/startup.zsh" ]]
-  mkdir -p "$fixture/.config/shell"
-  awk '
-    /<<[[:space:]]*.SHELLENV./ { body = 1; next }
-    body && /^SHELLENV$/ { exit }
-    body { print }
-  ' "$script" > "$fixture/.config/shell/env.sh"
-
-  local -a extra_env=()
-  case "$layout" in
-    xdg) extra_env+=("XDG_DATA_HOME=$fixture/data") ;;
-    custom) extra_env+=("MISE_DATA_DIR=$data_dir") ;;
-    *) ;;
-  esac
-  # shellcheck disable=SC2016 # The child zsh expands its own parameters.
-  run env -i HOME="$fixture" CARGO_HOME="$fixture/.cargo" TERM=xterm-256color EDITOR=nvim \
-    PATH="$data_dir/shims:$fixture/Project Tools:/usr/bin:/bin" \
-    WORKSTATION_CALLS="$fixture/calls" "${extra_env[@]}" \
-    zsh -f -i -c '
-      word_motion() {
-        local key
-        [[ "$(bindkey -lL main)" == "bindkey -A emacs main" ]] || return 1
-        for key in "^[[1;5D" "^[[1;3D"; do
-          [[ "$(bindkey "$key")" == *" backward-word" ]] || return 1
-        done
-        for key in "^[[1;5C" "^[[1;3C"; do
-          [[ "$(bindkey "$key")" == *" forward-word" ]] || return 1
-        done
-      }
-      source "$1"
-      word_motion || exit 3
-      source "$1"
-      word_motion || exit 3
-      [[ ":$PATH:" == *":$HOME/Project Tools:"* ]] || exit 1
-      [[ ":$PATH:" != *":$2/shims:"* ]] || exit 1
-      for hook in $precmd_functions; do "$hook"; done
-      tokei
-      mise run build
-    ' -- "$fixture/startup.zsh" "$data_dir"
-  [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" = $'starship\nzoxide\natuin\nstarship\nzoxide\natuin\ntokei\nmise' ]]
-}
-
-check_wsl_cached_startup() {
-  local script="$BATS_TEST_DIRNAME/../wsl-setup.sh"
+check_cached_startup() {
+  local script="$BATS_TEST_DIRNAME/../${2:-wsl-setup.sh}"
   local fixture="$BATS_TEST_TMPDIR/wsl" layout="$1" data_dir tool
   case "$layout" in
     default) data_dir="$fixture/.local/share/mise" ;;
@@ -132,7 +58,11 @@ SHIM
   run env -i HOME="$fixture" PATH="$fixture/.local/bin:/usr/bin:/bin" \
     WORKSTATION_CALLS="$fixture/calls" bash "$fixture/REFRESH"
   [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" == *"mise activate bash"* ]]
+  if [[ $script == */wsl-setup.sh ]]; then
+    [[ "$(< "$fixture/calls")" == *"mise activate bash"* ]]
+  else
+    [[ "$(< "$fixture/calls")" != *"mise activate bash"* ]]
+  fi
   : > "$fixture/calls"
   # shellcheck disable=SC2016 # The child bash expands its own parameters.
   run env -i HOME="$fixture" TERM=xterm-256color EDITOR=nvim \
@@ -150,7 +80,9 @@ SHIM
         done
       }
       source "$HOME/.config/shell/env.sh"
-      source "$HOME/BASHRC"
+      alias gco="git checkout" gcm="git commit"
+      source "$HOME/BASHRC" || exit 4
+      declare -F gco gcm >/dev/null || exit 5
       word_motion || exit 3
       source "$HOME/BASHRC"
       word_motion || exit 3
@@ -161,20 +93,24 @@ SHIM
       mise run build
     ' -- "$data_dir"
   [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" == $'cached mise\ncached zoxide\ncached starship\nmise hook-env\ntokei \nmise run build' ]]
+  if [[ $script == */wsl-setup.sh ]]; then
+    [[ "$(< "$fixture/calls")" == $'cached mise\ncached zoxide\ncached starship\nmise hook-env\ntokei \nmise run build' ]]
+  else
+    [[ "$(< "$fixture/calls")" == $'cached zoxide\ncached starship\ntokei \nmise run build' ]]
+  fi
 }
 
 @test "WSL shell loads cached integrations and invokes host tools with inherited mise shims" {
   local layout
   for layout in default xdg custom; do
-    check_wsl_cached_startup "$layout"
+    check_cached_startup "$layout"
   done
 }
 
 @test "macOS shell invokes host tools directly with inherited mise shims" {
   local layout
   for layout in default xdg custom; do
-    check_macos_startup "$layout"
+    check_cached_startup "$layout" macbook-setup.sh
   done
 }
 
@@ -235,16 +171,16 @@ SHIM
 
 @test "WSL setup syntax-checks every generated startup file and helper" {
   local fixture="$BATS_TEST_TMPDIR/syntax" broken file
-  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.config/bash" "$fixture/.config/blesh"
+  mkdir -p "$fixture/.local/bin" "$fixture/.config/shell" "$fixture/.config/bash"
   awk '
     /^# Syntax checks validate/ { body = 1 }
     body && /^echo / { exit }
     body { print }
   ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/check.sh"
   [[ -s "$fixture/check.sh" ]]
-  for broken in none toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht .config/bash/interactive.bash .config/blesh/init.sh .config/shell/env.sh; do
+  for broken in none toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht .config/bash/interactive.bash .config/shell/env.sh; do
     for file in .local/bin/toolhelp .local/bin/wsl-shell-refresh .local/bin/tmux-sessionizer \
-      .local/bin/tmux-cht .config/bash/interactive.bash .config/blesh/init.sh .config/shell/env.sh; do
+      .local/bin/tmux-cht .config/bash/interactive.bash .config/shell/env.sh; do
       if [[ "$file" == "$broken" || "$file" == ".local/bin/$broken" ]]; then
         printf 'if then\n' > "$fixture/$file"
       else
@@ -274,9 +210,7 @@ SHIM
       body && /^SHELLENV$/ { exit }
       body { print }
     ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/.config/shell/env.sh"
-    # shellcheck disable=SC2016 # Expanded when the child reads .zshenv.
-    printf '%s\n' '. "$HOME/.config/shell/env.sh"' > "$fixture/.zshenv"
-    for shell in /bin/sh /bin/bash /bin/zsh; do
+    for shell in /bin/sh /bin/bash; do
       # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
       run env -i HOME="$fixture" MISE_DATA_DIR="$fixture/mise" JAVA_HOME="$fixture/project-java" \
         PATH=":$fixture/project tools::$fixture/mise/shims:/usr/bin:$fixture/literal[*]:$fixture/mise/shims:/bin:/mnt/c/Windows Tools:$fixture/.cargo/bin:" \
@@ -321,6 +255,7 @@ SHIM
       write_managed_file() { mkdir -p "${1%/*}"; cat > "$1"; }
       die() { echo "$*" >&2; exit 1; }
       fatal() { die "$@"; }
+      HOMEBREW_PREFIX="$HOME/brew"
       configure_shell_environment
       configure_shell_environment
       [[ ! -e "$HOME/.profile" ]] || exit 1
@@ -330,14 +265,8 @@ SHIM
       source "$HOME/.bash_profile"
       [[ "$USER_SETTING" == preserved ]] || exit 3
       loader=.bashrc
-      if [[ "$1" = macbook-setup.sh ]]; then
-        [[ "$(grep -c "config/shell/env.sh" "$HOME/.zshenv")" == 1 ]] || exit 2
-        [[ "$(grep -c "config/shell/env.sh" "$HOME/.zprofile")" == 1 ]] || exit 2
-        loader=.zprofile
-      else
-        [[ ! -e "$HOME/.zshenv" ]] || exit 2
-        [[ ! -e "$HOME/.zprofile" ]] || exit 2
-      fi
+      [[ ! -e "$HOME/.zshenv" ]] || exit 2
+      [[ ! -e "$HOME/.zprofile" ]] || exit 2
       rm "$HOME/$loader"
       ln -s "$HOME/.bash_profile" "$HOME/$loader"
       if (configure_shell_environment); then exit 4; fi
@@ -358,7 +287,7 @@ SHIM
     body { print }
   ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/env.sh"
   for keep in 0 1; do
-    for shell in /bin/sh /bin/bash /bin/zsh; do
+    for shell in /bin/sh /bin/bash; do
       # shellcheck disable=SC2016 # Parameters belong to the isolated shell.
       run env -i HOME="$fixture" WSL_KEEP_WINDOWS_PATH="$keep" \
         PATH='/mnt/c/Project Tools:/usr/bin:/bin:/mnt/c/Windows Tools' \
@@ -559,34 +488,41 @@ COMPLETION
   [[ "$(< "$managed")" != *'# first version'* ]]
 }
 
-@test "WSL terminal startup enables Atuin before Starship without an opt-in" {
+@test "Bash terminal startup enables Atuin before Starship without an opt-in" {
   [[ $OSTYPE == linux* ]] || skip "requires util-linux script"
   command -v script > /dev/null || skip "requires util-linux script"
-  local fixture="$BATS_TEST_TMPDIR/terminal"
-  mkdir -p "$fixture/.local/share/blesh" "$fixture/.cache/bash" "$fixture/.local/bin"
-  awk '
+  local fixture="$BATS_TEST_TMPDIR/terminal" script
+  for script in wsl-setup.sh macbook-setup.sh; do
+    mkdir -p "$fixture/brew/opt/fzf/shell"
+    : > "$fixture/brew/opt/fzf/shell/key-bindings.bash"
+    : > "$fixture/calls"
+    mkdir -p "$fixture/.cache/bash" "$fixture/.local/bin" "$fixture/.config/bash"
+    awk '
     /<< .BASHRC./ { body = 1; next }
     body && /^BASHRC$/ { exit }
     body { print }
-  ' "$BATS_TEST_DIRNAME/../wsl-setup.sh" > "$fixture/interactive.bash"
-  # shellcheck disable=SC2016 # These scripts expand HOME in the fixture shell.
-  {
-    printf '%s\n' 'BLE_VERSION=test' 'ble-attach() { echo attach >> "$HOME/calls"; }' > "$fixture/.local/share/blesh/ble.sh"
-    printf '%s\n' 'echo atuin >> "$HOME/calls"' > "$fixture/.cache/bash/atuin.bash"
-    printf '%s\n' 'echo starship >> "$HOME/calls"' > "$fixture/.cache/bash/starship.bash"
-  }
-  printf '#!/bin/sh\nexit 0\n' > "$fixture/.local/bin/starship"
-  chmod +x "$fixture/.local/bin/starship"
-  cat > "$fixture/rc" << 'RC'
+  ' "$BATS_TEST_DIRNAME/../$script" > "$fixture/interactive.bash"
+    # shellcheck disable=SC2016 # These scripts expand HOME in the fixture shell.
+    {
+      printf '%s\n' 'echo personal >> "$HOME/calls"' > "$fixture/.config/bash/local.bash"
+      printf '%s\n' 'echo atuin >> "$HOME/calls"' > "$fixture/.cache/bash/atuin.bash"
+      printf '%s\n' 'echo starship >> "$HOME/calls"' > "$fixture/.cache/bash/starship.bash"
+    }
+    printf '#!/bin/sh\nexit 0\n' > "$fixture/.local/bin/starship"
+    chmod +x "$fixture/.local/bin/starship"
+    cat > "$fixture/rc" << 'RC'
+enable() { [[ $1 == -f && $3 == flyline ]] && echo editor >> "$HOME/calls"; }
+flyline() { :; }
 source "$HOME/interactive.bash"
 source "$HOME/interactive.bash"
 exit
 RC
-  # shellcheck disable=SC2016 # The terminal child expands its fixture HOME.
-  run env -i HOME="$fixture" SHELL=/bin/bash TERM=xterm-256color \
-    PATH="$fixture/.local/bin:/usr/bin:/bin" script -q -e -c 'bash --noprofile --rcfile "$HOME/rc" -i' /dev/null
-  [[ "$status" -eq 0 ]]
-  [[ "$(< "$fixture/calls")" == $'atuin\nstarship\nattach' ]]
+    # shellcheck disable=SC2016 # The terminal child expands its fixture HOME.
+    run env -i HOME="$fixture" HOMEBREW_PREFIX="$fixture/brew" SHELL=/bin/bash TERM=xterm-256color \
+      PATH="$fixture/.local/bin:/usr/bin:/bin" script -q -e -c 'bash --noprofile --rcfile "$HOME/rc" -i' /dev/null
+    [[ "$status" -eq 0 ]]
+    [[ "$(< "$fixture/calls")" == $'atuin\nstarship\neditor\npersonal' ]]
+  done
 }
 
 @test "WSL fuzzy directory selection runs directory-change hooks before returning" {
@@ -634,5 +570,98 @@ RC
     ln -s "$fixture/absent-target" "$config_dir/config.toml"
     run env -i HOME="$fixture" PATH=/usr/bin:/bin "${extra_env[@]}" bash -e "$fixture/configure.sh"
     [[ "$status" -eq 0 && -L "$config_dir/config.toml" && ! -e "$fixture/absent-target" ]]
+  done
+}
+
+@test "shell refresh removes cached integrations for uninstalled tools" {
+  local script fixture="$BATS_TEST_TMPDIR/refresh" tool
+  mkdir -p "$fixture/.cache/bash" "$fixture/bin"
+  for script in wsl-setup.sh macbook-setup.sh; do
+    awk '/<< .REFRESH./ { body = 1; next } body && /^REFRESH$/ { exit } body { print }' \
+      "$BATS_TEST_DIRNAME/../$script" > "$fixture/refresh.sh"
+    for tool in starship zoxide atuin mise; do
+      printf 'stale hook\n' > "$fixture/.cache/bash/$tool.bash"
+    done
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin bash "$fixture/refresh.sh"
+    [[ "$status" -eq 0 ]]
+    for tool in starship zoxide atuin; do
+      [[ ! -e "$fixture/.cache/bash/$tool.bash" ]]
+    done
+  done
+}
+
+@test "Flyline directory selection inserts a command and cancellation preserves input" {
+  [[ $OSTYPE == linux* ]] || skip "requires util-linux script"
+  command -v script > /dev/null || skip "requires util-linux script"
+  local script fixture="$BATS_TEST_TMPDIR/pickers"
+  mkdir -p "$fixture/brew/opt/fzf/shell" "$fixture/dir with spaces"
+  : > "$fixture/brew/opt/fzf/shell/key-bindings.bash"
+  for script in wsl-setup.sh macbook-setup.sh; do
+    awk '/<< .BASHRC./ { body = 1; next } body && /^BASHRC$/ { exit } body { print }' \
+      "$BATS_TEST_DIRNAME/../$script" > "$fixture/interactive.bash"
+    cat > "$fixture/rc" << 'RC'
+enable() { return 0; }
+flyline() { [[ $1 != key ]] || printf '%s\n' "$*" >> "$HOME/bindings"; }
+source "$HOME/interactive.bash"
+__fzf_cd__() { return 1; }
+READLINE_LINE='echo unfinished' READLINE_POINT=15
+before=$PWD
+_flyline_fzf_cd
+[[ $PWD == "$before" && $READLINE_LINE == 'echo unfinished' && $READLINE_POINT == 15 ]] || exit 1
+__fzf_cd__() { printf 'builtin cd -- %q' "$HOME/dir with spaces"; }
+_flyline_fzf_cd
+[[ $PWD == "$before" && $READLINE_LINE == "$(__fzf_cd__)" && $READLINE_POINT == ${#READLINE_LINE} ]] || exit 2
+if grep -E '(Ctrl\+r|Alt\+c).*submitOrNewline' "$HOME/bindings"; then exit 3; fi
+eval "$READLINE_LINE"
+[[ $PWD == "$HOME/dir with spaces" ]] || exit 4
+exit 0
+RC
+    # shellcheck disable=SC2016 # The terminal child expands its fixture HOME.
+    run env -i HOME="$fixture" HOMEBREW_PREFIX="$fixture/brew" SHELL=/bin/bash TERM=xterm-256color \
+      PATH=/usr/bin:/bin script -q -e -c 'bash --noprofile --rcfile "$HOME/rc" -i' /dev/null
+    [[ "$status" -eq 0 ]]
+  done
+}
+
+@test "Flyline installation verifies release bytes before replacing the library" {
+  local fixture="$BATS_TEST_TMPDIR/flyline" helper digest corrupt
+  mkdir -p "$fixture/archive" "$fixture/.local/lib/bash"
+  printf 'verified library\n' > "$fixture/archive/libflyline.so.1.10.0"
+  tar -czf "$fixture/release.tar.gz" -C "$fixture/archive" libflyline.so.1.10.0
+  digest="$(sha256sum "$fixture/release.tar.gz")"
+  digest="sha256:${digest%% *}"
+  for helper in install_flyline verify_sha256_digest extract_release_asset archive_members_are_safe atomic_install_file; do
+    sed -n "/^$helper()/,/^}/p" "$BATS_TEST_DIRNAME/../wsl-setup.sh" >> "$fixture/helpers.sh"
+  done
+  for corrupt in 0 1; do
+    printf 'existing library\n' > "$fixture/.local/lib/bash/flyline"
+    # shellcheck disable=SC2016 # The fixture shell supplies download helpers.
+    run env -i HOME="$fixture" PATH=/usr/bin:/bin bash -e -c '
+      source "$HOME/helpers.sh"
+      BOOTSTRAP_GITHUB_UPGRADE=1
+      die() { echo "$*" >&2; exit 1; }
+      warn() { echo "$*" >&2; }
+      make_tmpdir() { mktemp -d "$HOME/download.XXXXXX"; }
+      uname() { echo x86_64; }
+      github_api_fetch() {
+        jq -n --arg digest "$fixture_digest" '\''{assets: [{name: "libflyline-v1.10.0-x86_64-unknown-linux-gnu.tar.gz", browser_download_url: "https://github.com/HalFrgrd/flyline/releases/download/v1.10.0/library.tar.gz", digest: $digest}]}'\''
+      }
+      fixture_digest=$1
+      curl_fetch() {
+        cp "$HOME/release.tar.gz" "$3"
+        if [[ $corrupt == 1 ]]; then
+          printf "tampered library\n" > "$HOME/archive/libflyline.so.1.10.0"
+          tar -czf "$3" -C "$HOME/archive" libflyline.so.1.10.0
+        fi
+      }
+      corrupt=$2
+      install_flyline
+    ' -- "$digest" "$corrupt"
+    if [[ $corrupt == 0 ]]; then
+      [[ "$status" -eq 0 && $(< "$fixture/.local/lib/bash/flyline") == 'verified library' ]]
+    else
+      [[ "$status" -ne 0 && $(< "$fixture/.local/lib/bash/flyline") == 'existing library' ]]
+      [[ "$output" == *'SHA-256 verification failed'* ]]
+    fi
   done
 }

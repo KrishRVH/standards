@@ -6,7 +6,7 @@ IFS=$'\n\t'
 # - apt base tools plus a curated modern CLI baseline
 # - upstream GitHub-release binaries checked against published digests when available
 # - rustup + cargo-binstall-backed Rust CLI tools
-# - Bash + ble.sh + cached integrations + compact Starship
+# - Bash + Flyline + cached integrations + compact Starship
 # - managed `toolhelp` command, completions, Git defaults, tmux helpers
 # - optional LazyVim starter config (only if ~/.config/nvim is missing)
 #
@@ -605,6 +605,30 @@ install_github_release_binary() {
   atomic_install_file "$tmp_state" "$state_file" 0600
   rm -f "$tmp_state"
   rm -rf "$tmpdir" || true
+}
+
+install_flyline() {
+  local target="$HOME/.local/lib/bash/flyline" arch release asset url digest scratch
+  [[ ! -r "$target" || "$BOOTSTRAP_GITHUB_UPGRADE" == "1" ]] || return 0
+  case "$(uname -m)" in
+    x86_64) arch=x86_64 ;;
+    aarch64) arch=aarch64 ;;
+    *) die "unsupported Flyline architecture: $(uname -m)" ;;
+  esac
+  release="$(github_api_fetch https://api.github.com/repos/HalFrgrd/flyline/releases/latest)"
+  asset="$(jq -er --arg arch "$arch" '[.assets[] | select(.name | test("^libflyline-v[0-9.]+-" + $arch + "-unknown-linux-gnu\\.tar\\.gz$"))] | if length == 1 then .[0] else error("expected one Flyline asset") end' <<< "$release")"
+  url="$(jq -r .browser_download_url <<< "$asset")"
+  digest="$(jq -r .digest <<< "$asset")"
+  [[ "$url" == https://github.com/HalFrgrd/flyline/releases/download/* && "$digest" =~ ^sha256:[[:xdigit:]]{64}$ ]] ||
+    die "Flyline release is missing its download URL or SHA-256 digest"
+  scratch="$(make_tmpdir)"
+  curl_fetch "$url" -o "$scratch/flyline.tar.gz"
+  verify_sha256_digest "$scratch/flyline.tar.gz" "$digest"
+  extract_release_asset "$scratch/flyline.tar.gz" flyline.tar.gz "$scratch/extracted"
+  local -a libraries=()
+  mapfile -t libraries < <(find "$scratch/extracted" -type f -name 'libflyline.so.*' -print)
+  [[ ${#libraries[@]} == 1 ]] || die "expected one Flyline shared library"
+  atomic_install_file "${libraries[0]}" "$target" 0755
 }
 
 cargo_install_latest() {
@@ -1304,7 +1328,8 @@ Examples:
   fcd                    # managed helper: pick a directory and cd
 
 Bash bindings:
-  Ctrl-T selects a file. Alt-C selects a directory. Ctrl-R searches Atuin
+  Ctrl-T inserts a file. Alt-C inserts a cd command for Enter to confirm.
+  Ctrl-R searches Atuin
   history; Up and Down navigate the shell history.
 DOC
       ;;
@@ -1671,7 +1696,7 @@ Use it when:
 Examples:
   exec bash              # restart the shell and its hooks
   sb                    # managed reload alias
-  bind -P               # inspect active Readline key bindings
+  flyline key list      # inspect active editor key bindings
 
 Script rule:
   Use #!/usr/bin/env bash for Bash scripts or /bin/sh for deliberately POSIX
@@ -2270,14 +2295,11 @@ for windows_command in wsl.exe cmd.exe powershell.exe explorer.exe clip.exe note
   fi
 done
 
-# --- Bash, ble.sh, cached integrations, and Starship -----------------------
-BLE_SOURCE="$HOME/.local/share/wsl-bootstrap/ble.sh"
-git_repo https://github.com/akinomyoga/ble.sh "$BLE_SOURCE"
+# --- Bash, Flyline, cached integrations, and Starship ----------------------
 if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
-  retry run_with_timeout "$BOOTSTRAP_GIT_TIMEOUT" git -C "$BLE_SOURCE" submodule update --init --recursive --depth=1
-  make -C "$BLE_SOURCE" install PREFIX="$HOME/.local"
+  install_flyline
 fi
-[[ -r "$HOME/.local/share/blesh/ble.sh" ]] || die "missing ble.sh; run the full bootstrap first"
+[[ -r "$HOME/.local/lib/bash/flyline" ]] || die "missing Flyline; run the full bootstrap first"
 
 write_managed_file "$HOME/.local/bin/wsl-shell-refresh" '# >>> wsl-bootstrap managed shell refresh >>>' 0755 << 'REFRESH'
 #!/usr/bin/env bash
@@ -2304,6 +2326,8 @@ emit() {
     bash -n "$scratch/$name.bash"
     chmod 600 "$scratch/$name.bash"
     mv -f "$scratch/$name.bash" "$cache/$name.bash"
+  else
+    rm -f "$cache/$name.bash"
   fi
 }
 emit starship starship init bash --print-full-init
@@ -2386,22 +2410,6 @@ fi
 
 "$HOME/.local/bin/wsl-shell-refresh"
 
-# ble.sh loads its native configuration during initialization.
-write_managed_file "${XDG_CONFIG_HOME:-$HOME/.config}/blesh/init.sh" '# >>> wsl-bootstrap managed blesh >>>' 0644 << 'BLERC'
-# >>> wsl-bootstrap managed blesh >>>
-# Keep automatic suggestions cheap; programmable completion runs on Tab.
-bleopt complete_auto_complete_opts=syntax-disabled
-bleopt complete_auto_delay=50
-bleopt highlight_timeout_sync=10
-bleopt highlight_filename=
-# DECSCUSR 6 is a steady thin bar, both at the prompt and during commands.
-bleopt term_cursor_external=6
-blehook/eval-after-load keymap_emacs 'ble-bind -m emacs --cursor 6'
-# fzf supplies explicit file/directory pickers; Bash owns Tab completion.
-declare -F fzf-file-widget >/dev/null && ble-import integration/fzf-key-bindings
-# <<< wsl-bootstrap managed blesh <<<
-BLERC
-
 BASHRC_MARKER="# >>> wsl-bootstrap managed bashrc >>>"
 write_managed_file "$HOME/.config/bash/interactive.bash" "$BASHRC_MARKER" 0644 << 'BASHRC'
 # >>> wsl-bootstrap managed bashrc >>>
@@ -2411,7 +2419,7 @@ write_managed_file "$HOME/.config/bash/interactive.bash" "$BASHRC_MARKER" 0644 <
 _WSL_BASH_LOADED=1
 [ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"
 
-# Native bindings and completion registration run before ble.sh wraps builtins.
+# Register Bash completions before initializing the editor.
 [[ -r /usr/share/bash-completion/bash_completion ]] && source /usr/share/bash-completion/bash_completion
 
 set -o emacs
@@ -2447,7 +2455,6 @@ done
 if [[ -t 0 && -t 1 ]]; then
   # Use Ubuntu's upstream fzf bindings without its additional completion layer.
   source /usr/share/doc/fzf/examples/key-bindings.bash
-  source "$HOME/.local/share/blesh/ble.sh" --attach=none
 fi
 
 alias g=git
@@ -2500,6 +2507,7 @@ gcob() {
   git checkout -b "$1"
 }
 
+unalias gco 2>/dev/null || true
 gco() {
   [[ $# -eq 1 ]] || { echo "usage: gco <ref>"; return 2; }
   [[ "$1" != -* ]] || { echo "gco: ref must not start with '-'"; return 2; }
@@ -2508,6 +2516,7 @@ gco() {
 
 alias amend="git commit --amend"
 
+unalias gcm 2>/dev/null || true
 gcm() {
   [[ $# -gt 0 ]] || { echo "usage: gcm <message>"; return 2; }
 
@@ -2515,9 +2524,8 @@ gcm() {
   branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
   [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
 
-  ticket="$(printf '%s\n' "$branch" | grep -o -E '[a-zA-Z0-9]+-[0-9]+' | head -n1 || true)"
-
-  if [[ -n "$ticket" ]]; then
+  if [[ $branch =~ [a-zA-Z0-9]+-[0-9]+ ]]; then
+    ticket=${BASH_REMATCH[0]}
     git commit -m "${ticket} : $*"
   else
     git commit -m "$*"
@@ -2606,8 +2614,6 @@ CLI toolkit:
 Type 'man tmux' for authoritative documentation.
 HELP
 }
-# Personal customizations survive bootstrap reruns.
-[[ ! -r "$HOME/.config/bash/local.bash" ]] || source "$HOME/.config/bash/local.bash"
 # Atuin owns Ctrl-R and records commands with their directory and exit status.
 if [[ -t 0 && -t 1 ]]; then
   [[ ! -r "$_bash_cache/atuin.bash" ]] || source "$_bash_cache/atuin.bash"
@@ -2619,7 +2625,26 @@ else
   PS1='\w \$ '
 fi
 unset _bash_integration _bash_cache
-[[ ! ${BLE_VERSION:-} ]] || ble-attach
+if [[ -t 0 && -t 1 ]] && enable -f "$HOME/.local/lib/bash/flyline" flyline; then
+  # Run terminal initialization immediately; deferred startup can delay Enter.
+  flyline --set-delayed-startup-ms 0 --enable-easter-eggs false
+  flyline mouse --mode disabled
+  flyline set-cursor --backend terminal --effect none --interpolate none
+  printf '\e[6 q'
+  flyline editor --show-inline-history-metadata false --auto-close-chars false
+  flyline suggestions --auto-suggest false --auto-suggest-inline false
+  flyline set-style recognised-command=green unrecognised-command=red inline-suggestion=bright_black
+  # Selection returns to the buffer; Enter submits after reviewing the command.
+  flyline key bind Ctrl+r 'always=runBashCommand("__atuin_history --keymap-mode=emacs")'
+  flyline key bind Ctrl+t 'always=runBashCommand(fzf-file-widget)'
+  _flyline_fzf_cd() {
+    local cmd
+    cmd=$(__fzf_cd__) && READLINE_LINE="$cmd" READLINE_POINT=${#cmd}
+  }
+  flyline key bind Alt+c 'always=runBashCommand(_flyline_fzf_cd)'
+fi
+# Personal customizations apply after the managed defaults.
+[[ ! -r "$HOME/.config/bash/local.bash" ]] || source "$HOME/.config/bash/local.bash"
 # <<< wsl-bootstrap managed bashrc <<<
 BASHRC
 
@@ -2882,7 +2907,8 @@ in `~/.config/bash/local.bash`, which the bootstrap never overwrites.
 - Open a new terminal or run `exec bash -l` to load the setup.
 - Keep repositories under `~/src` on the Linux filesystem.
 - `Ctrl-R`: Atuin history search; Up: normal history; Right: accept a suggestion.
-- `Ctrl-T`: fuzzy file picker; `Alt-C`: fuzzy directory picker; `z`: directory jumping.
+- `Ctrl-T`: fuzzy file picker; `Alt-C`: insert a directory-change command for Enter to confirm.
+- `z`: directory jumping.
 - `gst`: Git status; `lg`: LazyGit; `fedit`: fuzzy edit; `tm`: attach/create tmux.
 - `toolhelp`: installed tool reference; `tmux_help`: key bindings.
 
@@ -2900,8 +2926,8 @@ Existing startup files are preserved. `BASH_ENV` supplies the quiet environment
 to child noninteractive Bash sessions; a caller-provided `BASH_ENV` is preserved.
 Independent agent launchers can source `~/.config/shell/env.sh` explicitly.
 Starship renders the prompt; native Bash completion loads command scripts on demand.
-ble.sh supplies syntax highlighting and history suggestions, configured in
-`~/.config/blesh/init.sh`. fzf supplies Ctrl-T and Alt-C pickers; Bash owns Tab. Programmable
+Flyline supplies syntax highlighting, history suggestions, and Tab completion,
+configured in `~/.config/bash/interactive.bash`. fzf supplies Ctrl-T and Alt-C pickers. Programmable
 completion runs on Tab, keeping external completers out of the typing path.
 The shell uses a steady thin cursor. Cached integrations load without update checks.
 Atuin records command history and provides Ctrl-R search by default.
@@ -2934,7 +2960,7 @@ does not install an engine. Git identity and service logins remain user choices.
 
 - https://mise.jdx.dev/dev-tools/shims.html
 - https://starship.rs/config/
-- https://github.com/akinomyoga/ble.sh
+- https://github.com/HalFrgrd/flyline
 - https://learn.microsoft.com/en-us/windows/wsl/filesystems
 GUIDE
 
@@ -2943,6 +2969,5 @@ for generated_script in toolhelp wsl-shell-refresh tmux-sessionizer tmux-cht; do
   bash -n "$HOME/.local/bin/$generated_script"
 done
 bash -n "$HOME/.config/bash/interactive.bash"
-bash -n "${XDG_CONFIG_HOME:-$HOME/.config}/blesh/init.sh"
 sh -n "$HOME/.config/shell/env.sh"
 echo "done — run toolhelp for the managed CLI reference"

@@ -8,7 +8,12 @@ to work and verify results without repeated toolchain explanations.
 
 Run `wsl-setup.sh` on WSL/Ubuntu or `macbook-setup.sh` on macOS after reviewing
 the script's options. After a shell update, open a new terminal or run
-`exec bash -l` on WSL or `exec zsh -l` on macOS to clear existing hooks.
+`exec bash -l` to clear existing hooks. On macOS, setup installs Homebrew Bash,
+registers its absolute path in `/etc/shells`, and changes the account login shell
+with `chsh` after validating the generated configuration. The installer itself
+can start under the system Bash 3.2. Existing terminal or tmux sessions need to
+be restarted to pick up the login shell; explicit terminal shell overrides remain
+under your control.
 
 ## Project workflows and host tools
 
@@ -33,8 +38,12 @@ environment and `~/.config/bash/interactive.bash`. Existing startup files are
 preserved; interactive initialization runs once per shell. Child Bash commands
 inherit `BASH_ENV` for quiet environment setup, preserving a caller's override.
 Independent agent launchers can source `~/.config/shell/env.sh` explicitly.
-Personal WSL shell additions belong in `~/.config/bash/local.bash`.
-The macOS bootstrap uses zsh and native runtime paths without mise activation.
+Personal shell additions belong in `~/.config/bash/local.bash`.
+The macOS bootstrap uses Homebrew Bash and native runtime paths without mise
+activation. It loads Homebrew Bash completions and the same Flyline editing,
+Atuin history, fzf pickers, and Starship prompt as WSL. Setup removes its managed
+Zsh loader and config only after the login shell change succeeds, preserving
+personal Zsh settings and history.
 
 WSL removes empty PATH entries and trims inherited Windows directories after
 the Linux system paths. Explicitly prepended toolchains on mounted drives
@@ -55,20 +64,25 @@ completion generation during setup, never on every prompt or shell startup.
 Keep native shell initialization commands only where the integration requires
 them.
 
-WSL uses Starship's standard Bash integration for its prompt, native Bash
-completion loading, and ble.sh for editing and syntax highlighting. Command
-completions load on demand. Automatic suggestions use history; external
-completers run only on Tab. Filename metadata highlighting is disabled to avoid
-filesystem probes while typing. ble.sh settings live in its native
-`~/.config/blesh/init.sh`; an existing `~/.blerc` takes precedence. The cursor is
-a steady thin bar. fzf supplies its packaged Ctrl-T and Alt-C pickers, without
-adding another Tab completion layer. Starship initializes after the other
-integrations. Setup generates cached initialization scripts
-for mise, zoxide, Atuin, and Starship. Run `wsl-shell-refresh` after
-manually upgrading an integrated tool, then open a new terminal. The refresh
-command syntax-checks and replaces those scripts.
+Both hosts use Starship's standard Bash integration for its prompt, native Bash
+completion loading, and Flyline for editing and syntax highlighting. Unknown
+typed commands appear red and recognized commands green, independently of the
+unaccepted suggestion. History suggestions appear in muted gray; Right accepts
+the suggestion. Tab opens Flyline's completion menu using Bash's registered
+completers. Automatic suggestions use history; external completers run on Tab.
+Flyline settings live in `~/.config/bash/interactive.bash`. The cursor is a
+steady thin bar, with animation and mouse capture disabled. fzf supplies its
+packaged Ctrl-T and Alt-C pickers. Alt-C inserts the selected directory’s quoted
+`cd` command; press Enter to change directories. Canceling preserves unfinished
+input.
+Starship initializes after the other
+integrations. Setup generates cached initialization scripts for zoxide, Atuin,
+and Starship, plus mise on WSL. Run `wsl-shell-refresh` on WSL or
+`macos-shell-refresh` on macOS after manually upgrading an integrated tool, then
+open a new terminal. The refresh command syntax-checks and replaces those scripts.
 
-Atuin records command history and provides Ctrl-R search by default.
+Atuin records command history and provides Ctrl-R search. Selection returns to
+the command buffer for review; press Enter to execute.
 Existing Atuin history remains available with `atuin search`. Setup
 preserves history files; clearing history is a separate user action.
 
@@ -81,11 +95,11 @@ installing a terminal environment does not imply an authenticated agent client.
 ## Verification
 
 Run `mise run shell:standards:check` from the catalog root. The workstation
-tests execute the generated Bash and zsh configurations with fake host binaries and
+tests execute the generated Bash configurations with fake host binaries and
 inherited mise shims. They cover direct utility dispatch, initialization,
 reload, emacs keys under an inherited `EDITOR=nvim`, Ctrl/Alt+Left/Right word
 motion, retained paths with spaces, and default or customized mise data paths.
-They also exercise the shared environment in POSIX sh, Bash, and zsh, including
+They also exercise the shared environment in POSIX sh and Bash, including
 project tool precedence, preserved Java settings, empty PATH entries, and
 idempotent startup loaders. WSL cases cover Windows PATH trimming and opt-in
 retention, cached integrations, idempotent Bash loaders, and syntax checks for

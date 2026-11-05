@@ -442,132 +442,6 @@ write_managed_file() {
   return "$rc"
 }
 
-put_managed_block() {
-  local path begin end mode block out existing_mode rc
-  path="$1"
-  begin="$2"
-  end="$3"
-  mode="${4:-0644}"
-  block="$(mktemp_file)" || return 1
-  register_tmp "$block"
-
-  cat > "$block" || {
-    rm -f "$block"
-    return 1
-  }
-
-  if ! grep -qF -- "$begin" "$block"; then
-    warn "managed block for $path is missing begin marker"
-    rm -f "$block"
-    return 1
-  fi
-
-  if ! grep -qF -- "$end" "$block"; then
-    warn "managed block for $path is missing end marker"
-    rm -f "$block"
-    return 1
-  fi
-
-  if [ ! -e "$path" ]; then
-    atomic_install_file "$block" "$path" "$mode"
-    rc=$?
-    rm -f "$block"
-    return "$rc"
-  fi
-
-  if [ -L "$path" ]; then
-    warn "refusing to edit symlink: $path"
-    rm -f "$block"
-    return 1
-  fi
-
-  if [ ! -f "$path" ]; then
-    warn "refusing to edit non-file path: $path"
-    rm -f "$block"
-    return 1
-  fi
-
-  existing_mode="$(read_file_mode "$path")" || {
-    warn "could not read permissions for $path"
-    rm -f "$block"
-    return 1
-  }
-
-  out="$(mktemp_file)" || {
-    rm -f "$block"
-    return 1
-  }
-  register_tmp "$out"
-
-  if grep -qF -- "$begin" "$path"; then
-    if ! grep -qF -- "$end" "$path"; then
-      warn "$path contains begin marker but not end marker"
-      rm -f "$block" "$out"
-      return 1
-    fi
-
-    awk -v begin="$begin" -v end="$end" -v block_file="$block" '
-      BEGIN {
-        while ((getline line < block_file) > 0) {
-          block = block line ORS
-        }
-        inside = 0
-        replaced = 0
-      }
-      index($0, begin) {
-        if (!replaced) {
-          printf "%s", block
-          replaced = 1
-        }
-        inside = 1
-        next
-      }
-      inside && index($0, end) {
-        inside = 0
-        next
-      }
-      !inside {
-        print
-      }
-      END {
-        if (inside) {
-          exit 2
-        }
-      }
-    ' "$path" > "$out"
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-      warn "failed to update managed block in $path"
-      rm -f "$block" "$out"
-      return "$rc"
-    fi
-  elif grep -qF -- "$end" "$path"; then
-    warn "$path contains end marker but not begin marker"
-    rm -f "$block" "$out"
-    return 1
-  else
-    cat "$path" > "$out" || {
-      rm -f "$block" "$out"
-      return 1
-    }
-    if [ -s "$path" ]; then
-      printf '\n' >> "$out" || {
-        rm -f "$block" "$out"
-        return 1
-      }
-    fi
-    cat "$block" >> "$out" || {
-      rm -f "$block" "$out"
-      return 1
-    }
-  fi
-
-  atomic_install_file "$out" "$path" "$existing_mode"
-  rc=$?
-  rm -f "$block" "$out"
-  return "$rc"
-}
-
 remove_managed_block() {
   local path begin end out existing_mode rc
   path="$1"
@@ -592,7 +466,7 @@ remove_managed_block() {
   out="$(mktemp_file)" || return 1
   register_tmp "$out"
 
-  # Drop the block and the trailing blank lines put_managed_block separated it with.
+  # Remove the managed block and trailing blank lines.
   awk -v begin="$begin" -v end="$end" '
     index($0, begin) { inside = 1; next }
     inside && index($0, end) { inside = 0; next }
@@ -726,31 +600,38 @@ configure_shell_environment() {
   local file profile="$HOME/.profile"
   # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
   local loader='[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"'
+  [[ ! -e "$HOME/.bash_login" && ! -L "$HOME/.bash_login" ]] || profile="$HOME/.bash_login"
   [[ ! -e "$HOME/.bash_profile" && ! -L "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
-  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+  for file in "$profile" "$HOME/.bashrc"; do
     if [[ -L "$file" || (-e "$file" && ! -f "$file") ]]; then
       fatal "refusing to modify non-regular shell startup file: $file"
     fi
   done
-  write_managed_file "$HOME/.config/shell/env.sh" '# >>> macbook-bootstrap managed shell environment >>>' 0644 << 'SHELLENV' || return 1
-# >>> macbook-bootstrap managed shell environment >>>
-# Shared host environment for zsh, Bash, and login shells. Builtins only.
+  {
+    printf '%s\n' '# >>> macbook-bootstrap managed shell environment >>>'
+    # POSIX quoting preserves custom prefixes in fresh logins and child sh sessions.
+    printf "export HOMEBREW_PREFIX='%s'\n" "${HOMEBREW_PREFIX//\'/\'\\\'\'}"
+    cat << 'SHELLENV'
+# Shared host environment for Bash and noninteractive tools. Builtins only.
 # Keep caller-selected tools ahead of native host fallbacks and system tools.
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 export GOPATH="${GOPATH:-$HOME/go}"
+export BASH_ENV="${BASH_ENV:-$HOME/.config/shell/env.sh}"
 
-# Homebrew's standard locations need no shellenv subprocess at startup.
-if [ -x /opt/homebrew/bin/brew ]; then
-    export HOMEBREW_PREFIX=/opt/homebrew
-elif [ -x /usr/local/bin/brew ]; then
-    export HOMEBREW_PREFIX=/usr/local
-fi
 if [ -n "${HOMEBREW_PREFIX:-}" ]; then
     export HOMEBREW_CELLAR="$HOMEBREW_PREFIX/Cellar"
     export HOMEBREW_REPOSITORY="$HOMEBREW_PREFIX/Homebrew"
     [ "$HOMEBREW_PREFIX" != /opt/homebrew ] || export HOMEBREW_REPOSITORY="$HOMEBREW_PREFIX"
+    for _host_pkg in "$HOMEBREW_PREFIX/opt/openssl@3/lib/pkgconfig" "$HOMEBREW_PREFIX/opt/sqlite/lib/pkgconfig"; do
+        [ -d "$_host_pkg" ] || continue
+        case ":${PKG_CONFIG_PATH-}:" in
+            *:"$_host_pkg":*) ;;
+            *) export PKG_CONFIG_PATH="$_host_pkg${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" ;;
+        esac
+    done
+    unset _host_pkg
     case ":${MANPATH-}:" in
         *:"$HOMEBREW_PREFIX/share/man":*) ;;
         *) export MANPATH="$HOMEBREW_PREFIX/share/man:${MANPATH-}" ;;
@@ -803,84 +684,183 @@ PATH="${_host_path#:}"
 export PATH="${PATH%:}"
 unset _host_shims _host_path _host_tail _host_rest _host_entry _host_dir
 SHELLENV
-  for file in "$HOME/.zshenv" "$HOME/.zprofile" "$profile" "$HOME/.bashrc"; do
+  } | write_managed_file "$HOME/.config/shell/env.sh" '# >>> macbook-bootstrap managed shell environment >>>' 0644 || return 1
+  for file in "$profile" "$HOME/.bashrc"; do
     if ! grep -qxF "$loader" "$file" 2> /dev/null; then
       printf '\n%s\n' "$loader" >> "$file" || return 1
     fi
   done
 }
 
-write_zsh_config() {
-  local zsh_config_marker zsh_loader_begin zsh_loader_end
-  zsh_config_marker="# >>> macbook-bootstrap managed zsh config >>>"
-  zsh_loader_begin="# >>> macbook-bootstrap managed zsh loader >>>"
-  zsh_loader_end="# <<< macbook-bootstrap managed zsh loader <<<"
-
-  write_managed_file "$HOME/.config/macos-bootstrap/zshrc.zsh" "$zsh_config_marker" 0644 << 'ZSHCONFIG' || return 1
-# >>> macbook-bootstrap managed zsh config >>>
-
-[[ ! -r "$HOME/.config/shell/env.sh" ]] || source "$HOME/.config/shell/env.sh"
-export CLICOLOR=1
-typeset -U fpath
-[[ -z "${HOMEBREW_PREFIX:-}" ]] || fpath=("$HOMEBREW_PREFIX/share/zsh/site-functions" "${fpath[@]}")
-
-_colon_prepend_once() {
-  local var="$1"
-  local entry="$2"
-  [[ -d "$entry" ]] || return 0
-
-  local current="${(P)var:-}"
-  case ":$current:" in
-    *":$entry:"*) ;;
-    *) export "$var=$entry${current:+:$current}" ;;
-  esac
+write_bash_config() {
+  local bash_path="$HOMEBREW_PREFIX/bin/bash" state_dir profile file
+  [[ -x "$bash_path" && -r "$HOMEBREW_PREFIX/opt/flyline/lib/bash/flyline" ]] || return 1
+  "$bash_path" -c '((BASH_VERSINFO[0] >= 5))' || return 1
+  write_managed_file "$HOME/.local/bin/macos-shell-refresh" '# >>> macbook-bootstrap managed shell refresh >>>' 0755 << 'REFRESH' || return 1
+#!/usr/bin/env bash
+set -euo pipefail
+# >>> macbook-bootstrap managed shell refresh >>>
+# Refresh after manually upgrading an integrated tool. No work on shell startup.
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/bash"
+mkdir -p "$cache"
+chmod 700 "$cache"
+scratch=$(mktemp -d "$cache/.refresh.XXXXXX")
+trap 'rm -rf -- "$scratch"' EXIT
+emit() {
+  local name=$1
+  shift
+  if command -v "$name" >/dev/null 2>&1; then
+    "$@" > "$scratch/$name.bash"
+    bash -n "$scratch/$name.bash"
+    chmod 600 "$scratch/$name.bash"
+    mv -f "$scratch/$name.bash" "$cache/$name.bash"
+  else
+    rm -f "$cache/$name.bash"
+  fi
 }
+emit starship starship init bash --print-full-init
+emit zoxide zoxide init bash
+emit atuin atuin init bash --disable-up-arrow --disable-ai
+REFRESH
 
-if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
-  _colon_prepend_once PKG_CONFIG_PATH "$HOMEBREW_PREFIX/opt/openssl@3/lib/pkgconfig"
-  _colon_prepend_once PKG_CONFIG_PATH "$HOMEBREW_PREFIX/opt/sqlite/lib/pkgconfig"
+  write_managed_file "$HOME/.config/starship.toml" '# >>> macbook-bootstrap managed starship >>>' 0644 << 'STARSHIP' || return 1
+# >>> macbook-bootstrap managed starship >>>
+"$schema" = 'https://starship.rs/config-schema.json'
+add_newline = false
+command_timeout = 150
+follow_symlinks = false
+format = '$username$hostname$directory$git_branch$git_commit$git_state$python$cmd_duration$jobs$line_break$character'
 
-  _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-  mkdir -p "$_zsh_cache_dir"
-  autoload -Uz compinit
-  compinit -i -d "$_zsh_cache_dir/.zcompdump"
+[directory]
+style = 'bold cyan'
+truncation_length = 4
+truncate_to_repo = true
+read_only = ' ro'
 
-  [[ -r "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] &&
-    source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[git_branch]
+format = '[$branch]($style) '
+style = 'purple'
+truncation_length = 32
 
-  [[ -r "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh" ]] &&
-    source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
+[git_commit]
+only_detached = true
+format = '[@$hash]($style) '
 
-  [[ -r "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]] &&
-    source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+[git_state]
+format = '[\($state( $progress_current/$progress_total)\)]($style) '
+
+# Branch and operation state are cheap. Worktree scans belong in `git status`.
+[git_status]
+disabled = true
+
+[python]
+format = '[$virtualenv]($style) '
+style = 'yellow'
+detect_extensions = []
+detect_files = []
+detect_folders = []
+
+[cmd_duration]
+min_time = 2000
+format = '[$duration]($style) '
+
+[jobs]
+symbol = '+'
+
+[character]
+success_symbol = '[❯](bold green)'
+error_symbol = '[❯](bold red)'
+vimcmd_symbol = '[❮](bold purple)'
+STARSHIP
+
+  write_managed_file "$HOME/.config/bash/interactive.bash" '# >>> macbook-bootstrap managed bashrc >>>' 0644 << 'BASHRC' || return 1
+# >>> macbook-bootstrap managed bashrc >>>
+[[ $- == *i* ]] || return 0
+# System Bash 3.2 can still run scripts; interactive setup requires Homebrew Bash.
+((BASH_VERSINFO[0] >= 5)) || return 0
+# Login profiles may also source .bashrc. Initialize hooks only once per shell.
+[[ ${_MACOS_BASH_LOADED:-0} == 0 ]] || return 0
+_MACOS_BASH_LOADED=1
+[ ! -r "$HOME/.config/shell/env.sh" ] || . "$HOME/.config/shell/env.sh"
+
+# Register Bash completions before initializing the editor.
+[[ ! -r "$HOMEBREW_PREFIX/etc/profile.d/bash_completion.sh" ]] || source "$HOMEBREW_PREFIX/etc/profile.d/bash_completion.sh"
+
+set -o emacs
+bind '"\e[1;5D": backward-word'
+bind '"\e[1;5C": forward-word'
+bind '"\e[1;3D": backward-word'
+bind '"\e[1;3C": forward-word'
+bind '"\e[A": previous-history'
+bind '"\e[B": next-history'
+shopt -s autocd histappend checkwinsize cmdhist lithist histverify
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth
+HISTIGNORE=
+# Append new entries without rereading or deduplicating the whole history.
+PROMPT_COMMAND+=('history -a')
+
+_bash_cache="${XDG_CACHE_HOME:-$HOME/.cache}/bash"
+
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:---height=40% --layout=reverse --border=rounded --info=inline}"
+export FZF_CTRL_T_OPTS="${FZF_CTRL_T_OPTS:---preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null'}"
+export FZF_ALT_C_OPTS="${FZF_ALT_C_OPTS:---preview 'eza --tree --level=2 --color=always {} 2>/dev/null'}"
+
+# Generated during setup; no generators or update checks run during startup.
+[[ ! -r "$_bash_cache/zoxide.bash" ]] || source "$_bash_cache/zoxide.bash"
+
+if [[ -t 0 && -t 1 ]]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.bash"
 fi
 
-command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
-command -v zoxide  >/dev/null 2>&1 && eval "$(zoxide init zsh)"
-command -v atuin   >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
-
-setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS INC_APPEND_HISTORY SHARE_HISTORY
-
-# Emacs keys whatever EDITOR this shell inherited; zsh picks vi keys when it
-# names vi, as EDITOR=nvim below does for every nested shell.
-bindkey -e
-# Ctrl/Alt+Left/Right move by word; unbound, they insert ;5D-style escape debris.
-bindkey '^[[1;5D' backward-word '^[[1;5C' forward-word
-bindkey '^[[1;3D' backward-word '^[[1;3C' forward-word
+alias g=git
+alias gst='git status --short --branch'
+alias ga='git add'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate -20'
 
 alias cls=clear
-alias sz='exec zsh'
-alias ls='ls -G'
-alias ll='ls -alF'
+alias sb='exec bash'
 alias vi=nvim
 alias vim=nvim
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias .....='cd ../../../..'
+alias lg=lazygit
 
-command -v eza >/dev/null 2>&1 && alias lla='eza -la --git --group-directories-first'
-command -v eza >/dev/null 2>&1 && alias llt='eza -la --git --tree --level=2 --group-directories-first'
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza --group-directories-first'
+  alias ll='eza -lah --group-directories-first --git'
+  alias la='eza -a --group-directories-first'
+  alias lt='eza --tree --level=2 --group-directories-first --git-ignore'
+else
+  alias ls='ls -G'
+  alias ll='ls -alF'
+fi
+
+fedit() {
+  local root="${1:-.}"
+  local selected
+  selected="$(fd --type f --hidden --follow --exclude .git . "$root" | \
+    fzf --prompt='edit> ' --preview 'bat --color=always --style=numbers --line-range=:500 {} 2>/dev/null' || true)"
+  [[ -n "$selected" ]] || return 0
+  "${EDITOR:-nvim}" -- "$selected"
+}
+
+fcd() {
+  local root="${1:-.}"
+  local selected
+  selected="$(fd --type d --hidden --follow --exclude .git . "$root" | \
+    fzf --prompt='cd> ' --preview 'eza --tree --level=2 --color=always {} 2>/dev/null' || true)"
+  [[ -n "$selected" ]] || return 0
+  cd -- "$selected"
+}
 
 gcob() {
   [[ $# -eq 1 ]] || { echo "usage: gcob <name>"; return 2; }
@@ -904,9 +884,8 @@ gcm() {
   branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
   [[ -n "$branch" ]] || { echo "No current Git branch"; return 1; }
 
-  ticket="$(printf '%s\n' "$branch" | grep -o -E '[[:alnum:]]+-[0-9]+' | head -n1 || true)"
-
-  if [[ -n "$ticket" ]]; then
+  if [[ $branch =~ [a-zA-Z0-9]+-[0-9]+ ]]; then
+    ticket=${BASH_REMATCH[0]}
     git commit -m "${ticket} : $*"
   else
     git commit -m "$*"
@@ -934,10 +913,10 @@ alias gpom="git pull origin main"
 alias dcb="docker compose build"
 alias dcu="docker compose up"
 alias dcd="docker compose down"
-alias dnp="docker network prune -f"
-alias dsp="docker system prune -a -f --volumes"
+alias dnp="docker network prune"
+alias dsp="docker system prune"
 alias dre="dcd && dcb && dcu"
-alias dres="dcd && dsp && dcb --no-cache && dcu"
+alias dres="dcd && dcb --no-cache && dcu"
 alias dex="docker compose exec web sh"
 
 alias ta='tmux attach -t'
@@ -988,25 +967,103 @@ Essential:
   Prefix + I       Install/refresh plugins (TPM)
   Shift+Alt + H/L  Prev/next window
 
-Type 'man tmux' for full docs
+Type 'man tmux' for authoritative documentation.
 HELP
 }
-
-# zsh-syntax-highlighting should be sourced after other zsh plugins/widgets.
-if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
-  [[ -r "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] &&
-    source "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+# Atuin owns Ctrl-R and records commands with their directory and exit status.
+if [[ -t 0 && -t 1 ]]; then
+  [[ ! -r "$_bash_cache/atuin.bash" ]] || source "$_bash_cache/atuin.bash"
 fi
+# Starship initializes last so it can account for the other prompt hooks.
+if [[ -r "$_bash_cache/starship.bash" ]] && command -v starship >/dev/null 2>&1; then
+  source "$_bash_cache/starship.bash"
+else
+  PS1='\w \$ '
+fi
+unset _bash_cache
+if [[ -t 0 && -t 1 ]] && enable -f "$HOMEBREW_PREFIX/opt/flyline/lib/bash/flyline" flyline; then
+  # Run terminal initialization immediately; deferred startup can delay Enter.
+  flyline --set-delayed-startup-ms 0 --enable-easter-eggs false
+  flyline mouse --mode disabled
+  flyline set-cursor --backend terminal --effect none --interpolate none
+  printf '\e[6 q'
+  flyline editor --show-inline-history-metadata false --auto-close-chars false
+  flyline suggestions --auto-suggest false --auto-suggest-inline false
+  flyline set-style recognised-command=green unrecognised-command=red inline-suggestion=bright_black
+  # Selection returns to the buffer; Enter submits after reviewing the command.
+  flyline key bind Ctrl+r 'always=runBashCommand("__atuin_history --keymap-mode=emacs")'
+  flyline key bind Ctrl+t 'always=runBashCommand(fzf-file-widget)'
+  _flyline_fzf_cd() {
+    local cmd
+    cmd=$(__fzf_cd__) && READLINE_LINE="$cmd" READLINE_POINT=${#cmd}
+  }
+  flyline key bind Alt+c 'always=runBashCommand(_flyline_fzf_cd)'
+fi
+# Personal customizations apply after the managed defaults.
+[[ ! -r "$HOME/.config/bash/local.bash" ]] || source "$HOME/.config/bash/local.bash"
+# <<< macbook-bootstrap managed bashrc <<<
+BASHRC
 
-# <<< macbook-bootstrap managed zsh config <<<
-ZSHCONFIG
+  # Atuin stays local unless explicitly configured by the user.
+  local atuin_config_dir="${ATUIN_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/atuin}"
+  if [[ ! -e "$atuin_config_dir/config.toml" && ! -L "$atuin_config_dir/config.toml" ]]; then
+    mkdir -p "$atuin_config_dir" || return 1
+    cat > "$atuin_config_dir/config.toml" << 'ATUIN' || return 1
+auto_sync = false
+update_check = false
+search_mode = "fuzzy"
+style = "compact"
+inline_height = 16
+show_help = false
+keymap_cursor = { emacs = "steady-bar", vim_insert = "steady-bar" }
+enter_accept = false
+ATUIN
+  fi
 
-  put_managed_block "$HOME/.zshrc" "$zsh_loader_begin" "$zsh_loader_end" 0644 << 'ZSHLOADER' || return 1
-# >>> macbook-bootstrap managed zsh loader >>>
-[[ -r "$HOME/.config/macos-bootstrap/zshrc.zsh" ]] && source "$HOME/.config/macos-bootstrap/zshrc.zsh"
-# <<< macbook-bootstrap managed zsh loader <<<
-ZSHLOADER
-  configure_shell_environment
+  state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/bash"
+  mkdir -p "$state_dir" || return 1
+  chmod 700 "$state_dir" || return 1
+  touch "$state_dir/history" || return 1
+  chmod 600 "$state_dir/history" || return 1
+  "$bash_path" "$HOME/.local/bin/macos-shell-refresh" || return 1
+  "$bash_path" -n "$HOME/.config/bash/interactive.bash" || return 1
+  configure_shell_environment || return 1
+  profile="$HOME/.profile"
+  [[ ! -e "$HOME/.bash_login" ]] || profile="$HOME/.bash_login"
+  [[ ! -e "$HOME/.bash_profile" ]] || profile="$HOME/.bash_profile"
+  # shellcheck disable=SC2016 # Expanded by the login shell, not the installer.
+  local loader='[ -z "${BASH_VERSION:-}" ] || [ ! -r "$HOME/.config/bash/interactive.bash" ] || . "$HOME/.config/bash/interactive.bash"'
+  for file in "$profile" "$HOME/.bashrc"; do
+    grep -qxF "$loader" "$file" || printf '\n%s\n' "$loader" >> "$file" || return 1
+    "$bash_path" -n "$file" || return 1
+  done
+}
+
+retire_zsh_config() {
+  # Retire only the managed Zsh configuration; preserve personal Zsh files.
+  remove_managed_block "$HOME/.zshrc" \
+    '# >>> macbook-bootstrap managed zsh loader >>>' \
+    '# <<< macbook-bootstrap managed zsh loader <<<' || return 1
+  remove_managed_block "$HOME/.config/macos-bootstrap/zshrc.zsh" \
+    '# >>> macbook-bootstrap managed zsh config >>>' \
+    '# <<< macbook-bootstrap managed zsh config <<<' || return 1
+}
+
+set_bash_login_shell() {
+  local bash_path="$HOMEBREW_PREFIX/bin/bash" current_shell
+  [[ -x "$bash_path" ]] || return 1
+  current_shell="$(dscl . -read "/Users/$USER" UserShell)" || return 1
+  current_shell="${current_shell#UserShell: }"
+  if ! grep -qxF "$bash_path" /etc/shells; then
+    ensure_sudo || return 1
+    printf '%s\n' "$bash_path" | sudo tee -a /etc/shells > /dev/null || return 1
+  fi
+  [[ "$current_shell" != "$bash_path" ]] || return 0
+  chsh -s "$bash_path" "$USER"
+}
+
+configure_bash() {
+  write_bash_config && set_bash_login_shell && retire_zsh_config
 }
 
 write_tmux_config() {
@@ -1285,9 +1342,8 @@ validate_managed_files() {
   bash -n "$HOME/.local/bin/tmux-sessionizer" 2> /dev/null || rc=1
   bash -n "$HOME/.local/bin/tmux-cht" 2> /dev/null || rc=1
 
-  if has zsh && [ -f "$HOME/.config/macos-bootstrap/zshrc.zsh" ]; then
-    zsh -n "$HOME/.config/macos-bootstrap/zshrc.zsh" > /dev/null 2>&1 || rc=1
-  fi
+  "$HOMEBREW_PREFIX/bin/bash" -n "$HOME/.config/bash/interactive.bash" || rc=1
+  "$HOMEBREW_PREFIX/bin/bash" -n "$HOME/.local/bin/macos-shell-refresh" || rc=1
 
   return "$rc"
 }
@@ -1299,7 +1355,7 @@ print_summary() {
 
   if [ "${#REQUIRED_FAILURES[@]}" -eq 0 ] && [ "${#OPTIONAL_FAILURES[@]}" -eq 0 ]; then
     printf 'All required and optional enabled steps completed.\n'
-    printf '\nOpen a new Ghostty tab/window, or run: exec zsh\n'
+    printf '\nOpen a new Ghostty tab/window, or run: exec "%s/bin/bash" -l\n' "$HOMEBREW_PREFIX"
     return 0
   fi
 
@@ -1372,8 +1428,9 @@ main() {
     duf
     neovim
     herdr
-    zsh-autosuggestions
-    zsh-syntax-highlighting
+    bash
+    bash-completion@2
+    flyline
     zoxide
     atuin
     eza
@@ -1395,7 +1452,7 @@ main() {
   step_required "Rust stable toolchain" install_or_update_rustup
   step_optional "tldr cache" update_tldr_cache
   step_optional "Dagger container runtime" check_dagger_container_runtime
-  step_required "zsh configuration" write_zsh_config
+  step_required "Bash configuration and login shell" configure_bash
   step_required "tmux configuration" write_tmux_config
   step_required "tmux helper scripts" write_tmux_helpers
   step_required "TPM and tmux plugins" install_tpm
