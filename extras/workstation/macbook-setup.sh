@@ -410,7 +410,7 @@ write_managed_file() {
     return 1
   }
 
-  if ! grep -qF -- "$marker" "$src"; then
+  if ! grep -qxF -- "$marker" "$src"; then
     warn "managed content for $path is missing marker"
     rm -f "$src"
     return 1
@@ -429,7 +429,7 @@ write_managed_file() {
       return 1
     fi
 
-    if ! grep -qF -- "$marker" "$path"; then
+    if ! grep -qxF -- "$marker" "$path"; then
       warn "refusing to overwrite unmanaged file: $path"
       rm -f "$src"
       return 1
@@ -453,11 +453,7 @@ remove_managed_block() {
     warn "refusing to edit non-regular file: $path"
     return 1
   fi
-  grep -qF -- "$begin" "$path" || return 0
-  if ! grep -qF -- "$end" "$path"; then
-    warn "$path contains begin marker but not end marker"
-    return 1
-  fi
+  grep -qxF -- "$begin" "$path" || return 0
 
   existing_mode="$(read_file_mode "$path")" || {
     warn "could not read permissions for $path"
@@ -468,14 +464,16 @@ remove_managed_block() {
 
   # Remove the managed block and trailing blank lines.
   awk -v begin="$begin" -v end="$end" '
-    index($0, begin) { inside = 1; next }
-    inside && index($0, end) { inside = 0; next }
+    $0 == begin { if (inside) exit 1; inside = 1; next }
+    $0 == end { if (!inside) exit 1; inside = 0; next }
     !inside { lines[++count] = $0 }
     END {
+      if (inside) exit 1
       while (count > 0 && lines[count] == "") count--
       for (i = 1; i <= count; i++) print lines[i]
     }
   ' "$path" > "$out" || {
+    warn "could not remove a complete managed block from $path"
     rm -f "$out"
     return 1
   }
@@ -574,7 +572,7 @@ install_or_update_rustup() {
 
 update_tldr_cache() {
   has tldr || return 0
-  tldr --update > /dev/null 2>&1 || true
+  tldr --update > /dev/null 2>&1
 }
 
 configure_shell_environment() {

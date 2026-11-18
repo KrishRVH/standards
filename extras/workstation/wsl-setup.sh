@@ -310,7 +310,7 @@ write_managed_file() {
 
   # Markers may start with '-' (e.g., Lua comments "-- ...").
   # Always terminate grep options so the marker is treated as a pattern.
-  grep -qF -- "$marker" "$tmp" || {
+  grep -qxF -- "$marker" "$tmp" || {
     rm -f "$tmp"
     die "managed content for $path missing marker"
   }
@@ -327,7 +327,7 @@ write_managed_file() {
     return 1
   fi
 
-  if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
+  if [[ -f "$path" ]] && ! grep -qxF -- "$marker" "$path"; then
     rm -f "$tmp"
     warn "refusing to overwrite unmanaged file: $path"
     return 1
@@ -951,7 +951,7 @@ generate_completion() {
   local tmp marker='# >>> wsl-bootstrap managed completion >>>'
 
   # This is the user's standard completion directory, not a private cache.
-  if [[ -f "$path" ]] && ! grep -qF -- "$marker" "$path"; then
+  if [[ -f "$path" ]] && ! grep -qxF -- "$marker" "$path"; then
     warn "keeping unmanaged completion: $path"
     return 0
   fi

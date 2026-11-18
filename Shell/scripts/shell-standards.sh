@@ -81,7 +81,7 @@ is_shell_file() {
     *) ;;
   esac
 
-  has_recognized_shell_shebang "$1"
+  [ -f "$1" ] && has_recognized_shell_shebang "$1"
 }
 
 reject_shell_symlinks() {

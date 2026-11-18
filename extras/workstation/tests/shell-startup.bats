@@ -479,9 +479,10 @@ COMPLETION
   warn() { printf '%s\n' "$*" >&2; }
   die() { return 1; }
   local personal="$BATS_TEST_TMPDIR/personal" managed="$BATS_TEST_TMPDIR/managed"
-  printf '%s\n' '# personal completion' > "$personal"
+  local personal_text='# example marker: # >>> wsl-bootstrap managed completion >>>'
+  printf '%s\n' "$personal_text" > "$personal"
   generate_completion "$personal" printf '%s\n' '# replacement'
-  [[ "$(< "$personal")" == '# personal completion' ]]
+  [[ "$(< "$personal")" == "$personal_text" ]]
   generate_completion "$managed" printf '%s\n' '# first version'
   generate_completion "$managed" printf '%s\n' '# refreshed version'
   [[ "$(< "$managed")" == *'# refreshed version' ]]

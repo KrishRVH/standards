@@ -163,6 +163,19 @@ SCRIPT
   [[ "${output}" = "No standalone shell scripts found for syntax checks." ]]
 }
 
+@test "skips extensionless symlinks without regular file targets" {
+  # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
+  local workspace="${BATS_TEST_TMPDIR}/non-regular"
+  git init --quiet "${workspace}"
+  ln -s . "${workspace}/directory"
+  ln -s missing "${workspace}/dangling"
+
+  run bash -c 'cd "$1" && "$2" policy' -- "${workspace}" "${PROJECT_ROOT}/scripts/shell-standards.sh"
+
+  [[ "${status}" -eq 0 ]]
+  [[ -z "${output}" ]]
+}
+
 @test "rejects shell symlinks without changing their targets" {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR at runtime.
   local workspace="${BATS_TEST_TMPDIR}/shell-symlink"

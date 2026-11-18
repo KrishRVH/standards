@@ -18,7 +18,8 @@ file_mode() {
   # shellcheck disable=SC2154 # Bats defines BATS_TEST_TMPDIR.
   local shared="${BATS_TEST_TMPDIR}/shared-tmux.conf" only="${BATS_TEST_TMPDIR}/only-tmux.conf"
   local block=$'# >>> loader >>>\nsource-file ~/.config/tmux/tmux.conf\n# <<< loader <<<'
-  printf '%s\n\n%s\n' 'set -g mouse on' "$block" > "$shared"
+  local personal='set -g status-right "# >>> loader >>>"'
+  printf '%s\n\n%s\n' "$personal" "$block" > "$shared"
   chmod 0600 "$shared"
   printf '%s\n' "$block" > "$only"
 
@@ -30,9 +31,46 @@ file_mode() {
   ' -- "$MACBOOK_SETUP_SCRIPT" "$shared" "$only"
 
   [[ "$status" -eq 0 ]]
-  [[ "$(< "$shared")" == 'set -g mouse on' ]]
+  [[ "$(< "$shared")" == "$personal" ]]
   [[ "$(file_mode "$shared")" = "600" ]]
   [[ ! -e "$only" ]]
+}
+
+@test "macOS setup requires an exact ownership marker before replacing a file" {
+  local file="$BATS_TEST_TMPDIR/personal" marker='# >>> macbook-bootstrap managed shell environment >>>'
+  printf '# Example marker: %s\n' "$marker" > "$file"
+  cp "$file" "$file.expected"
+
+  run bash -c 'source "$1"; write_managed_file "$2" "$3" <<< "$3"' -- "$MACBOOK_SETUP_SCRIPT" "$file" "$marker"
+
+  [[ "$status" -ne 0 ]]
+  cmp "$file" "$file.expected"
+}
+
+@test "managed block removal preserves files with malformed markers" {
+  local file="$BATS_TEST_TMPDIR/personal"
+  local markers
+  for markers in $'# end\n# begin' $'# begin\n# begin\n# end'; do
+    printf '%s\n' "$markers" 'personal settings' > "$file"
+    cp "$file" "$file.expected"
+
+    run bash -c 'source "$1"; remove_managed_block "$2" "# begin" "# end"' -- "$MACBOOK_SETUP_SCRIPT" "$file"
+
+    [[ "$status" -ne 0 ]]
+    cmp "$file" "$file.expected"
+  done
+}
+
+@test "macOS setup reports optional cache update failures" {
+  run bash -c '
+    source "$1"
+    tldr() { return 7; }
+    step_optional "tldr cache" update_tldr_cache
+    print_summary
+  ' -- "$MACBOOK_SETUP_SCRIPT"
+
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *$'Optional steps with issues:\n  - tldr cache'* ]]
 }
 
 @test "Rust bootstrap installs stable and honors the update switch" {
