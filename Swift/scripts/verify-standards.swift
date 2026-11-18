@@ -224,50 +224,74 @@ func manifestFailures(
   return failures
 }
 
-// Splits lines into code and `//` comment text. String contents and block
-// comments are blanked, so they cannot match or hide a rule.
+// String interpolations can contain their own strings, comments, and parentheses.
 struct LineSplitter {
-  var inBlockComment = false
-  var inMultilineString = false
+  enum Context {
+    case blockComment
+    case string(end: String, escape: String)
+    case interpolation
+  }
+
+  var contexts: [Context] = []
 
   mutating func split(_ line: String) -> (code: String, comment: String?) {
     var code = ""
-    var index = line.startIndex
-    while index < line.endIndex {
-      let rest = line[index...]
-      if inBlockComment || inMultilineString {
-        let close = inBlockComment ? "*/" : "\"\"\""
-        guard let end = rest.range(of: close) else { break }
-        inBlockComment = false
-        inMultilineString = false
-        index = end.upperBound
+    var rest = line[...]
+    while let character = rest.first {
+      switch contexts.last {
+      case .blockComment:
+        if rest.hasPrefix("/*") {
+          contexts.append(.blockComment)
+          rest.removeFirst(2)
+        } else if rest.hasPrefix("*/") {
+          contexts.removeLast()
+          rest.removeFirst(2)
+        } else {
+          rest.removeFirst()
+        }
         continue
+      case .string(let end, let escape):
+        if rest.hasPrefix(end) {
+          rest.removeFirst(end.count)
+          contexts.removeLast()
+        } else if rest.hasPrefix(escape) {
+          rest.removeFirst(escape.count)
+          if rest.popFirst() == "(" { contexts.append(.interpolation) }
+        } else {
+          rest.removeFirst()
+        }
+        continue
+      case .interpolation, nil:
+        break
       }
+
       if rest.hasPrefix("//") {
-        return (code, String(rest))
+        return (code, contexts.isEmpty ? String(rest) : nil)
       }
       if rest.hasPrefix("/*") {
-        inBlockComment = true
-        index = line.index(index, offsetBy: 2)
-      } else if rest.hasPrefix("\"\"\"") {
-        inMultilineString = true
-        code += "\"\""
-        index = line.index(index, offsetBy: 3)
-      } else if rest.hasPrefix("\"") {
-        index = line.index(after: index)
-        while index < line.endIndex, line[index] != "\"" {
-          if line[index] == "\\" {
-            index = line.index(after: index)
-            if index == line.endIndex { break }
-          }
-          index = line.index(after: index)
-        }
-        code += "\"\""
-        if index < line.endIndex { index = line.index(after: index) }
-      } else {
-        code.append(line[index])
-        index = line.index(after: index)
+        contexts.append(.blockComment)
+        rest.removeFirst(2)
+        continue
       }
+      if character == "#" || character == "\"" {
+        let hashes = rest.prefix(while: { $0 == "#" })
+        let quoted = rest.dropFirst(hashes.count)
+        if quoted.first == "\"" {
+          let quotes = quoted.hasPrefix("\"\"\"") ? "\"\"\"" : "\""
+          if contexts.isEmpty { code += "\"\"" }
+          contexts.append(.string(end: quotes + hashes, escape: "\\" + hashes))
+          rest = quoted.dropFirst(quotes.count)
+          continue
+        }
+      }
+      if contexts.isEmpty {
+        code.append(character)
+      } else if character == "(" {
+        contexts.append(.interpolation)
+      } else if character == ")" {
+        contexts.removeLast()
+      }
+      rest.removeFirst()
     }
     return (code, nil)
   }
@@ -285,7 +309,7 @@ func sourceFailures(file: String, text: String, ambientApplies: Bool) throws -> 
   var splitter = LineSplitter()
   var carriedReason = false
   for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-    let wasInside = splitter.inBlockComment || splitter.inMultilineString
+    let wasInside = !splitter.contexts.isEmpty
     let (rawCode, rawComment) = splitter.split(String(line))
     let code = rawCode.trimmingCharacters(in: .whitespaces)
     let comment = rawComment?.trimmingCharacters(in: .whitespaces)
@@ -334,6 +358,11 @@ func selfTest() throws -> [String] {
     ("// Reason.\n// swift-format-ignore", true, 1),
     ("// The literal is valid.\n// swift-format-ignore: NeverForceUnwrap", true, 0),
     ("// swift-format-ignore: NeverForceUnwrap", true, 1),
+    ("/* outer\n/* nested */\nDate()\n*/", true, 0),
+    ("/* outer /* nested */ outer */ let now = Date()", true, 1),
+    (##"let text = #"quoted "Date()" text"#"##, true, 0),
+    (##"let text = #"Date()"#; let now = Date()"##, true, 1),
+    (#"let text = "prefix \(format("Date()")) suffix""#, true, 0),
     ("let now = Date()", true, 1),
     ("let now = Date()", false, 0),
     ("// The composition root owns the clock.\nlet now = Date()", true, 0),

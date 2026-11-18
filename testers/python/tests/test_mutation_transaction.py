@@ -11,22 +11,20 @@ from pathlib import Path
 from time import monotonic, sleep
 from typing import Literal, cast
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).parents[1]
 RUNNER = PROJECT_ROOT / "scripts" / "run-mutation-transaction.py"
 FAKE_MUTMUT = Path(__file__).parent / "fixtures" / "fake_mutmut.py"
 
 
-def command(mode: Literal["full", "incremental"]) -> list[str]:
-    """Return a transaction command using the controllable fake mutmut CLI."""
-    return [
-        sys.executable,
-        "-I",
-        str(RUNNER),
-        mode,
-        "--mutmut-command",
-        sys.executable,
-        str(FAKE_MUTMUT),
-    ]
+@pytest.fixture(autouse=True)
+def install_fake_mutmut(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Put the controllable mutmut executable on the runner's normal search path."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "mutmut").symlink_to(FAKE_MUTMUT)
+    monkeypatch.setenv("PATH", str(bin_dir), prepend=os.pathsep)
 
 
 def run_transaction(
@@ -35,7 +33,7 @@ def run_transaction(
 ) -> subprocess.CompletedProcess[str]:
     """Run one transaction synchronously at its public process seam."""
     return subprocess.run(  # noqa: S603 -- the executable and arguments are test-owned constants
-        command(mode),
+        [sys.executable, "-I", str(RUNNER), mode],
         cwd=project,
         check=False,
         capture_output=True,
@@ -49,7 +47,7 @@ def start_transaction(
 ) -> subprocess.Popen[str]:
     """Start one transaction whose overlap window the test controls."""
     return subprocess.Popen(  # noqa: S603 -- the executable and arguments are test-owned constants
-        command(mode),
+        [sys.executable, "-I", str(RUNNER), mode],
         cwd=project,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

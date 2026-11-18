@@ -33,7 +33,6 @@ class _Arguments(argparse.Namespace):
     def __init__(self) -> None:
         super().__init__()
         self.mode: Mode = "full"
-        self.mutmut_command: list[str] = ["mutmut"]
 
 
 class _LockError(Exception):
@@ -246,11 +245,11 @@ def _prepare(mode: Mode) -> None:
     REPORT.unlink(missing_ok=True)
 
 
-def _commands(mutmut_command: list[str]) -> tuple[list[str], ...]:
+def _commands() -> tuple[list[str], ...]:
     checker = Path(__file__).with_name("check-mutation-score.py")
     return (
-        [*mutmut_command, "run"],
-        [*mutmut_command, "export-cicd-stats"],
+        ["mutmut", "run"],
+        ["mutmut", "export-cicd-stats"],
         [sys.executable, "-I", str(checker)],
     )
 
@@ -259,8 +258,6 @@ def main() -> int:
     """Run the selected mutation transaction and propagate its result."""
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("full", "incremental"))
-    default_mutmut_command: list[str] = ["mutmut"]
-    parser.add_argument("--mutmut-command", nargs="+", default=default_mutmut_command)
     arguments = parser.parse_args(namespace=_Arguments())
 
     transaction = _Transaction()
@@ -278,7 +275,7 @@ def main() -> int:
         if not transaction.was_signaled():
             _prepare(arguments.mode)
             exit_code = 0
-            for command in _commands(arguments.mutmut_command):
+            for command in _commands():
                 if transaction.was_signaled():
                     break
                 exit_code = transaction.run(command)

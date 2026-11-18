@@ -1,8 +1,10 @@
 # Go Standards
 
-Copy `go.mod`, `.golangci.yml`, and `AGENTS.md` into a Go module. Put
-`Mise/conf.d/20-go.toml` in `.config/mise/conf.d/20-go.toml`.
-Replace `example.com/project` with the real module path.
+Copy `go.mod` and `.golangci.yml` into a Go module and put
+`Mise/conf.d/20-go.toml` in `.config/mise/conf.d/20-go.toml`. Replace
+`example.com/project` with the real module path. Merge `AGENTS.md` into the
+shared agent guide and the restricted Go dialect section below into the
+project README so the guide points to the adopted rules.
 
 The baseline starts with Go's native checks. Keep those as the default, but
 split out or relax slower static and security gates when the project's

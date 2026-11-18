@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Controllable mutmut process boundary for transaction tests."""
 
 from __future__ import annotations
