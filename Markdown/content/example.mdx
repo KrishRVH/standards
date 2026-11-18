@@ -1,20 +1,22 @@
----
-title: MDX Fixture
-date: 2026-07-03
----
+# Local references in MDX
 
-# MDX Fixture
+Use this procedure when an instruction links to a file or heading in the same
+repository.
 
-See the [Markdown guide](../docs/example.md).
+## Verify a local reference
 
-| Feature | Status |
-| ------- | ------ |
-| JSX     | ready  |
+<aside>
 
-<aside className="callout">
-  <strong>MDX JSX works.</strong>
+Resolve the path from the directory containing the link. If the link has a
+fragment, verify that the destination heading still exists.
+
 </aside>
 
-```tsx title="badge.tsx" {1}
-export const badge = <strong>ready</strong>;
+From the project root, run the offline check:
+
+```sh
+mise run md:links
 ```
+
+A zero exit status means the checked references resolve. For the full gate,
+follow the [Markdown validation procedure](../docs/example.md#check-a-documentation-change).

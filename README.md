@@ -127,10 +127,9 @@ Copy each language or tooling folder that the project needs:
   coverage, and benchmark tasks.
 - `Kotlin/` — a Gradle Kotlin/JVM baseline with ktlint, Detekt, warnings as
   errors, dependency locking, and dependency-verification generation tasks.
-- `Markdown/` — a Bun-backed Markdown/MDX baseline with Oxfmt formatting,
-  markdownlint structure checks, semantic YAML frontmatter validation, MDX
-  compile checks through remark/rehype and Shiki, offline local link checks
-  with lychee, and low-noise typo checks with typos.
+- `Markdown/` — source conventions for agent-readable instructions and
+  reference material in Markdown and static MDX. The gate checks section structure,
+  labeled examples, optional YAML metadata, and link targets.
 - `Python/` — `pyproject` and uv-based configuration for Ruff, basedpyright,
   Bandit, pytest/coverage, deptry, Hypothesis property tests, mutmut mutation
   testing, a banned-API wall, wheel and source builds, plus optional deeper

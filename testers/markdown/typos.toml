@@ -1,10 +1,16 @@
 [default]
+check-file = false
+check-filename = false
+locale = "en-us"
+
+[type.markdown]
+extend-glob = ["*.md", "*.mdx"]
 check-file = true
 check-filename = true
-locale = "en-us"
 
 [files]
 extend-exclude = [
+  ".git",
   ".next",
   ".nuxt",
   ".svelte-kit",

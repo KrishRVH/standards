@@ -1,68 +1,77 @@
 {
-  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.24.0/schema/markdownlint-cli2-config-schema.json",
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.24.1/schema/markdownlint-cli2-config-schema.json",
   "globs": ["**/*.{md,mdx}"],
   "gitignore": true,
   "ignores": [
-    ".next/**",
-    ".nuxt/**",
-    ".svelte-kit/**",
-    ".turbo/**",
-    ".vite/**",
-    "build/**",
-    "coverage/**",
-    "dist/**",
-    "node_modules/**",
-    "out/**",
-    "sbom/**"
+    "**/.build/**",
+    "**/.cache/**",
+    "**/.git/**",
+    "**/.godot/**",
+    "**/.gradle/**",
+    "**/.kotlin/**",
+    "**/.lua_modules/**",
+    "**/.next/**",
+    "**/.nuxt/**",
+    "**/.stack-work/**",
+    "**/.svelte-kit/**",
+    "**/.turbo/**",
+    "**/.vite/**",
+    "**/.zig-cache/**",
+    "**/_build/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/deps/**",
+    "**/dist/**",
+    "**/dist-newstyle/**",
+    "**/node_modules/**",
+    "**/out/**",
+    "**/sbom/**",
+    "**/target/**",
+    "**/vendor/**",
+    "**/zig-cache/**",
+    "**/zig-out/**",
+    "**/zig-pkg/**"
   ],
-  "frontMatter": "^---\\s*\\n[\\s\\S]*?\\n---\\s*",
+  "customRules": ["./scripts/frontmatter.mjs", "./scripts/static-mdx.mjs"],
+  "frontMatter": "^---[ \\t]*\\n(?:[^\\n]*\\n)*?---[ \\t]*(?:\\n|$)",
   "noBanner": true,
-  // Exceptions belong in this reviewed file, as narrow overrides with a reason.
   "noInlineConfig": true,
   "noProgress": true,
   "config": {
-    "default": true,
-    "MD003": {
-      "style": "atx"
-    },
-    "MD013": {
-      "line_length": 120,
-      "code_blocks": false,
-      "tables": false,
-      "headings": false
-    },
-    "MD024": {
-      "siblings_only": true
-    },
-    "MD025": {
-      "front_matter_title": ""
-    },
-    "MD033": {
-      "allowed_elements": [
-        "a",
-        "aside",
-        "br",
-        "details",
-        "kbd",
-        "span",
-        "strong",
-        "sub",
-        "summary",
-        "sup"
-      ]
-    },
-    "MD040": {
-      "language_only": false
-    },
-    "MD041": false
+    "default": false,
+    // Section paths and heading anchors identify independently retrievable passages.
+    "MD001": true,
+    "MD003": { "style": "atx" },
+    "MD018": true,
+    "MD019": true,
+    "MD024": { "siblings_only": true },
+    "MD025": { "front_matter_title": "" },
+    "MD041": { "front_matter_title": "" },
+    // Keep examples, images and references meaningful in the source.
+    "MD031": true,
+    "MD033": true,
+    "MD040": true,
+    "MD042": true,
+    "MD045": true,
+    "MD046": { "style": "fenced" },
+    "MD051": true,
+    "MD052": true,
+    "MD056": true,
+    "MD059": true,
+    "yaml-frontmatter": true
   },
   "overrides": [
     {
+      // The MDX parser checks JSX content and the title following any imports.
       "filter": ["**/*.mdx"],
       "combine": "merge",
-      "config": {
-        "MD033": false
-      }
+      "config": { "MD025": false, "MD033": false, "MD041": false, "static-mdx": true }
+    },
+    {
+      // GitHub supplies the title above the pull request body.
+      "filter": ["**/.github/pull_request_template.md"],
+      "combine": "merge",
+      "config": { "MD041": false }
     }
   ]
 }

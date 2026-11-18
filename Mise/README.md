@@ -6,10 +6,9 @@ Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
 
 The copyable configuration requires mise `2026.9.16` or newer for structured
 task references, checksum-backed HTTP tool locks, the `hygiene` task's
-`# MISE` header, and lockfile format 3, which `mise lock` writes for a new
-lockfile. Releases 2026.8.11 through 2026.9.15 reject that format, so their
-locked installs fail. It is a minimum, not an executable pin. A language
-fragment that needs a later release sets its own `min_version`.
+`# MISE` header, and the format 3 fixture locks. Generate a project lockfile
+with the mise release used in CI so that CI can read its format. Language
+fragments can set a higher `min_version`.
 
 Use `mise run` for project workflows so a developer can build, format, or test
 without knowing the underlying toolchain.
@@ -92,8 +91,8 @@ constrain tools from a developer's global mise configuration.
 Language task files are additive. Keep only the `conf.d/20-*.toml` files that
 match the project languages; the aggregate `fmt`, `fmt:check`, `lint`, `test`,
 `standards`, and `standards:check` tasks dispatch to C#, Go, Kotlin,
-Markdown/MDX, Python, Rust, Shell, Swift, and TypeScript when their project files are
-detected. Markdown/MDX dispatch requires `.markdownlint-cli2.jsonc`;
+Markdown, Python, Rust, Shell, Swift, and TypeScript when their project files are
+detected. Markdown dispatch requires `.markdownlint-cli2.jsonc`;
 TypeScript dispatch requires `package.json` plus `tsconfig.json`.
 Swift dispatch requires `Package.swift`; Xcode app gates need explicit
 project-specific task relationships.
@@ -117,10 +116,9 @@ The TypeScript task file is Bun-only. If a project uses pnpm, Yarn, or npm,
 replace it with a project-specific task file. The workflow exposes separate
 Effect diagnostics and agent-oriented overview tasks.
 
-The Markdown/MDX task file is Bun-backed for Oxfmt, markdownlint, and MDX
-compiler dependencies. Local link and typo checks use pinned mise tools. The
-default gate runs lychee offline so CI does not depend on external websites;
-use `md:standards:check:deep` for external link checks and package audit.
+The Markdown fragment uses markdownlint to check document structure, optional
+YAML metadata, and statically readable MDX. It checks local links offline. Use `md:standards:check:deep` for
+external links and the tooling dependency audit.
 
 The C# template enables locked package restore in project MSBuild properties:
 package locks are created by default, and CI restore runs in locked mode. Lint

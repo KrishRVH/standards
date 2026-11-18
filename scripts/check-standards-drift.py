@@ -704,7 +704,7 @@ def check_root_shared_files() -> list[str]:
             ROOT / ".config" / "mise" / "conf.d" / "20-markdown.toml",
         )
     )
-    for file in ("check-mdx.mjs", "check-mdx.test.mjs"):
+    for file in ("frontmatter.mjs", "markdown-policy.test.mjs", "static-mdx.mjs", "static-mdx.test.mjs"):
         errors.extend(
             compare_file(
                 "root",

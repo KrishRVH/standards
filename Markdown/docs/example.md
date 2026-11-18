@@ -1,15 +1,17 @@
----
-title: Markdown Fixture
----
+# Validate repository instructions
 
-# Markdown Fixture
+Run this check after editing a Markdown or MDX instruction file. It reports
+the file and line of any structural error.
 
-See the [MDX example](../content/example.mdx).
+## Check a documentation change
 
-| Check | Purpose     |
-| ----- | ----------- |
-| table | GFM parsing |
+From the project root with the committed tool lockfiles, run:
 
-```ts title="sample.ts" {1}
-const status = 'ready';
+```sh
+mise run md:standards:check
 ```
+
+A zero exit status completes the check. If a local link fails, correct the
+relative path or heading fragment in the source file and rerun the command.
+For an example of instructions inside JSX, read the
+[MDX source example](../content/example.mdx#verify-a-local-reference).

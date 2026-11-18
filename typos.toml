@@ -7,6 +7,7 @@ extend-ignore-re = ['\b(?:un)?recognised-command\b']
 
 [files]
 extend-exclude = [
+  ".git",
   ".build",
   ".cache",
   ".gradle",
