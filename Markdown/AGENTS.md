@@ -7,14 +7,18 @@ section, read it as plain text, and act without rendering the page.
 
 - Start a standalone document with one `#` title that names its subject. In
   the first paragraph, state when to use it and what result it describes.
-- Give each section a heading that names the task, condition, or question it
-  answers. Keep prerequisites, instructions, exceptions, and success criteria
-  together so the section still works when retrieved on its own.
+- Name each section for its task, condition, or question. Make the heading
+  unique within the document and specific enough to stand alone, such as
+  `Install on Linux`.
+  Keep prerequisites, instructions, exceptions, and success criteria together
+  so the section still works when retrieved on its own.
 - Put always-applicable constraints in the entry document. For a specialized
   case, say when to follow the link and point to the file or heading that owns
   the detail. Keep one source for each rule.
-- Name the file, command, config key, or symbol exactly as it appears in the
-  repository. Use descriptive link text and relative paths for local material.
+- Name files, commands, config keys, and symbols exactly. When an agent must
+  open a repository file, link to it relative to the document. Put link and
+  image destinations inline so they travel with the retrieved section.
+  Use link text that identifies the destination.
 
 ## Write executable instructions
 

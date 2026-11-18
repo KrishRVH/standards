@@ -1,3 +1,4 @@
+import { toString } from 'mdast-util-to-string';
 import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
@@ -26,7 +27,8 @@ function isPreamble(node) {
   return isExpression(node) && node.data.estree.body.length === 0;
 }
 
-function checkNode(node, report, title) {
+function checkNode(node, context) {
+  const { report, title, headings } = context;
   if (isExpression(node)) {
     if (node.data.estree.body.length > 0) {
       report(node.position.start.line, 'Write the content as Markdown or literal JSX children.');
@@ -40,14 +42,25 @@ function checkNode(node, report, title) {
     return false;
   }
 
+  if (node.type === 'linkReference' || node.type === 'imageReference') {
+    report(node.position.start.line, 'Put the link or image destination inline.');
+  }
+  if (node.type === 'heading') {
+    const text = toString(node).trim();
+    if (headings.has(text)) {
+      report(node.position.start.line, `"${text}" already appears as a heading in this document.`);
+    }
+    headings.add(text);
+    if (node.depth === 1 && title && node !== title) {
+      report(node.position.start.line, 'Use a single level-one document title.');
+    }
+  }
+
   let readable = false;
   if (['text', 'inlineCode', 'code'].includes(node.type)) readable = Boolean(node.value.trim());
   if (node.type === 'image' || node.type === 'imageReference') readable = Boolean(node.alt?.trim());
   for (const child of node.children ?? []) {
-    if (checkNode(child, report, title)) readable = true;
-  }
-  if (node.type === 'heading' && node.depth === 1 && title && node !== title) {
-    report(node.position.start.line, 'Use a single level-one document title.');
+    if (checkNode(child, context)) readable = true;
   }
   if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
     for (const attribute of node.attributes) {
@@ -89,6 +102,6 @@ export default {
         report(first?.position.start.line ?? offset + 1, detail);
       }
     }
-    checkNode(tree, report, title);
+    checkNode(tree, { report, title, headings: new Set() });
   },
 };

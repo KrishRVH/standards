@@ -44,7 +44,7 @@
     "MD003": { "style": "atx" },
     "MD018": true,
     "MD019": true,
-    "MD024": { "siblings_only": true },
+    "MD024": true,
     "MD025": { "front_matter_title": "" },
     "MD041": { "front_matter_title": "" },
     // Keep examples, images and references meaningful in the source.
@@ -56,16 +56,25 @@
     "MD046": { "style": "fenced" },
     "MD051": true,
     "MD052": true,
+    // Keep the destination with the passage that uses the link or image.
+    "MD054": { "full": false, "collapsed": false, "shortcut": false },
     "MD056": true,
     "MD059": true,
     "yaml-frontmatter": true
   },
   "overrides": [
     {
-      // The MDX parser checks JSX content and the title following any imports.
+      // The MDX parser sees headings, links and images inside JSX, and the title after imports.
       "filter": ["**/*.mdx"],
       "combine": "merge",
-      "config": { "MD025": false, "MD033": false, "MD041": false, "static-mdx": true }
+      "config": {
+        "MD024": false,
+        "MD025": false,
+        "MD033": false,
+        "MD041": false,
+        "MD054": false,
+        "static-mdx": true
+      }
     },
     {
       // GitHub supplies the title above the pull request body.

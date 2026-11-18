@@ -51,6 +51,20 @@ test('lints MDX source without importing components or evaluating expressions', 
 
     writeFileSync(path.join(project, 'missing-title.mdx'), "import Note from './ui.js'\n\nPlain opening.\n\n# Too late\n");
     writeFileSync(path.join(project, 'duplicate.mdx'), "import Note from './ui.js'\n\n# Guide\n\n# Extra\n");
+    writeFileSync(path.join(project, 'sections.mdx'), [
+      '# Guide',
+      '',
+      '<Note>',
+      '## Install',
+      '[Read the guide][guide]',
+      '![Setup diagram][diagram]',
+      '</Note>',
+      '',
+      '## Install',
+      '',
+      '[guide]: ./guide.md',
+      '[diagram]: ./setup.png',
+    ].join('\n'));
     const { exitCode, stderr } = Bun.spawnSync([process.execPath, path.join(root, 'node_modules/.bin/markdownlint-cli2')], {
       cwd: project,
       stderr: 'pipe',
@@ -59,7 +73,10 @@ test('lints MDX source without importing components or evaluating expressions', 
     expect(exitCode).toBe(1);
     expect(diagnostics).toContainEqual(expect.stringContaining('missing-title.mdx:3 error static-mdx'));
     expect(diagnostics).toContainEqual(expect.stringContaining('duplicate.mdx:5 error static-mdx'));
-    expect(diagnostics).toHaveLength(Object.keys(invalid).length + 2);
+    expect(diagnostics).toContainEqual(expect.stringContaining('sections.mdx:5 error static-mdx'));
+    expect(diagnostics).toContainEqual(expect.stringContaining('sections.mdx:6 error static-mdx'));
+    expect(diagnostics).toContainEqual(expect.stringContaining('sections.mdx:9 error static-mdx'));
+    expect(diagnostics).toHaveLength(Object.keys(invalid).length + 5);
     for (const name of Object.keys(invalid)) {
       expect(diagnostics).toContainEqual(expect.stringContaining(`${name}:7 error static-mdx`));
     }
