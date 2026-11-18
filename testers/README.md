@@ -23,15 +23,7 @@ for example:
 mise run //testers/python:standards:check
 ```
 
-For an isolated check, run one representative fixture in its Dagger reference
-container. This task intentionally sits outside the default root gate:
-
-```sh
-MISE_TRUSTED_CONFIG_PATHS="$PWD" mise run //testers/python:dagger:standards:check
-```
-
-Or run the same host-local gate that the repository aggregate task uses from
-inside one fixture:
+To run the same gate from inside a fixture:
 
 ```sh
 cd testers/ts

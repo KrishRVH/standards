@@ -67,7 +67,6 @@ mirror = [
   "scripts/check-suppressions.py",
   "scripts/run-mutation-transaction.py",
 ]
-dagger = true
 
 [profiles.rust]
 name = "Rust"
@@ -235,4 +234,3 @@ required_tester_files = [
   "tests/support/runtime-lease.ts",
   "tests/tooling-policy.test.ts",
 ]
-dagger = true

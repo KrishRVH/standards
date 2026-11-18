@@ -1,8 +1,8 @@
 # Python Standards Tester
 
 One typed package with example and Hypothesis property tests exercises the
-Python standards profile through its copied mise wiring and drift-checked
-Dagger wrapper: strict static analysis, branch coverage, wheel and source
+Python standards profile through its copied mise tasks. The gate covers strict
+static analysis, branch coverage, wheel and source
 distribution builds, and the mutmut sweep gated by the committed
 `.mutmut-floor` ratchet.
 

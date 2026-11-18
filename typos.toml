@@ -14,12 +14,10 @@ extend-exclude = [
   "build",
   "bun.lock",
   "coverage",
-  "Dagger/dagger/src/index.ts",
   "dist",
   "node_modules",
   "out",
   "sbom",
   "target",
-  "testers/*/dagger/src/index.ts",
   "vendor",
 ]

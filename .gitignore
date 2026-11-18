@@ -61,11 +61,6 @@ mise.*.local.lock
 .mise.local.lock
 .mise.*.local.lock
 
-# Dagger module local output
-/dagger/.turbo/
-/dagger/dist/
-/testers/**/dagger/.turbo/
-
 # Ada / SPARK generated output
 /alire/build_hash_inputs
 /alire/flags/

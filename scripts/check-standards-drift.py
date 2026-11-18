@@ -15,8 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "standards.manifest.toml"
 REQUIRED_PROFILE_KEYS = {"name", "template", "tester", "task_prefix", "task_fragment", "mirror"}
-OPTIONAL_PROFILE_KEYS = {"dagger", "required_tester_files"}
-PROFILE_KEYS = REQUIRED_PROFILE_KEYS | OPTIONAL_PROFILE_KEYS
+PROFILE_KEYS = REQUIRED_PROFILE_KEYS | {"required_tester_files"}
 REQUIRED_TASK_SUFFIXES = ("fmt", "fmt:check", "lint", "test", "standards", "standards:check")
 AGGREGATE_MARKER_CASES = {
     "csharp": ("src/project.csproj",),
@@ -29,7 +28,6 @@ AGGREGATE_MARKER_CASES = {
     "swift": ("Package.swift",),
     "ts": ("package.json", "tsconfig.json"),
 }
-DAGGER_MIRROR = ("dagger/package.json", "dagger/tsconfig.json", "dagger/src/index.ts")
 FULL_CONFIG_MIRROR = (".gitleaks.toml",)
 ROOT_SHARED_MIRROR = (".gitleaks.toml",)
 HYGIENE = ROOT / "Mise" / "tasks" / "hygiene"
@@ -182,10 +180,6 @@ def validate_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
                     errors.append(
                         f"{profile_id}: required_tester_files entries must be normalized relative paths: {item!r}"
                     )
-
-        dagger = profile.get("dagger", False)
-        if not isinstance(dagger, bool):
-            errors.append(f"{profile_id}: dagger must be a boolean")
 
     return errors
 
@@ -451,7 +445,7 @@ def check_hygiene_task() -> list[str]:
             outside_tree = seed("outside", {})
             outside = run_hygiene(outside_tree)
             if outside.returncode != 0 or "skipped" not in outside.stdout:
-                errors.append("hygiene must skip outside a git work tree, as in the Dagger check")
+                errors.append("hygiene must skip outside a git work tree")
             broken = run_hygiene(outside_tree, GIT_DIR=str(temporary_root / "missing-git-dir"))
             if broken.returncode != 1:
                 errors.append("hygiene must fail, not skip, when GIT_DIR names no repository")
@@ -554,42 +548,6 @@ def check_bun_pins(profiles: dict[str, dict[str, object]]) -> list[str]:
     return errors
 
 
-def dagger_engine_errors(dagger_json: Path, fragment: Path) -> list[str]:
-    """A module without the pinned CLI's engineVersion runs under legacy engine compatibility."""
-    try:
-        pin = load_toml(fragment).get("tools", {}).get("dagger")
-    except (OSError, tomllib.TOMLDecodeError):
-        pin = None
-    try:
-        actual = json.loads(dagger_json.read_text(encoding="utf-8")).get("engineVersion")
-    except (OSError, ValueError, AttributeError):
-        actual = None
-    if not isinstance(pin, str) or actual != f"v{pin}":
-        return [f"{rel(dagger_json)} engineVersion {actual!r} must be 'v{pin}' to match {rel(fragment)} tools.dagger"]
-    return []
-
-
-def check_dagger_engine() -> list[str]:
-    errors = dagger_engine_errors(ROOT / "Dagger" / "dagger.json", ROOT / "Mise" / "conf.d" / "10-dagger.toml")
-
-    # Seeded proof: a missing or stale engineVersion must be reported and an agreeing one must pass.
-    with tempfile.TemporaryDirectory(prefix="standards-dagger-engine-") as temporary:
-        root = Path(temporary)
-        fragment = root / "10-dagger.toml"
-        fragment.write_text('[tools]\ndagger = "1.2.3"\n', encoding="utf-8")
-        for label, metadata, should_fail in (
-            ("agree", {"engineVersion": "v1.2.3"}, False),
-            ("stale", {"engineVersion": "v1.2.2"}, True),
-            ("missing", {}, True),
-        ):
-            dagger_json = root / f"{label}.json"
-            dagger_json.write_text(json.dumps(metadata), encoding="utf-8")
-            found = dagger_engine_errors(dagger_json, fragment)
-            if bool(found) != should_fail:
-                errors.append(f"Dagger engine rule mishandled the seeded {label} case: {found!r}")
-    return errors
-
-
 def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str]:
     errors: list[str] = []
     fixture_config = tester / ".config" / "mise" / "config.toml"
@@ -638,11 +596,6 @@ def check_fixture_config(profile_id: str, tester: Path, prefix: str) -> list[str
         expected_check = [f"{prefix}:standards:check"]
         if not isinstance(standards_check, dict) or standards_check.get("depends") != expected_check:
             errors.append(f"{profile_id}: minimal fixture config standards:check must depend on {expected_check!r}")
-
-    dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
-    canonical_dagger = ROOT / "Mise" / "conf.d" / "10-dagger.toml"
-    if dagger_fragment.exists():
-        errors.extend(compare_file(profile_id, "Dagger fragment", canonical_dagger, dagger_fragment))
 
     return errors
 
@@ -779,18 +732,6 @@ def check_root_shared_files() -> list[str]:
     return errors
 
 
-def check_dagger_copy(profile_id: str, tester: Path) -> list[str]:
-    errors: list[str] = []
-    dagger_fragment = tester / ".config" / "mise" / "conf.d" / "10-dagger.toml"
-    if not dagger_fragment.is_file():
-        errors.append(f"{profile_id}: missing Dagger fragment {rel(dagger_fragment)}")
-
-    errors.extend(compare_file(profile_id, "Dagger metadata", ROOT / "Dagger" / "dagger.json", tester / "dagger.json"))
-    for item in DAGGER_MIRROR:
-        errors.extend(compare_file(profile_id, "Dagger module", ROOT / "Dagger" / item, tester / item))
-    return errors
-
-
 def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors = validate_profiles(profiles)
     if errors:
@@ -804,7 +745,6 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
     errors.extend(check_root_shared_files())
     errors.extend(check_hygiene_task())
     errors.extend(check_bun_pins(profiles))
-    errors.extend(check_dagger_engine())
 
     for profile_id, profile in profiles.items():
         tester = ROOT / str(profile["tester"])
@@ -827,8 +767,6 @@ def check_profiles(profiles: dict[str, dict[str, object]]) -> list[str]:
             errors.extend(check_task_surface(profile_id, task_left, task_prefix))
         if has_tester:
             errors.extend(check_fixture_config(profile_id, tester, task_prefix))
-            if profile.get("dagger", False):
-                errors.extend(check_dagger_copy(profile_id, tester))
 
         mirror = profile.get("mirror", [])
         if has_template and has_tester:

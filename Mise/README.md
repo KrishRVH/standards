@@ -12,8 +12,7 @@ locked installs fail. It is a minimum, not an executable pin. A language
 fragment that needs a later release sets its own `min_version`.
 
 Use `mise run` for project workflows so a developer can build, format, or test
-without knowing the underlying toolchain. Dagger is optional; when a project
-keeps `conf.d/10-dagger.toml`, the isolated check task pins and invokes it.
+without knowing the underlying toolchain.
 
 Run host utilities such as `git`, `rg`, and `tokei` directly. Native commands
 remain available for focused diagnosis. Use `mise exec -- <command>` when a
@@ -42,7 +41,6 @@ mise run standards:check
 mise run hygiene
 mise run secrets
 mise run sbom
-mise run dagger:standards:check
 ```
 
 Use mise's own commands, such as `mise install`, `mise tasks`, `mise doctor`,
@@ -62,9 +60,9 @@ run. It fails on:
 - literal `mise run` invocations of tasks that do not exist, including
   `//project:task` references in a monorepo.
 
-Outside a git work tree, such as the Dagger check's copied source, it reports
-that it skipped. Paths in its constants are relative to the directory it runs
-in. `ALLOWED_PATHS` names externally owned trees that every rule skips.
+Outside a Git work tree, the task reports that it skipped. Paths in its constants
+are relative to its working directory. `ALLOWED_PATHS` names externally owned
+trees that every rule skips.
 `CONTRACT_PATHS` names paths whose version or date names follow an external
 contract, such as migrations, a versioned API, or published posts; leftover and
 handoff rules still apply there.
@@ -81,11 +79,7 @@ file task without the executable bit.
 runs the CI-grade aggregate task, the
 project's shared `.gitleaks.toml` secret scan, and `hygiene`. `sbom` writes a
 fresh CycloneDX JSON SBOM under `sbom/` for release and audit workflows;
-`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` control its source metadata. If
-the project includes `10-dagger.toml` and the Dagger module,
-`dagger:standards:check` runs `standards:check` inside an official,
-digest-pinned `mise` Linux reference container; the
-[Dagger guide](../Dagger/README.md) describes its pins and source filtering.
+`SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` control its source metadata.
 
 Commit the lockfile generated for the chosen config layout. With this template's
 `.config/mise/config.toml` layout, mise writes `.config/mise/mise.lock`. Use

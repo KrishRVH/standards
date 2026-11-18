@@ -577,25 +577,6 @@ update_tldr_cache() {
   tldr --update > /dev/null 2>&1 || true
 }
 
-check_dagger_container_runtime() {
-  has dagger || {
-    warn "dagger is not available"
-    return 1
-  }
-
-  if has docker && docker info > /dev/null 2>&1; then
-    return 0
-  fi
-
-  if has podman && podman info > /dev/null 2>&1; then
-    return 0
-  fi
-
-  warn "dagger is installed, but no running Docker- or Podman-compatible container runtime was found"
-  warn "install/start Docker Desktop, Colima, Podman, or another supported runtime before using dagger"
-  return 1
-}
-
 configure_shell_environment() {
   local file profile="$HOME/.profile"
   # shellcheck disable=SC2016 # Expanded by the shell reading the generated loader.
@@ -1397,7 +1378,6 @@ main() {
     git
     gnupg
     mise
-    dagger/tap/dagger
     xz
     pkgconf
     openssl@3
@@ -1451,7 +1431,6 @@ main() {
   step_required "Homebrew formulae" brew_install_formulae "${BREW_FORMULAE[@]}"
   step_required "Rust stable toolchain" install_or_update_rustup
   step_optional "tldr cache" update_tldr_cache
-  step_optional "Dagger container runtime" check_dagger_container_runtime
   step_required "Bash configuration and login shell" configure_bash
   step_required "tmux configuration" write_tmux_config
   step_required "tmux helper scripts" write_tmux_helpers

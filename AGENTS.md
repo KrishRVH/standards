@@ -4,7 +4,7 @@ Read `shared/AGENTS.md` first and follow it. This file adds the catalog's rules
 and wins where the two differ.
 
 Copy-from standards catalog. Canonical consumer templates: `shared/`, `Mise/`,
-`Dagger/`, `C#/`, `Go/`, `Kotlin/`, `Markdown/`, `Python/`, `Rust/`, `Shell/`,
+`C#/`, `Go/`, `Kotlin/`, `Markdown/`, `Python/`, `Rust/`, `Shell/`,
 `Swift/`, and `TS/`. Root docs/config maintain this repo. `testers/` smoke-test
 copied standards for every profile. The dormant `standards-archive` repository owns
 the other profiles and an independent shared-tooling snapshot.
@@ -24,8 +24,6 @@ says:
 - `mise lock`: refresh the root mise lockfile after tool-version changes.
 - `mise run //testers/...:standards:check`: run every tester mini project
   through its standards CI gate; `//testers/...:standards` applies autofixes.
-- `mise run //testers/python:dagger:standards:check`: run the representative
-  Python fixture gate in Dagger.
 - `mise run standards:check`: root secret scan and hygiene, then ESLint and
   Prettier secondary validation, drift, Markdown, and Shell checks, plus every
   fixture gate.
@@ -62,14 +60,14 @@ dependency install and Stryker cache steps.
 - Record a catalog-wide proposal that is not worth its churn yet in
   `docs/IDEAS.md`.
 - Root files and `.config/mise/`: repo maintenance.
-- `shared/`, `Mise/`, `Dagger/`, and stack folders are copyable templates.
+- `shared/`, `Mise/`, and stack folders are copyable templates.
 - Template ignore, attribute, and allowlist files carry broad, generally useful
   ecosystem coverage, including ecosystems without a profile here. Adopters
   copy the shared ones whole and prune profile ones to their project. Do not
   narrow them to this catalog's profiles.
 - Put language-specific agent guidance in that language's `AGENTS.md`; reserve
   `shared/AGENTS.md` for guidance that applies across languages.
-- Changing `Mise/`, `Dagger/`, or a tested stack means updating the matching
+- Changing `Mise/` or a tested stack means updating the matching
   fixture when applicable.
 - `standards.manifest.toml` is the profile source of truth. Add or remove
   tested profiles there. The root monorepo discovers `testers/*`; keep the

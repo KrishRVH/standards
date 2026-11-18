@@ -678,40 +678,6 @@ install_or_update_mise() {
   mise --version
 }
 
-install_or_update_dagger() {
-  if has dagger && [[ "$BOOTSTRAP_GITHUB_UPGRADE" != "1" ]]; then
-    return 0
-  fi
-  local tmpdir installer
-
-  mkdir -p "$HOME/.local/bin"
-  tmpdir="$(make_tmpdir)"
-  installer="$tmpdir/dagger-install.sh"
-
-  curl_fetch https://dl.dagger.io/dagger/install.sh -o "$installer"
-  retry_quiet env BIN_DIR="$HOME/.local/bin" sh "$installer"
-  rm -rf "$tmpdir" || true
-  hash -r 2> /dev/null || true
-
-  has dagger || die "Dagger installer completed, but dagger is not on PATH"
-  dagger version
-}
-
-check_dagger_container_runtime() {
-  has dagger || die "dagger is not available"
-
-  if has docker && docker info > /dev/null 2>&1; then
-    return 0
-  fi
-
-  if has podman && podman info > /dev/null 2>&1; then
-    return 0
-  fi
-
-  warn "dagger is installed, but no running Docker- or Podman-compatible container runtime was found"
-  warn "install/start Docker Desktop with WSL integration, Podman, or another supported runtime before using dagger"
-}
-
 check_wsl_ubuntu
 if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   ensure_sudo
@@ -798,14 +764,8 @@ if [[ "$BOOTSTRAP_CONFIGURE_ONLY" != "1" ]]; then
   # Herdr publishes bare Linux binaries; use its official GitHub release assets.
   install_github_release_binary herdrdev/herdr herdr "^herdr-linux-${release_herdr_arch}$"
 
-  # --- mise + dagger -----------------------------------------------------------
-
   msg "mise: install/update"
   install_or_update_mise
-
-  msg "dagger: install/update"
-  install_or_update_dagger
-  check_dagger_container_runtime
 
   # --- neovim (latest stable) -------------------------------------------------
   # Install upstream Neovim release tarballs so we are not stuck on Ubuntu's
@@ -1038,7 +998,7 @@ readonly -a TOOLS=(
   btop dust duf lnav
   xh
   ouch zstd trash age
-  tmux herdr nvim dagger
+  tmux herdr nvim
 )
 
 readonly -a CATEGORIES=(
@@ -1055,7 +1015,7 @@ declare -Ar CATEGORY=(
   [btop]=system [dust]=system [duf]=system [lnav]=system
   [xh]=network
   [ouch]=files [zstd]=files [trash]=files [age]=files
-  [tmux]=workspace [herdr]=workspace [nvim]=workspace [dagger]=workspace
+  [tmux]=workspace [herdr]=workspace [nvim]=workspace
 )
 
 declare -Ar SUMMARY=(
@@ -1099,7 +1059,6 @@ declare -Ar SUMMARY=(
   [tmux]='persistent terminal sessions and pane orchestration'
   [herdr]='agent-aware multiplexer for supervising several coding agents at once'
   [nvim]='programmable terminal editor with LazyVim bootstrap support'
-  [dagger]='containerized programmable CI and development pipelines'
 )
 
 canonical_tool() {
@@ -2158,30 +2117,6 @@ Notes:
   when ~/.config/nvim does not already exist.
 DOC
       ;;
-    dagger)
-      cat <<'DOC'
-DAGGER — programmable containerized pipelines
-
-Purpose:
-  Express CI and development workflows as reusable code executed through a
-  container engine, reducing divergence between local and hosted automation.
-
-Use it when:
-  A pipeline needs reproducible containers, caching, typed functions, and the
-  same execution model locally and in CI.
-
-Examples:
-  dagger develop
-  dagger call --help
-  dagger call test
-  dagger version
-
-Requirement:
-  Docker Desktop WSL integration, Podman, or another supported running container
-  runtime must be available. Dagger is substantial; use it only where its model
-  simplifies a real pipeline.
-DOC
-      ;;
     *)
       printf 'unknown tool: %s\n' "$requested" >&2
       printf 'run `toolhelp list` to see valid names\n' >&2
@@ -2273,7 +2208,7 @@ _toolhelp() {
   choices="rg fd fzf zoxide bat eza delta difftastic tokei jq yq mlr sd ast-grep
     hyperfine just watchexec shellcheck shfmt bash atuin tldr mise starship
     cargo-binstall jj gh lazygit btop dust duf lnav xh ouch zstd trash age
-    tmux herdr nvim dagger"
+    tmux herdr nvim"
   if [[ ${COMP_WORDS[1]:-} == category || ${COMP_WORDS[1]:-} == list ]] && (( COMP_CWORD > 1 )); then
     choices="search viewing data workflow shell vcs system network files workspace"
   elif (( COMP_CWORD == 1 )); then
@@ -2953,8 +2888,7 @@ For a separate prompt config, set `STARSHIP_CONFIG` in `~/.config/bash/local.bas
 
 Inotify ceilings support concurrent editors and agents. The bootstrap preserves
 higher existing limits and leaves WSL memory/network defaults in place.
-Dagger requires a running Docker/Podman-compatible engine; installing the CLI
-does not install an engine. Git identity and service logins remain user choices.
+Git identity and service logins remain user choices.
 
 ## References
 

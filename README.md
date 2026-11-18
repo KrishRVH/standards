@@ -24,8 +24,7 @@ human's need to supervise implementation details.
 A project holds only its current state. Each change removes what it makes
 obsolete, proof lives in the gate rather than in tracked reports, and every
 test defends a real failure. The shared agent guide states these rules. The
-`hygiene` task enforces their mechanical part in every local `standards:check`;
-the isolated Dagger gate copies the tree without `.git` and skips it.
+`hygiene` task enforces their mechanical part in `standards:check`.
 
 Every tool, rule, and abstraction must remove identifiable uncertainty,
 defects, or manual work at an acceptable runtime and maintenance cost. Fast
@@ -70,8 +69,6 @@ ecosystem.
   `.gitattributes`, `.gitleaks.toml`, and `.gitignore`.
 - `Mise/` provides the `.config/mise` templates and the developer command
   surface.
-- `Dagger/` provides the optional module behind the explicit
-  `dagger:standards:check` mise task.
 - Each language or tooling folder contains one of the profiles listed below.
 - `extras/workstation/` holds optional personal workstation bootstrap scripts.
 
@@ -116,18 +113,7 @@ example, a Python and TypeScript project would retain `20-python.toml` and
 [mise usage](Mise/README.md) gives the minimum mise release for the copied
 configuration and its fragments, and the reasons for it.
 
-### 3. Add Dagger isolation if needed
-
-Projects that need isolated Dagger checks should also copy the task fragment
-and module:
-
-```text
-Mise/conf.d/10-dagger.toml -> .config/mise/conf.d/10-dagger.toml
-Dagger/dagger.json          -> dagger.json
-Dagger/dagger/              -> dagger/
-```
-
-### 4. Choose the profiles
+### 3. Choose the profiles
 
 Copy each language or tooling folder that the project needs:
 
@@ -172,7 +158,7 @@ A language folder may also contain an `AGENTS.md`. Those files are merge
 fragments, not standalone guides: copy `shared/AGENTS.md` first, then merge the
 language sections into it.
 
-### 5. Adapt the baseline
+### 4. Adapt the baseline
 
 The copyable files use neutral project names, conventional `src` and `tests`
 directories, and generic package namespaces. Replace those placeholders when
@@ -198,7 +184,7 @@ The aggregate mise tasks use marker files so the defaults remain copyable.
 Monorepos and mixed-tooling repositories should replace this generic dispatcher
 with explicit project-specific task dependencies or narrower markers.
 
-### 6. Verify the copied baseline
+### 5. Verify the copied baseline
 
 1. Remove language task files that do not apply.
 2. Adjust package names, namespaces, source directories, and test directories.
@@ -273,10 +259,6 @@ they do not replace the fast, static, deterministic gate.
 `SYFT_SOURCE_NAME` and `SYFT_SOURCE_VERSION` when its release metadata should
 differ from the directory name and default `0.0.0` version.
 
-If the Dagger template is installed, `mise run dagger:standards:check` runs
-`standards:check` in an official, digest-pinned `mise` Linux reference
-container. The task definitions remain in mise.
-
 ## Maintain the Catalog
 
 The repository root requires mise `2026.9.18` or newer, the highest fixture
@@ -326,16 +308,9 @@ rustup `cargo` already on `PATH`. rustup selects the toolchain from the same
 `rust-toolchain.toml`, because the root configuration unsets an inherited
 `RUSTUP_TOOLCHAIN`, which would otherwise outrank that file.
 
-To run an optional isolated proof, use the Dagger entrypoint of the
-representative Python fixture:
-
-```sh
-mise run //testers/python:dagger:standards:check
-```
-
 The profile-contract portion of the root gate has three focused checkers.
 `scripts/check-standards-drift.py` keeps shared task fragments, aggregate task
-dispatch, fixture configurations, Dagger fragments, full-configuration shared
+dispatch, fixture configurations, full-configuration shared
 files, and declared mirror files in sync, and runs the `hygiene` task against
 seeded clean and dirty trees. `scripts/check-ignore-contracts.py`
 exercises mutation-output ignore scope with Git's matcher.
