@@ -293,27 +293,26 @@ test('returns a safe not-allowed outcome before invoking the adapter', async () 
   expect(JSON.stringify(results)).not.toContain(unsafePath);
 });
 
-const oneSidedTargetCredentials = [
-  { name: 'username', url: 'https://user@example.com/health' },
-  { name: 'password', url: 'https://:secret@example.com/health' },
+const unauthorizedTargets = [
+  { id: 'username', url: 'https://user@example.com/health' },
+  { id: 'password', url: 'https://:secret@example.com/health' },
+  { id: 'object-url', url: 'blob:https://example.com/resource' },
 ] as const;
 
-for (const credential of oneSidedTargetCredentials) {
-  test(`rejects a target with only a URL ${credential.name}`, async () => {
+for (const { id, url } of unauthorizedTargets) {
+  test(`rejects the ${id} target before invoking the adapter`, async () => {
     let attempts = 0;
     const probe = Layer.succeed(EndpointProbe, {
       head: () => {
         attempts += 1;
 
-        return Effect.die('credentialed target reached adapter');
+        return Effect.die('unauthorized target reached adapter');
       },
     });
-    const results = await Effect.runPromise(
-      checkEndpoints(oneTarget(`${credential.name}-target`, credential.url)).pipe(Effect.provide(probe)),
-    );
+    const results = await Effect.runPromise(checkEndpoints(oneTarget(id, url)).pipe(Effect.provide(probe)));
 
     expect(attempts).toBe(0);
-    expect(results).toEqual([{ _tag: 'EndpointNotAllowed', id: `${credential.name}-target` }]);
+    expect(results).toEqual([{ _tag: 'EndpointNotAllowed', id }]);
   });
 }
 

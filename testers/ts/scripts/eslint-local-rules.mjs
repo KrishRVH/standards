@@ -163,17 +163,9 @@ function isIntrinsic(node, name, sourceCode, seenVariables = new Set()) {
 
 function isAmbientGlobal(node, sourceCode, seenVariables = new Set()) {
   const expression = unwrapExpression(node);
-  if (
-    isIntrinsic(expression, 'globalThis', sourceCode, new Set(seenVariables)) ||
-    isIntrinsic(expression, 'global', sourceCode, new Set(seenVariables))
-  ) {
-    return true;
-  }
-
   return (
-    expression?.type === 'MemberExpression' &&
-    ['global', 'globalThis'].includes(memberName(expression, sourceCode, seenVariables)) &&
-    isAmbientGlobal(expression.object, sourceCode, seenVariables)
+    isIntrinsic(expression, 'globalThis', sourceCode, new Set(seenVariables)) ||
+    isIntrinsic(expression, 'global', sourceCode, seenVariables)
   );
 }
 

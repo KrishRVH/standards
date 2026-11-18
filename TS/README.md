@@ -52,12 +52,11 @@ semantic suites, and locks together, so the profile lands on the new major
 with the same closed feedback loop it has today. Evidence comes from Effect 4
 alone: v3 APIs, examples, and documentation describe a different runtime.
 
-TypeScript remains at 6.0.3, the newest 6.x release, although 7.0.2 is
-stable: `typescript-eslint` 8.72 accepts only TypeScript below 6.1, the Stryker
-Bun runner 1.6 accepts only TypeScript below 7, and `@effect/language-service`
-targets TypeScript 6; TypeScript 7 needs the separate `@effect/tsgo` language
-service. Upgrade the compiler when those consumers support it and the full gate
-passes; do not add a second compiler to work around their version contracts.
+The profile pins TypeScript 6.0.3. `typescript-eslint` 8.72 accepts only
+TypeScript below 6.1. The Stryker Bun runner 1.6 requires TypeScript below 7.
+`@effect/language-service` targets TypeScript 6. TypeScript 7 needs the
+separate `@effect/tsgo` language service. Upgrade the compiler when those
+consumers support it and the full gate passes.
 
 ## Integrating into an existing project
 
@@ -191,18 +190,21 @@ Application source is compiler-owned and uses `.cts`, `.mts`, `.ts`, or `.tsx`;
 `jsx: preserve` keeps TSX inside the strict type gate. Oxlint state walls, knip,
 and Stryker use that same suffix set. First-party `.cjs`, `.js`, `.jsx`, and
 `.mjs` files under `src/` fail lint instead of silently escaping typechecking.
-The directive scanner still covers all eight JavaScript-like suffixes so
+The directive scanner covers all eight JavaScript-like suffixes so
 tooling and configuration files cannot bypass the exception protocol. It uses
 the existing TypeScript ESLint parser to identify comments outside the linter,
 including after template interpolation and inside JSX expressions. A lint
 directive cannot disable the exception protocol itself.
 
-The audit gate also covers development dependencies, so `package.json` pins a
-patched release of `qs`, which Stryker's `typed-rest-client` otherwise pins to
-a vulnerable version. Remove the override once no dependency resolves a
-vulnerable version without it. The countersigned escape for an advisory with
-no fixed release is a `--ignore <advisory-id>` flag added to the `audit`
-script, removed once the fix ships.
+The audit gate covers development dependencies. The overrides in `package.json`
+pin patched releases of `minimatch` and `qs` because lint and mutation tools
+require affected versions. Remove each override when the dependency tree
+resolves a patched version on its own.
+
+The audit script excludes GHSA-fc5q-39xc-vjpf in `picomatch`. Knip and
+the lint and mutation tools use it to match project file patterns. Upstream
+has no patched release. Remove the advisory exception and refresh the lock
+when a fix ships. Any advisory exception requires human approval.
 
 `ts:knip` fails on unused declared dependencies, unused files, and unused
 exports from both entry and non-entry modules. It ignores exports used inside
@@ -317,7 +319,7 @@ The catalog maintains and validates both lint-and-format workflows, but a
 copied profile's default gate runs only the primary workflow. The primary
 standards gate also owns type checks, tests, audits, knip, and mutation testing.
 Do not run both repair loops over one working tree. The catalog's root
-`standards:eslint-prettier:check` task proves that the secondary workflow still
+`standards:eslint-prettier:check` task proves that the secondary workflow
 accepts the canonical source, converges in scratch space, and then checks its
 own output. After any tool-version change, run
 `mise run ts:lock` and the relevant standards gate.

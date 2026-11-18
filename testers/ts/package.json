@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "bun@1.4.4",
   "scripts": {
-    "audit": "bun audit --audit-level=low",
+    "audit": "bun audit --audit-level=low --ignore GHSA-fc5q-39xc-vjpf",
     "directives:check": "bun run scripts/check-directives.mjs",
     "effect:check": "effect-language-service diagnostics --project tsconfig.json --severity error,warning",
     "effect:diagnostics:check": "bun run scripts/check-effect-diagnostics.mjs",
@@ -52,6 +52,7 @@
     "typescript-eslint": "8.72.0"
   },
   "overrides": {
+    "minimatch": "11.0.8",
     "qs": "6.16.1"
   }
 }

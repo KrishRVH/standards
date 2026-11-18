@@ -84,8 +84,8 @@ Decode policy origins as HTTPS URLs with no credentials, path beyond `/`,
 query, or fragment. Store their canonical `URL.origin` values and reject
 duplicates after normalization. For each target, keep the caller's stable target ID
 separate from the transport URL and derive a safe origin for authorization and
-diagnostics. Reject credentials, an unauthorized origin, excess target count,
-and excess concurrency before native I/O.
+diagnostics. Before native I/O, require the HTTPS scheme, empty credentials, an
+authorized origin, and bounded target count and concurrency.
 
 Exact-origin authorization plus redirect rejection is useful but is not a
 complete SSRF defense. An attacker-influenced destination can still be affected
