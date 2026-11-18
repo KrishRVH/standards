@@ -235,6 +235,16 @@ struct LineSplitter {
   var contexts: [Context] = []
 
   mutating func split(_ line: String) -> (code: String, comment: String?) {
+    // A quote in a regex literal can resemble a single-line string opener.
+    // Only block comments and multiline strings can extend onto the next line.
+    defer {
+      if let index = contexts.firstIndex(where: { context in
+        if case .string(let end, _) = context { return !end.hasPrefix("\"\"\"") }
+        return false
+      }) {
+        contexts.removeSubrange(index...)
+      }
+    }
     var code = ""
     var rest = line[...]
     while let character = rest.first {
@@ -363,6 +373,7 @@ func selfTest() throws -> [String] {
     (##"let text = #"quoted "Date()" text"#"##, true, 0),
     (##"let text = #"Date()"#; let now = Date()"##, true, 1),
     (#"let text = "prefix \(format("Date()")) suffix""#, true, 0),
+    ("let quote = /\"/\nlet now = Date()", true, 1),
     ("let now = Date()", true, 1),
     ("let now = Date()", false, 0),
     ("// The composition root owns the clock.\nlet now = Date()", true, 0),
