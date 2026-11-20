@@ -29,8 +29,8 @@ test defends a real failure. The shared agent guide states these rules. The
 Every tool, rule, and abstraction must remove identifiable uncertainty,
 defects, or manual work at an acceptable runtime and maintenance cost. Fast
 terminal interactions and short feedback loops are part of that contract.
-Uniform project task names help agents switch contexts; wrapping ordinary host
-commands adds no such benefit.
+Uniform task names let an agent change projects without relearning toolchains;
+a task that adds neither a shared name nor encoded knowledge fails this test.
 
 ## Adoption Model
 
@@ -207,9 +207,8 @@ Project tasks work without interactive activation or shims. See the
 
 ## Use Mise for Development and CI
 
-Developers and CI use the same project workflow commands. Ordinary utilities
-such as `tokei`, `rg`, and `git` run directly; see [mise usage](Mise/README.md)
-for the boundary between project tasks and host tools.
+Developers, agents, and CI use the same tasks. [mise usage](Mise/README.md)
+states what earns a task and how every other command runs.
 
 ```sh
 mise install

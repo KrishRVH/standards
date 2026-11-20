@@ -5,19 +5,32 @@ before changing architecture or domain language.
 
 ## Commands
 
-`mise run` is the entry point for project workflows; tasks wrap the toolchain.
-Run `mise tasks` and read the definitions of the tasks you use. Extend an
-existing task before you add one.
+Tasks are the project's interface. `mise run test`, `mise run lint`, and
+`mise run standards:check` mean the same thing in every project, whichever
+toolchain does the work, and each task holds what its workflow needs: flags,
+order, environment, and prerequisites. Run `mise tasks` and read the
+definitions of the tasks you use.
 
 - `mise install` installs the pinned tools. When an install needs network, run
   it and report that.
 - `mise run standards` applies the available autofixes.
 - `mise run standards:check` is the CI gate; run it before handoff.
 
-Run `git`, `rg`, `tokei`, and standalone scripts directly. Use native commands
-for focused diagnosis and the mise gate for final verification. Use
-`mise exec -- <command>` only when a command needs a pinned tool or environment
-and no task covers it.
+Choose each command by what it does:
+
+- A task covers the workflow: run the task.
+- A workflow no task covers yet, such as a command line a doc tells readers to
+  type, is a missing task: extend an existing task or add one. A task earns
+  its name with a verb every project shares or with knowledge the caller
+  would otherwise carry. Its body is the toolchain's own command line, and
+  `depends` composes it with other tasks.
+- Everything else runs as itself: `git`, `rg`, `tokei`, standalone scripts,
+  mise's own commands such as `mise lock`, and one-off toolchain commands for
+  focused diagnosis.
+
+A shell without mise activation, such as an agent shell, changes how a one-off
+toolchain command starts and nothing else: `mise exec -- <command>`. The
+config supplies the tools and versions.
 
 ## Leave It Current
 

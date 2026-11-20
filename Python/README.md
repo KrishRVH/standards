@@ -28,7 +28,7 @@ Use this with the shared mise template:
 .config/mise/tasks/hygiene
 ```
 
-Day-to-day commands should go through mise:
+The profile's tasks:
 
 ```sh
 mise run py:fmt:check

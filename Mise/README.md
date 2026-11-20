@@ -10,15 +10,35 @@ task references, checksum-backed HTTP tool locks, the `hygiene` task's
 with the mise release used in CI so that CI can read its format. Language
 fragments can set a higher `min_version`.
 
-Use `mise run` for project workflows so a developer can build, format, or test
-without knowing the underlying toolchain.
+Tasks are the project's interface. `mise run test`, `mise run lint`, and
+`mise run standards:check` mean the same thing in a Rust, Go, or TypeScript
+project, so a developer or agent changes projects without relearning which
+toolchain builds, formats, or tests each one.
 
-Run host utilities such as `git`, `rg`, and `tokei` directly. Native commands
-remain available for focused diagnosis. Use `mise exec -- <command>` when a
-specific invocation needs the project's pinned tool or environment and no
-suitable task exists. Final verification uses the project's mise gates.
+A task earns its name in one of two ways:
 
-`mise run` supplies its own tool environment. Interactive activation and shims
+- It is a verb every project shares, such as `fmt`, `lint`, `test`, or
+  `standards`, or a language-prefixed form such as `go:lint`.
+- It carries knowledge the caller would otherwise need: flags, order,
+  environment, prerequisites, or several steps. `go:cover` is an example.
+
+Write a task's body as the toolchain's own command line. Compose tasks with
+`depends` and structured task references, so a shared prerequisite runs once
+and a failure stops the graph. Pin the tools a task calls, so the task runs the
+same in a bare shell and in CI.
+
+Everything else runs as itself: host utilities such as `git`, `rg`, and
+`tokei`, standalone scripts, mise's own commands such as `mise install`,
+`mise tasks`, `mise doctor`, and `mise lock`, and one-off toolchain commands
+for focused diagnosis. A workflow that no task covers yet, such as a command
+line a doc tells readers to type, is a missing task; add it. When a task would
+only forward its arguments to one command, run that command. Final
+verification uses the project's mise gates.
+
+`mise run` supplies its own tool environment, so tasks behave the same with or
+without shell activation. In a shell without activation, such as an agent's or
+a script's, start a one-off toolchain command with `mise exec -- <command>`;
+the config supplies the tools and versions. Interactive activation and shims
 are optional choices for automatic tool selection. The
 [workstation guide](../extras/workstation/README.md) describes the bootstrap's
 shell defaults and latency checks.
@@ -41,9 +61,6 @@ mise run hygiene
 mise run secrets
 mise run sbom
 ```
-
-Use mise's own commands, such as `mise install`, `mise tasks`, `mise doctor`,
-and `mise lock`, directly; the template does not wrap them in tasks.
 
 `hygiene` checks the tree as it would be committed: tracked and new, non-ignored
 files, including sparse and symlinked entries by name. It prints a line

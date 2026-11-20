@@ -19,9 +19,11 @@ mise run shell:test
 mise run shell:standards:check
 ```
 
-Run one of the runner's subcommands (`fmt`, `fmt-check`, `lint`, `syntax`,
-`policy`, or `test`) with the pinned tools through
-`mise exec -- scripts/shell-standards.sh <subcommand>`. Bash runs the standards
+The `shell:fmt`, `shell:fmt:check`, `shell:lint`, and `shell:test` tasks each
+run one subcommand of `scripts/shell-standards.sh`. The `lint` subcommand
+also runs the `syntax` and `policy` checks, which need only the host shells
+and Git, so `scripts/shell-standards.sh syntax` or
+`scripts/shell-standards.sh policy` runs one alone. Bash runs the standards
 runner; install zsh when checking zsh scripts.
 
 Default checks:

@@ -69,6 +69,7 @@ dependency install and Stryker cache steps.
   `shared/AGENTS.md` for guidance that applies across languages.
 - Changing `Mise/` or a tested stack means updating the matching
   fixture when applicable.
+- A task in `Mise/` or a fixture earns its name as `Mise/README.md` describes.
 - `standards.manifest.toml` is the profile source of truth. Add or remove
   tested profiles there. The root monorepo discovers `testers/*`; keep the
   drift checker proving that every discovered fixture is declared and every

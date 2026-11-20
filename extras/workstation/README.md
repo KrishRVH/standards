@@ -51,9 +51,10 @@ retain their precedence. Direct launchers preserve detected common Windows
 commands and Code/Cursor. Set `WSL_KEEP_WINDOWS_PATH=1` before shell startup to
 retain the full inherited Windows PATH.
 
-Use `mise exec -- <command>` for a specific invocation that needs a project's
-pinned tool or environment and has no suitable task. Project tasks supply their
-own environment regardless of interactive activation.
+Agent and script shells are noninteractive, so mise activation never runs:
+they load the shared environment file and no project toolchain. Project tasks
+supply their own environment there, and [mise usage](../../Mise/README.md)
+states how a one-off toolchain command starts in such a shell.
 
 ## Keep the workstation responsive
 

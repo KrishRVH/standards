@@ -1726,10 +1726,11 @@ Examples:
   mise exec -- node --version
 
 Notes:
-  Prefer checked-in mise configuration for reproducibility. mise run supplies
-  the task environment without shell activation. Use mise exec only when a
-  one-off command needs a project-pinned tool. Run host tools directly.
-  Keep just for existing projects that already use a justfile.
+  Prefer checked-in mise configuration for reproducibility. Tasks are a
+  project's interface, and mise run supplies their environment without shell
+  activation. In a shell without activation, mise exec -- COMMAND starts a
+  one-off project command; the config supplies the versions. Run host tools
+  directly. Keep just for existing projects that already use a justfile.
 DOC
       ;;
     starship)
@@ -2871,8 +2872,9 @@ Setup never clears command history.
 Cargo/Rust use rustup, and standalone CLIs execute directly from native
 binaries. Mise manages Node LTS and switches runtime directories interactively.
 `activate_shims` and `not_found_auto_install` are disabled. A direct Node
-runtime path also works in noninteractive sessions. For project-specific
-mise environments in scripts, explicitly use `mise exec -- COMMAND`.
+runtime path also works in noninteractive sessions. Project tasks carry their
+own environment; a script that needs a project's tools outside a task uses
+`mise exec -- COMMAND`.
 
 The inherited Windows PATH is trimmed after the Linux system paths to avoid
 expensive Windows directory scans. Direct launchers preserve common Windows
