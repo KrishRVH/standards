@@ -9,12 +9,12 @@ The tested dependency set is exact:
 
 | Package/runtime            | Version |
 | -------------------------- | ------- |
-| `effect`                   | 4.0.6   |
-| `@effect/platform-bun`     | 4.0.6   |
+| `effect`                   | 4.1.5   |
+| `@effect/platform-bun`     | 4.1.5   |
 | `@effect/language-service` | 0.87.5  |
 | TypeScript                 | 6.0.3   |
-| Bun                        | 1.4.4   |
-| `@types/bun`               | 1.4.4   |
+| Bun                        | 1.4.5   |
+| `@types/bun`               | 1.4.5   |
 
 Application dependencies and development tools are exact and the lockfile is
 mirrored because a copied private app must not install an untested version.
@@ -52,7 +52,7 @@ semantic suites, and locks together, so the profile lands on the new major
 with the same closed feedback loop it has today. Evidence comes from Effect 4
 alone: v3 APIs, examples, and documentation describe a different runtime.
 
-The profile pins TypeScript 6.0.3. `typescript-eslint` 8.72 accepts only
+The profile pins TypeScript 6.0.3. `typescript-eslint` 8.73 accepts only
 TypeScript below 6.1. The Stryker Bun runner 1.6 requires TypeScript below 7.
 `@effect/language-service` targets TypeScript 6. TypeScript 7 needs the
 separate `@effect/tsgo` language service. Upgrade the compiler when those
@@ -196,15 +196,11 @@ the existing TypeScript ESLint parser to identify comments outside the linter,
 including after template interpolation and inside JSX expressions. A lint
 directive cannot disable the exception protocol itself.
 
-The audit gate covers development dependencies. The overrides in `package.json`
+The audit gate covers development dependencies and ignores no advisories; an
+advisory exception requires human approval. The overrides in `package.json`
 pin patched releases of `minimatch` and `qs` because lint and mutation tools
 require affected versions. Remove each override when the dependency tree
 resolves a patched version on its own.
-
-The audit script excludes GHSA-fc5q-39xc-vjpf in `picomatch`. Knip and
-the lint and mutation tools use it to match project file patterns. Upstream
-has no patched release. Remove the advisory exception and refresh the lock
-when a fix ships. Any advisory exception requires human approval.
 
 `ts:knip` fails on unused declared dependencies, unused files, and unused
 exports from both entry and non-entry modules. It ignores exports used inside
