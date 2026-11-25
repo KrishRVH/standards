@@ -51,6 +51,12 @@ unsafe_code = "forbid"
 [workspace.lints.rustdoc]
 all = { level = "deny", priority = -1 }
 
+# Cargo's unused_dependencies lint stays a warning in ordinary builds, so a
+# mutant that removes a dependency's last use still builds; rust:unused-deps
+# denies lint warnings.
+[workspace.lints.cargo]
+unused_dependencies = "warn"
+
 [workspace.lints.clippy]
 # Lint groups at lower priority so the named lints below override them. The
 # rust:lint gate runs with warnings denied, so `warn` here changes nothing at

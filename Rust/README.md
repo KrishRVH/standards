@@ -45,6 +45,7 @@ mise run rust:fmt
 mise run rust:fmt:check
 mise run rust:lint
 mise run rust:policy
+mise run rust:unused-deps
 mise run rust:doc
 mise run rust:test
 mise run rust:package
@@ -61,9 +62,9 @@ their GitHub release binaries. cargo-mutants publishes x86_64 binaries only; on
 an arm64 host, pin `cargo:cargo-mutants` instead. cargo-deny publishes no Intel
 macOS binary; on an Intel Mac, pin `cargo:cargo-deny` instead.
 Cargo tasks share one build-directory lock, so the gate runs Clippy, the
-documentation build, the tests, and the package check in a fixed order.
-`rust:policy` and cargo-mutants run beside them with formatting, cargo-deny,
-and cargo-machete. cargo-mutants builds in its own copy of the tree.
+unused-dependency check, the documentation build, the tests, and the package
+check in a fixed order. `rust:policy` and cargo-mutants run beside them with
+formatting, cargo-deny, and cargo-machete. cargo-mutants builds in its own copy of the tree.
 `rust:policy`'s `cargo test` builds take the shared lock, and the rest of its
 time goes to the lock self-test's shutdown timeouts and to Clippy on the
 lint-wall probe, which uses a separate target directory.
@@ -191,6 +192,17 @@ warnings without failing. `rust:machete` first proves all-feature Cargo
 metadata against the committed lock, then uses metadata-aware, offline
 analysis for renamed dependencies. It fails on unused `[dependencies]`
 entries; dev- and build-dependencies remain outside cargo-machete's scope.
+`rust:unused-deps` adds Cargo's compiler-backed `unused_dependencies` lint. It
+fails on unused `[build-dependencies]` entries and on `[dependencies]` entries
+that only tests, examples, or benches use, which belong in
+`[dev-dependencies]`. Cargo misses a direct dependency that another dependency
+also pulls in, checks only the host platform's tables, and never lints
+`[dev-dependencies]`, so cargo-machete stays. An explicit target flag such as
+`--lib` can skip Cargo's check, so the task passes none, and
+`tests/lint_wall.rs` pins its command line. `Cargo.toml` keeps the lint a
+warning, and only this task denies lint warnings, through
+`CARGO_BUILD_WARNINGS`, so a mutant that removes a dependency's last use still
+builds and gets tested.
 
 `rust:mutants` runs the full mutation sweep and runs all workspace tests against
 each mutant. Both lanes clear `mutants.out/` and force cargo-mutants to write

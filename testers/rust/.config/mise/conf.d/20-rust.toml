@@ -46,9 +46,20 @@ cargo test --locked --all-features --test lint_wall -- --ignored
 echo "The mutation verifiers and configured lint wall passed."
 """
 
+# An explicit target flag such as --lib can skip Cargo's check of
+# [dependencies] and [build-dependencies], so this task keeps the default target
+# selection, in which a regular dependency counts as used only when the library
+# or a binary uses it. CARGO_BUILD_WARNINGS denies lint warnings in this build
+# alone, so a mutant that removes a dependency's last use still builds.
+# tests/lint_wall.rs pins this command line.
+[tasks."rust:unused-deps"]
+description = "Fail on unused regular and build dependencies and any other lint warning"
+wait_for = ["rust:lint"]
+run = "CARGO_BUILD_WARNINGS=deny cargo check --workspace --all-features --locked"
+
 [tasks."rust:doc"]
 description = "Build Rust documentation with warnings denied"
-wait_for = ["rust:lint"]
+wait_for = ["rust:unused-deps"]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --all-features --no-deps --locked"
 
 # Nextest runs every test binary at once; doctests still need libtest.
@@ -169,6 +180,7 @@ depends = [
   "rust:fmt:check",
   "rust:lint",
   "rust:policy",
+  "rust:unused-deps",
   "rust:doc",
   "rust:test",
   "rust:package",

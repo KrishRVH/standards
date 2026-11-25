@@ -158,8 +158,9 @@ a stale lock.
 
 Prefer the standard library. For each added dependency, state the complexity
 it removes. `rust:deny` checks dependency policy including development
-dependencies; `rust:machete` checks unused regular dependencies. Review
-dev/build dependency use separately and report duplicate-version warnings.
+dependencies; `rust:machete` and `rust:unused-deps` check unused regular
+dependencies, and `rust:unused-deps` also checks build dependencies. Review
+dev-dependency use separately and report duplicate-version warnings.
 
 For a non-trivial change, obtain an independent read-only review of tests,
 changed code, exceptions, and affected contracts. Add focused reviewers when

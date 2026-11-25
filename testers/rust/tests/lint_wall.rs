@@ -1,6 +1,8 @@
 //! Executable contract that the configured lint wall fires: the `rust:lint`
 //! command line must report exactly the diagnostics that trailing
-//! `//~ ERROR <code>` comments mark in `policy-fixtures/lint-wall.rs.in`.
+//! `//~ ERROR <code>` comments mark in `policy-fixtures/lint-wall.rs.in`. It
+//! also pins the `rust:unused-deps` command line, because an explicit Cargo
+//! target flag there can skip Cargo's unused-dependency check.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -18,6 +20,8 @@ const PROBE_SOURCE: &str = "src/lib.rs";
 const ERROR_MARKER: &str = "//~ ERROR ";
 const TASK_FRAGMENT: &str = ".config/mise/conf.d/20-rust.toml";
 const PROOF_COMMAND: &str = "cargo test --locked --all-features --test lint_wall -- --ignored";
+const UNUSED_DEPS_COMMAND: &str =
+    "CARGO_BUILD_WARNINGS=deny cargo check --workspace --all-features --locked";
 /// The `rust:lint` keys a replay of its `run` value reproduces. Any other key,
 /// including one a later mise release adds, can change or skip what the gate
 /// runs.
@@ -694,6 +698,17 @@ fn rust_policy_runs_the_lint_wall_proof() {
     assert!(
         policy.lines().any(|line| line.trim() == PROOF_COMMAND),
         "rust:policy must run the ignored lint-wall proof with `{PROOF_COMMAND}`"
+    );
+}
+
+#[test]
+fn rust_unused_deps_keeps_the_command_that_lints_dependencies() {
+    let tasks = rust_tasks(&project_root()).unwrap_or_else(|error| panic!("{error}"));
+    let run = task_run(&tasks, "rust:unused-deps").unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(
+        run.trim(),
+        UNUSED_DEPS_COMMAND,
+        "rust:unused-deps must keep the default target selection and deny lint warnings; an explicit target flag can skip Cargo's unused-dependency check"
     );
 }
 
