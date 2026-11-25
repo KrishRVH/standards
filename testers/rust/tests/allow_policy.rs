@@ -8,7 +8,7 @@ use std::fs;
 use std::io;
 use std::mem;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
 
 use proc_macro2::{Delimiter, Spacing, TokenStream, TokenTree};
@@ -23,10 +23,10 @@ const ROOT_EXCLUDED_DIRECTORIES: [&str; 4] = ["mutants.out", "mutants.out.old", 
 /// `rustdoc` list them with `-W help`. An expectation on a group silences
 /// every lint in it.
 const LINT_GROUPS: [&str; 24] = [
-    "clippy::all",
     "clippy::cargo",
     "clippy::complexity",
     "clippy::correctness",
+    "clippy::default",
     "clippy::nursery",
     "clippy::pedantic",
     "clippy::perf",
@@ -48,6 +48,12 @@ const LINT_GROUPS: [&str; 24] = [
     "unused",
     "warnings",
 ];
+
+/// Group names the pinned toolchain accepts silently without listing them in
+/// `-W help`; an expectation on one silences its whole group. rustc keeps
+/// `bad_style` for `nonstandard_style`, and Clippy soft-renamed `clippy::all`
+/// to `clippy::default` (rust-clippy#14689).
+const LINT_GROUP_ALIASES: [&str; 2] = ["bad_style", "clippy::all"];
 
 /// The lints that keep `#[allow]` out; expecting them reopens that door.
 const ALLOW_ATTRIBUTE_LINTS: [&str; 2] = [
@@ -363,7 +369,9 @@ fn is_broad_expectation(meta: &Meta) -> bool {
     let lints = expected_lints(meta);
     lints.len() > 1
         || lints.iter().any(|lint| {
-            LINT_GROUPS.contains(&lint.as_str()) || ALLOW_ATTRIBUTE_LINTS.contains(&lint.as_str())
+            LINT_GROUPS.contains(&lint.as_str())
+                || LINT_GROUP_ALIASES.contains(&lint.as_str())
+                || ALLOW_ATTRIBUTE_LINTS.contains(&lint.as_str())
         })
 }
 
@@ -383,7 +391,7 @@ fn expected_lints(meta: &Meta) -> Vec<String> {
     }
     Punctuated::<Meta, Token![,]>::parse_terminated
         .parse2(list.tokens.clone())
-        .map(|arguments| {
+        .map_or_default(|arguments| {
             arguments
                 .iter()
                 .filter_map(|argument| match argument {
@@ -392,7 +400,6 @@ fn expected_lints(meta: &Meta) -> Vec<String> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
 }
 
 fn lint_name(path: &syn::Path) -> String {
@@ -1644,10 +1651,16 @@ fn rejects_expectations_naming_lint_groups() {
 
         #[expect(rustdoc::all, reason = "claimed exception")]
         fn rustdoc_group() {}
+
+        #[expect(bad_style, reason = "claimed exception")]
+        fn rustc_group_alias() {}
+
+        #[expect(clippy::all, reason = "claimed exception")]
+        fn clippy_group_alias() {}
         "#;
     assert_eq!(
         allow_policy_violation_count(source).expect("valid Rust tokens"),
-        4
+        6
     );
 }
 
@@ -1710,6 +1723,32 @@ fn lint_groups_match_the_toolchain() {
         listed, toolchain_groups,
         "LINT_GROUPS must list every lint group of the pinned toolchain"
     );
+}
+
+#[test]
+fn lint_group_aliases_remain_silently_accepted() {
+    for alias in LINT_GROUP_ALIASES {
+        let output = Command::new("clippy-driver")
+            .args([
+                "-",
+                "--crate-type=lib",
+                "--edition=2024",
+                "--emit=metadata",
+                "-D",
+                alias,
+                "--out-dir",
+            ])
+            .arg(env!("CARGO_TARGET_TMPDIR"))
+            .current_dir(project_root())
+            .stdin(Stdio::null())
+            .output()
+            .unwrap_or_else(|error| panic!("cannot run clippy-driver: {error}"));
+        assert!(
+            output.status.success() && output.stderr.is_empty(),
+            "the pinned toolchain no longer silently accepts {alias}; drop it from LINT_GROUP_ALIASES: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }
 
 /// Reads the name column of each `Lint groups` table in `-W help` output.

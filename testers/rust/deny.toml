@@ -1,5 +1,6 @@
 # Agents add dependencies autonomously, so the supply-chain gate is strict:
-# vulnerabilities and unmaintained advisories deny (the pinned default), and
+# vulnerabilities deny (the pinned default), unmaintained advisories deny
+# across the whole graph rather than cargo-deny's default workspace scope, and
 # yanked crates are promoted to deny. Duplicate versions surface as warnings,
 # not failures; the handoff report carries them forward (AGENTS.md
 # dependencies and review).

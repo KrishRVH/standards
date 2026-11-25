@@ -56,9 +56,10 @@ mise run rust:standards
 mise run rust:standards:check
 ```
 
-mise installs cargo-deny from aqua and cargo-machete, cargo-nextest, and
-cargo-mutants from their GitHub release binaries. cargo-mutants publishes
-x86_64 binaries only; on an arm64 host, pin `cargo:cargo-mutants` instead.
+mise installs cargo-deny, cargo-machete, cargo-nextest, and cargo-mutants from
+their GitHub release binaries. cargo-mutants publishes x86_64 binaries only; on
+an arm64 host, pin `cargo:cargo-mutants` instead. cargo-deny publishes no Intel
+macOS binary; on an Intel Mac, pin `cargo:cargo-deny` instead.
 Cargo tasks share one build-directory lock, so the gate runs Clippy, the
 documentation build, the tests, and the package check in a fixed order.
 `rust:policy` and cargo-mutants run beside them with formatting, cargo-deny,
@@ -75,10 +76,12 @@ member crates inherit it via `[lints] workspace = true`; its comments name the
 invariant each group defends. Panic-class lints, the print macros, and the
 shared-mutable-state primitives that `clippy.toml` disallows are denied. Test
 code gets only the exemptions that the `allow-*-in-tests` knobs in
-`clippy.toml` grant; `AGENTS.md` states their boundary. Clippy does not report
-arithmetic inside `#[test]` bodies, though it does in helpers and `proptest!`
-bodies (rust-clippy#13845); an unmarked control in the lint-wall probe fails
-the proof when that changes. `clippy.toml` turns off Clippy's exported-API
+`clippy.toml` grant; `AGENTS.md` states their boundary. Clippy grants them to
+every target whose crate root lies under the workspace root's `tests/`
+directory, whatever its Cargo target kind, and no check keeps production
+targets out of it. Clippy does not report arithmetic inside `#[test]` bodies,
+though it does in helpers and `proptest!` bodies (rust-clippy#13845); an
+unmarked control in the lint-wall probe fails the proof when that changes. `clippy.toml` turns off Clippy's exported-API
 exemption, so its API-shape lints cover `pub` items too.
 Release builds keep integer overflow checks.
 
@@ -95,8 +98,10 @@ remain legal because only their documentation value is forwarded. It rejects
 `expect` attributes that name more than one lint, a lint group, or an
 `allow_attributes` lint, and crate-level `#![expect]` attributes at the root of
 every workspace target except tests, whose roots still may not expect
-`clippy::arithmetic_side_effects`. Companion tests fail when the pinned
-toolchain's lint groups no longer match the scanner's list, and when the lints
+`clippy::arithmetic_side_effects`. A group counts under a soft-renamed alias
+too, such as `clippy::all` for `clippy::default`. Companion tests fail when
+the pinned toolchain's lint groups no longer match the scanner's list, when the
+toolchain stops silently accepting an alias, and when the lints
 `[workspace.lints.clippy]` denies by name differ from the scanner's panic,
 non-panic, and allow-attribute lists, so a newly denied lint must be classified.
 

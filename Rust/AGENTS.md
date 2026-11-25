@@ -107,17 +107,19 @@ Stale expectations fail the lint gate. Lint levels come only from
 compiler flags and Cargo configuration that lower them.
 
 For a justified panic assertion, use `expect` with a message naming the
-invariant. Clippy's test exemptions cover `#[test]` functions and items under
-a `#[cfg(test)]` attribute: they may print, and may unwrap, expect, panic, and
-index on invariants they establish. Other test code, such as a top-level
-integration-test helper, has no exemption. There, a fallible helper returns
-`Result`. No test exemption covers arithmetic, and test code takes no
-arithmetic expectation. Prefer literal expected values. Where Clippy reports
-test arithmetic, use `checked_` methods, with `expect` naming the invariant
-where a test exemption applies and `?` in a `Result`-returning helper
-elsewhere. Only a test of an operator implementation itself takes a reasoned
-expectation, on the item Clippy reports. Doc examples use `?`, not
-`unwrap()`, because Clippy does not lint doctests.
+invariant. Clippy's test exemptions cover `#[test]` functions, items under a
+`#[cfg(test)]` attribute, and every target whose crate root lies under the
+workspace root's `tests/` directory: they may print, and may unwrap, expect,
+panic, and index on invariants they establish. Keep production targets out of
+that directory. Other test code, such as an integration-test helper in a member
+crate, has no exemption. There, a fallible helper returns `Result`. No test
+exemption covers arithmetic, and test code takes no arithmetic expectation.
+Prefer literal expected values. Where Clippy reports test arithmetic, use
+`checked_` methods, with `expect` naming the invariant where a test exemption
+applies and `?` in a `Result`-returning helper elsewhere. Only a test of an
+operator implementation itself takes a reasoned expectation, on the item Clippy
+reports. Doc examples use `?`, not `unwrap()`, because Clippy does not lint
+doctests.
 
 `unsafe_code = "forbid"` has no local escape. Work requiring unsafe needs
 explicit human authorization to change the profile to `deny`; in that change,

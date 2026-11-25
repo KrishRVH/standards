@@ -4,9 +4,9 @@
 idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
-"aqua:EmbarkStudios/cargo-deny" = "0.20.2"
-"github:bnjbvr/cargo-machete" = "0.9.2"
-"github:nextest-rs/nextest" = { version = "0.9.149", version_prefix = "cargo-nextest-" }
+"github:EmbarkStudios/cargo-deny" = "0.22.1"
+"github:bnjbvr/cargo-machete" = "0.10.1"
+"github:nextest-rs/nextest" = { version = "0.9.152", version_prefix = "cargo-nextest-" }
 "github:sourcefrog/cargo-mutants" = "27.1.0"
 
 [tasks."rust:lock"]

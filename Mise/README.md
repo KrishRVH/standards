@@ -144,8 +144,8 @@ and test run Release builds with analyzer warnings promoted to failures.
 The Rust task file reads the compiler pin from `rust-toolchain.toml`, runs the
 workspace's Cargo checks with `--locked`, builds docs with rustdoc warnings
 denied, and runs the tests with cargo-nextest plus the doctests. Its
-`[tools]` pin cargo-deny through aqua and cargo-machete, cargo-nextest, and
-cargo-mutants through their GitHub release binaries.
+`[tools]` pin cargo-deny, cargo-machete, cargo-nextest, and cargo-mutants
+through their GitHub release binaries.
 
 The Swift task file uses the native Swift backend and requires mise 2026.9.18
 or newer. The pinned toolchain includes SwiftPM, Swift Testing, and swift-format;
