@@ -2,8 +2,8 @@
 min_version = "2026.9.18"
 
 [tools]
-swift = "6.4.1"
-"aqua:google/osv-scanner" = "2.7.0"
+swift = "6.4.3"
+"aqua:google/osv-scanner" = "2.7.1"
 
 [tasks."swift:lock"]
 description = "Resolve Swift dependencies after manifest changes"
