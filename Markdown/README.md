@@ -48,7 +48,5 @@ result confirms success?
   the [Markdown lint config](.markdownlint-cli2.jsonc) with their scope and
   rationale.
 - `mise run md:standards:check:deep` also checks external links and audits
-  tooling dependencies. The audit exempts development dependency picomatch
-  for advisory GHSA-fc5q-39xc-vjpf until a patched version resolves in the
-  lockfile. The KaTeX override supplies a patched version for markdownlint's
-  math parser.
+  tooling dependencies. The KaTeX override supplies a patched version for
+  markdownlint's math parser.

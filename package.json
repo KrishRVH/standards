@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.4.4",
+  "packageManager": "bun@1.4.5",
   "scripts": {
-    "md:audit": "bun audit --audit-level=low --ignore GHSA-fc5q-39xc-vjpf",
+    "md:audit": "bun audit --audit-level=low",
     "md:lint": "markdownlint-cli2",
     "md:lint:fix": "markdownlint-cli2 --fix",
     "md:test": "bun test ./scripts/markdown-policy.test.mjs ./scripts/static-mdx.test.mjs"
@@ -13,7 +13,7 @@
   "devDependencies": {
     "js-yaml": "^5.5.0",
     "mdast-util-to-string": "^4.0.0",
-    "markdownlint-cli2": "^0.24.1",
+    "markdownlint-cli2": "^0.24.2",
     "remark-mdx": "^3.1.1",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5"
