@@ -6,6 +6,8 @@
   `csharp:standards:check` before handoff.
 - Keep package versions in `Directory.Packages.props` and commit project lock
   files. Do not add project-local versions or warning overrides.
+- Keep the SDK on the current long-term-support .NET release at its newest SDK
+  patch. Do not move the profile to a standard-term-support release.
 - Read `Directory.Build.props`, `.editorconfig`, and `BannedSymbols.txt` for
   the compiler and analyzer contract. Treat their failures as defects in the
   change; fix the cause before suppressing a diagnostic.

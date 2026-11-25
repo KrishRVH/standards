@@ -3,9 +3,9 @@
 lockfile_version = 4
 
 [[tools.dotnet]]
-version = "11.0.100"
+version = "10.0.404"
 backend = "core:dotnet"
-specifiers = ["11.0.100"]
+specifiers = ["10.0.404"]
 
 [[tools."dotnet:dotnet-stryker"]]
 version = "5.1.0"

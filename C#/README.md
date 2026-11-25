@@ -14,13 +14,17 @@ Merge `AGENTS.md` into the repository's agent guide. Applications should also
 copy `APPLICATION.md`; libraries and specialized workloads should skip that
 profile or adopt only the rules that fit their public contract.
 
-The baseline pins .NET 11, C# 15, `MSTest.Sdk`, and Microsoft Testing Platform.
+The baseline pins .NET 10, C# 14, `MSTest.Sdk`, and Microsoft Testing Platform.
 It enables nullable analysis and checked arithmetic, disables unsafe code,
 implicit usings, and preview features, and promotes compiler, code-style, and
 analyzer warnings to build failures. The SDK analyzer baseline is
-`11.0-recommended`, with every security, reliability, usage, and performance
+`10.0-recommended`, with every security, reliability, usage, and performance
 rule enabled. Meziantou and Roslynator use their package defaults instead of
 forcing every diagnostic on.
+
+The profile stays on the current long-term-support (LTS) .NET release, now
+.NET 10, at its newest SDK patch. It skips standard-term-support (STS)
+releases such as .NET 11.
 
 The profile is optimized for agent-driven development; `AGENTS.md` holds the
 doctrine. The mechanical walls: `BannedSymbols.txt` bans ambient and shared
@@ -58,14 +62,14 @@ Test projects use the centrally pinned SDK without a test package reference:
 ```xml
 <Project Sdk="MSTest.Sdk">
   <PropertyGroup>
-    <TargetFramework>net11.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 </Project>
 ```
 
 The profile requires at least one discovered test per test application. Keep
-all test projects on Microsoft Testing Platform; the MTP mode of `dotnet test`
-that `global.json` selects fails on a project that supports only VSTest.
+all test projects on Microsoft Testing Platform; .NET 10 does not support
+mixing MTP and VSTest projects in one `dotnet test` invocation.
 
 The standards workflow is:
 

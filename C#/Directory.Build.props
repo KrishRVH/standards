@@ -1,11 +1,11 @@
 <Project>
   <PropertyGroup>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <AnalysisLevel>11.0-recommended</AnalysisLevel>
-    <AnalysisLevelPerformance>11.0-all</AnalysisLevelPerformance>
-    <AnalysisLevelReliability>11.0-all</AnalysisLevelReliability>
-    <AnalysisLevelSecurity>11.0-all</AnalysisLevelSecurity>
-    <AnalysisLevelUsage>11.0-all</AnalysisLevelUsage>
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
+    <AnalysisLevelPerformance>10.0-all</AnalysisLevelPerformance>
+    <AnalysisLevelReliability>10.0-all</AnalysisLevelReliability>
+    <AnalysisLevelSecurity>10.0-all</AnalysisLevelSecurity>
+    <AnalysisLevelUsage>10.0-all</AnalysisLevelUsage>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
@@ -16,7 +16,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ImplicitUsings>disable</ImplicitUsings>
-    <LangVersion>15.0</LangVersion>
+    <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditLevel>low</NuGetAuditLevel>
