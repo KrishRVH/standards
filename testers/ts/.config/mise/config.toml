@@ -1,5 +1,5 @@
-# The catalog fixtures use lockfile format 3.
-min_version = "2026.9.16"
+# The catalog fixtures use lockfile format 4.
+min_version = "2026.11.1"
 
 [settings]
 lockfile = true

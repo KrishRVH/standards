@@ -259,8 +259,8 @@ differ from the directory name and default `0.0.0` version.
 
 ## Maintain the Catalog
 
-The repository root requires mise `2026.9.18` or newer, the highest fixture
-floor, which the Swift fixture's native backend sets. The root gate runs every
+The repository root requires mise `2026.11.1` or newer, the highest fixture
+floor, which the fixtures' format 4 lockfiles set. The root gate runs every
 fixture, and mise does not enforce a fixture's own `min_version` when its tasks
 run from the monorepo root. The root `.config/mise/mise.lock` pins jactionlint,
 gitleaks, Python, and the root Markdown and Shell tools. `bun.lock` pins the
@@ -296,15 +296,6 @@ concurrent task execution; language tools also set their own concurrency.
 standalone configuration. The root gate runs every fixture through the native
 `//testers/...:standards:check` path wildcard, so one scheduler attributes
 output to each project.
-
-Under `MISE_LOCKED=1`, mise 2026.10.19 checks the Rust fixture's
-`rust-toolchain.toml` against the root lockfile instead of the fixture's when
-the fixture's tasks run from the root. It logs two `rust@<version> is not in
-the lockfile` warnings and leaves Rust out of those tasks' environment.
-`mise install` still installs the locked toolchain, and the tasks run the
-rustup `cargo` already on `PATH`. rustup selects the toolchain from the same
-`rust-toolchain.toml`, because the root configuration unsets an inherited
-`RUSTUP_TOOLCHAIN`, which would otherwise outrank that file.
 
 The profile-contract portion of the root gate has three focused checkers.
 `scripts/check-standards-drift.py` keeps shared task fragments, aggregate task

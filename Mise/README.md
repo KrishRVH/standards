@@ -4,11 +4,12 @@ Copy `config.toml` to `.config/mise/config.toml`, `tasks/hygiene` to
 `.config/mise/tasks/hygiene`, and the selected `conf.d/*.toml` files to
 `.config/mise/conf.d/`.
 
-The copyable configuration requires mise `2026.9.16` or newer for structured
-task references, checksum-backed HTTP tool locks, the `hygiene` task's
-`# MISE` header, and the format 3 fixture locks. Generate a project lockfile
-with the mise release used in CI so that CI can read its format. Language
-fragments can set a higher `min_version`.
+The copyable configuration requires mise `2026.11.1` or newer, the first
+release that reads the catalog fixtures' format 4 lockfiles. It also relies on
+structured task references, checksum-backed HTTP tool locks, and the `hygiene`
+task's `# MISE` header from earlier releases. Generate a project lockfile with
+the mise release used in CI so that CI can read its format. Language fragments
+can set a higher `min_version`.
 
 Tasks are the project's interface. `mise run test`, `mise run lint`, and
 `mise run standards:check` mean the same thing in a Rust, Go, or TypeScript

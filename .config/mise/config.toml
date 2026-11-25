@@ -1,4 +1,4 @@
-min_version = "2026.9.18"
+min_version = "2026.11.1"
 monorepo_root = true
 
 [monorepo]
@@ -11,12 +11,6 @@ lockfile = false
 # TypeScript Stryker runner set their own concurrency.
 jobs = 8
 lockfile = true
-
-[env]
-# Root-run Rust fixture tasks lose mise's Rust under MISE_LOCKED=1 (README);
-# rustup then reads the fixture's rust-toolchain.toml unless an inherited
-# RUSTUP_TOOLCHAIN outranks it.
-RUSTUP_TOOLCHAIN = false
 
 [tools]
 "github:jdx/jactionlint" = "2.3.0"

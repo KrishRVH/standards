@@ -274,8 +274,8 @@ def check_aggregate_dispatch(profiles: dict[str, dict[str, object]]) -> list[str
     except tomllib.TOMLDecodeError as error:
         return [f"invalid TOML in {rel(config)}: {error}"]
 
-    if data.get("min_version") != "2026.9.16":
-        errors.append(f'{rel(config)} must set min_version = "2026.9.16"')
+    if data.get("min_version") != "2026.11.1":
+        errors.append(f'{rel(config)} must set min_version = "2026.11.1"')
 
     tasks = data.get("tasks", {})
     if not isinstance(tasks, dict):

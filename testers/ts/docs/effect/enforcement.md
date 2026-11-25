@@ -526,8 +526,8 @@ or repository-host branch protection.
 - **Enforcement:** TS —; LS —; Lint —; Neg —; Unit workflow parser (catalog);
   Sem event/command contract (catalog); Int hosted run; CI self-executes; Manual
   branch protection and required-status configuration.
-- **Version:** Workflows pin checkout v7.0.1, mise-action v5.2.3, actions/cache
-  v6.1.0, and the locally tested mise 2026.10.19; the TypeScript gate uses the
+- **Version:** Workflows pin checkout v7.0.1, mise-action v5.3.0, actions/cache
+  v6.1.0, and the locally tested mise 2026.11.14; the TypeScript gate uses the
   dependency versions above.
 
 ## EFF-030 — Constructive type modeling

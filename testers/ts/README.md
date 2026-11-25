@@ -267,7 +267,7 @@ locked `mise run standards:check` gate for every pull request, every push to
 Pull-request runs cancel superseded work; main-branch runs do not, so a later
 push cannot hide an earlier main failure.
 
-The workflow pins mise 2026.10.19. The configuration's 2026.9.16 minimum is the
+The workflow pins mise 2026.11.14. The configuration's 2026.11.1 minimum is the
 documented compatibility floor, not an instruction for CI to float.
 
 `.github/CODEOWNERS` deliberately assigns every path to the placeholder owner
